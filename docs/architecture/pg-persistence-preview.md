@@ -61,6 +61,19 @@ Uses existing merge DDL (004 + 010). Cascade dual-write via `persistCrmMergeAfte
 
 Tests: `pg-crm.integration.test.ts` (`PG.3.2` describe block)
 
+## PG.3+ — CRM relationships, tasks, tags ✅
+
+| Table | Trigger |
+| --- | --- |
+| `crm_relationships` | Relationship create/update/transition |
+| `crm_tasks` | Task create/update/complete/cancel |
+| `crm_tags` | Tag create/update/archive |
+| `crm_entity_tags` | Tag assign/remove |
+
+Migration: `038_pg3plus_crm_rel_tasks_tags.sql`
+
+Tests: `pg-crm.integration.test.ts` (`PG.3+` describe block)
+
 ## Dev/Test behavior
 
 - In-memory `Store` remains read SoR
@@ -72,4 +85,4 @@ Tests: `pg-crm.integration.test.ts` (`PG.3.2` describe block)
 - Production SoR cutover
 - CRM accounts, notes — **PG.3.1 done**
 - CRM merge — **PG.3.2 done**
-- Relationships, tasks, tags — future PG.3+ slices
+- Relationships, tasks, tags — **PG.3+ done**

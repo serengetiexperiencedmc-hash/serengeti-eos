@@ -129,6 +129,20 @@
 
 ---
 
+### 18:42 — I4.2 + PG.3+ + I3.5 ✅
+
+**Shipped:** server `0.35.0-i4.2-pg3plus-i3.5`
+
+| Increment | Change |
+| --- | --- |
+| **I4.2** | Idempotent event consumers, handler registry, NATS subscribe loop, Platform Observer service principal |
+| **PG.3+** | Relationships, tasks, tags + entity_tag dual-write/hydrate, migration 038 |
+| **I3.5** | Amazon SES v2 adapter with tenant template support |
+
+**Tests:** API 226/226 passing (13 PG-gated skipped).
+
+---
+
 ## Session summary (for user return)
 
 ### Completed this autonomous window
@@ -146,23 +160,27 @@
 11. **I3.4 Tenant email template editor**
 12. **PG.3.1 CRM accounts + notes persistence**
 13. **PG.3.2 CRM merge persistence**
+14. **I4.2 NATS consumers + idempotent handlers**
+15. **PG.3+ relationships, tasks, tags persistence**
+16. **I3.5 Amazon SES email transport**
 
 ### Current project status
 
-- **Server version:** `0.34.2-pg.3.2`
-- **Increments live:** C1–C10, O1–O4, I3.4, I4.1, I8.3, I9.2, J1–J2, PG.1–PG.3.2
+- **Server version:** `0.35.0-i4.2-pg3plus-i3.5`
+- **Increments live:** C1–C10, O1–O4, I3.5, I4.2, I8.3, I9.2, J1–J2, PG.1–PG.3+
 - **All targeted tests passing**
 
 ### Recommended next increments
 
-1. I4.2 — NATS consumers + idempotent handlers
-2. PG.3+ — relationships, tasks, tags persistence slices
-3. Production SMTP/SES with tenant templates
+1. I4.3 — processed_events PG persistence + consumer replay API
+2. PG.4 — external identifiers, duplicate candidates, import batches
+3. Email bounce/complaint webhooks for SES
 
 ### Issues resolved
 
 - TypeScript `BufferSource` compatibility in `field-cache-crypto.ts` (web tsc)
 - `nats` npm dependency added for I4.1 transport
 - I3.3 health test aligned to I3.4 increment banner
+- I4.2 consumer wrapper runs synchronously for in-memory transport
 
 ---

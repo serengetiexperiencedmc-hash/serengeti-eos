@@ -27,7 +27,18 @@ Additional env:
 ## Tests
 
 - `apps/api/src/i4.nats.test.ts` — transport selection unit tests
+- `apps/api/src/i4.2-consumer.test.ts` — idempotent in-memory consumer wiring
 - `apps/api/src/pg-i4.integration.test.ts` — outbox PG dual-write (PG.2, gated)
+
+## I4.2 — Consumers
+
+- `apps/api/src/events/handlers.ts` — handler registry (`platform.ping.v1`, CRM events)
+- `apps/api/src/events/consumer.ts` — `processEventEnvelope`, transport wrapper
+- `apps/api/src/events/nats-consumer.ts` — JetStream subscribe loop
+- `apps/api/src/events/consumer-init.ts` — startup wiring in `main.ts`
+- Service principal **Platform Observer** consumes as `platform-observer`
+
+Env: `EOS_NATS_CONSUMER`, `EOS_NATS_CONSUMER_ENABLED`
 
 ## Production gate
 
