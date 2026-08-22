@@ -2,8 +2,10 @@ import {
   authorize,
   buildEmailFromNotification,
   DEFAULT_EMAIL_TEMPLATES,
+  isSmtpConfigured,
   listEmailTemplateKeys,
   newId,
+  parseSmtpConfigFromEnv,
   resolveEmailTemplate,
   shouldEmailNotification,
   type EmailNotificationAdapter,
@@ -16,6 +18,8 @@ import type { Store } from "../store.js";
 import { persistNotifEmailOutbox } from "../persistence/notifications.js";
 import { ensureNotificationCollections } from "./collections.js";
 import { buildLiveNotifications } from "./notifications.js";
+import { resolveEmailAdapterName } from "./email-config.js";
+import { sendViaSmtp } from "./smtp-transport.js";
 
 function templateOverrides(store: Store, tenantId: string): EmailTemplate[] {
   return (store.notifEmailTemplates ?? []).filter((t) => t.tenantId === tenantId);
@@ -86,14 +90,35 @@ export function createSmtpStubEmailAdapter(store: Store, principal: Principal): 
   };
 }
 
-export function resolveEmailAdapterName(): string {
-  return process.env.EOS_EMAIL_ADAPTER === "smtp-stub" ? "smtp-stub" : "dev-outbox";
+export function createSmtpEmailAdapter(store: Store, principal: Principal): EmailNotificationAdapter {
+  const config = parseSmtpConfigFromEnv();
+  return {
+    name: "smtp",
+    async send(message: EmailNotificationMessage) {
+      if (isDuplicate(store, principal, message.notificationKey)) {
+        return { status: "skipped", reason: "already_dispatched" };
+      }
+      if (!config) {
+        await recordOutboxEntry(store, principal, message, "smtp", "failed");
+        return { status: "skipped", reason: "smtp_not_configured" };
+      }
+      try {
+        await sendViaSmtp(config, message);
+        await recordOutboxEntry(store, principal, message, "smtp", "sent");
+        return { status: "sent" };
+      } catch (err) {
+        await recordOutboxEntry(store, principal, message, "smtp", "failed");
+        return { status: "skipped", reason: err instanceof Error ? err.message : "smtp_send_failed" };
+      }
+    },
+  };
 }
 
 export function createEmailAdapter(store: Store, principal: Principal): EmailNotificationAdapter {
-  return resolveEmailAdapterName() === "smtp-stub"
-    ? createSmtpStubEmailAdapter(store, principal)
-    : createDevOutboxEmailAdapter(store, principal);
+  const name = resolveEmailAdapterName();
+  if (name === "smtp") return createSmtpEmailAdapter(store, principal);
+  if (name === "smtp-stub") return createSmtpStubEmailAdapter(store, principal);
+  return createDevOutboxEmailAdapter(store, principal);
 }
 
 export async function dispatchEmailDigest(store: Store, principal: Principal) {
@@ -189,11 +214,14 @@ export function getEmailAdapterHealth(store: Store) {
   const adapter = resolveEmailAdapterName();
   return {
     module: "notification-email",
-    increment: "I3.2",
+    increment: "I3.3",
     adapter,
     status: "ok" as const,
     outboxCount: (store.notifEmailOutbox ?? []).length,
     templateCount: listEmailTemplateKeys(store.notifEmailTemplates?.map(({ tenantId: _, ...t }) => t) ?? []).length,
-    smtpConfigured: Boolean(process.env.EOS_SMTP_HOST),
+    smtpConfigured: isSmtpConfigured(),
+    smtpHost: process.env.EOS_SMTP_HOST ?? null,
   };
 }
+
+export { resolveEmailAdapterName } from "./email-config.js";

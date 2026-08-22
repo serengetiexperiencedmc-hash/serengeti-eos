@@ -8,6 +8,7 @@ import {
 import type { Store } from "../store.js";
 import { persistNotifDismissal } from "../persistence/notifications.js";
 import { ensureNotificationCollections } from "./collections.js";
+import { resolveEmailAdapterName } from "./email-config.js";
 
 function isDismissed(store: Store, principalId: string, key: string): boolean {
   return store.notifDismissals.some((d) => d.principalId === principalId && d.notificationKey === key);
@@ -153,7 +154,7 @@ export function getNotificationHealth(store: Store) {
     status: "ok" as const,
     dismissals: store.notifDismissals.length,
     emailOutbox: (store.notifEmailOutbox ?? []).length,
-    emailAdapter: process.env.EOS_EMAIL_ADAPTER === "smtp-stub" ? "smtp-stub" : "dev-outbox",
+    emailAdapter: resolveEmailAdapterName(),
     emailTemplates: (store.notifEmailTemplates ?? []).length,
   };
 }
