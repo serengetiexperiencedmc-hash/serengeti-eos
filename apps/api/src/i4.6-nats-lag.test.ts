@@ -7,15 +7,15 @@ import { getNatsConsumerLagMetrics } from "./events/nats-lag.js";
 
 const P = TEST_BOOTSTRAP_SECRETS;
 
-describe("I4.5 NATS consumer lag metrics", () => {
+describe("I4.6 per-tenant NATS stream lag", () => {
   const carol = (store: ReturnType<typeof seedStore>) =>
     allPrincipals(store).find((p) => p.email === "carol.admin@sedmc.local")!;
 
-  it("returns unavailable summary when NATS is not configured", async () => {
+  it("returns unavailable summary with tenant lag fields when NATS is not configured", async () => {
     const prevUrl = process.env.EOS_NATS_URL;
     delete process.env.EOS_NATS_URL;
     try {
-      const store = seedStore("i45-lag", TEST_BOOTSTRAP_SECRETS);
+      const store = seedStore("i46-lag", TEST_BOOTSTRAP_SECRETS);
       recordNatsConsumerOffset(store, {
         tenantId: carol(store).tenantId,
         consumer: "platform-observer",
@@ -30,19 +30,22 @@ describe("I4.5 NATS consumer lag metrics", () => {
       expect(result.metrics.increment).toBe("I4.6");
       expect(result.metrics.natsConfigured).toBe(false);
       expect(result.metrics.summary.status).toBe("unavailable");
+      expect(result.metrics.summary.maxTenantStreamLag).toBeNull();
+      expect(result.metrics.tenantIndex).toBeNull();
       expect(result.metrics.offsets).toHaveLength(1);
-      expect(result.metrics.offsets[0]!.stalenessMs).toBeGreaterThanOrEqual(0);
+      expect(result.metrics.offsets[0]!.tenantStreamLag).toBeNull();
+      expect(result.metrics.offsets[0]!.streamHeadSeq).toBeNull();
     } finally {
       if (prevUrl === undefined) delete process.env.EOS_NATS_URL;
       else process.env.EOS_NATS_URL = prevUrl;
     }
   });
 
-  it("exposes HTTP lag route", async () => {
+  it("exposes HTTP lag route with I4.6 increment", async () => {
     const prevUrl = process.env.EOS_NATS_URL;
     delete process.env.EOS_NATS_URL;
     try {
-      const store = seedStore("i45-http", TEST_BOOTSTRAP_SECRETS);
+      const store = seedStore("i46-http", TEST_BOOTSTRAP_SECRETS);
       const app = buildServer({ store });
       const login = await app.inject({
         method: "POST",
@@ -62,7 +65,8 @@ describe("I4.5 NATS consumer lag metrics", () => {
       });
       expect(res.statusCode).toBe(200);
       expect(res.json().increment).toBe("I4.6");
-      expect(res.json().summary.tenantsTracked).toBe(0);
+      expect(res.json().summary).toHaveProperty("maxTenantStreamLag");
+      expect(res.json().tenantIndex).toBeNull();
     } finally {
       if (prevUrl === undefined) delete process.env.EOS_NATS_URL;
       else process.env.EOS_NATS_URL = prevUrl;

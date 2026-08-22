@@ -189,27 +189,39 @@
 
 ### Current project status
 
-- **Server version:** `0.38.0-i3.6.1-i4.5-pg6`
-- **Increments live:** C1–C10, O1–O4, I3.6.1, I4.3–I4.5, I8.3, I9.2, J1–J2, PG.1–PG.6
+- **Server version:** `0.40.0-i4.6-i3.7`
+- **Increments live:** C1–C10, O1–O4, I3.6.1–I3.7, I4.3–I4.6, I8.3, I9.2, J1–J2, PG.1–PG.7
 - **All targeted tests passing**
 
-### 19:xx — I3.6.1 + I4.5 + PG.6 ✅
+### 19:xx — Commercial preview fix ✅
 
-**Shipped:** server `0.38.0-i3.6.1-i4.5-pg6`
+- Kernel subpath import for field cache crypto (fixes Turbopack 500 on `/commercial`)
+- `dev-preview.mjs` requires HTTP 200 on `/commercial` before reusing web server
+
+### 19:xx — PG.7 ✅
+
+**Shipped:** server `0.39.0-pg7`
 
 | Increment | Change |
 | --- | --- |
-| **I3.6.1** | SNS RSA signature verification on SES webhook; cert URL allowlist + cache |
-| **I4.5** | `GET /v1/events/consumers/nats/lag` + `/commercial/events` dashboard |
-| **PG.6** | Supplier/contact/rate/content-block dual-write + startup hydrate |
+| **PG.7** | Supplier import execute idempotency dual-write + startup hydrate |
 
-**Tests:** 242 API passed; web tsc clean
+### 20:xx — I4.6 + I3.7 ✅
+
+**Shipped:** server `0.40.0-i4.6-i3.7`
+
+| Increment | Change |
+| --- | --- |
+| **I4.6** | Per-tenant stream lag (`tenantStreamLag`), bounded recent-message tenant index, dashboard updates |
+| **I3.7** | SNS `SubscriptionConfirmation` auto-confirm via `SubscribeURL` fetch; health flag |
+
+Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 200 probe).
 
 ### Recommended next increments
 
-1. PG.7 — supplier execute idempotency PG persistence
-2. I4.6 — per-tenant stream filtering or seq index for true tenant lag
-3. I3.7 — SES subscription confirmation auto-confirm (SubscribeURL fetch)
+1. PG.8 — supplier CRUD API dual-write (when REST create/update lands)
+2. I4.7 — durable consumer per-tenant filter subjects (true isolated lag)
+3. I3.8 — SES configuration set event routing
 
 ### Issues resolved
 

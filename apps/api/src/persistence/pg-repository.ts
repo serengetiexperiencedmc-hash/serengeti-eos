@@ -1157,6 +1157,54 @@ export async function countSupContentBlocks(pool: DbPool, tenantId: string): Pro
   return result.rows[0]?.c ?? 0;
 }
 
+// --- PG.7 supplier import execute idempotency ---
+
+export function supImportExecutePgKey(batchId: string, clientKey: string): string {
+  return `${batchId}:${clientKey}`;
+}
+
+export function supImportExecuteStoreKey(tenantId: string, batchId: string, clientKey: string): string {
+  return `${tenantId}:${batchId}:${clientKey}`;
+}
+
+export async function upsertSupImportExecuteIdempotency(
+  pool: DbPool,
+  row: { tenantId: string; batchId: string; clientKey: string },
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO sup_import_execute_idempotency (tenant_id, idempotency_key, batch_id)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (tenant_id, idempotency_key) DO UPDATE SET batch_id = EXCLUDED.batch_id`,
+    [row.tenantId, supImportExecutePgKey(row.batchId, row.clientKey), row.batchId],
+  );
+}
+
+export async function loadSupImportExecuteIdempotencies(
+  pool: DbPool,
+): Promise<Array<{ storeKey: string; status: string }>> {
+  const result = await pool.query(
+    `SELECT tenant_id, idempotency_key, batch_id FROM sup_import_execute_idempotency`,
+  );
+  return result.rows.map((row) => {
+    const tenantId = row.tenant_id as string;
+    const pgKey = row.idempotency_key as string;
+    const batchId = row.batch_id as string;
+    const clientKey = pgKey.startsWith(`${batchId}:`) ? pgKey.slice(batchId.length + 1) : pgKey;
+    return {
+      storeKey: supImportExecuteStoreKey(tenantId, batchId, clientKey),
+      status: "committed",
+    };
+  });
+}
+
+export async function countSupImportExecuteIdempotencies(pool: DbPool, tenantId: string): Promise<number> {
+  const result = await pool.query(
+    `SELECT COUNT(*)::int AS c FROM sup_import_execute_idempotency WHERE tenant_id = $1`,
+    [tenantId],
+  );
+  return result.rows[0]?.c ?? 0;
+}
+
 // --- PG.3 CRM persistence ---
 
 export async function upsertCrmOrganizationType(

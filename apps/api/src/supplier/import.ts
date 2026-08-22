@@ -17,7 +17,7 @@ import type { Store } from "../store.js";
 import { allowSupplierAudit, denySupplierAudit } from "./audit.js";
 import { ensureSupplierCollections } from "./collections.js";
 import { findSupplierByCode } from "./supplier.js";
-import { persistSupImportBatchAfterCommit, persistSupEntityAfterCommit } from "../persistence/supplier.js";
+import { persistSupImportBatchAfterCommit, persistSupEntityAfterCommit, persistSupImportExecuteIdempotencyAfterCommit } from "../persistence/supplier.js";
 
 function importExecuteKey(tenantId: string, batchId: string, key: string): string {
   return `${tenantId}:${batchId}:${key}`;
@@ -366,6 +366,12 @@ export function executeSupplierImportBatch(
     batch.committedByPrincipalId = principal.id;
     batch.executeIdempotencyKey = idempotencyKey.trim();
     store.supImportExecuteIdempotency[idemKey] = "committed";
+    void persistSupImportExecuteIdempotencyAfterCommit(
+      store.dbPool,
+      principal.tenantId,
+      batch.id,
+      idempotencyKey.trim(),
+    );
 
     allowSupplierAudit(store, principal, "supplier:import:bulk", "sup_import_batch", batch.id, correlationId, {
       status: batch.status,

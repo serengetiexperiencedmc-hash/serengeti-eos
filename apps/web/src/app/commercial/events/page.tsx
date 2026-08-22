@@ -35,7 +35,7 @@ export default function EventsInfrastructurePage() {
     <div className="mx-auto max-w-6xl px-6 py-8">
       <PageHeader
         title="Event Infrastructure"
-        subtitle="NATS JetStream consumer lag and tenant offset checkpoints (I4.5)"
+        subtitle="NATS JetStream consumer lag and tenant offset checkpoints (I4.6)"
       />
 
       {error ? (
@@ -44,7 +44,7 @@ export default function EventsInfrastructurePage() {
 
       {metrics ? (
         <>
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <Card>
               <div className="text-xs uppercase tracking-wide text-stone-500">Status</div>
               <div className={`mt-1 text-xl font-semibold ${statusColor(metrics.summary.status)}`}>
@@ -67,11 +67,39 @@ export default function EventsInfrastructurePage() {
               <div className="mt-1 text-sm text-stone-600">stored offset checkpoints</div>
             </Card>
             <Card>
+              <div className="text-xs uppercase tracking-wide text-stone-500">Max tenant lag</div>
+              <div className="mt-1 text-xl font-semibold">
+                {metrics.summary.maxTenantStreamLag ?? "—"}
+              </div>
+              <div className="mt-1 text-sm text-stone-600">stream head − tenant checkpoint</div>
+            </Card>
+            <Card>
               <div className="text-xs uppercase tracking-wide text-stone-500">Max staleness</div>
               <div className="mt-1 text-xl font-semibold">{formatMs(metrics.summary.maxStalenessMs)}</div>
               <div className="mt-1 text-sm text-stone-600">since last processed seq</div>
             </Card>
           </div>
+
+          {metrics.tenantIndex ? (
+            <div className="mt-6">
+              <Card title="Recent stream scan (last 50 seq)">
+                <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
+                  <div>
+                    <dt className="text-stone-500">Scanned</dt>
+                    <dd className="font-medium">{metrics.tenantIndex.scanned}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-stone-500">Tenant messages</dt>
+                    <dd className="font-medium">{metrics.tenantIndex.tenantMessages}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-stone-500">Other tenants</dt>
+                    <dd className="font-medium">{metrics.tenantIndex.otherTenantMessages}</dd>
+                  </div>
+                </dl>
+              </Card>
+            </div>
+          ) : null}
 
           {metrics.stream ? (
             <div className="mt-6">
@@ -142,6 +170,7 @@ export default function EventsInfrastructurePage() {
                     <th className="py-2 pr-4">Consumer</th>
                     <th className="py-2 pr-4">Stream</th>
                     <th className="py-2 pr-4">Last seq</th>
+                    <th className="py-2 pr-4">Tenant lag</th>
                     <th className="py-2 pr-4">Last event</th>
                     <th className="py-2 pr-4">Staleness</th>
                     <th className="py-2">Updated</th>
@@ -153,6 +182,7 @@ export default function EventsInfrastructurePage() {
                       <td className="py-2 pr-4 font-medium">{o.consumer}</td>
                       <td className="py-2 pr-4">{o.stream}</td>
                       <td className="py-2 pr-4">{o.lastStreamSeq}</td>
+                      <td className="py-2 pr-4">{o.tenantStreamLag ?? "—"}</td>
                       <td className="py-2 pr-4 font-mono text-xs">{o.lastEventId ?? "—"}</td>
                       <td className="py-2 pr-4">{formatMs(o.stalenessMs)}</td>
                       <td className="py-2 text-stone-600">{new Date(o.updatedAt).toLocaleString()}</td>

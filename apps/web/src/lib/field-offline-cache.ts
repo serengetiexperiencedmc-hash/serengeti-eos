@@ -2,7 +2,7 @@ import {
   decryptFieldCachePayload,
   encryptFieldCachePayload,
   isEncryptedFieldCacheBlob,
-} from "@sedmc/kernel";
+} from "@sedmc/kernel/field-cache-crypto";
 import type { SyncBundle, SyncPushDelta, SyncSession } from "./field-sync-api";
 
 const DEVICE_KEY = "sedmc-field-device-id";

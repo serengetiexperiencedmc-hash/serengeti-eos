@@ -54,19 +54,6 @@ async function fetchOk(url, timeoutMs = 4000) {
   }
 }
 
-async function fetchResponds(url, timeoutMs = 4000) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    await fetch(url, { signal: controller.signal, redirect: "follow" });
-    return true;
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 async function waitForApi(maxMs = 60_000) {
   const deadline = Date.now() + maxMs;
   while (Date.now() < deadline) {
@@ -123,9 +110,9 @@ async function resolveService(label, port, probe) {
 
   if (await isPortInUse(port)) {
     console.error(
-      `[${label}] port ${port} is in use but does not look like the EOS ${label} server.`,
+      `[${label}] port ${port} is in use but ${label === "web" ? "/commercial is not healthy (expected HTTP 200)" : "the health probe failed"}.`,
     );
-    console.error(`        Free port ${port} or choose another via env (API: EOS_PORT).`);
+    console.error(`        Stop the process on port ${port} and re-run dev:preview.`);
     return { start: false, failed: true };
   }
 
@@ -145,7 +132,7 @@ async function main() {
   const api = await resolveService("api", API_PORT, () => fetchOk(`${API_ORIGIN}/health`));
   if (api.failed) process.exit(1);
 
-  const web = await resolveService("web", WEB_PORT, () => fetchResponds(`${WEB_ORIGIN}/commercial`));
+  const web = await resolveService("web", WEB_PORT, () => fetchOk(`${WEB_ORIGIN}/commercial`));
   if (web.failed) process.exit(1);
 
   if (!api.start && !web.start) {

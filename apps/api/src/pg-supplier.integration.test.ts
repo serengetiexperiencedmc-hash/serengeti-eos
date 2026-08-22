@@ -6,8 +6,12 @@ import {
   executeSupplierImportBatch,
   validateSupplierImportBatch,
 } from "./supplier/import.js";
-import { countSupImportBatches, countSupSuppliers } from "./persistence/pg-repository.js";
-import { hydrateSupFromPostgres, hydrateSupImportBatchesFromPostgres } from "./persistence/supplier.js";
+import { countSupImportBatches, countSupImportExecuteIdempotencies, countSupSuppliers } from "./persistence/pg-repository.js";
+import {
+  hydrateSupFromPostgres,
+  hydrateSupImportBatchesFromPostgres,
+  hydrateSupImportExecuteIdempotenciesFromPostgres,
+} from "./persistence/supplier.js";
 import { syncStoreToPostgres } from "./persistence/sync.js";
 import { allPrincipals } from "./store.js";
 
@@ -134,5 +138,49 @@ describePg("PG.6 supplier entity dual-write", () => {
     const merged = await hydrateSupFromPostgres(pool, fresh);
     expect(merged.suppliers).toBeGreaterThan(0);
     expect(fresh.supSuppliers.some((s) => s.supplierCode.includes("PG6"))).toBe(true);
+  });
+});
+
+describePg("PG.7 supplier import execute idempotency", () => {
+  const pool = createPool(url!);
+  const tenantId = "11111111-1111-4111-8111-111111111111";
+  const carolId = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+
+  afterAll(async () => {
+    await pool.end();
+  });
+
+  it("persists and hydrates execute idempotency keys", async () => {
+    await migrate(pool);
+    const store = seedStore("pg7-idem", TEST_BOOTSTRAP_SECRETS);
+    store.dbPool = pool;
+    await syncStoreToPostgres(pool, store);
+
+    const principal = allPrincipals(store).find((p) => p.id === carolId)!;
+    const csv = SUPPLIER_CSV.replace("PG5", "PG7");
+    const created = createSupplierImportBatch(
+      store,
+      principal,
+      { sourceSystem: "pg7-test", entityType: "supplier", csv },
+      "pg7-create",
+    );
+    expect("batch" in created).toBe(true);
+    if (!("batch" in created)) return;
+
+    validateSupplierImportBatch(store, principal, created.batch.id, "pg7-validate");
+    const first = executeSupplierImportBatch(store, principal, created.batch.id, "pg7-exec", "pg7-idem-key");
+    expect("batch" in first).toBe(true);
+    await new Promise((r) => setTimeout(r, 100));
+    expect(await countSupImportExecuteIdempotencies(pool, tenantId)).toBeGreaterThan(0);
+
+    const replay = executeSupplierImportBatch(store, principal, created.batch.id, "pg7-exec-2", "pg7-idem-key");
+    expect("batch" in replay).toBe(true);
+    if ("batch" in replay) expect(replay.replay).toBe(true);
+
+    const fresh = seedStore("pg7-fresh", TEST_BOOTSTRAP_SECRETS);
+    fresh.dbPool = pool;
+    const merged = await hydrateSupImportExecuteIdempotenciesFromPostgres(pool, fresh);
+    expect(merged).toBeGreaterThan(0);
+    expect(Object.keys(fresh.supImportExecuteIdempotency).length).toBeGreaterThan(0);
   });
 });
