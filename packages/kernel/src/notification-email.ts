@@ -61,6 +61,17 @@ export type NotifEmailSuppression = {
   liftedAt?: string;
 };
 
+/** I3.14 — transactional override: allowlisted addresses bypass active suppressions. */
+export type NotifEmailAllowlistEntry = {
+  id: string;
+  tenantId: string;
+  email: string;
+  note?: string;
+  createdAt: string;
+  createdByPrincipalId?: string;
+  revokedAt?: string;
+};
+
 export type NotifEmailDeliveryAnalytics = {
   deliveryEventsByType: Record<string, number>;
   suppressionsByReason: Record<string, number>;

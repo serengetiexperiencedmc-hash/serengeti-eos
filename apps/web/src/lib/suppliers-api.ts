@@ -35,6 +35,7 @@ export type SupplierDetail = {
     currency: string;
     validFrom: string;
     validTo: string;
+    seasonLabel?: string;
     status: string;
   }>;
   contentBlocks: Array<{
@@ -298,6 +299,7 @@ export async function createSupplierRate(
     currency: string;
     validFrom: string;
     validTo: string;
+    seasonLabel?: string;
     status?: string;
   },
 ) {
@@ -343,6 +345,23 @@ export async function archiveSupplierContentBlock(token: string, supplierId: str
     method: "DELETE",
     token,
   });
+}
+
+export async function getSupplierRateCalendar(
+  token: string,
+  query: { from: string; to: string; supplierId?: string; seasonLabel?: string },
+) {
+  const params = new URLSearchParams({ from: query.from, to: query.to });
+  if (query.supplierId) params.set("supplierId", query.supplierId);
+  if (query.seasonLabel) params.set("seasonLabel", query.seasonLabel);
+  return eosFetch<{
+    from: string;
+    to: string;
+    items: SupplierDetail["rates"];
+    seasons: Array<{ label: string; count: number; rates: SupplierDetail["rates"] }>;
+    months: Array<{ month: string; count: number; rates: SupplierDetail["rates"] }>;
+    increment: string;
+  }>(`/v1/suppliers/rates/calendar?${params.toString()}`, { token });
 }
 
 export async function checkSupplierApiHealth(token: string): Promise<{ module: string; status: string; suppliers: number }> {

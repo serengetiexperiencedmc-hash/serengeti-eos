@@ -150,6 +150,34 @@ export async function importEmailSuppressions(
   });
 }
 
+export type EmailAllowlistItem = {
+  id: string;
+  email: string;
+  note?: string;
+  createdAt: string;
+};
+
+export async function listEmailAllowlist(token: string) {
+  return eosFetch<{ items: EmailAllowlistItem[]; increment: string }>(
+    "/v1/notifications/email/allowlist",
+    { token },
+  );
+}
+
+export async function addEmailAllowlist(token: string, input: { email: string; note?: string }) {
+  return eosFetch<{ entry: EmailAllowlistItem; updated: boolean; increment: string }>(
+    "/v1/notifications/email/allowlist",
+    { token, method: "POST", body: JSON.stringify(input) },
+  );
+}
+
+export async function revokeEmailAllowlist(token: string, id: string) {
+  return eosFetch<{ entry: EmailAllowlistItem & { revokedAt?: string }; increment: string }>(
+    `/v1/notifications/email/allowlist/${id}/revoke`,
+    { token, method: "POST", body: "{}" },
+  );
+}
+
 export type EmailDeliveryAnalytics = {
   deliveryEventsByType: Record<string, number>;
   suppressionsByReason: Record<string, number>;

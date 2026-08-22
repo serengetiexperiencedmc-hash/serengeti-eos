@@ -20,7 +20,7 @@ import {
   restoreSupplier,
 } from "./supplier.js";
 import { archiveSupplierContact, createSupplierContact, updateSupplierContact } from "./contacts.js";
-import { archiveSupplierRate, createSupplierRate, updateSupplierRate } from "./rates.js";
+import { archiveSupplierRate, createSupplierRate, getSupplierRateCalendar, updateSupplierRate } from "./rates.js";
 import {
   archiveSupplierContentBlock,
   createSupplierContentBlock,
@@ -79,6 +79,28 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
           : {}),
       ...(query.q !== undefined ? { q: query.q } : {}),
       ...(query.archived === "1" || query.archived === "true" ? { archived: true } : {}),
+    });
+    if ("error" in result) return sendSupplierError(reply, result);
+    return result;
+  });
+
+  app.get("/v1/suppliers/rates/calendar", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const query = req.query as {
+      from?: string;
+      to?: string;
+      supplierId?: string;
+      seasonLabel?: string;
+    };
+    if (!query.from || !query.to) {
+      return reply.code(400).send({ error: "invalid_request", reason: "from_and_to_required" });
+    }
+    const result = getSupplierRateCalendar(store, principal, {
+      from: query.from,
+      to: query.to,
+      ...(query.supplierId ? { supplierId: query.supplierId } : {}),
+      ...(query.seasonLabel ? { seasonLabel: query.seasonLabel } : {}),
     });
     if ("error" in result) return sendSupplierError(reply, result);
     return result;

@@ -50,7 +50,7 @@ describe("PG.13 supplier facets and search", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(facets.statusCode).toBe(200);
-    expect(facets.json().increment).toBe("PG.13");
+    expect(facets.json().increment).toBe("PG.14");
     expect(facets.json().total).toBeGreaterThanOrEqual(2);
     expect(facets.json().facets.country.some((c: { value: string }) => c.value === "TZ")).toBe(true);
     expect(facets.json().facets.category.some((c: { value: string }) => c.value === "accommodation")).toBe(
@@ -63,7 +63,7 @@ describe("PG.13 supplier facets and search", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(filtered.statusCode).toBe(200);
-    expect(filtered.json().increment).toBe("PG.13");
+    expect(filtered.json().increment).toBe("PG.14");
     expect(filtered.json().items.every((s: { country: string }) => s.country === "TZ")).toBe(true);
     expect(filtered.json().items.every((s: { preferredPartner: boolean }) => s.preferredPartner)).toBe(true);
   });
@@ -77,6 +77,6 @@ describe("PG.13 supplier facets and search", () => {
       url: "/v1/suppliers/health",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(health.json().increment).toBe("PG.13");
+    expect(health.json().increment).toBe("PG.14");
   });
 });

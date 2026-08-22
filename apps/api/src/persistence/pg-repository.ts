@@ -445,6 +445,47 @@ export async function loadNotifEmailSuppressions(
   }));
 }
 
+export async function upsertNotifEmailAllowlist(
+  pool: DbPool,
+  entry: import("@sedmc/kernel").NotifEmailAllowlistEntry,
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO notif_email_allowlist (
+      id, tenant_id, email, note, created_at, created_by_principal_id, revoked_at
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7)
+     ON CONFLICT (id) DO UPDATE SET
+       note = EXCLUDED.note,
+       revoked_at = EXCLUDED.revoked_at`,
+    [
+      entry.id,
+      entry.tenantId,
+      entry.email,
+      entry.note ?? null,
+      entry.createdAt,
+      entry.createdByPrincipalId ?? null,
+      entry.revokedAt ?? null,
+    ],
+  );
+}
+
+export async function loadNotifEmailAllowlist(
+  pool: DbPool,
+): Promise<import("@sedmc/kernel").NotifEmailAllowlistEntry[]> {
+  const result = await pool.query(
+    `SELECT id, tenant_id, email, note, created_at, created_by_principal_id, revoked_at
+     FROM notif_email_allowlist`,
+  );
+  return result.rows.map((row) => ({
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    email: row.email as string,
+    ...(row.note ? { note: row.note as string } : {}),
+    createdAt: (row.created_at as Date).toISOString(),
+    ...(row.created_by_principal_id ? { createdByPrincipalId: row.created_by_principal_id as string } : {}),
+    ...(row.revoked_at ? { revokedAt: (row.revoked_at as Date).toISOString() } : {}),
+  }));
+}
+
 export async function countNotifDismissals(pool: DbPool, tenantId: string): Promise<number> {
   const result = await pool.query(`SELECT COUNT(*)::int AS c FROM notif_dismissals WHERE tenant_id = $1`, [tenantId]);
   return result.rows[0]?.c ?? 0;

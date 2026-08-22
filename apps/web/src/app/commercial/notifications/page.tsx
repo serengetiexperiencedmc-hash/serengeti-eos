@@ -22,10 +22,14 @@ import {
   exportEmailSuppressions,
   bulkLiftEmailSuppressions,
   importEmailSuppressions,
+  listEmailAllowlist,
+  addEmailAllowlist,
+  revokeEmailAllowlist,
   type EmailDeliveryAnalytics,
   type EmailDeliveryEventItem,
   type EmailOutboxItem,
   type EmailSuppressionItem,
+  type EmailAllowlistItem,
   type EmailTemplateItem,
   type NotificationItem,
 } from "@/lib/notifications-api";
@@ -35,6 +39,9 @@ export default function NotificationsPage() {
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [outbox, setOutbox] = useState<EmailOutboxItem[]>([]);
   const [suppressions, setSuppressions] = useState<EmailSuppressionItem[]>([]);
+  const [allowlist, setAllowlist] = useState<EmailAllowlistItem[]>([]);
+  const [allowlistEmail, setAllowlistEmail] = useState("");
+  const [allowlistNote, setAllowlistNote] = useState("");
   const [selectedSuppressions, setSelectedSuppressions] = useState<Set<string>>(new Set());
   const [importCsv, setImportCsv] = useState("");
   const [deliveryEvents, setDeliveryEvents] = useState<EmailDeliveryEventItem[]>([]);
@@ -59,7 +66,7 @@ export default function NotificationsPage() {
 
   async function reload() {
     if (!token) return;
-    const [inbox, emailOutbox, tmpl, health, suppressed, events, stats] = await Promise.all([
+    const [inbox, emailOutbox, tmpl, health, suppressed, events, stats, allowed] = await Promise.all([
       listNotifications(token),
       listEmailOutbox(token),
       listEmailTemplates(token),
@@ -67,12 +74,14 @@ export default function NotificationsPage() {
       listEmailSuppressions(token),
       listEmailDeliveryEvents(token, 15),
       getEmailDeliveryAnalytics(token),
+      listEmailAllowlist(token),
     ]);
     setItems(inbox.items);
     setOutbox(emailOutbox.items);
     setTemplates(tmpl.items);
     setAdapter(health.adapter);
     setSuppressions(suppressed.items);
+    setAllowlist(allowed.items);
     setDeliveryEvents(events.items);
     setAnalytics(stats.analytics);
     if (tmpl.items.length > 0 && !selectedKey) {
@@ -197,7 +206,7 @@ export default function NotificationsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="I3 · I3.13 · Notifications"
+        eyebrow="I3 · I3.14 · Notifications"
         title="Action Inbox"
         subtitle={`Live alerts + email digest · adapter: ${adapter}`}
         actions={
@@ -307,7 +316,7 @@ export default function NotificationsPage() {
       <div className="mt-4">
         <Card title={`Email suppressions (${suppressions.length})`}>
           <p className="mb-3 text-sm text-muted">
-            Bounce, complaint, reject, and SES account suppressions block further sends until lifted (I3.13).
+            Bounce, complaint, reject, and SES account suppressions block further sends until lifted — unless allowlisted (I3.14).
           </p>
           {token && (
             <div className="mb-3 flex flex-wrap gap-2">
@@ -375,6 +384,73 @@ export default function NotificationsPage() {
               </div>
             ))}
             {suppressions.length === 0 && <p className="text-sm text-muted">No active suppressions.</p>}
+          </div>
+        </Card>
+      </div>
+      <div className="mt-4">
+        <Card title={`Transactional allowlist (${allowlist.length})`}>
+          <p className="mb-3 text-sm text-muted">
+            Allowlisted addresses bypass active suppressions for critical transactional mail (I3.14).
+          </p>
+          {token && (
+            <form
+              className="mb-3 flex flex-wrap gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!allowlistEmail.trim()) return;
+                void addEmailAllowlist(token, {
+                  email: allowlistEmail.trim(),
+                  ...(allowlistNote.trim() ? { note: allowlistNote.trim() } : {}),
+                })
+                  .then(() => {
+                    setAllowlistEmail("");
+                    setAllowlistNote("");
+                    return reload();
+                  })
+                  .catch((err) => setError(err instanceof Error ? err.message : "Allowlist failed"));
+              }}
+            >
+              <input
+                required
+                type="email"
+                placeholder="email@example.com"
+                value={allowlistEmail}
+                onChange={(e) => setAllowlistEmail(e.target.value)}
+                className="min-w-[12rem] flex-1 rounded border border-line bg-paper px-2 py-1.5 text-sm"
+              />
+              <input
+                placeholder="Note (optional)"
+                value={allowlistNote}
+                onChange={(e) => setAllowlistNote(e.target.value)}
+                className="min-w-[8rem] flex-1 rounded border border-line bg-paper px-2 py-1.5 text-sm"
+              />
+              <Btn type="submit" size="sm" variant="secondary">
+                Add
+              </Btn>
+            </form>
+          )}
+          <div className="space-y-2">
+            {allowlist.map((a) => (
+              <div key={a.id} className="flex items-center justify-between gap-3 rounded border border-line px-3 py-3">
+                <div>
+                  <div className="font-medium text-ink">{a.email}</div>
+                  <div className="text-xs text-muted">
+                    {a.note ? `${a.note} · ` : ""}
+                    {new Date(a.createdAt).toLocaleString()}
+                  </div>
+                </div>
+                {token && (
+                  <Btn
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => void revokeEmailAllowlist(token, a.id).then(reload)}
+                  >
+                    Revoke
+                  </Btn>
+                )}
+              </div>
+            ))}
+            {allowlist.length === 0 && <p className="text-sm text-muted">No allowlist entries.</p>}
           </div>
         </Card>
       </div>

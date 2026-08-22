@@ -189,8 +189,8 @@
 
 ### Current project status
 
-- **Server version:** `0.49.0-i4.10-i3.13`
-- **Increments live:** C1–C10, O1–O4, I3.6.1–I3.13, I4.3–I4.10, I8.3, I9.2, J1–J2, PG.1–PG.13
+- **Server version:** `0.50.0-pg14-i3.14`
+- **Increments live:** C1–C10, O1–O4, I3.6.1–I3.14, I4.3–I4.10, I8.3, I9.2, J1–J2, PG.1–PG.14
 - **All targeted tests passing**
 
 ### 19:xx — Commercial preview fix ✅
@@ -301,11 +301,20 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **I4.10** | DLQ remediation PATCH + Events UI status actions |
 | **I3.13** | Suppression bulk-lift + CSV/JSON import |
 
+### 20:xx — PG.14 + I3.14 ✅
+
+**Shipped:** server `0.50.0-pg14-i3.14`
+
+| Increment | Change |
+| --- | --- |
+| **PG.14** | Supplier rate calendar by season/month window |
+| **I3.14** | Email allowlist transactional override of suppressions |
+
 ### Recommended next increments
 
-1. PG.14 — supplier rate calendar / season views
-2. I3.14 — suppression allowlist / transactional override
-3. I4.11 — DLQ owner assignment dashboard filters
+1. I4.11 — DLQ owner assignment dashboard filters
+2. I3.15 — allowlist expiry / audit export
+3. PG.15 — rate calendar conflict detection
 
 ### Issues resolved
 

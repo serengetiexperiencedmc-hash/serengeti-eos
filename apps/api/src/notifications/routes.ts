@@ -4,6 +4,11 @@ import type { Store } from "../store.js";
 import { dispatchEmailDigest, getEmailAdapterHealth, listEmailOutbox, listEmailTemplates, previewEmailTemplate, upsertEmailTemplate } from "./email.js";
 import { handleSesDeliveryWebhook, listEmailDeliveryEvents } from "./ses-webhook.js";
 import { liftEmailSuppression, listEmailSuppressions, syncEmailSuppressionsFromSes, exportEmailSuppressions, bulkLiftEmailSuppressions, importEmailSuppressions } from "./email-suppression.js";
+import {
+  addEmailAllowlistEntry,
+  listEmailAllowlist,
+  revokeEmailAllowlistEntry,
+} from "./email-allowlist.js";
 import { getEmailDeliveryAnalytics } from "./email-analytics.js";
 import { dismissAllNotifications, dismissNotification, getNotificationHealth, listNotifications } from "./notifications.js";
 
@@ -162,6 +167,35 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
       format: query.format === "csv" ? "csv" : "json",
       includeLifted: query.includeLifted === "1" || query.includeLifted === "true",
     });
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.get("/v1/notifications/email/allowlist", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = listEmailAllowlist(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/notifications/email/allowlist", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const body = (req.body ?? {}) as { email?: string; note?: string };
+    if (!body.email) return reply.code(400).send({ error: "invalid_request", reason: "email_required" });
+    const result = await addEmailAllowlistEntry(store, principal, {
+      email: body.email,
+      ...(body.note !== undefined ? { note: body.note } : {}),
+    });
+    if ("error" in result) return sendError(reply, result);
+    return reply.code(result.updated ? 200 : 201).send(result);
+  });
+
+  app.post("/v1/notifications/email/allowlist/:id/revoke", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = await revokeEmailAllowlistEntry(store, principal, (req.params as { id: string }).id);
     if ("error" in result) return sendError(reply, result);
     return result;
   });

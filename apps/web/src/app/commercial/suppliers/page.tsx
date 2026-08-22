@@ -18,6 +18,7 @@ import {
   formatCategoryLabel,
   getSupplier,
   getSupplierFacets,
+  getSupplierRateCalendar,
   listSuppliers,
   restoreSupplier,
   type SupplierDetail,
@@ -131,8 +132,15 @@ function SupplierDetailDrawer({
     currency: "USD",
     validFrom: "2026-01-01",
     validTo: "2026-12-31",
+    seasonLabel: "",
     status: "active",
   });
+  const [calendarFrom, setCalendarFrom] = useState("2026-01-01");
+  const [calendarTo, setCalendarTo] = useState("2026-12-31");
+  const [calendar, setCalendar] = useState<{
+    seasons: Array<{ label: string; count: number }>;
+    months: Array<{ month: string; count: number }>;
+  } | null>(null);
   const [blockForm, setBlockForm] = useState({
     blockCode: "",
     blockType: "description",
@@ -142,8 +150,30 @@ function SupplierDetailDrawer({
   });
 
   if (!detail && !loading) return null;
-
   const supplier = detail?.supplier;
+
+  async function loadCalendar() {
+    if (!supplier) return;
+    try {
+      const res = await getSupplierRateCalendar(token, {
+        from: calendarFrom,
+        to: calendarTo,
+        supplierId: supplier.id,
+      });
+      setCalendar({
+        seasons: res.seasons.map((s) => ({ label: s.label, count: s.count })),
+        months: res.months.map((m) => ({ month: m.month, count: m.count })),
+      });
+    } catch {
+      setCalendar(null);
+    }
+  }
+
+  useEffect(() => {
+    if (!supplier) return;
+    void loadCalendar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, supplier?.id, calendarFrom, calendarTo, detail?.rates.length]);
 
   async function handleAddContact(e: React.FormEvent) {
     e.preventDefault();
@@ -182,6 +212,7 @@ function SupplierDetailDrawer({
         currency: rateForm.currency,
         validFrom: rateForm.validFrom,
         validTo: rateForm.validTo,
+        ...(rateForm.seasonLabel.trim() ? { seasonLabel: rateForm.seasonLabel.trim() } : {}),
         status: rateForm.status,
       });
       setShowRateForm(false);
@@ -193,9 +224,11 @@ function SupplierDetailDrawer({
         currency: "USD",
         validFrom: "2026-01-01",
         validTo: "2026-12-31",
+        seasonLabel: "",
         status: "active",
       });
       onRefresh();
+      void loadCalendar();
     } catch (err) {
       setFormError(err instanceof EosApiError ? err.message : "Failed to add rate");
     } finally {
@@ -459,10 +492,52 @@ function SupplierDetailDrawer({
                       className="rounded-md border border-line bg-paper px-2 py-1.5 text-sm"
                     />
                   </div>
+                  <input
+                    placeholder="Season label (optional)"
+                    value={rateForm.seasonLabel}
+                    onChange={(e) => setRateForm((f) => ({ ...f, seasonLabel: e.target.value }))}
+                    className="w-full rounded-md border border-line bg-paper px-2 py-1.5 text-sm"
+                  />
                   <Btn type="submit" size="sm" disabled={rateBusy}>
                     {rateBusy ? "Saving…" : "Save rate"}
                   </Btn>
                 </form>
+              )}
+              {calendar && (
+                <div className="mb-3 rounded-md border border-line bg-ivory p-3">
+                  <div className="mb-2 text-xs uppercase tracking-wide text-muted">Rate calendar (PG.14)</div>
+                  <div className="mb-2 grid grid-cols-2 gap-2">
+                    <input
+                      type="date"
+                      value={calendarFrom}
+                      onChange={(e) => setCalendarFrom(e.target.value)}
+                      className="rounded-md border border-line bg-paper px-2 py-1 text-xs"
+                    />
+                    <input
+                      type="date"
+                      value={calendarTo}
+                      onChange={(e) => setCalendarTo(e.target.value)}
+                      className="rounded-md border border-line bg-paper px-2 py-1 text-xs"
+                    />
+                  </div>
+                  <div className="mb-2 flex flex-wrap gap-2">
+                    {calendar.seasons.map((s) => (
+                      <span key={s.label} className="rounded border border-line px-2 py-0.5 text-xs text-ink">
+                        {s.label} · {s.count}
+                      </span>
+                    ))}
+                    {calendar.seasons.length === 0 && (
+                      <span className="text-xs text-muted">No rates in window</span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {calendar.months.map((m) => (
+                      <span key={m.month} className="rounded bg-sand/40 px-1.5 py-0.5 font-mono text-[10px] text-muted">
+                        {m.month}:{m.count}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               )}
               {detail.rates.length === 0 ? (
                 <p className="text-muted">No rates yet.</p>
@@ -479,6 +554,7 @@ function SupplierDetailDrawer({
                           </div>
                           <div className="text-xs text-muted">
                             {r.validFrom} → {r.validTo}
+                            {r.seasonLabel ? ` · ${r.seasonLabel}` : ""}
                           </div>
                         </div>
                         <button
@@ -650,7 +726,7 @@ export default function SuppliersPage() {
   const subtitle = useMemo(() => {
     if (!token) return "Sign in to load suppliers from EOS API";
     if (loading) return "Loading suppliers…";
-    return `${total} supplier${total === 1 ? "" : "s"} · Live API · PG.13 facets`;
+    return `${total} supplier${total === 1 ? "" : "s"} · Live API · PG.14 rate calendar`;
   }, [token, loading, total]);
 
   return (

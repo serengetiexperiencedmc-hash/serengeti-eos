@@ -99,6 +99,6 @@ describe("PG.8 supplier CRUD API", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(health.statusCode).toBe(200);
-    expect(health.json().increment).toBe("PG.13");
+    expect(health.json().increment).toBe("PG.14");
   });
 });

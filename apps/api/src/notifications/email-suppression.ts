@@ -1,6 +1,7 @@
 import { authorize, newId, type NotifEmailSuppression, type NotifEmailSuppressionReason, type Principal } from "@sedmc/kernel";
 import type { Store } from "../store.js";
 import { ensureNotificationCollections } from "./collections.js";
+import { isEmailAllowlisted } from "./email-allowlist.js";
 import { persistNotifEmailSuppression } from "../persistence/notifications.js";
 import {
   createSesSuppressionClientFromEnv,
@@ -23,7 +24,9 @@ export function findActiveSuppression(
   );
 }
 
+/** Active suppression blocks send unless the address is on the I3.14 transactional allowlist. */
 export function isEmailSuppressed(store: Store, tenantId: string, email: string): boolean {
+  if (isEmailAllowlisted(store, tenantId, email)) return false;
   return Boolean(findActiveSuppression(store, tenantId, email));
 }
 
@@ -91,7 +94,7 @@ export function listEmailSuppressions(store: Store, principal: Principal) {
   const items = (store.notifEmailSuppressions ?? [])
     .filter((s) => s.tenantId === principal.tenantId && !s.liftedAt)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  return { items, increment: "I3.13" as const };
+  return { items, increment: "I3.14" as const };
 }
 
 export function exportEmailSuppressions(
@@ -134,7 +137,7 @@ export function exportEmailSuppressions(
       csv: [header, ...rows].join("\n"),
       count: items.length,
       generatedAt,
-      increment: "I3.13" as const,
+      increment: "I3.14" as const,
     };
   }
 
@@ -143,7 +146,7 @@ export function exportEmailSuppressions(
     items,
     count: items.length,
     generatedAt,
-    increment: "I3.13" as const,
+    increment: "I3.14" as const,
   };
 }
 
@@ -178,7 +181,7 @@ export async function liftEmailSuppression(
     }
   }
 
-  return { suppression: entry, increment: "I3.13" as const };
+  return { suppression: entry, increment: "I3.14" as const };
 }
 
 export async function bulkLiftEmailSuppressions(
@@ -227,7 +230,7 @@ export async function bulkLiftEmailSuppressions(
   return {
     lifted,
     notFound: Math.max(0, requested - lifted),
-    increment: "I3.13" as const,
+    increment: "I3.14" as const,
   };
 }
 
@@ -311,7 +314,7 @@ export async function importEmailSuppressions(
     updated,
     skipped,
     errors,
-    increment: "I3.13" as const,
+    increment: "I3.14" as const,
   };
 }
 
@@ -370,6 +373,6 @@ export async function syncEmailSuppressionsFromSes(
     activeCount: (store.notifEmailSuppressions ?? []).filter(
       (s) => s.tenantId === principal.tenantId && !s.liftedAt,
     ).length,
-    increment: "I3.13" as const,
+    increment: "I3.14" as const,
   };
 }

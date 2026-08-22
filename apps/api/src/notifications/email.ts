@@ -331,12 +331,13 @@ export function getEmailAdapterHealth(store: Store) {
   const adapter = resolveEmailAdapterName();
   return {
     module: "notification-email",
-    increment: "I3.13",
+    increment: "I3.14",
     adapter,
     status: "ok" as const,
     outboxCount: (store.notifEmailOutbox ?? []).length,
     deliveryEventCount: (store.notifEmailDeliveryEvents ?? []).length,
     suppressionCount: (store.notifEmailSuppressions ?? []).filter((s) => !s.liftedAt).length,
+    allowlistCount: (store.notifEmailAllowlist ?? []).filter((e) => !e.revokedAt).length,
     templateCount: listEmailTemplateKeys(store.notifEmailTemplates?.map(({ tenantId: _, ...t }) => t) ?? []).length,
     smtpConfigured: isSmtpConfigured(),
     smtpHost: process.env.EOS_SMTP_HOST ?? null,

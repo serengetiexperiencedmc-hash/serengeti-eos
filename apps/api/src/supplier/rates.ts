@@ -248,6 +248,80 @@ export function updateSupplierRate(
   return { rate: sanitizeRate(rate) };
 }
 
+const ISO_DATE_PATTERN_CAL = /^\d{4}-\d{2}-\d{2}$/;
+
+/** PG.14 — rates overlapping a date window, grouped by season and month. */
+export function getSupplierRateCalendar(
+  store: Store,
+  principal: Principal,
+  query: { from: string; to: string; supplierId?: string; seasonLabel?: string },
+) {
+  ensureSupplierCollections(store);
+  const decision = authorize({
+    principal,
+    permission: "supplier:read:supplier",
+    action: "read:sup_rate_calendar",
+  });
+  if (decision.result === "deny") {
+    return { error: "forbidden" as const, reason: decision.reason };
+  }
+  if (!ISO_DATE_PATTERN_CAL.test(query.from) || !ISO_DATE_PATTERN_CAL.test(query.to)) {
+    return { error: "invalid_request" as const, reason: "invalid_date_range" };
+  }
+  if (query.from > query.to) {
+    return { error: "invalid_request" as const, reason: "from_after_to" };
+  }
+
+  const seasonFilter = query.seasonLabel?.trim().toLowerCase();
+  const overlapping = store.supRates.filter((r) => {
+    if (r.tenantId !== principal.tenantId || r.archivedAt) return false;
+    if (query.supplierId && r.supplierId !== query.supplierId) return false;
+    if (r.validTo < query.from || r.validFrom > query.to) return false;
+    if (seasonFilter && (r.seasonLabel ?? "").toLowerCase() !== seasonFilter) return false;
+    return true;
+  });
+
+  const items = overlapping.map(sanitizeRate);
+  const seasonMap = new Map<string, typeof items>();
+  for (const rate of items) {
+    const label = rate.seasonLabel?.trim() || "Unlabeled";
+    const bucket = seasonMap.get(label) ?? [];
+    bucket.push(rate);
+    seasonMap.set(label, bucket);
+  }
+  const seasons = [...seasonMap.entries()]
+    .map(([label, rates]) => ({ label, count: rates.length, rates }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+
+  const monthMap = new Map<string, typeof items>();
+  for (const rate of items) {
+    const start = rate.validFrom > query.from ? rate.validFrom : query.from;
+    const end = rate.validTo < query.to ? rate.validTo : query.to;
+    let cursor = start.slice(0, 7);
+    const endMonth = end.slice(0, 7);
+    while (cursor <= endMonth) {
+      const bucket = monthMap.get(cursor) ?? [];
+      if (!bucket.some((x) => x.id === rate.id)) bucket.push(rate);
+      monthMap.set(cursor, bucket);
+      const [y, m] = cursor.split("-").map(Number);
+      const next = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
+      cursor = next;
+    }
+  }
+  const months = [...monthMap.entries()]
+    .map(([month, rates]) => ({ month, count: rates.length, rates }))
+    .sort((a, b) => a.month.localeCompare(b.month));
+
+  return {
+    from: query.from,
+    to: query.to,
+    items,
+    seasons,
+    months,
+    increment: "PG.14" as const,
+  };
+}
+
 export function archiveSupplierRate(
   store: Store,
   principal: Principal,

@@ -139,6 +139,6 @@ describe("PG.12 supplier restore", () => {
       url: "/v1/suppliers/health",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(health.json().increment).toBe("PG.13");
+    expect(health.json().increment).toBe("PG.14");
   });
 });

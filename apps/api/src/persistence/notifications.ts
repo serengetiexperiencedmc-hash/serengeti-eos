@@ -4,6 +4,7 @@ import type {
   NotifEmailDeliveryEvent,
   NotifEmailOutboxEntry,
   NotifEmailSuppression,
+  NotifEmailAllowlistEntry,
 } from "@sedmc/kernel";
 import { ensureNotificationCollections } from "../notifications/collections.js";
 import type { Store } from "../store.js";
@@ -11,8 +12,10 @@ import {
   insertNotifDismissal,
   insertNotifEmailDeliveryEvent,
   insertNotifEmailOutbox,
+  loadNotifEmailAllowlist,
   loadNotifEmailSuppressions,
   loadNotifEmailTemplates,
+  upsertNotifEmailAllowlist,
   upsertNotifEmailSuppression,
   upsertNotifEmailTemplate,
 } from "./pg-repository.js";
@@ -69,6 +72,18 @@ export async function persistNotifEmailSuppression(
   }
 }
 
+export async function persistNotifEmailAllowlist(
+  pool: DbPool | undefined,
+  entry: NotifEmailAllowlistEntry,
+): Promise<void> {
+  if (!pool) return;
+  try {
+    await upsertNotifEmailAllowlist(pool, entry);
+  } catch {
+    // Fire-and-forget dual-write.
+  }
+}
+
 export async function hydrateNotifEmailTemplates(pool: DbPool, store: Store): Promise<number> {
   ensureNotificationCollections(store);
   const rows = await loadNotifEmailTemplates(pool);
@@ -97,6 +112,18 @@ export async function hydrateNotifEmailSuppressions(pool: DbPool, store: Store):
   for (const row of rows) {
     if (store.notifEmailSuppressions.some((s) => s.id === row.id)) continue;
     store.notifEmailSuppressions.push(row);
+    merged += 1;
+  }
+  return merged;
+}
+
+export async function hydrateNotifEmailAllowlist(pool: DbPool, store: Store): Promise<number> {
+  ensureNotificationCollections(store);
+  const rows = await loadNotifEmailAllowlist(pool);
+  let merged = 0;
+  for (const row of rows) {
+    if (store.notifEmailAllowlist.some((e) => e.id === row.id)) continue;
+    store.notifEmailAllowlist.push(row);
     merged += 1;
   }
   return merged;
