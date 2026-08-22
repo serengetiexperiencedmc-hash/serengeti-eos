@@ -102,6 +102,16 @@ export async function assignDeadLetterOwner(token: string, id: string, owner: st
   });
 }
 
+export async function bulkAssignDeadLetterOwners(
+  token: string,
+  input: { ids: string[]; owner: string | null },
+) {
+  return eosFetch<{ ok: true; updated: number; notFound: string[]; increment: string }>(
+    "/v1/events/dlq/assign",
+    { token, method: "POST", body: JSON.stringify(input) },
+  );
+}
+
 export async function updateDeadLetterRemediation(
   token: string,
   id: string,

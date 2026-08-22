@@ -49,6 +49,7 @@ import {
   replayEventsToConsumer,
   requestReplay,
   assignDeadLetterOwner,
+  bulkAssignDeadLetterOwners,
   updateDeadLetterRemediation,
   traceEventCorrelation,
 } from "./app.js";
@@ -77,7 +78,7 @@ import {
   type Logger,
 } from "./observability.js";
 
-const VERSION = "0.51.0-i4.11-i3.15";
+const VERSION = "0.52.0-pg15-i4.12";
 
 export type ServerOptions = {
   store?: Store;
@@ -705,6 +706,27 @@ export function buildServer(options: ServerOptions | Store = {}) {
     return { items: result.items, owners: result.owners, increment: result.increment };
   });
 
+  app.post("/v1/events/dlq/assign", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const body = (req.body ?? {}) as { ids?: string[]; owner?: string | null };
+    if (!body.ids?.length) return reply.code(400).send({ error: "invalid_request", reason: "ids_required" });
+    if (body.owner === undefined) {
+      return reply.code(400).send({ error: "invalid_request", reason: "owner_required" });
+    }
+    const result = bulkAssignDeadLetterOwners(
+      store,
+      principal,
+      { ids: body.ids, owner: body.owner },
+      getCorrelationId(req),
+    );
+    if (!result.ok) {
+      const code = result.reason === "ids_required" ? 400 : 403;
+      return reply.code(code).send({ error: "invalid_request", reason: result.reason });
+    }
+    return result;
+  });
+
   app.patch("/v1/events/dlq/:id", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
@@ -768,7 +790,7 @@ export function buildServer(options: ServerOptions | Store = {}) {
       correlationId: getCorrelationId(req),
     });
     if (!result.ok) return reply.code(403).send({ error: "forbidden", reason: result.reason });
-    return { ...result.request, increment: "I4.11" };
+    return { ...result.request, increment: "I4.12" };
   });
 
   app.post("/v1/events/replay/:id/execute", async (req, reply) => {
@@ -777,7 +799,7 @@ export function buildServer(options: ServerOptions | Store = {}) {
     const { id } = req.params as { id: string };
     const result = executeReplayRequest(store, principal, id, getCorrelationId(req));
     if (!result.ok) return reply.code(403).send({ error: "forbidden", reason: result.reason });
-    return { ...result, increment: "I4.11" };
+    return { ...result, increment: "I4.12" };
   });
 
   app.get("/v1/events/consumers/processed", async (req, reply) => {

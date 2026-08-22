@@ -140,6 +140,7 @@ function SupplierDetailDrawer({
   const [calendar, setCalendar] = useState<{
     seasons: Array<{ label: string; count: number }>;
     months: Array<{ month: string; count: number }>;
+    conflicts: Array<{ rateType: string; overlapFrom: string; overlapTo: string; aCode: string; bCode: string }>;
   } | null>(null);
   const [blockForm, setBlockForm] = useState({
     blockCode: "",
@@ -163,6 +164,13 @@ function SupplierDetailDrawer({
       setCalendar({
         seasons: res.seasons.map((s) => ({ label: s.label, count: s.count })),
         months: res.months.map((m) => ({ month: m.month, count: m.count })),
+        conflicts: (res.conflicts ?? []).map((c) => ({
+          rateType: c.rateType,
+          overlapFrom: c.overlapFrom,
+          overlapTo: c.overlapTo,
+          aCode: c.a.rateCode,
+          bCode: c.b.rateCode,
+        })),
       });
     } catch {
       setCalendar(null);
@@ -505,7 +513,7 @@ function SupplierDetailDrawer({
               )}
               {calendar && (
                 <div className="mb-3 rounded-md border border-line bg-ivory p-3">
-                  <div className="mb-2 text-xs uppercase tracking-wide text-muted">Rate calendar (PG.14)</div>
+                  <div className="mb-2 text-xs uppercase tracking-wide text-muted">Rate calendar (PG.15)</div>
                   <div className="mb-2 grid grid-cols-2 gap-2">
                     <input
                       type="date"
@@ -530,13 +538,25 @@ function SupplierDetailDrawer({
                       <span className="text-xs text-muted">No rates in window</span>
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="mb-2 flex flex-wrap gap-1.5">
                     {calendar.months.map((m) => (
                       <span key={m.month} className="rounded bg-sand/40 px-1.5 py-0.5 font-mono text-[10px] text-muted">
                         {m.month}:{m.count}
                       </span>
                     ))}
                   </div>
+                  {calendar.conflicts.length > 0 && (
+                    <div className="rounded border border-rose-200 bg-rose-50/60 p-2 text-xs text-rose-800">
+                      <div className="mb-1 font-medium">Conflicts ({calendar.conflicts.length})</div>
+                      <ul className="space-y-0.5">
+                        {calendar.conflicts.map((c, i) => (
+                          <li key={`${c.aCode}-${c.bCode}-${i}`}>
+                            {c.aCode} ↔ {c.bCode} · {c.rateType} · {c.overlapFrom}→{c.overlapTo}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
               {detail.rates.length === 0 ? (
@@ -726,7 +746,7 @@ export default function SuppliersPage() {
   const subtitle = useMemo(() => {
     if (!token) return "Sign in to load suppliers from EOS API";
     if (loading) return "Loading suppliers…";
-    return `${total} supplier${total === 1 ? "" : "s"} · Live API · PG.14 rate calendar`;
+    return `${total} supplier${total === 1 ? "" : "s"} · Live API · PG.15 rate conflicts`;
   }, [token, loading, total]);
 
   return (

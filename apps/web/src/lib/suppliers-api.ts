@@ -360,8 +360,39 @@ export async function getSupplierRateCalendar(
     items: SupplierDetail["rates"];
     seasons: Array<{ label: string; count: number; rates: SupplierDetail["rates"] }>;
     months: Array<{ month: string; count: number; rates: SupplierDetail["rates"] }>;
+    conflicts: Array<{
+      supplierId: string;
+      rateType: string;
+      overlapFrom: string;
+      overlapTo: string;
+      a: SupplierDetail["rates"][number];
+      b: SupplierDetail["rates"][number];
+    }>;
     increment: string;
   }>(`/v1/suppliers/rates/calendar?${params.toString()}`, { token });
+}
+
+export async function getSupplierRateConflicts(
+  token: string,
+  query: { supplierId?: string; from?: string; to?: string } = {},
+) {
+  const params = new URLSearchParams();
+  if (query.supplierId) params.set("supplierId", query.supplierId);
+  if (query.from) params.set("from", query.from);
+  if (query.to) params.set("to", query.to);
+  const qs = params.toString();
+  return eosFetch<{
+    conflicts: Array<{
+      supplierId: string;
+      rateType: string;
+      overlapFrom: string;
+      overlapTo: string;
+      a: SupplierDetail["rates"][number] & { rateCode: string; rateName: string };
+      b: SupplierDetail["rates"][number] & { rateCode: string; rateName: string };
+    }>;
+    count: number;
+    increment: string;
+  }>(`/v1/suppliers/rates/conflicts${qs ? `?${qs}` : ""}`, { token });
 }
 
 export async function checkSupplierApiHealth(token: string): Promise<{ module: string; status: string; suppliers: number }> {

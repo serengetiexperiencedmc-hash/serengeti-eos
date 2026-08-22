@@ -318,7 +318,96 @@ export function getSupplierRateCalendar(
     items,
     seasons,
     months,
-    increment: "PG.14" as const,
+    conflicts: detectRateConflictsAmong(overlapping).map((c) => ({
+      ...c,
+      a: sanitizeRate(c.a),
+      b: sanitizeRate(c.b),
+    })),
+    increment: "PG.15" as const,
+  };
+}
+
+function datesOverlap(aFrom: string, aTo: string, bFrom: string, bTo: string): boolean {
+  return aFrom <= bTo && bFrom <= aTo;
+}
+
+/** Same supplier + rateType with overlapping validity windows. */
+function detectRateConflictsAmong(rates: import("@sedmc/kernel").SupRate[]) {
+  const conflicts: Array<{
+    supplierId: string;
+    rateType: string;
+    overlapFrom: string;
+    overlapTo: string;
+    a: import("@sedmc/kernel").SupRate;
+    b: import("@sedmc/kernel").SupRate;
+  }> = [];
+  for (let i = 0; i < rates.length; i += 1) {
+    for (let j = i + 1; j < rates.length; j += 1) {
+      const a = rates[i]!;
+      const b = rates[j]!;
+      if (a.supplierId !== b.supplierId) continue;
+      if (a.rateType !== b.rateType) continue;
+      if (!datesOverlap(a.validFrom, a.validTo, b.validFrom, b.validTo)) continue;
+      const overlapFrom = a.validFrom > b.validFrom ? a.validFrom : b.validFrom;
+      const overlapTo = a.validTo < b.validTo ? a.validTo : b.validTo;
+      conflicts.push({
+        supplierId: a.supplierId,
+        rateType: a.rateType,
+        overlapFrom,
+        overlapTo,
+        a,
+        b,
+      });
+    }
+  }
+  return conflicts;
+}
+
+/** PG.15 — detect overlapping rate cards (same supplier + rateType). */
+export function getSupplierRateConflicts(
+  store: Store,
+  principal: Principal,
+  query: { supplierId?: string; from?: string; to?: string } = {},
+) {
+  ensureSupplierCollections(store);
+  const decision = authorize({
+    principal,
+    permission: "supplier:read:supplier",
+    action: "read:sup_rate_conflicts",
+  });
+  if (decision.result === "deny") {
+    return { error: "forbidden" as const, reason: decision.reason };
+  }
+  if (query.from && !ISO_DATE_PATTERN_CAL.test(query.from)) {
+    return { error: "invalid_request" as const, reason: "invalid_date_range" };
+  }
+  if (query.to && !ISO_DATE_PATTERN_CAL.test(query.to)) {
+    return { error: "invalid_request" as const, reason: "invalid_date_range" };
+  }
+  if (query.from && query.to && query.from > query.to) {
+    return { error: "invalid_request" as const, reason: "from_after_to" };
+  }
+
+  const candidates = store.supRates.filter((r) => {
+    if (r.tenantId !== principal.tenantId || r.archivedAt) return false;
+    if (query.supplierId && r.supplierId !== query.supplierId) return false;
+    if (query.from && query.to && (r.validTo < query.from || r.validFrom > query.to)) return false;
+    return true;
+  });
+
+  const conflicts = detectRateConflictsAmong(candidates).map((c) => ({
+    supplierId: c.supplierId,
+    rateType: c.rateType,
+    overlapFrom: c.overlapFrom,
+    overlapTo: c.overlapTo,
+    a: sanitizeRate(c.a),
+    b: sanitizeRate(c.b),
+  }));
+
+  return {
+    conflicts,
+    count: conflicts.length,
+    increment: "PG.15" as const,
   };
 }
 

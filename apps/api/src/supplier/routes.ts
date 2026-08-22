@@ -20,7 +20,7 @@ import {
   restoreSupplier,
 } from "./supplier.js";
 import { archiveSupplierContact, createSupplierContact, updateSupplierContact } from "./contacts.js";
-import { archiveSupplierRate, createSupplierRate, getSupplierRateCalendar, updateSupplierRate } from "./rates.js";
+import { archiveSupplierRate, createSupplierRate, getSupplierRateCalendar, getSupplierRateConflicts, updateSupplierRate } from "./rates.js";
 import {
   archiveSupplierContentBlock,
   createSupplierContentBlock,
@@ -101,6 +101,19 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       to: query.to,
       ...(query.supplierId ? { supplierId: query.supplierId } : {}),
       ...(query.seasonLabel ? { seasonLabel: query.seasonLabel } : {}),
+    });
+    if ("error" in result) return sendSupplierError(reply, result);
+    return result;
+  });
+
+  app.get("/v1/suppliers/rates/conflicts", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const query = req.query as { supplierId?: string; from?: string; to?: string };
+    const result = getSupplierRateConflicts(store, principal, {
+      ...(query.supplierId ? { supplierId: query.supplierId } : {}),
+      ...(query.from ? { from: query.from } : {}),
+      ...(query.to ? { to: query.to } : {}),
     });
     if ("error" in result) return sendSupplierError(reply, result);
     return result;

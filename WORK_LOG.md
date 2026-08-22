@@ -189,8 +189,8 @@
 
 ### Current project status
 
-- **Server version:** `0.51.0-i4.11-i3.15`
-- **Increments live:** C1–C10, O1–O4, I3.6.1–I3.15, I4.3–I4.11, I8.3, I9.2, J1–J2, PG.1–PG.14
+- **Server version:** `0.52.0-pg15-i4.12`
+- **Increments live:** C1–C10, O1–O4, I3.6.1–I3.15, I4.3–I4.12, I8.3, I9.2, J1–J2, PG.1–PG.15
 - **All targeted tests passing**
 
 ### 19:xx — Commercial preview fix ✅
@@ -319,11 +319,20 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **I4.11** | DLQ owner assign + owner/status/unassigned filters |
 | **I3.15** | Allowlist expiry + CSV/JSON audit export |
 
+### 20:xx — PG.15 + I4.12 ✅
+
+**Shipped:** server `0.52.0-pg15-i4.12`
+
+| Increment | Change |
+| --- | --- |
+| **PG.15** | Rate calendar conflict detection (same supplier + rateType) |
+| **I4.12** | DLQ bulk owner assign API + Events UI |
+
 ### Recommended next increments
 
-1. PG.15 — rate calendar conflict detection
-2. I4.12 — DLQ bulk owner assign
-3. I3.16 — allowlist SES sync notes
+1. I3.16 — allowlist SES sync notes
+2. PG.16 — rate conflict resolve / prefer flag
+3. I4.13 — DLQ SLA timers / age filters
 
 ### Issues resolved
 

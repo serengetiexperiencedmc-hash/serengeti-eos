@@ -5,6 +5,7 @@ import { useEosSession } from "@/components/commercial/EosSessionProvider";
 import { Btn, Card, PageHeader } from "@/components/commercial/ui";
 import {
   assignDeadLetterOwner,
+  bulkAssignDeadLetterOwners,
   executeEventReplay,
   getNatsConsumerLag,
   listDeadLetters,
@@ -43,6 +44,7 @@ export default function EventsInfrastructurePage() {
   const [ownerFilter, setOwnerFilter] = useState<"all" | "unassigned" | string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [assignDraft, setAssignDraft] = useState<Record<string, string>>({});
+  const [bulkOwner, setBulkOwner] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -84,7 +86,7 @@ export default function EventsInfrastructurePage() {
     setMsg(null);
     try {
       const req = await requestEventReplay(token, {
-        reason: "Commercial UI replay (I4.11)",
+        reason: "Commercial UI replay (I4.12)",
         intent: "reexecute",
         deadLetterIds: [...selected],
       });
@@ -114,6 +116,29 @@ export default function EventsInfrastructurePage() {
     }
   }
 
+  async function handleBulkAssign() {
+    if (!token || selected.size === 0) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const res = await bulkAssignDeadLetterOwners(token, {
+        ids: [...selected],
+        owner: bulkOwner.trim() === "" ? null : bulkOwner.trim(),
+      });
+      setMsg(
+        bulkOwner.trim()
+          ? `Assigned ${res.updated} to ${bulkOwner.trim()}`
+          : `Cleared owner on ${res.updated}`,
+      );
+      setSelected(new Set());
+      await reload();
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : "Bulk assign failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleAssign(id: string) {
     if (!token) return;
     setBusy(true);
@@ -138,14 +163,25 @@ export default function EventsInfrastructurePage() {
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <PageHeader
-        eyebrow="I4 · I4.11 · Events"
+        eyebrow="I4 · I4.12 · Events"
         title="Event Infrastructure"
-        subtitle="NATS lag, DLQ owner filters, remediation, and controlled replay"
+        subtitle="NATS lag, DLQ bulk owner assign, remediation, and controlled replay"
         actions={
           token && selected.size > 0 ? (
-            <Btn disabled={busy} onClick={() => void handleReplay()}>
-              {busy ? "Replaying…" : `Replay selected (${selected.size})`}
-            </Btn>
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                className="rounded border border-line bg-paper px-2 py-1 text-xs"
+                placeholder="Bulk owner"
+                value={bulkOwner}
+                onChange={(e) => setBulkOwner(e.target.value)}
+              />
+              <Btn variant="secondary" disabled={busy} onClick={() => void handleBulkAssign()}>
+                Assign selected ({selected.size})
+              </Btn>
+              <Btn disabled={busy} onClick={() => void handleReplay()}>
+                {busy ? "Working…" : `Replay selected (${selected.size})`}
+              </Btn>
+            </div>
           ) : undefined
         }
       />
@@ -158,7 +194,7 @@ export default function EventsInfrastructurePage() {
       <div className="mt-6">
         <Card title={`Dead letter queue (${openDlq.length} open / ${dlq.length} total)`}>
           <p className="mb-3 text-sm text-muted">
-            Filter by owner/status, assign owners, remediate, then replay (I4.11).
+            Filter by owner/status, bulk-assign owners, remediate, then replay (I4.12).
           </p>
           <div className="mb-3 flex flex-wrap gap-2">
             <button
@@ -221,13 +257,11 @@ export default function EventsInfrastructurePage() {
                   {dlq.map((d) => (
                     <tr key={d.id} className="border-b border-line/60">
                       <td className="py-2 pr-3">
-                        {replayable(d.status) ? (
-                          <input
-                            type="checkbox"
-                            checked={selected.has(d.id)}
-                            onChange={() => toggle(d.id)}
-                          />
-                        ) : null}
+                        <input
+                          type="checkbox"
+                          checked={selected.has(d.id)}
+                          onChange={() => toggle(d.id)}
+                        />
                       </td>
                       <td className="py-2 pr-3">
                         <div className="font-medium text-ink">{d.eventType}</div>

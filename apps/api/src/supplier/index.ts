@@ -18,7 +18,7 @@ export {
   updateSupplier,
 } from "./supplier.js";
 export { archiveSupplierContact, createSupplierContact, updateSupplierContact } from "./contacts.js";
-export { archiveSupplierRate, createSupplierRate, getSupplierRateCalendar, updateSupplierRate } from "./rates.js";
+export { archiveSupplierRate, createSupplierRate, getSupplierRateCalendar, getSupplierRateConflicts, updateSupplierRate } from "./rates.js";
 export {
   archiveSupplierContentBlock,
   createSupplierContentBlock,

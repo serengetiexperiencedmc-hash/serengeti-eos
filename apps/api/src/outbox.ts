@@ -697,7 +697,7 @@ export function listDeadLetters(
   ok: true;
   items: DeadLetterRecord[];
   owners: string[];
-  increment: "I4.11";
+  increment: "I4.12";
 } | { ok: false; reason: string } {
   ensureOutboxCollections(store);
   const decision = authorize({
@@ -725,7 +725,7 @@ export function listDeadLetters(
     items = items.filter((d) => d.status === query.status);
   }
 
-  return { ok: true, items, owners, increment: "I4.11" as const };
+  return { ok: true, items, owners, increment: "I4.12" as const };
 }
 
 const DLQ_TRANSITIONS: Record<DlqLifecycleStatus, DlqLifecycleStatus[]> = {
@@ -746,7 +746,7 @@ export function assignDeadLetterOwner(
   id: string,
   input: { owner: string | null },
   correlationId: string,
-): { ok: true; deadLetter: DeadLetterRecord; increment: "I4.11" } | { ok: false; reason: string } {
+): { ok: true; deadLetter: DeadLetterRecord; increment: "I4.12" } | { ok: false; reason: string } {
   ensureOutboxCollections(store);
   const decision = authorize({
     principal,
@@ -779,7 +779,43 @@ export function assignDeadLetterOwner(
     newState: { owner: dlq.owner },
   });
 
-  return { ok: true, deadLetter: dlq, increment: "I4.11" as const };
+  return { ok: true, deadLetter: dlq, increment: "I4.12" as const };
+}
+
+/** I4.12 — assign/clear owner on many DLQ rows in one call. */
+export function bulkAssignDeadLetterOwners(
+  store: Store,
+  principal: Principal,
+  input: { ids: string[]; owner: string | null },
+  correlationId: string,
+): { ok: true; updated: number; notFound: string[]; increment: "I4.12" } | { ok: false; reason: string } {
+  ensureOutboxCollections(store);
+  const decision = authorize({
+    principal,
+    permission: "events:replay:outbox",
+    action: "bulk_assign:dlq_owner",
+  });
+  if (decision.result === "deny") {
+    bumpMetric(store, "authorizationFailures");
+    return { ok: false, reason: decision.reason };
+  }
+
+  const ids = [...new Set((input.ids ?? []).filter(Boolean))];
+  if (ids.length === 0) return { ok: false, reason: "ids_required" };
+
+  let updated = 0;
+  const notFound: string[] = [];
+  for (const id of ids) {
+    const result = assignDeadLetterOwner(store, principal, id, { owner: input.owner }, correlationId);
+    if (!result.ok) {
+      if (result.reason === "not_found") notFound.push(id);
+      else return result;
+      continue;
+    }
+    updated += 1;
+  }
+
+  return { ok: true, updated, notFound, increment: "I4.12" as const };
 }
 
 export function updateDeadLetterRemediation(
@@ -788,7 +824,7 @@ export function updateDeadLetterRemediation(
   id: string,
   input: { status: DlqLifecycleStatus; owner?: string | null; remediation?: string | null },
   correlationId: string,
-): { ok: true; deadLetter: DeadLetterRecord; increment: "I4.11" } | { ok: false; reason: string } {
+): { ok: true; deadLetter: DeadLetterRecord; increment: "I4.12" } | { ok: false; reason: string } {
   ensureOutboxCollections(store);
   const decision = authorize({
     principal,
@@ -833,7 +869,7 @@ export function updateDeadLetterRemediation(
     newState: { status: dlq.status, owner: dlq.owner, remediation: dlq.remediation },
   });
 
-  return { ok: true, deadLetter: dlq, increment: "I4.11" as const };
+  return { ok: true, deadLetter: dlq, increment: "I4.12" as const };
 }
 
 export function getOrderedPublishedEvents(
