@@ -16,4 +16,9 @@ export {
 } from "./supplier.js";
 export { archiveSupplierContact, createSupplierContact, updateSupplierContact } from "./contacts.js";
 export { archiveSupplierRate, createSupplierRate, updateSupplierRate } from "./rates.js";
+export {
+  archiveSupplierContentBlock,
+  createSupplierContentBlock,
+  updateSupplierContentBlock,
+} from "./content-blocks.js";
 export { registerSupplierRoutes } from "./routes.js";

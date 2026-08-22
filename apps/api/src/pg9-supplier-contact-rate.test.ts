@@ -112,7 +112,7 @@ describe("PG.9 supplier contact and rate CRUD", () => {
     expect(detail.json().rates).toHaveLength(0);
   });
 
-  it("reports PG.9 on supplier health", async () => {
+  it("reports PG.10 on supplier health after contact/rate CRUD", async () => {
     const store = seedStore("pg9-health", TEST_BOOTSTRAP_SECRETS);
     const app = buildServer({ store });
     const token = await loginCarol(app);
@@ -121,6 +121,6 @@ describe("PG.9 supplier contact and rate CRUD", () => {
       url: "/v1/suppliers/health",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(health.json().increment).toBe("PG.9");
+    expect(health.json().increment).toBe("PG.10");
   });
 });

@@ -9,8 +9,10 @@ import { Btn, PageHeader } from "@/components/commercial/ui";
 import { EosApiError } from "@/lib/eos-client";
 import {
   archiveSupplierContact,
+  archiveSupplierContentBlock,
   archiveSupplierRate,
   createSupplierContact,
+  createSupplierContentBlock,
   createSupplierRate,
   formatCategoryLabel,
   getSupplier,
@@ -93,9 +95,11 @@ function SupplierDetailDrawer({
 }) {
   const [contactBusy, setContactBusy] = useState(false);
   const [rateBusy, setRateBusy] = useState(false);
+  const [blockBusy, setBlockBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [showContactForm, setShowContactForm] = useState(false);
   const [showRateForm, setShowRateForm] = useState(false);
+  const [showBlockForm, setShowBlockForm] = useState(false);
   const [contactForm, setContactForm] = useState({
     contactRole: "reservations",
     givenName: "",
@@ -112,6 +116,13 @@ function SupplierDetailDrawer({
     validFrom: "2026-01-01",
     validTo: "2026-12-31",
     status: "active",
+  });
+  const [blockForm, setBlockForm] = useState({
+    blockCode: "",
+    blockType: "description",
+    title: "",
+    body: "",
+    status: "draft",
   });
 
   if (!detail && !loading) return null;
@@ -193,6 +204,39 @@ function SupplierDetailDrawer({
       onRefresh();
     } catch (err) {
       setFormError(err instanceof EosApiError ? err.message : "Failed to remove rate");
+    }
+  }
+
+  async function handleAddBlock(e: React.FormEvent) {
+    e.preventDefault();
+    if (!supplier) return;
+    setBlockBusy(true);
+    setFormError(null);
+    try {
+      await createSupplierContentBlock(token, supplier.id, {
+        blockCode: blockForm.blockCode,
+        blockType: blockForm.blockType,
+        body: blockForm.body,
+        ...(blockForm.title.trim() ? { title: blockForm.title.trim() } : {}),
+        status: blockForm.status,
+      });
+      setShowBlockForm(false);
+      setBlockForm({ blockCode: "", blockType: "description", title: "", body: "", status: "draft" });
+      onRefresh();
+    } catch (err) {
+      setFormError(err instanceof EosApiError ? err.message : "Failed to add content block");
+    } finally {
+      setBlockBusy(false);
+    }
+  }
+
+  async function handleArchiveBlock(blockId: string) {
+    if (!supplier) return;
+    try {
+      await archiveSupplierContentBlock(token, supplier.id, blockId);
+      onRefresh();
+    } catch (err) {
+      setFormError(err instanceof EosApiError ? err.message : "Failed to remove content block");
     }
   }
 
@@ -417,17 +461,81 @@ function SupplierDetailDrawer({
             </section>
 
             <section>
-              <h3 className="mb-2 font-display text-lg font-semibold text-ink">
-                Content blocks ({detail.contentBlocks.length})
+              <h3 className="mb-2 flex items-center justify-between font-display text-lg font-semibold text-ink">
+                <span>Content blocks ({detail.contentBlocks.length})</span>
+                <button
+                  type="button"
+                  className="text-xs font-sans font-medium text-gold-deep hover:underline"
+                  onClick={() => setShowBlockForm((v) => !v)}
+                >
+                  {showBlockForm ? "Cancel" : "+ Add"}
+                </button>
               </h3>
+              {showBlockForm && (
+                <form onSubmit={(e) => void handleAddBlock(e)} className="mb-3 space-y-2 rounded-md border border-line bg-ivory p-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      required
+                      placeholder="Block code"
+                      value={blockForm.blockCode}
+                      onChange={(e) => setBlockForm((f) => ({ ...f, blockCode: e.target.value.toUpperCase() }))}
+                      className="rounded-md border border-line bg-paper px-2 py-1.5 font-mono text-sm"
+                    />
+                    <select
+                      value={blockForm.blockType}
+                      onChange={(e) => setBlockForm((f) => ({ ...f, blockType: e.target.value }))}
+                      className="rounded-md border border-line bg-paper px-2 py-1.5 text-sm"
+                    >
+                      <option value="description">Description</option>
+                      <option value="highlights">Highlights</option>
+                      <option value="room_type">Room type</option>
+                      <option value="inclusions">Inclusions</option>
+                      <option value="exclusions">Exclusions</option>
+                      <option value="location">Location</option>
+                      <option value="programme_snippet">Programme snippet</option>
+                      <option value="image_caption">Image caption</option>
+                      <option value="terms">Terms</option>
+                    </select>
+                  </div>
+                  <input
+                    placeholder="Title (optional)"
+                    value={blockForm.title}
+                    onChange={(e) => setBlockForm((f) => ({ ...f, title: e.target.value }))}
+                    className="w-full rounded-md border border-line bg-paper px-2 py-1.5 text-sm"
+                  />
+                  <textarea
+                    required
+                    rows={3}
+                    placeholder="Body"
+                    value={blockForm.body}
+                    onChange={(e) => setBlockForm((f) => ({ ...f, body: e.target.value }))}
+                    className="w-full rounded-md border border-line bg-paper px-2 py-1.5 text-sm"
+                  />
+                  <Btn type="submit" size="sm" disabled={blockBusy}>
+                    {blockBusy ? "Saving…" : "Save content block"}
+                  </Btn>
+                </form>
+              )}
               {detail.contentBlocks.length === 0 ? (
-                <p className="text-muted">No content blocks imported yet.</p>
+                <p className="text-muted">No content blocks yet.</p>
               ) : (
                 <ul className="space-y-2">
                   {detail.contentBlocks.map((b) => (
                     <li key={b.id} className="rounded-md border border-line bg-ivory p-3">
-                      <div className="font-medium text-ink">{b.title ?? b.blockCode}</div>
-                      <div className="text-xs capitalize text-muted">{b.blockType.replace(/_/g, " ")}</div>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="font-medium text-ink">{b.title ?? b.blockCode}</div>
+                          <div className="text-xs capitalize text-muted">{b.blockType.replace(/_/g, " ")}</div>
+                          <div className="text-xs text-muted">{b.status}</div>
+                        </div>
+                        <button
+                          type="button"
+                          className="text-xs text-muted hover:text-danger"
+                          onClick={() => void handleArchiveBlock(b.id)}
+                        >
+                          Remove
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>

@@ -87,6 +87,13 @@ export async function liftEmailSuppression(token: string, id: string) {
   );
 }
 
+export async function syncEmailSuppressions(token: string) {
+  return eosFetch<{ imported: number; updated: number; activeCount: number; increment: string }>(
+    "/v1/notifications/email/suppressions/sync",
+    { token, method: "POST", body: "{}" },
+  );
+}
+
 export type EmailTemplateItem = {
   key: string;
   subject: string;

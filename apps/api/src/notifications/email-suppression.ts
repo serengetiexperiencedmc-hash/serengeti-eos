@@ -2,6 +2,10 @@ import { authorize, newId, type NotifEmailSuppression, type NotifEmailSuppressio
 import type { Store } from "../store.js";
 import { ensureNotificationCollections } from "./collections.js";
 import { persistNotifEmailSuppression } from "../persistence/notifications.js";
+import {
+  createSesSuppressionClientFromEnv,
+  type SesSuppressionClient,
+} from "./ses-suppression-client.js";
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
@@ -23,6 +27,12 @@ export function isEmailSuppressed(store: Store, tenantId: string, email: string)
   return Boolean(findActiveSuppression(store, tenantId, email));
 }
 
+function sesReasonForLocal(reason: NotifEmailSuppressionReason): "BOUNCE" | "COMPLAINT" | null {
+  if (reason === "bounce" || reason === "reject") return "BOUNCE";
+  if (reason === "complaint") return "COMPLAINT";
+  return null;
+}
+
 export async function upsertEmailSuppression(
   store: Store,
   input: {
@@ -31,6 +41,7 @@ export async function upsertEmailSuppression(
     reason: NotifEmailSuppressionReason;
     sourceEventId?: string;
   },
+  deps: { sesClient?: SesSuppressionClient | null } = {},
 ): Promise<NotifEmailSuppression> {
   ensureNotificationCollections(store);
   const normalized = normalizeEmail(input.email);
@@ -52,6 +63,19 @@ export async function upsertEmailSuppression(
   };
   store.notifEmailSuppressions.push(entry);
   void persistNotifEmailSuppression(store.dbPool, entry);
+
+  const sesReason = sesReasonForLocal(input.reason);
+  if (sesReason) {
+    const client = deps.sesClient === undefined ? createSesSuppressionClientFromEnv() : deps.sesClient;
+    if (client) {
+      try {
+        await client.put(normalized, sesReason);
+      } catch {
+        // Best-effort account sync.
+      }
+    }
+  }
+
   return entry;
 }
 
@@ -67,10 +91,15 @@ export function listEmailSuppressions(store: Store, principal: Principal) {
   const items = (store.notifEmailSuppressions ?? [])
     .filter((s) => s.tenantId === principal.tenantId && !s.liftedAt)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  return { items, increment: "I3.9" as const };
+  return { items, increment: "I3.10" as const };
 }
 
-export async function liftEmailSuppression(store: Store, principal: Principal, id: string) {
+export async function liftEmailSuppression(
+  store: Store,
+  principal: Principal,
+  id: string,
+  deps: { sesClient?: SesSuppressionClient | null } = {},
+) {
   const decision = authorize({
     principal,
     permission: "notification:dispatch:email",
@@ -86,5 +115,74 @@ export async function liftEmailSuppression(store: Store, principal: Principal, i
 
   entry.liftedAt = new Date().toISOString();
   void persistNotifEmailSuppression(store.dbPool, entry);
-  return { suppression: entry, increment: "I3.9" as const };
+
+  const client = deps.sesClient === undefined ? createSesSuppressionClientFromEnv() : deps.sesClient;
+  if (client) {
+    try {
+      await client.remove(entry.email);
+    } catch {
+      // Best-effort account sync.
+    }
+  }
+
+  return { suppression: entry, increment: "I3.10" as const };
+}
+
+/** I3.10 — pull SES account suppressions into the tenant list. */
+export async function syncEmailSuppressionsFromSes(
+  store: Store,
+  principal: Principal,
+  deps: { sesClient?: SesSuppressionClient | null } = {},
+) {
+  const decision = authorize({
+    principal,
+    permission: "notification:dispatch:email",
+    action: "sync:email_suppressions",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+
+  const client = deps.sesClient === undefined ? createSesSuppressionClientFromEnv() : deps.sesClient;
+  if (!client) return { error: "invalid_request" as const, reason: "ses_suppression_sync_unavailable" };
+
+  ensureNotificationCollections(store);
+  let imported = 0;
+  let updated = 0;
+  try {
+    const remote = await client.list();
+    for (const row of remote) {
+      const existing = findActiveSuppression(store, principal.tenantId, row.email);
+      if (existing) {
+        if (existing.reason !== row.reason) {
+          existing.reason = row.reason;
+          void persistNotifEmailSuppression(store.dbPool, existing);
+          updated += 1;
+        }
+        continue;
+      }
+      await upsertEmailSuppression(
+        store,
+        {
+          tenantId: principal.tenantId,
+          email: row.email,
+          reason: row.reason,
+        },
+        { sesClient: null },
+      );
+      imported += 1;
+    }
+  } catch (err) {
+    return {
+      error: "invalid_request" as const,
+      reason: err instanceof Error ? err.message : "ses_suppression_sync_failed",
+    };
+  }
+
+  return {
+    imported,
+    updated,
+    activeCount: (store.notifEmailSuppressions ?? []).filter(
+      (s) => s.tenantId === principal.tenantId && !s.liftedAt,
+    ).length,
+    increment: "I3.10" as const,
+  };
 }

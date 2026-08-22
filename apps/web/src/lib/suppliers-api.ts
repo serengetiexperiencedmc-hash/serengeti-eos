@@ -245,6 +245,36 @@ export async function archiveSupplierRate(token: string, supplierId: string, rat
   });
 }
 
+export async function createSupplierContentBlock(
+  token: string,
+  supplierId: string,
+  input: {
+    blockCode: string;
+    blockType: string;
+    body: string;
+    title?: string;
+    language?: string;
+    isDefault?: boolean;
+    status?: string;
+  },
+) {
+  return eosFetch<{ contentBlock: SupplierDetail["contentBlocks"][number] }>(
+    `/v1/suppliers/${supplierId}/content-blocks`,
+    {
+      method: "POST",
+      token,
+      body: JSON.stringify(input),
+    },
+  );
+}
+
+export async function archiveSupplierContentBlock(token: string, supplierId: string, blockId: string) {
+  return eosFetch(`/v1/suppliers/${supplierId}/content-blocks/${blockId}`, {
+    method: "DELETE",
+    token,
+  });
+}
+
 export async function checkSupplierApiHealth(token: string): Promise<{ module: string; status: string; suppliers: number }> {
   return eosFetch("/v1/suppliers/health", { token });
 }

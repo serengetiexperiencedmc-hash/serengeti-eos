@@ -189,8 +189,8 @@
 
 ### Current project status
 
-- **Server version:** `0.44.0-pg9-c4-ui`
-- **Increments live:** C1–C10, O1–O4, I3.6.1–I3.9, I4.3–I4.8, I8.3, I9.2, J1–J2, PG.1–PG.9
+- **Server version:** `0.45.0-i3.10-pg10`
+- **Increments live:** C1–C10, O1–O4, I3.6.1–I3.10, I4.3–I4.8, I8.3, I9.2, J1–J2, PG.1–PG.10
 - **All targeted tests passing**
 
 ### 19:xx — Commercial preview fix ✅
@@ -254,11 +254,21 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **C4 UI** | Detail drawer add/remove contacts and rates |
 | **I3 UI** | Notifications page email suppressions list + lift |
 
+### 20:xx — I3.10 + PG.10 ✅
+
+**Shipped:** server `0.45.0-i3.10-pg10`
+
+| Increment | Change |
+| --- | --- |
+| **I3.10** | SES account suppression sync (put/remove + pull); `ses_account` reason |
+| **PG.10** | Supplier content-block create/update/archive REST with dual-write |
+| **C4/I3 UI** | Content-block drawer CRUD; suppressions Sync from SES |
+
 ### Recommended next increments
 
-1. I3.10 — SES account-level suppression sync
-2. Content-block manual CRUD
-3. PG.10 — soft-delete cascade / archive indexes
+1. PG.11 — soft-delete cascade / archive indexes
+2. I3.11 — suppression analytics / delivery dashboards
+3. I4.9 — NATS consumer DLQ / replay UI
 
 ### Issues resolved
 

@@ -18,6 +18,11 @@ import {
 } from "./supplier.js";
 import { archiveSupplierContact, createSupplierContact, updateSupplierContact } from "./contacts.js";
 import { archiveSupplierRate, createSupplierRate, updateSupplierRate } from "./rates.js";
+import {
+  archiveSupplierContentBlock,
+  createSupplierContentBlock,
+  updateSupplierContentBlock,
+} from "./content-blocks.js";
 
 function sendSupplierError(
   reply: { code: (n: number) => { send: (b: unknown) => unknown } },
@@ -222,6 +227,48 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
     const correlationId = getCorrelationId(req);
     const params = req.params as { id: string; rateId: string };
     const result = archiveSupplierRate(store, principal, params.id, params.rateId, correlationId);
+    if ("error" in result) return sendSupplierError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/suppliers/:id/content-blocks", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const correlationId = getCorrelationId(req);
+    const result = createSupplierContentBlock(
+      store,
+      principal,
+      (req.params as { id: string }).id,
+      req.body as Parameters<typeof createSupplierContentBlock>[3],
+      correlationId,
+    );
+    if ("error" in result) return sendSupplierError(reply, result);
+    return reply.code(201).send(result);
+  });
+
+  app.patch("/v1/suppliers/:id/content-blocks/:blockId", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const correlationId = getCorrelationId(req);
+    const params = req.params as { id: string; blockId: string };
+    const result = updateSupplierContentBlock(
+      store,
+      principal,
+      params.id,
+      params.blockId,
+      req.body as Parameters<typeof updateSupplierContentBlock>[4],
+      correlationId,
+    );
+    if ("error" in result) return sendSupplierError(reply, result);
+    return result;
+  });
+
+  app.delete("/v1/suppliers/:id/content-blocks/:blockId", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const correlationId = getCorrelationId(req);
+    const params = req.params as { id: string; blockId: string };
+    const result = archiveSupplierContentBlock(store, principal, params.id, params.blockId, correlationId);
     if ("error" in result) return sendSupplierError(reply, result);
     return result;
   });

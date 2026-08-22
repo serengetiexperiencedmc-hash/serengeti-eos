@@ -3,7 +3,7 @@ import { principalFromAuthHeader } from "../app.js";
 import type { Store } from "../store.js";
 import { dispatchEmailDigest, getEmailAdapterHealth, listEmailOutbox, listEmailTemplates, previewEmailTemplate, upsertEmailTemplate } from "./email.js";
 import { handleSesDeliveryWebhook, listEmailDeliveryEvents } from "./ses-webhook.js";
-import { liftEmailSuppression, listEmailSuppressions } from "./email-suppression.js";
+import { liftEmailSuppression, listEmailSuppressions, syncEmailSuppressionsFromSes } from "./email-suppression.js";
 import { dismissAllNotifications, dismissNotification, getNotificationHealth, listNotifications } from "./notifications.js";
 
 function sendError(
@@ -134,6 +134,14 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listEmailSuppressions(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/notifications/email/suppressions/sync", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = await syncEmailSuppressionsFromSes(store, principal);
     if ("error" in result) return sendError(reply, result);
     return result;
   });

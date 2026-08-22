@@ -47,7 +47,7 @@ export type NotifEmailDeliveryEvent = {
   receivedAt: string;
 };
 
-export type NotifEmailSuppressionReason = "bounce" | "complaint" | "reject" | "manual";
+export type NotifEmailSuppressionReason = "bounce" | "complaint" | "reject" | "manual" | "ses_account";
 
 export type NotifEmailSuppression = {
   id: string;

@@ -16,6 +16,7 @@ import {
   liftEmailSuppression,
   previewEmailTemplate,
   saveEmailTemplate,
+  syncEmailSuppressions,
   type EmailOutboxItem,
   type EmailSuppressionItem,
   type EmailTemplateItem,
@@ -31,6 +32,7 @@ export default function NotificationsPage() {
   const [adapter, setAdapter] = useState("dev-outbox");
   const [error, setError] = useState<string | null>(null);
   const [dispatchMsg, setDispatchMsg] = useState<string | null>(null);
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
 
   const [selectedKey, setSelectedKey] = useState<string>("");
   const [editSubject, setEditSubject] = useState("");
@@ -87,6 +89,18 @@ export default function NotificationsPage() {
     await reload();
   }
 
+  async function handleSyncSuppressions() {
+    if (!token) return;
+    setSyncMsg(null);
+    try {
+      const res = await syncEmailSuppressions(token);
+      setSyncMsg(`Synced SES suppressions · imported ${res.imported}, updated ${res.updated}`);
+      await reload();
+    } catch (err) {
+      setSyncMsg(err instanceof Error ? err.message : "SES sync unavailable");
+    }
+  }
+
   async function handleSaveTemplate() {
     if (!token || !selectedKey) return;
     setEditorBusy(true);
@@ -124,7 +138,7 @@ export default function NotificationsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="I3 · I3.9 · Notifications"
+        eyebrow="I3 · I3.10 · Notifications"
         title="Action Inbox"
         subtitle={`Live alerts + email digest · adapter: ${adapter}`}
         actions={
@@ -144,6 +158,7 @@ export default function NotificationsPage() {
       />
       {error && <p className="mb-4 text-sm text-danger">{error}</p>}
       {dispatchMsg && <p className="mb-4 text-sm text-gold-deep">{dispatchMsg}</p>}
+      {syncMsg && <p className="mb-4 text-sm text-gold-deep">{syncMsg}</p>}
       <Card title={`${items.length} notification(s)`}>
         <div className="space-y-2">
           {items.map((item) => (
@@ -188,8 +203,15 @@ export default function NotificationsPage() {
       <div className="mt-4">
         <Card title={`Email suppressions (${suppressions.length})`}>
           <p className="mb-3 text-sm text-muted">
-            Bounce, complaint, and reject events block further sends until lifted (I3.9).
+            Bounce, complaint, reject, and SES account suppressions block further sends until lifted (I3.10).
           </p>
+          {token && (
+            <div className="mb-3">
+              <Btn variant="secondary" size="sm" onClick={() => void handleSyncSuppressions()}>
+                Sync from SES
+              </Btn>
+            </div>
+          )}
           <div className="space-y-2">
             {suppressions.map((s) => (
               <div key={s.id} className="flex items-center justify-between gap-3 rounded border border-line px-3 py-3">

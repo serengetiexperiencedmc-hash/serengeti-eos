@@ -159,4 +159,7 @@ export const SUPPLIER_EVENT_TYPES = {
   RATE_CREATED: "supplier.rate.created.v1",
   RATE_UPDATED: "supplier.rate.updated.v1",
   RATE_ARCHIVED: "supplier.rate.archived.v1",
+  CONTENT_BLOCK_CREATED: "supplier.content_block.created.v1",
+  CONTENT_BLOCK_UPDATED: "supplier.content_block.updated.v1",
+  CONTENT_BLOCK_ARCHIVED: "supplier.content_block.archived.v1",
 } as const;
