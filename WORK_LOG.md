@@ -91,6 +91,20 @@
 
 ---
 
+### 18:10 — PG.3 + I4.1 + I3.4 ✅
+
+**Shipped:** server `0.34.0-pg.3-i4.1-i3.4`
+
+| Increment | Change |
+| --- | --- |
+| **PG.3** | CRM orgs/contacts/activities dual-write + hydrate, migration 036 |
+| **I4.1** | NATS JetStream transport wiring (`nats` client, env-gated) |
+| **I3.4** | Tenant email template PUT API + commercial editor UI |
+
+**Tests:** API i3.4+i4.nats+crm 4/4 (3 PG-gated skipped), web tsc clean.
+
+---
+
 ## Session summary (for user return)
 
 ### Completed this autonomous window
@@ -103,21 +117,25 @@
 6. **Login proxy fix**
 7. **PG.2 I4 outbox insert/drain**
 8. **I3.3 Real SMTP transport**
+9. **PG.3 CRM dual-write + hydrate**
+10. **I4.1 NATS JetStream transport**
+11. **I3.4 Tenant email template editor**
 
 ### Current project status
 
-- **Server version:** `0.33.0-i3.3-pg.2`
-- **Increments live:** C1–C10, O1–O4, I3.3, I8.3, I9.2, J1–J2, PG.1, PG.2
+- **Server version:** `0.34.0-pg.3-i4.1-i3.4`
+- **Increments live:** C1–C10, O1–O4, I3.4, I4.1, I8.3, I9.2, J1–J2, PG.1–PG.3
 - **All targeted tests passing**
 
 ### Recommended next increments
 
-1. PG.3 — CRM full persistence (separate gate)
-2. I4 transport — NATS JetStream wiring (Production gate)
-3. Tenant email template editor UI
+1. PG.3+ — CRM accounts, notes, merge persistence slices
+2. I4.2 — NATS consumers + idempotent handlers
+3. Production SMTP/SES dispatch with tenant templates
 
 ### Issues resolved
 
 - TypeScript `BufferSource` compatibility in `field-cache-crypto.ts` (web tsc)
+- `nats` npm dependency added for I4.1 transport
 
 ---

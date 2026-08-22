@@ -18,8 +18,8 @@ Adopt a **phased persistence increment** model:
 | --- | --- | --- | --- |
 | **I1** (done) | Kernel IAM, audit, sessions | Bootstrap sync on startup | In-memory + optional sync |
 | **PG.1** (this increment) | I3 notifications | Dual-write on dismiss + email outbox | In-memory primary; PG mirror when `EOS_DATABASE_URL` set |
-| **PG.2** (future) | I4 transactional outbox | Insert on emit, drain on startup | Per ADR-0010 |
-| **PG.3** (future) | C1 CRM | Full read/write repository | Separate gate + performance baseline |
+| **PG.2** (done) | I4 transactional outbox | Insert on emit, drain on startup | Per ADR-0010 |
+| **PG.3** (done — Dev/Test gate) | C1 CRM orgs/contacts/activities | Dual-write + hydrate on startup | Separate gate; in-memory read SoR |
 
 ### PG.1 rules
 

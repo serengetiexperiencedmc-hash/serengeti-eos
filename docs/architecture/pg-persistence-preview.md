@@ -23,6 +23,21 @@ Migration: `035_pg2_outbox_persistence.sql` (pending index)
 
 Tests: `pg-i4.integration.test.ts` (gated)
 
+## PG.3 — CRM dual-write ✅
+
+| Table | Trigger |
+| --- | --- |
+| `crm_organization_types` | Org type mutations |
+| `crm_organizations` | Organization create/update |
+| `crm_contacts` | Contact create/update |
+| `crm_activities` | Activity create/update |
+
+Migration: `036_pg3_crm_persistence.sql` (tenant + updated_at indexes)
+
+Hydrate on startup when `EOS_DATABASE_URL` set. In-memory `Store` remains read SoR in Dev/Test.
+
+Tests: `pg-crm.integration.test.ts`, `crm.integration.test.ts` (`describePg` block)
+
 ## Dev/Test behavior
 
 - In-memory `Store` remains read SoR
@@ -30,6 +45,6 @@ Tests: `pg-i4.integration.test.ts` (gated)
 
 ## Future
 
-- **PG.3** — CRM full read/write persistence (separate gate)
 - Read-through hydration for all modules
 - Production SoR cutover
+- CRM accounts, notes, merge — additional PG.3+ slices

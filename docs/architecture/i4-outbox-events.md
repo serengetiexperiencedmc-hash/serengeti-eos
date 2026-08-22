@@ -24,8 +24,8 @@ Catalogue registration required. Producer and consumer authorization inherited f
 ## Transport abstraction
 
 ```
-Application → EventTransport interface → in-memory-dev (Dev/Test stand-in)
-                                       → nats-jetstream (Production — NOT configured)
+Application → EventTransport interface → in-memory-dev (Dev/Test default)
+                                       → nats-jetstream (I4.1 — Production NOT configured)
 ```
 
 Business logic must not depend on NATS APIs directly. Production transport remains a future ADR-gated decision.
