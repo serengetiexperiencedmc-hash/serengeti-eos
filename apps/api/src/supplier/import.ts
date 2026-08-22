@@ -17,6 +17,7 @@ import type { Store } from "../store.js";
 import { allowSupplierAudit, denySupplierAudit } from "./audit.js";
 import { ensureSupplierCollections } from "./collections.js";
 import { findSupplierByCode } from "./supplier.js";
+import { persistSupImportBatchAfterCommit } from "../persistence/supplier.js";
 
 function importExecuteKey(tenantId: string, batchId: string, key: string): string {
   return `${tenantId}:${batchId}:${key}`;
@@ -114,6 +115,7 @@ export function createSupplierImportBatch(
     rowCount: batch.rowCount,
     sourceSystem: batch.sourceSystem,
   });
+  void persistSupImportBatchAfterCommit(store.dbPool, store, batch.id);
 
   return { batch: sanitizeBatch(batch) };
 }
@@ -270,6 +272,7 @@ export function validateSupplierImportBatch(
     validCount: batch.validCount,
     invalidCount: batch.invalidCount,
   });
+  void persistSupImportBatchAfterCommit(store.dbPool, store, batch.id);
 
   return { batch: sanitizeBatch(batch) };
 }
@@ -369,6 +372,7 @@ export function executeSupplierImportBatch(
       committedCount: batch.committedCount,
       eventType: SUPPLIER_EVENT_TYPES.IMPORT_COMMITTED,
     });
+    void persistSupImportBatchAfterCommit(store.dbPool, store, batch.id);
 
     return { batch: sanitizeBatch(batch) };
   } catch {
@@ -379,6 +383,7 @@ export function executeSupplierImportBatch(
       reason: "import_commit_failed",
       eventType: SUPPLIER_EVENT_TYPES.IMPORT_FAILED,
     });
+    void persistSupImportBatchAfterCommit(store.dbPool, store, batch.id);
     return { error: "conflict" as const, reason: "import_commit_failed" };
   }
 }

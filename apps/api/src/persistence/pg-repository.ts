@@ -327,6 +327,7 @@ export async function insertNotifEmailOutbox(
     templateKey: string;
     status: string;
     adapter: string;
+    sesMessageId?: string;
     sentAt?: string;
     createdAt: string;
   },
@@ -334,8 +335,8 @@ export async function insertNotifEmailOutbox(
   await pool.query(
     `INSERT INTO notif_email_outbox (
       id, tenant_id, principal_id, notification_key, recipient_email,
-      subject, body_text, template_key, status, adapter, sent_at, created_at
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+      subject, body_text, template_key, status, adapter, ses_message_id, sent_at, created_at
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
      ON CONFLICT (tenant_id, principal_id, notification_key) DO NOTHING`,
     [
       entry.id,
@@ -348,8 +349,51 @@ export async function insertNotifEmailOutbox(
       entry.templateKey,
       entry.status,
       entry.adapter,
+      entry.sesMessageId ?? null,
       entry.sentAt ?? null,
       entry.createdAt,
+    ],
+  );
+}
+
+export async function updateNotifEmailOutboxStatus(
+  pool: DbPool | undefined,
+  outboxId: string,
+  status: string,
+): Promise<void> {
+  if (!pool) return;
+  await pool.query(`UPDATE notif_email_outbox SET status = $2 WHERE id = $1`, [outboxId, status]);
+}
+
+export async function updateNotifEmailOutboxBySesMessageId(
+  pool: DbPool | undefined,
+  outboxId: string,
+  sesMessageId: string,
+): Promise<void> {
+  if (!pool) return;
+  await pool.query(`UPDATE notif_email_outbox SET ses_message_id = $2 WHERE id = $1`, [outboxId, sesMessageId]);
+}
+
+export async function insertNotifEmailDeliveryEvent(
+  pool: DbPool,
+  entry: import("@sedmc/kernel").NotifEmailDeliveryEvent,
+  payload: Record<string, unknown>,
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO notif_email_delivery_events (
+      id, tenant_id, outbox_id, event_type, ses_message_id, sns_message_id, recipient_email, payload, received_at
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9)
+     ON CONFLICT (sns_message_id) DO NOTHING`,
+    [
+      entry.id,
+      entry.tenantId ?? null,
+      entry.outboxId ?? null,
+      entry.eventType,
+      entry.sesMessageId ?? null,
+      entry.snsMessageId ?? null,
+      entry.recipientEmail ?? null,
+      JSON.stringify(payload),
+      entry.receivedAt,
     ],
   );
 }
@@ -486,6 +530,52 @@ export async function countProcessedEvents(pool: DbPool, tenantId: string, consu
         [tenantId, consumer],
       )
     : await pool.query(`SELECT COUNT(*)::int AS c FROM processed_events WHERE tenant_id = $1`, [tenantId]);
+  return result.rows[0]?.c ?? 0;
+}
+
+// --- I4.4 NATS consumer offsets ---
+
+export async function upsertNatsConsumerOffset(
+  pool: DbPool,
+  offset: import("@sedmc/kernel").NatsConsumerOffset,
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO nats_consumer_offsets (tenant_id, consumer, stream, last_stream_seq, last_event_id, updated_at)
+     VALUES ($1,$2,$3,$4,$5,$6)
+     ON CONFLICT (tenant_id, consumer, stream) DO UPDATE SET
+       last_stream_seq = GREATEST(nats_consumer_offsets.last_stream_seq, EXCLUDED.last_stream_seq),
+       last_event_id = EXCLUDED.last_event_id,
+       updated_at = EXCLUDED.updated_at`,
+    [
+      offset.tenantId,
+      offset.consumer,
+      offset.stream,
+      offset.lastStreamSeq,
+      offset.lastEventId ?? null,
+      offset.updatedAt,
+    ],
+  );
+}
+
+export async function loadNatsConsumerOffsets(pool: DbPool): Promise<import("@sedmc/kernel").NatsConsumerOffset[]> {
+  const result = await pool.query(
+    `SELECT tenant_id, consumer, stream, last_stream_seq, last_event_id, updated_at
+     FROM nats_consumer_offsets ORDER BY updated_at ASC`,
+  );
+  return result.rows.map((row) => ({
+    tenantId: row.tenant_id as string,
+    consumer: row.consumer as string,
+    stream: row.stream as string,
+    lastStreamSeq: Number(row.last_stream_seq),
+    ...(row.last_event_id ? { lastEventId: row.last_event_id as string } : {}),
+    updatedAt: new Date(row.updated_at as string).toISOString(),
+  }));
+}
+
+export async function countNatsConsumerOffsets(pool: DbPool, tenantId: string): Promise<number> {
+  const result = await pool.query(`SELECT COUNT(*)::int AS c FROM nats_consumer_offsets WHERE tenant_id = $1`, [
+    tenantId,
+  ]);
   return result.rows[0]?.c ?? 0;
 }
 
@@ -677,6 +767,82 @@ export async function loadCrmImportBatches(pool: DbPool): Promise<import("@sedmc
 
 export async function countCrmImportBatches(pool: DbPool, tenantId: string): Promise<number> {
   const result = await pool.query(`SELECT COUNT(*)::int AS c FROM crm_import_batches WHERE tenant_id = $1`, [tenantId]);
+  return result.rows[0]?.c ?? 0;
+}
+
+// --- PG.5 supplier import batches ---
+
+export async function upsertSupImportBatch(pool: DbPool, batch: import("@sedmc/kernel").SupImportBatch): Promise<void> {
+  await pool.query(
+    `INSERT INTO sup_import_batches (
+      id, tenant_id, source_system, entity_type, mode, status, row_count,
+      valid_count, invalid_count, committed_count, csv_content, validation_results,
+      execute_idempotency_key, created_at, validated_at, committed_at,
+      created_by_principal_id, committed_by_principal_id
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$13,$14,$15,$16,$17,$18)
+     ON CONFLICT (id) DO UPDATE SET
+       status = EXCLUDED.status,
+       valid_count = EXCLUDED.valid_count,
+       invalid_count = EXCLUDED.invalid_count,
+       committed_count = EXCLUDED.committed_count,
+       validation_results = EXCLUDED.validation_results,
+       execute_idempotency_key = EXCLUDED.execute_idempotency_key,
+       validated_at = EXCLUDED.validated_at,
+       committed_at = EXCLUDED.committed_at,
+       committed_by_principal_id = EXCLUDED.committed_by_principal_id`,
+    [
+      batch.id,
+      batch.tenantId,
+      batch.sourceSystem,
+      batch.entityType,
+      batch.mode,
+      batch.status,
+      batch.rowCount,
+      batch.validCount ?? null,
+      batch.invalidCount ?? null,
+      batch.committedCount ?? null,
+      batch.csvContent,
+      batch.validationResults ? JSON.stringify(batch.validationResults) : null,
+      batch.executeIdempotencyKey ?? null,
+      batch.createdAt,
+      batch.validatedAt ?? null,
+      batch.committedAt ?? null,
+      batch.createdByPrincipalId,
+      batch.committedByPrincipalId ?? null,
+    ],
+  );
+}
+
+export async function loadSupImportBatches(pool: DbPool): Promise<import("@sedmc/kernel").SupImportBatch[]> {
+  const result = await pool.query(`SELECT * FROM sup_import_batches ORDER BY created_at ASC`);
+  return result.rows.map((row) => ({
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    sourceSystem: row.source_system as string,
+    entityType: row.entity_type as import("@sedmc/kernel").SupImportBatch["entityType"],
+    mode: row.mode as import("@sedmc/kernel").SupImportBatch["mode"],
+    status: row.status as import("@sedmc/kernel").SupImportBatch["status"],
+    rowCount: row.row_count as number,
+    ...(row.valid_count != null ? { validCount: row.valid_count as number } : {}),
+    ...(row.invalid_count != null ? { invalidCount: row.invalid_count as number } : {}),
+    ...(row.committed_count != null ? { committedCount: row.committed_count as number } : {}),
+    csvContent: (row.csv_content as string) ?? "",
+    ...(row.validation_results
+      ? { validationResults: row.validation_results as import("@sedmc/kernel").SupImportRowResult[] }
+      : {}),
+    ...(row.execute_idempotency_key ? { executeIdempotencyKey: row.execute_idempotency_key as string } : {}),
+    createdAt: new Date(row.created_at as string).toISOString(),
+    ...(row.validated_at ? { validatedAt: new Date(row.validated_at as string).toISOString() } : {}),
+    ...(row.committed_at ? { committedAt: new Date(row.committed_at as string).toISOString() } : {}),
+    createdByPrincipalId: row.created_by_principal_id as string,
+    ...(row.committed_by_principal_id
+      ? { committedByPrincipalId: row.committed_by_principal_id as string }
+      : {}),
+  }));
+}
+
+export async function countSupImportBatches(pool: DbPool, tenantId: string): Promise<number> {
+  const result = await pool.query(`SELECT COUNT(*)::int AS c FROM sup_import_batches WHERE tenant_id = $1`, [tenantId]);
   return result.rows[0]?.c ?? 0;
 }
 

@@ -29,10 +29,22 @@ export type NotifEmailOutboxEntry = {
   subject: string;
   bodyText: string;
   templateKey: string;
-  status: "queued" | "sent" | "failed";
+  status: "queued" | "sent" | "failed" | "bounced" | "complained";
   adapter: string;
+  sesMessageId?: string;
   sentAt?: string;
   createdAt: string;
+};
+
+export type NotifEmailDeliveryEvent = {
+  id: string;
+  tenantId?: string;
+  outboxId?: string;
+  eventType: "bounce" | "complaint" | "delivery";
+  sesMessageId?: string;
+  snsMessageId?: string;
+  recipientEmail?: string;
+  receivedAt: string;
 };
 
 export function buildEmailFromNotification(

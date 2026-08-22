@@ -112,6 +112,15 @@ export type ProcessedEventKey = {
   processedAt: string;
 };
 
+export type NatsConsumerOffset = {
+  tenantId: string;
+  consumer: string;
+  stream: string;
+  lastStreamSeq: number;
+  lastEventId?: string;
+  updatedAt: string;
+};
+
 export function buildEnvelope(input: {
   eventType: string;
   tenantId: string;

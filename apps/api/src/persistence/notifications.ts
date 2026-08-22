@@ -1,9 +1,10 @@
 import type { DbPool } from "@sedmc/db";
-import type { NotifDismissal, NotifEmailOutboxEntry } from "@sedmc/kernel";
+import type { NotifDismissal, NotifEmailDeliveryEvent, NotifEmailOutboxEntry } from "@sedmc/kernel";
 import { ensureNotificationCollections } from "../notifications/collections.js";
 import type { Store } from "../store.js";
 import {
   insertNotifDismissal,
+  insertNotifEmailDeliveryEvent,
   insertNotifEmailOutbox,
   loadNotifEmailTemplates,
   upsertNotifEmailTemplate,
@@ -23,6 +24,15 @@ export async function persistNotifEmailOutbox(
 ): Promise<void> {
   if (!pool) return;
   await insertNotifEmailOutbox(pool, entry);
+}
+
+export async function persistNotifEmailDeliveryEvent(
+  pool: DbPool | undefined,
+  entry: NotifEmailDeliveryEvent,
+  payload: Record<string, unknown>,
+): Promise<void> {
+  if (!pool) return;
+  await insertNotifEmailDeliveryEvent(pool, entry, payload);
 }
 
 export async function persistNotifEmailTemplate(

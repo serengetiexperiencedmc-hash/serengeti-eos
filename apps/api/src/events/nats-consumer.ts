@@ -11,6 +11,7 @@ import type { Logger } from "../observability.js";
 import type { Store } from "../store.js";
 import { DEFAULT_EVENT_CONSUMER, processEventEnvelope } from "./consumer.js";
 import { createNatsTransportFromEnv } from "./nats-transport.js";
+import { recordNatsConsumerOffset } from "../persistence/nats-offsets.js";
 
 export type NatsConsumerHandle = {
   stop(): Promise<void>;
@@ -59,8 +60,18 @@ export async function startNatsJetStreamConsumer(
       try {
         const envelope = JSON.parse(sc.decode(msg.data)) as EnterpriseEventEnvelope;
         const result = processEventEnvelope(store, envelope, DEFAULT_EVENT_CONSUMER);
-        if (result.delivered) msg.ack();
-        else msg.nak();
+        if (result.delivered) {
+          if (result.processed && msg.seq) {
+            recordNatsConsumerOffset(store, {
+              tenantId: envelope.tenantId,
+              consumer: DEFAULT_EVENT_CONSUMER,
+              stream: opts.stream,
+              streamSeq: msg.seq,
+              eventId: envelope.eventId,
+            });
+          }
+          msg.ack();
+        } else msg.nak();
       } catch (err) {
         logger.warn("nats_consumer_message_failed", {
           err: err instanceof Error ? err.message : "unknown",

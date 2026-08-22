@@ -189,15 +189,27 @@
 
 ### Current project status
 
-- **Server version:** `0.36.0-i4.3-pg4`
-- **Increments live:** C1–C10, O1–O4, I3.5, I4.3, I8.3, I9.2, J1–J2, PG.1–PG.4
+- **Server version:** `0.37.0-i3.6-i4.4-pg5`
+- **Increments live:** C1–C10, O1–O4, I3.6, I4.3, I4.4, I8.3, I9.2, J1–J2, PG.1–PG.5
 - **All targeted tests passing**
+
+### 18:xx — I3.6 + I4.4 + PG.5 ✅
+
+**Shipped:** server `0.37.0-i3.6-i4.4-pg5`
+
+| Increment | Change |
+| --- | --- |
+| **I3.6** | SES bounce/complaint webhook, delivery events table, outbox status `bounced`/`complained` |
+| **I4.4** | NATS consumer offset PG persistence, list/replay API, startup hydrate |
+| **PG.5** | Supplier import batch dual-write + hydrate on execute/validate/create |
+
+**Tests:** i3.6-ses-webhook, i4.4-nats-offsets, pg-supplier integration (PG-gated)
 
 ### Recommended next increments
 
-1. Email bounce/complaint webhooks for SES
-2. I4.4 — NATS consumer offset persistence / replay from stream
-3. PG.5 — supplier import batch PG dual-write (C4 parity)
+1. SES SNS signature verification (production hardening)
+2. PG.6 — full supplier entity dual-write (suppliers, contacts, rates)
+3. I4.5 — consumer lag metrics / offset dashboard
 
 ### Issues resolved
 

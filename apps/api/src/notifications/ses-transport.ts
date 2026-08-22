@@ -2,7 +2,16 @@ import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 import type { EmailNotificationMessage } from "@sedmc/kernel";
 import type { SesTransportConfig } from "@sedmc/kernel";
 
-export async function sendViaSes(config: SesTransportConfig, message: EmailNotificationMessage): Promise<void> {
+export type SesSendMetadata = {
+  tenantId: string;
+  notificationKey: string;
+};
+
+export async function sendViaSes(
+  config: SesTransportConfig,
+  message: EmailNotificationMessage,
+  metadata?: SesSendMetadata,
+): Promise<{ messageId: string }> {
   const client = new SESv2Client({
     region: config.region,
     ...(config.accessKeyId && config.secretAccessKey
@@ -10,10 +19,18 @@ export async function sendViaSes(config: SesTransportConfig, message: EmailNotif
       : {}),
   });
 
-  await client.send(
+  const result = await client.send(
     new SendEmailCommand({
       FromEmailAddress: config.from,
       Destination: { ToAddresses: [message.to] },
+      ...(metadata
+        ? {
+            EmailTags: [
+              { Name: "tenantId", Value: metadata.tenantId },
+              { Name: "notificationKey", Value: metadata.notificationKey },
+            ],
+          }
+        : {}),
       Content: {
         Simple: {
           Subject: { Data: message.subject, Charset: "UTF-8" },
@@ -25,4 +42,6 @@ export async function sendViaSes(config: SesTransportConfig, message: EmailNotif
       },
     }),
   );
+
+  return { messageId: result.MessageId ?? "" };
 }

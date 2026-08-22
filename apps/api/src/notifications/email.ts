@@ -34,6 +34,7 @@ async function recordOutboxEntry(
   message: EmailNotificationMessage,
   adapter: string,
   status: NotifEmailOutboxEntry["status"] = "sent",
+  sesMessageId?: string,
 ) {
   ensureNotificationCollections(store);
   if (!store.notifEmailOutbox) store.notifEmailOutbox = [];
@@ -50,6 +51,7 @@ async function recordOutboxEntry(
     templateKey: message.templateKey,
     status,
     adapter,
+    ...(sesMessageId ? { sesMessageId } : {}),
     sentAt: status === "sent" ? now : undefined,
     createdAt: now,
   };
@@ -143,8 +145,11 @@ export function createSesEmailAdapter(store: Store, principal: Principal): Email
         return { status: "skipped", reason: "ses_not_configured" };
       }
       try {
-        await sendViaSes(config, message);
-        await recordOutboxEntry(store, principal, message, "ses", "sent");
+        const sent = await sendViaSes(config, message, {
+          tenantId: principal.tenantId,
+          notificationKey: message.notificationKey,
+        });
+        await recordOutboxEntry(store, principal, message, "ses", "sent", sent.messageId || undefined);
         return { status: "sent" };
       } catch (err) {
         await recordOutboxEntry(store, principal, message, "ses", "failed");
@@ -302,15 +307,17 @@ export function getEmailAdapterHealth(store: Store) {
   const adapter = resolveEmailAdapterName();
   return {
     module: "notification-email",
-    increment: "I3.5",
+    increment: "I3.6",
     adapter,
     status: "ok" as const,
     outboxCount: (store.notifEmailOutbox ?? []).length,
+    deliveryEventCount: (store.notifEmailDeliveryEvents ?? []).length,
     templateCount: listEmailTemplateKeys(store.notifEmailTemplates?.map(({ tenantId: _, ...t }) => t) ?? []).length,
     smtpConfigured: isSmtpConfigured(),
     smtpHost: process.env.EOS_SMTP_HOST ?? null,
     sesConfigured: isSesConfigured(),
     sesRegion: process.env.EOS_SES_REGION ?? null,
+    webhookSecretConfigured: Boolean(process.env.EOS_SES_WEBHOOK_SECRET),
   };
 }
 

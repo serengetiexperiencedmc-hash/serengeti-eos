@@ -50,6 +50,7 @@ import {
   requestReplay,
   traceEventCorrelation,
 } from "./app.js";
+import { listNatsConsumerOffsets, replayNatsStreamFromSeq } from "./events/nats-replay.js";
 import { registerCrmRoutes } from "./crm/routes.js";
 import { registerPipelineRoutes } from "./pipeline/routes.js";
 import { registerAnalyticsRoutes } from "./analytics/routes.js";
@@ -73,7 +74,7 @@ import {
   type Logger,
 } from "./observability.js";
 
-const VERSION = "0.36.0-i4.3-pg4";
+const VERSION = "0.37.0-i3.6-i4.4-pg5";
 
 export type ServerOptions = {
   store?: Store;
@@ -759,6 +760,41 @@ export function buildServer(options: ServerOptions | Store = {}) {
     });
     if (!result.ok) return reply.code(403).send({ error: "forbidden", reason: result.reason });
     return { ...result, increment: "I4.3" };
+  });
+
+  app.get("/v1/events/consumers/nats/offsets", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = listNatsConsumerOffsets(store, principal);
+    if (!result.ok) return reply.code(403).send({ error: "forbidden", reason: result.reason });
+    return { items: result.items, increment: "I4.4" };
+  });
+
+  app.post("/v1/events/consumers/nats/replay", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const body = (req.body ?? {}) as {
+      stream?: string;
+      consumer?: string;
+      fromSeq?: number;
+      maxMessages?: number;
+      force?: boolean;
+    };
+    if (body.fromSeq === undefined || !Number.isFinite(body.fromSeq)) {
+      return reply.code(400).send({ error: "invalid_request" });
+    }
+    const result = await replayNatsStreamFromSeq(store, principal, {
+      ...(body.stream !== undefined ? { stream: body.stream } : {}),
+      ...(body.consumer !== undefined ? { consumer: body.consumer } : {}),
+      fromSeq: body.fromSeq,
+      ...(body.maxMessages !== undefined ? { maxMessages: body.maxMessages } : {}),
+      ...(body.force !== undefined ? { force: body.force } : {}),
+    });
+    if (!result.ok) {
+      const code = result.reason === "nats_not_configured" ? 503 : 403;
+      return reply.code(code).send({ error: code === 503 ? "service_unavailable" : "forbidden", reason: result.reason });
+    }
+    return { ...result, increment: "I4.4" };
   });
 
   app.post("/v1/events/catalogue", async (req, reply) => {

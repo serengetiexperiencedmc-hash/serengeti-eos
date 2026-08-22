@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { principalFromAuthHeader } from "../app.js";
 import type { Store } from "../store.js";
 import { dispatchEmailDigest, getEmailAdapterHealth, listEmailOutbox, listEmailTemplates, previewEmailTemplate, upsertEmailTemplate } from "./email.js";
+import { handleSesDeliveryWebhook, listEmailDeliveryEvents } from "./ses-webhook.js";
 import { dismissAllNotifications, dismissNotification, getNotificationHealth, listNotifications } from "./notifications.js";
 
 function sendError(
@@ -108,5 +109,23 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     });
     if ("error" in result) return sendError(reply, result);
     return result;
+  });
+
+  app.post("/v1/notifications/email/ses-webhook", async (req, reply) => {
+    const secret = req.headers["x-eos-webhook-secret"];
+    const result = await handleSesDeliveryWebhook(store, {
+      ...(typeof secret === "string" ? { secret } : {}),
+      body: req.body,
+    });
+    if (!result.ok) return reply.code(result.reason === "webhook_unauthorized" ? 401 : 400).send(result);
+    return { ...result, increment: "I3.6" };
+  });
+
+  app.get("/v1/notifications/email/delivery-events", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const query = req.query as { limit?: string };
+    const limit = query.limit ? Number(query.limit) : 50;
+    return { ...listEmailDeliveryEvents(store, principal.tenantId, limit), increment: "I3.6" };
   });
 }

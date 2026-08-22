@@ -43,7 +43,7 @@ describe("I3.3 SMTP email adapter", () => {
         headers: { authorization: `Bearer ${token}` },
       });
       expect(health.json().smtpConfigured).toBe(true);
-      expect(health.json().increment).toBe("I3.5");
+      expect(health.json().increment).toBe("I3.6");
     } finally {
       if (prevHost === undefined) delete process.env.EOS_SMTP_HOST;
       else process.env.EOS_SMTP_HOST = prevHost;
