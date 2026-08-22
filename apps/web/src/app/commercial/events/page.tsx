@@ -8,10 +8,20 @@ import {
   getNatsConsumerLag,
   listDeadLetters,
   requestEventReplay,
+  updateDeadLetterRemediation,
   type DeadLetterItem,
   type NatsLagMetrics,
 } from "@/lib/events-api";
 
+const NEXT_STATUS: Record<string, string[]> = {
+  failed: ["investigating"],
+  investigating: ["corrected", "permanently_rejected"],
+  corrected: ["resolved"],
+  replay_approved: ["resolved"],
+  replayed: ["resolved"],
+  permanently_rejected: ["closed"],
+  resolved: ["closed"],
+};
 function formatMs(ms: number): string {
   if (ms < 60_000) return `${Math.round(ms / 1000)}s`;
   if (ms < 3_600_000) return `${Math.round(ms / 60_000)}m`;
@@ -60,7 +70,7 @@ export default function EventsInfrastructurePage() {
     setMsg(null);
     try {
       const req = await requestEventReplay(token, {
-        reason: "Commercial UI replay (I4.9)",
+        reason: "Commercial UI replay (I4.10)",
         intent: "reexecute",
         deadLetterIds: [...selected],
       });
@@ -75,16 +85,32 @@ export default function EventsInfrastructurePage() {
     }
   }
 
+  async function handleRemediate(id: string, status: string) {
+    if (!token) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      await updateDeadLetterRemediation(token, id, { status, remediation: `UI → ${status}` });
+      setMsg(`Updated status to ${status}`);
+      await reload();
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : "Remediation failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!ready) return null;
 
-  const openDlq = dlq.filter((d) => d.status === "failed");
+  const openDlq = dlq.filter((d) => d.status === "failed" || d.status === "investigating" || d.status === "corrected");
+  const replayable = (status: string) => status === "failed" || status === "corrected";
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <PageHeader
-        eyebrow="I4 · I4.9 · Events"
+        eyebrow="I4 · I4.10 · Events"
         title="Event Infrastructure"
-        subtitle="NATS lag, DLQ, and controlled replay"
+        subtitle="NATS lag, DLQ remediation, and controlled replay"
         actions={
           token && selected.size > 0 ? (
             <Btn disabled={busy} onClick={() => void handleReplay()}>
@@ -102,13 +128,13 @@ export default function EventsInfrastructurePage() {
       <div className="mt-6">
         <Card title={`Dead letter queue (${openDlq.length} open / ${dlq.length} total)`}>
           <p className="mb-3 text-sm text-muted">
-            Select failed entries and replay to re-queue outbox publish (I4.9).
+            Advance remediation statuses, then replay failed/corrected entries (I4.10).
           </p>
           {dlq.length === 0 ? (
             <p className="text-sm text-muted">No dead letters.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px] text-left text-sm">
+              <table className="w-full min-w-[720px] text-left text-sm">
                 <thead>
                   <tr className="border-b border-line text-muted">
                     <th className="py-2 pr-3" />
@@ -116,14 +142,15 @@ export default function EventsInfrastructurePage() {
                     <th className="py-2 pr-3">Consumer</th>
                     <th className="py-2 pr-3">Status</th>
                     <th className="py-2 pr-3">Attempts</th>
-                    <th className="py-2">Failure</th>
+                    <th className="py-2 pr-3">Failure</th>
+                    <th className="py-2">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {dlq.map((d) => (
                     <tr key={d.id} className="border-b border-line/60">
                       <td className="py-2 pr-3">
-                        {d.status === "failed" ? (
+                        {replayable(d.status) ? (
                           <input
                             type="checkbox"
                             checked={selected.has(d.id)}
@@ -138,7 +165,22 @@ export default function EventsInfrastructurePage() {
                       <td className="py-2 pr-3">{d.consumer}</td>
                       <td className="py-2 pr-3 capitalize">{d.status.replace(/_/g, " ")}</td>
                       <td className="py-2 pr-3">{d.attempts}</td>
-                      <td className="py-2 text-muted">{d.failureReason}</td>
+                      <td className="py-2 pr-3 text-muted">{d.failureReason}</td>
+                      <td className="py-2">
+                        <div className="flex flex-wrap gap-1">
+                          {(NEXT_STATUS[d.status] ?? []).map((next) => (
+                            <button
+                              key={next}
+                              type="button"
+                              disabled={busy}
+                              className="rounded border border-line px-2 py-0.5 text-xs hover:bg-sand disabled:opacity-50"
+                              onClick={() => void handleRemediate(d.id, next)}
+                            >
+                              → {next.replace(/_/g, " ")}
+                            </button>
+                          ))}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

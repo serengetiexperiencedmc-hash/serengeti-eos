@@ -48,6 +48,7 @@ import {
   registerEventType,
   replayEventsToConsumer,
   requestReplay,
+  updateDeadLetterRemediation,
   traceEventCorrelation,
 } from "./app.js";
 import { listNatsConsumerOffsets, replayNatsStreamFromSeq } from "./events/nats-replay.js";
@@ -75,7 +76,7 @@ import {
   type Logger,
 } from "./observability.js";
 
-const VERSION = "0.48.0-i3.12-pg13";
+const VERSION = "0.49.0-i4.10-i3.13";
 
 export type ServerOptions = {
   store?: Store;
@@ -695,7 +696,34 @@ export function buildServer(options: ServerOptions | Store = {}) {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listDeadLetters(store, principal);
     if (!result.ok) return reply.code(403).send({ error: "forbidden", reason: result.reason });
-    return { items: result.items, increment: "I4.9" };
+    return { items: result.items, increment: "I4.10" };
+  });
+
+  app.patch("/v1/events/dlq/:id", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const body = (req.body ?? {}) as {
+      status?: string;
+      owner?: string | null;
+      remediation?: string | null;
+    };
+    if (!body.status) return reply.code(400).send({ error: "invalid_request", reason: "status_required" });
+    const result = updateDeadLetterRemediation(
+      store,
+      principal,
+      (req.params as { id: string }).id,
+      {
+        status: body.status as Parameters<typeof updateDeadLetterRemediation>[3]["status"],
+        ...(body.owner !== undefined ? { owner: body.owner } : {}),
+        ...(body.remediation !== undefined ? { remediation: body.remediation } : {}),
+      },
+      getCorrelationId(req),
+    );
+    if (!result.ok) {
+      const code = result.reason === "not_found" ? 404 : result.reason === "invalid_transition" ? 400 : 403;
+      return reply.code(code).send({ error: result.reason === "not_found" ? "not_found" : "invalid_request", reason: result.reason });
+    }
+    return result;
   });
 
   app.post("/v1/events/replay/request", async (req, reply) => {
@@ -718,7 +746,7 @@ export function buildServer(options: ServerOptions | Store = {}) {
       correlationId: getCorrelationId(req),
     });
     if (!result.ok) return reply.code(403).send({ error: "forbidden", reason: result.reason });
-    return { ...result.request, increment: "I4.9" };
+    return { ...result.request, increment: "I4.10" };
   });
 
   app.post("/v1/events/replay/:id/execute", async (req, reply) => {
@@ -727,7 +755,7 @@ export function buildServer(options: ServerOptions | Store = {}) {
     const { id } = req.params as { id: string };
     const result = executeReplayRequest(store, principal, id, getCorrelationId(req));
     if (!result.ok) return reply.code(403).send({ error: "forbidden", reason: result.reason });
-    return { ...result, increment: "I4.9" };
+    return { ...result, increment: "I4.10" };
   });
 
   app.get("/v1/events/consumers/processed", async (req, reply) => {

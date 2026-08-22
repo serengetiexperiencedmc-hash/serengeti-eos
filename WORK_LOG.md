@@ -189,8 +189,8 @@
 
 ### Current project status
 
-- **Server version:** `0.48.0-i3.12-pg13`
-- **Increments live:** C1–C10, O1–O4, I3.6.1–I3.12, I4.3–I4.9, I8.3, I9.2, J1–J2, PG.1–PG.13
+- **Server version:** `0.49.0-i4.10-i3.13`
+- **Increments live:** C1–C10, O1–O4, I3.6.1–I3.13, I4.3–I4.10, I8.3, I9.2, J1–J2, PG.1–PG.13
 - **All targeted tests passing**
 
 ### 19:xx — Commercial preview fix ✅
@@ -292,11 +292,20 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **I3.12** | Suppression CSV/JSON export; delivery-events audit filters + payload |
 | **PG.13** | Supplier facets API + country/preferredPartner search filters |
 
+### 20:xx — I4.10 + I3.13 ✅
+
+**Shipped:** server `0.49.0-i4.10-i3.13`
+
+| Increment | Change |
+| --- | --- |
+| **I4.10** | DLQ remediation PATCH + Events UI status actions |
+| **I3.13** | Suppression bulk-lift + CSV/JSON import |
+
 ### Recommended next increments
 
-1. I4.10 — DLQ remediation workflow statuses in UI
-2. PG.14 — supplier rate calendar / season views
-3. I3.13 — suppression bulk lift / import
+1. PG.14 — supplier rate calendar / season views
+2. I3.14 — suppression allowlist / transactional override
+3. I4.11 — DLQ owner assignment dashboard filters
 
 ### Issues resolved
 

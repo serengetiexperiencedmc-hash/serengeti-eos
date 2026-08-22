@@ -15,22 +15,22 @@ async function loginCarol(app: ReturnType<typeof buildServer>) {
   return res.json().accessToken as string;
 }
 
-describe("I4.9 DLQ and replay Commercial API", () => {
-  it("lists DLQ and executes replay via HTTP", async () => {
-    const store = seedStore("i49-dlq", TEST_BOOTSTRAP_SECRETS);
+describe("I4.10 DLQ remediation statuses", () => {
+  it("advances DLQ lifecycle via PATCH and banners I4.10", async () => {
+    const store = seedStore("i410-dlq", TEST_BOOTSTRAP_SECRETS);
     const carol = allPrincipals(store).find((p) => p.email === "carol.admin@sedmc.local")!;
     commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",
-      correlationId: "i49-1",
+      correlationId: "i410-1",
       mutate: () => undefined,
     });
     const eventId = store.outboxEvents[0]!.envelope.eventId;
     publishPendingOutbox(store, { maxAttempts: 1, failEventIds: new Set([eventId]) });
     publishPendingOutbox(store, { maxAttempts: 1, failEventIds: new Set([eventId]) });
     publishPendingOutbox(store, { maxAttempts: 1, failEventIds: new Set([eventId]) });
-    expect(store.deadLetters.length).toBeGreaterThan(0);
+    const dlqId = store.deadLetters[0]!.id;
 
     const app = buildServer({ store });
     const token = await loginCarol(app);
@@ -40,33 +40,33 @@ describe("I4.9 DLQ and replay Commercial API", () => {
       url: "/v1/events/dlq",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(listed.statusCode).toBe(200);
     expect(listed.json().increment).toBe("I4.10");
-    expect(listed.json().items.length).toBeGreaterThan(0);
-    const dlqId = listed.json().items[0].id as string;
 
-    const requested = await app.inject({
-      method: "POST",
-      url: "/v1/events/replay/request",
+    const investigating = await app.inject({
+      method: "PATCH",
+      url: `/v1/events/dlq/${dlqId}`,
       headers: { authorization: `Bearer ${token}` },
-      payload: {
-        reason: "I4.9 test replay",
-        intent: "reexecute",
-        deadLetterIds: [dlqId],
-      },
+      payload: { status: "investigating", remediation: "Checking transport" },
     });
-    expect(requested.statusCode).toBe(200);
-    expect(requested.json().increment).toBe("I4.10");
-    const requestId = requested.json().id as string;
+    expect(investigating.statusCode).toBe(200);
+    expect(investigating.json().increment).toBe("I4.10");
+    expect(investigating.json().deadLetter.status).toBe("investigating");
 
-    const executed = await app.inject({
-      method: "POST",
-      url: `/v1/events/replay/${requestId}/execute`,
+    const bad = await app.inject({
+      method: "PATCH",
+      url: `/v1/events/dlq/${dlqId}`,
       headers: { authorization: `Bearer ${token}` },
+      payload: { status: "resolved" },
     });
-    expect(executed.statusCode).toBe(200);
-    expect(executed.json().replayed).toBe(1);
-    expect(executed.json().increment).toBe("I4.10");
-    expect(store.outboxEvents.find((o) => o.envelope.eventId === eventId)?.status).toBe("pending");
+    expect(bad.statusCode).toBe(400);
+
+    const corrected = await app.inject({
+      method: "PATCH",
+      url: `/v1/events/dlq/${dlqId}`,
+      headers: { authorization: `Bearer ${token}` },
+      payload: { status: "corrected" },
+    });
+    expect(corrected.statusCode).toBe(200);
+    expect(store.deadLetters.find((d) => d.id === dlqId)?.status).toBe("corrected");
   });
 });

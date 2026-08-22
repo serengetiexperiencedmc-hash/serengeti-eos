@@ -75,10 +75,24 @@ export type DeadLetterItem = {
   status: string;
   lastFailureAt: string;
   replayStatus?: string;
+  owner?: string;
+  remediation?: string;
 };
 
 export async function listDeadLetters(token: string) {
   return eosFetch<{ items: DeadLetterItem[]; increment: string }>("/v1/events/dlq", { token });
+}
+
+export async function updateDeadLetterRemediation(
+  token: string,
+  id: string,
+  input: { status: string; owner?: string | null; remediation?: string | null },
+) {
+  return eosFetch<{ ok: true; deadLetter: DeadLetterItem; increment: string }>(`/v1/events/dlq/${id}`, {
+    token,
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
 }
 
 export async function requestEventReplay(

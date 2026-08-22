@@ -91,7 +91,7 @@ export function listEmailSuppressions(store: Store, principal: Principal) {
   const items = (store.notifEmailSuppressions ?? [])
     .filter((s) => s.tenantId === principal.tenantId && !s.liftedAt)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  return { items, increment: "I3.12" as const };
+  return { items, increment: "I3.13" as const };
 }
 
 export function exportEmailSuppressions(
@@ -134,7 +134,7 @@ export function exportEmailSuppressions(
       csv: [header, ...rows].join("\n"),
       count: items.length,
       generatedAt,
-      increment: "I3.12" as const,
+      increment: "I3.13" as const,
     };
   }
 
@@ -143,7 +143,7 @@ export function exportEmailSuppressions(
     items,
     count: items.length,
     generatedAt,
-    increment: "I3.12" as const,
+    increment: "I3.13" as const,
   };
 }
 
@@ -178,7 +178,141 @@ export async function liftEmailSuppression(
     }
   }
 
-  return { suppression: entry, increment: "I3.12" as const };
+  return { suppression: entry, increment: "I3.13" as const };
+}
+
+export async function bulkLiftEmailSuppressions(
+  store: Store,
+  principal: Principal,
+  input: { ids?: string[]; emails?: string[] },
+  deps: { sesClient?: SesSuppressionClient | null } = {},
+) {
+  const decision = authorize({
+    principal,
+    permission: "notification:dispatch:email",
+    action: "bulk_lift:email_suppressions",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+
+  ensureNotificationCollections(store);
+  const ids = new Set((input.ids ?? []).filter(Boolean));
+  const emails = new Set((input.emails ?? []).map((e) => e.trim().toLowerCase()).filter(Boolean));
+  if (ids.size === 0 && emails.size === 0) {
+    return { error: "invalid_request" as const, reason: "ids_or_emails_required" };
+  }
+
+  const targets = (store.notifEmailSuppressions ?? []).filter(
+    (s) =>
+      s.tenantId === principal.tenantId &&
+      !s.liftedAt &&
+      (ids.has(s.id) || emails.has(normalizeEmail(s.email))),
+  );
+
+  let lifted = 0;
+  const client = deps.sesClient === undefined ? createSesSuppressionClientFromEnv() : deps.sesClient;
+  for (const entry of targets) {
+    entry.liftedAt = new Date().toISOString();
+    void persistNotifEmailSuppression(store.dbPool, entry);
+    if (client) {
+      try {
+        await client.remove(entry.email);
+      } catch {
+        // Best-effort.
+      }
+    }
+    lifted += 1;
+  }
+
+  const requested = ids.size + emails.size;
+  return {
+    lifted,
+    notFound: Math.max(0, requested - lifted),
+    increment: "I3.13" as const,
+  };
+}
+
+export async function importEmailSuppressions(
+  store: Store,
+  principal: Principal,
+  input: { items?: Array<{ email: string; reason?: string; sourceEventId?: string }>; csv?: string },
+  deps: { sesClient?: SesSuppressionClient | null } = {},
+) {
+  const decision = authorize({
+    principal,
+    permission: "notification:dispatch:email",
+    action: "import:email_suppressions",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+
+  const allowedReasons = new Set(["bounce", "complaint", "reject", "manual", "ses_account"]);
+  const rows: Array<{ email: string; reason: string; sourceEventId?: string }> = [];
+
+  if (input.csv?.trim()) {
+    const lines = input.csv
+      .trim()
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+    const start = lines[0]?.toLowerCase().includes("email") ? 1 : 0;
+    for (let i = start; i < lines.length; i += 1) {
+      const parts = lines[i]!.split(",").map((p) => p.trim().replace(/^"|"$/g, ""));
+      const email = parts[0] ?? "";
+      const reason = parts[1] || "manual";
+      const sourceEventId = parts[2] || undefined;
+      rows.push({ email, reason, ...(sourceEventId ? { sourceEventId } : {}) });
+    }
+  } else if (input.items?.length) {
+    for (const item of input.items) {
+      rows.push({
+        email: item.email,
+        reason: item.reason ?? "manual",
+        ...(item.sourceEventId ? { sourceEventId: item.sourceEventId } : {}),
+      });
+    }
+  } else {
+    return { error: "invalid_request" as const, reason: "items_or_csv_required" };
+  }
+
+  let imported = 0;
+  let updated = 0;
+  let skipped = 0;
+  const errors: Array<{ row: number; reason: string }> = [];
+
+  for (let i = 0; i < rows.length; i += 1) {
+    const row = rows[i]!;
+    const email = row.email?.trim();
+    if (!email || !email.includes("@")) {
+      skipped += 1;
+      errors.push({ row: i + 1, reason: "invalid_email" });
+      continue;
+    }
+    if (!allowedReasons.has(row.reason)) {
+      skipped += 1;
+      errors.push({ row: i + 1, reason: "invalid_reason" });
+      continue;
+    }
+    const existing = findActiveSuppression(store, principal.tenantId, email);
+    await upsertEmailSuppression(
+      store,
+      {
+        tenantId: principal.tenantId,
+        email,
+        reason: row.reason as NotifEmailSuppressionReason,
+        ...(row.sourceEventId ? { sourceEventId: row.sourceEventId } : {}),
+      },
+      deps,
+    );
+    if (existing) updated += 1;
+    else imported += 1;
+  }
+
+  return {
+    imported,
+    updated,
+    skipped,
+    errors,
+    increment: "I3.13" as const,
+  };
 }
 
 /** I3.10 — pull SES account suppressions into the tenant list. */
@@ -236,6 +370,6 @@ export async function syncEmailSuppressionsFromSes(
     activeCount: (store.notifEmailSuppressions ?? []).filter(
       (s) => s.tenantId === principal.tenantId && !s.liftedAt,
     ).length,
-    increment: "I3.12" as const,
+    increment: "I3.13" as const,
   };
 }

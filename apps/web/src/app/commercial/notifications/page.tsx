@@ -20,6 +20,8 @@ import {
   saveEmailTemplate,
   syncEmailSuppressions,
   exportEmailSuppressions,
+  bulkLiftEmailSuppressions,
+  importEmailSuppressions,
   type EmailDeliveryAnalytics,
   type EmailDeliveryEventItem,
   type EmailOutboxItem,
@@ -33,6 +35,8 @@ export default function NotificationsPage() {
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [outbox, setOutbox] = useState<EmailOutboxItem[]>([]);
   const [suppressions, setSuppressions] = useState<EmailSuppressionItem[]>([]);
+  const [selectedSuppressions, setSelectedSuppressions] = useState<Set<string>>(new Set());
+  const [importCsv, setImportCsv] = useState("");
   const [deliveryEvents, setDeliveryEvents] = useState<EmailDeliveryEventItem[]>([]);
   const [analytics, setAnalytics] = useState<EmailDeliveryAnalytics | null>(null);
   const [templates, setTemplates] = useState<EmailTemplateItem[]>([]);
@@ -130,6 +134,32 @@ export default function NotificationsPage() {
     }
   }
 
+  async function handleBulkLift() {
+    if (!token || selectedSuppressions.size === 0) return;
+    setSyncMsg(null);
+    try {
+      const res = await bulkLiftEmailSuppressions(token, { ids: [...selectedSuppressions] });
+      setSyncMsg(`Lifted ${res.lifted} suppression(s)`);
+      setSelectedSuppressions(new Set());
+      await reload();
+    } catch (err) {
+      setSyncMsg(err instanceof Error ? err.message : "Bulk lift failed");
+    }
+  }
+
+  async function handleImportSuppressions() {
+    if (!token || !importCsv.trim()) return;
+    setSyncMsg(null);
+    try {
+      const res = await importEmailSuppressions(token, { csv: importCsv });
+      setSyncMsg(`Imported ${res.imported}, updated ${res.updated}, skipped ${res.skipped}`);
+      setImportCsv("");
+      await reload();
+    } catch (err) {
+      setSyncMsg(err instanceof Error ? err.message : "Import failed");
+    }
+  }
+
   async function handleSaveTemplate() {
     if (!token || !selectedKey) return;
     setEditorBusy(true);
@@ -167,7 +197,7 @@ export default function NotificationsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="I3 · I3.12 · Notifications"
+        eyebrow="I3 · I3.13 · Notifications"
         title="Action Inbox"
         subtitle={`Live alerts + email digest · adapter: ${adapter}`}
         actions={
@@ -277,7 +307,7 @@ export default function NotificationsPage() {
       <div className="mt-4">
         <Card title={`Email suppressions (${suppressions.length})`}>
           <p className="mb-3 text-sm text-muted">
-            Bounce, complaint, reject, and SES account suppressions block further sends until lifted (I3.12).
+            Bounce, complaint, reject, and SES account suppressions block further sends until lifted (I3.13).
           </p>
           {token && (
             <div className="mb-3 flex flex-wrap gap-2">
@@ -287,15 +317,50 @@ export default function NotificationsPage() {
               <Btn variant="secondary" size="sm" onClick={() => void handleExportSuppressions()}>
                 Export CSV
               </Btn>
+              {selectedSuppressions.size > 0 && (
+                <Btn variant="secondary" size="sm" onClick={() => void handleBulkLift()}>
+                  Lift selected ({selectedSuppressions.size})
+                </Btn>
+              )}
+            </div>
+          )}
+          {token && (
+            <div className="mb-3 space-y-2 rounded border border-line bg-sand/20 p-3">
+              <div className="text-xs uppercase tracking-wide text-muted">Import CSV (email,reason)</div>
+              <textarea
+                rows={3}
+                value={importCsv}
+                onChange={(e) => setImportCsv(e.target.value)}
+                placeholder={"email,reason\nbad@example.com,bounce"}
+                className="w-full rounded border border-line bg-paper px-2 py-1.5 font-mono text-xs"
+              />
+              <Btn variant="secondary" size="sm" disabled={!importCsv.trim()} onClick={() => void handleImportSuppressions()}>
+                Import suppressions
+              </Btn>
             </div>
           )}
           <div className="space-y-2">
             {suppressions.map((s) => (
               <div key={s.id} className="flex items-center justify-between gap-3 rounded border border-line px-3 py-3">
-                <div>
-                  <div className="font-medium text-ink">{s.email}</div>
-                  <div className="text-xs capitalize text-muted">
-                    {s.reason} · {new Date(s.createdAt).toLocaleString()}
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={selectedSuppressions.has(s.id)}
+                    onChange={() => {
+                      setSelectedSuppressions((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(s.id)) next.delete(s.id);
+                        else next.add(s.id);
+                        return next;
+                      });
+                    }}
+                  />
+                  <div>
+                    <div className="font-medium text-ink">{s.email}</div>
+                    <div className="text-xs capitalize text-muted">
+                      {s.reason} · {new Date(s.createdAt).toLocaleString()}
+                    </div>
                   </div>
                 </div>
                 {token && (

@@ -126,6 +126,30 @@ export async function exportEmailSuppressions(
   }>(`/v1/notifications/email/suppressions/export?${params.toString()}`, { token });
 }
 
+export async function bulkLiftEmailSuppressions(token: string, input: { ids?: string[]; emails?: string[] }) {
+  return eosFetch<{ lifted: number; notFound: number; increment: string }>(
+    "/v1/notifications/email/suppressions/bulk-lift",
+    { token, method: "POST", body: JSON.stringify(input) },
+  );
+}
+
+export async function importEmailSuppressions(
+  token: string,
+  input: { items?: Array<{ email: string; reason?: string }>; csv?: string },
+) {
+  return eosFetch<{
+    imported: number;
+    updated: number;
+    skipped: number;
+    errors: Array<{ row: number; reason: string }>;
+    increment: string;
+  }>("/v1/notifications/email/suppressions/import", {
+    token,
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 export type EmailDeliveryAnalytics = {
   deliveryEventsByType: Record<string, number>;
   suppressionsByReason: Record<string, number>;

@@ -7,6 +7,7 @@ import {
   newId,
   validateEnvelopeSchema,
   type DeadLetterRecord,
+  type DlqLifecycleStatus,
   type EnterpriseEventEnvelope,
   type EventCatalogueEntry,
   type EventOperationsMetrics,
@@ -706,6 +707,71 @@ export function listDeadLetters(
     ok: true,
     items: store.deadLetters.filter((d) => d.tenantId === principal.tenantId),
   };
+}
+
+const DLQ_TRANSITIONS: Record<DlqLifecycleStatus, DlqLifecycleStatus[]> = {
+  failed: ["investigating"],
+  investigating: ["corrected", "permanently_rejected", "failed"],
+  corrected: ["resolved", "investigating"],
+  replay_approved: ["resolved", "replayed"],
+  replayed: ["resolved"],
+  resolved: ["closed"],
+  permanently_rejected: ["closed"],
+  closed: [],
+};
+
+export function updateDeadLetterRemediation(
+  store: Store,
+  principal: Principal,
+  id: string,
+  input: { status: DlqLifecycleStatus; owner?: string | null; remediation?: string | null },
+  correlationId: string,
+): { ok: true; deadLetter: DeadLetterRecord; increment: "I4.10" } | { ok: false; reason: string } {
+  ensureOutboxCollections(store);
+  const decision = authorize({
+    principal,
+    permission: "events:replay:outbox",
+    action: "update:dlq_remediation",
+  });
+  if (decision.result === "deny") {
+    bumpMetric(store, "authorizationFailures");
+    return { ok: false, reason: decision.reason };
+  }
+
+  const dlq = store.deadLetters.find((d) => d.id === id && d.tenantId === principal.tenantId);
+  if (!dlq) return { ok: false, reason: "not_found" };
+
+  const allowed = DLQ_TRANSITIONS[dlq.status] ?? [];
+  if (!allowed.includes(input.status)) {
+    return { ok: false, reason: "invalid_transition" };
+  }
+
+  const previous = { status: dlq.status, owner: dlq.owner, remediation: dlq.remediation };
+  dlq.status = input.status;
+  if (input.owner !== undefined) {
+    if (input.owner === null || input.owner.trim() === "") delete dlq.owner;
+    else dlq.owner = input.owner.trim();
+  }
+  if (input.remediation !== undefined) {
+    if (input.remediation === null || input.remediation.trim() === "") delete dlq.remediation;
+    else dlq.remediation = input.remediation.trim();
+  }
+
+  recordAudit(store, {
+    tenantId: principal.tenantId,
+    occurredAt: new Date().toISOString(),
+    actorType: principal.actorType,
+    actorPrincipalId: principal.id,
+    action: "events:dlq:remediate",
+    resourceType: "dead_letter",
+    resourceId: dlq.id,
+    correlationId,
+    authorization: "allow",
+    previousState: previous,
+    newState: { status: dlq.status, owner: dlq.owner, remediation: dlq.remediation },
+  });
+
+  return { ok: true, deadLetter: dlq, increment: "I4.10" as const };
 }
 
 export function getOrderedPublishedEvents(
