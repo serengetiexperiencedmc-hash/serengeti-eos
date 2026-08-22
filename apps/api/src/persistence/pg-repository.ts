@@ -441,6 +441,245 @@ export async function countPendingOutboxEvents(pool: DbPool, tenantId?: string):
   return result.rows[0]?.c ?? 0;
 }
 
+// --- I4.3 processed_events persistence ---
+
+export async function insertProcessedEvent(
+  pool: DbPool,
+  key: import("@sedmc/kernel").ProcessedEventKey,
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO processed_events (tenant_id, consumer, event_id, processed_at)
+     VALUES ($1,$2,$3,$4)
+     ON CONFLICT (tenant_id, consumer, event_id) DO UPDATE SET processed_at = EXCLUDED.processed_at`,
+    [key.tenantId, key.consumer, key.eventId, key.processedAt],
+  );
+}
+
+export async function deleteProcessedEvent(
+  pool: DbPool,
+  tenantId: string,
+  consumer: string,
+  eventId: string,
+): Promise<void> {
+  await pool.query(
+    `DELETE FROM processed_events WHERE tenant_id = $1 AND consumer = $2 AND event_id = $3`,
+    [tenantId, consumer, eventId],
+  );
+}
+
+export async function loadProcessedEvents(pool: DbPool): Promise<import("@sedmc/kernel").ProcessedEventKey[]> {
+  const result = await pool.query(
+    `SELECT tenant_id, consumer, event_id, processed_at FROM processed_events ORDER BY processed_at ASC`,
+  );
+  return result.rows.map((row) => ({
+    tenantId: row.tenant_id as string,
+    consumer: row.consumer as string,
+    eventId: row.event_id as string,
+    processedAt: new Date(row.processed_at as string).toISOString(),
+  }));
+}
+
+export async function countProcessedEvents(pool: DbPool, tenantId: string, consumer?: string): Promise<number> {
+  const result = consumer
+    ? await pool.query(
+        `SELECT COUNT(*)::int AS c FROM processed_events WHERE tenant_id = $1 AND consumer = $2`,
+        [tenantId, consumer],
+      )
+    : await pool.query(`SELECT COUNT(*)::int AS c FROM processed_events WHERE tenant_id = $1`, [tenantId]);
+  return result.rows[0]?.c ?? 0;
+}
+
+// --- PG.4 CRM external IDs, duplicates, imports ---
+
+export async function upsertCrmExternalIdentifier(
+  pool: DbPool,
+  ext: import("@sedmc/kernel").CrmExternalIdentifier,
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO crm_external_identifiers (
+      id, tenant_id, system_key, external_id, entity_type, entity_id, created_at, created_by_principal_id
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+     ON CONFLICT (id) DO UPDATE SET
+       system_key = EXCLUDED.system_key,
+       external_id = EXCLUDED.external_id,
+       entity_type = EXCLUDED.entity_type,
+       entity_id = EXCLUDED.entity_id`,
+    [
+      ext.id,
+      ext.tenantId,
+      ext.systemKey,
+      ext.externalId,
+      ext.entityType,
+      ext.entityId,
+      ext.createdAt,
+      ext.createdByPrincipalId,
+    ],
+  );
+}
+
+export async function deleteCrmExternalIdentifier(pool: DbPool, id: string): Promise<void> {
+  await pool.query(`DELETE FROM crm_external_identifiers WHERE id = $1`, [id]);
+}
+
+export async function loadCrmExternalIdentifiers(
+  pool: DbPool,
+): Promise<import("@sedmc/kernel").CrmExternalIdentifier[]> {
+  const result = await pool.query(`SELECT * FROM crm_external_identifiers ORDER BY created_at ASC`);
+  return result.rows.map((row) => ({
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    systemKey: row.system_key as string,
+    externalId: row.external_id as string,
+    entityType: row.entity_type as string,
+    entityId: row.entity_id as string,
+    createdAt: new Date(row.created_at as string).toISOString(),
+    createdByPrincipalId: row.created_by_principal_id as string,
+  }));
+}
+
+export async function countCrmExternalIdentifiers(pool: DbPool, tenantId: string): Promise<number> {
+  const result = await pool.query(`SELECT COUNT(*)::int AS c FROM crm_external_identifiers WHERE tenant_id = $1`, [
+    tenantId,
+  ]);
+  return result.rows[0]?.c ?? 0;
+}
+
+export async function upsertCrmDuplicateCandidate(
+  pool: DbPool,
+  row: import("@sedmc/kernel").CrmDuplicateCandidate,
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO crm_duplicate_candidates (
+      id, tenant_id, entity_type, entity_id_a, entity_id_b, score, status,
+      detection_rule, match_reason, detected_at, reviewed_at, reviewed_by_principal_id, review_reason
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+     ON CONFLICT (id) DO UPDATE SET
+       status = EXCLUDED.status,
+       reviewed_at = EXCLUDED.reviewed_at,
+       reviewed_by_principal_id = EXCLUDED.reviewed_by_principal_id,
+       review_reason = EXCLUDED.review_reason`,
+    [
+      row.id,
+      row.tenantId,
+      row.entityType,
+      row.entityIdA,
+      row.entityIdB,
+      row.score,
+      row.status,
+      row.detectionRule ?? null,
+      row.matchReason ?? null,
+      row.detectedAt,
+      row.reviewedAt ?? null,
+      row.reviewedByPrincipalId ?? null,
+      row.reviewReason ?? null,
+    ],
+  );
+}
+
+export async function loadCrmDuplicateCandidates(
+  pool: DbPool,
+): Promise<import("@sedmc/kernel").CrmDuplicateCandidate[]> {
+  const result = await pool.query(`SELECT * FROM crm_duplicate_candidates ORDER BY detected_at ASC`);
+  return result.rows.map((row) => ({
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    entityType: row.entity_type as "organization" | "contact",
+    entityIdA: row.entity_id_a as string,
+    entityIdB: row.entity_id_b as string,
+    score: Number(row.score),
+    status: row.status as import("@sedmc/kernel").CrmDuplicateCandidate["status"],
+    ...(row.detection_rule ? { detectionRule: row.detection_rule as string } : {}),
+    ...(row.match_reason ? { matchReason: row.match_reason as string } : {}),
+    detectedAt: new Date(row.detected_at as string).toISOString(),
+    ...(row.reviewed_at ? { reviewedAt: new Date(row.reviewed_at as string).toISOString() } : {}),
+    ...(row.reviewed_by_principal_id
+      ? { reviewedByPrincipalId: row.reviewed_by_principal_id as string }
+      : {}),
+    ...(row.review_reason ? { reviewReason: row.review_reason as string } : {}),
+  }));
+}
+
+export async function countCrmDuplicateCandidates(pool: DbPool, tenantId: string): Promise<number> {
+  const result = await pool.query(`SELECT COUNT(*)::int AS c FROM crm_duplicate_candidates WHERE tenant_id = $1`, [
+    tenantId,
+  ]);
+  return result.rows[0]?.c ?? 0;
+}
+
+export async function upsertCrmImportBatch(pool: DbPool, batch: import("@sedmc/kernel").CrmImportBatch): Promise<void> {
+  await pool.query(
+    `INSERT INTO crm_import_batches (
+      id, tenant_id, source_system, entity_type, mode, status, row_count,
+      valid_count, invalid_count, committed_count, csv_content, validation_results,
+      execute_idempotency_key, created_at, validated_at, committed_at,
+      created_by_principal_id, committed_by_principal_id
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb,$13,$14,$15,$16,$17,$18)
+     ON CONFLICT (id) DO UPDATE SET
+       status = EXCLUDED.status,
+       valid_count = EXCLUDED.valid_count,
+       invalid_count = EXCLUDED.invalid_count,
+       committed_count = EXCLUDED.committed_count,
+       validation_results = EXCLUDED.validation_results,
+       execute_idempotency_key = EXCLUDED.execute_idempotency_key,
+       validated_at = EXCLUDED.validated_at,
+       committed_at = EXCLUDED.committed_at,
+       committed_by_principal_id = EXCLUDED.committed_by_principal_id`,
+    [
+      batch.id,
+      batch.tenantId,
+      batch.sourceSystem,
+      batch.entityType,
+      batch.mode,
+      batch.status,
+      batch.rowCount,
+      batch.validCount ?? null,
+      batch.invalidCount ?? null,
+      batch.committedCount ?? null,
+      batch.csvContent,
+      batch.validationResults ? JSON.stringify(batch.validationResults) : null,
+      batch.executeIdempotencyKey ?? null,
+      batch.createdAt,
+      batch.validatedAt ?? null,
+      batch.committedAt ?? null,
+      batch.createdByPrincipalId,
+      batch.committedByPrincipalId ?? null,
+    ],
+  );
+}
+
+export async function loadCrmImportBatches(pool: DbPool): Promise<import("@sedmc/kernel").CrmImportBatch[]> {
+  const result = await pool.query(`SELECT * FROM crm_import_batches ORDER BY created_at ASC`);
+  return result.rows.map((row) => ({
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    sourceSystem: row.source_system as string,
+    entityType: row.entity_type as "organization" | "contact",
+    mode: (row.mode as "create_only") ?? "create_only",
+    status: row.status as import("@sedmc/kernel").CrmImportBatch["status"],
+    rowCount: row.row_count as number,
+    ...(row.valid_count != null ? { validCount: row.valid_count as number } : {}),
+    ...(row.invalid_count != null ? { invalidCount: row.invalid_count as number } : {}),
+    ...(row.committed_count != null ? { committedCount: row.committed_count as number } : {}),
+    csvContent: (row.csv_content as string) ?? "",
+    ...(row.validation_results
+      ? { validationResults: row.validation_results as import("@sedmc/kernel").CrmImportRowResult[] }
+      : {}),
+    ...(row.execute_idempotency_key ? { executeIdempotencyKey: row.execute_idempotency_key as string } : {}),
+    createdAt: new Date(row.created_at as string).toISOString(),
+    ...(row.validated_at ? { validatedAt: new Date(row.validated_at as string).toISOString() } : {}),
+    ...(row.committed_at ? { committedAt: new Date(row.committed_at as string).toISOString() } : {}),
+    createdByPrincipalId: row.created_by_principal_id as string,
+    ...(row.committed_by_principal_id
+      ? { committedByPrincipalId: row.committed_by_principal_id as string }
+      : {}),
+  }));
+}
+
+export async function countCrmImportBatches(pool: DbPool, tenantId: string): Promise<number> {
+  const result = await pool.query(`SELECT COUNT(*)::int AS c FROM crm_import_batches WHERE tenant_id = $1`, [tenantId]);
+  return result.rows[0]?.c ?? 0;
+}
+
 // --- PG.3 CRM persistence ---
 
 export async function upsertCrmOrganizationType(

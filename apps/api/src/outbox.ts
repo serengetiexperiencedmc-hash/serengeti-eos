@@ -19,7 +19,9 @@ import {
 } from "@sedmc/kernel";
 import { recordAudit, type Store } from "./store.js";
 import { persistOutboxInsert, persistOutboxPublish } from "./persistence/outbox.js";
+import { persistProcessedEvent, removeProcessedEvent } from "./persistence/processed-events.js";
 import { resolveEventTransport } from "./events/transport-init.js";
+import { getEventHandler } from "./events/handlers.js";
 
 export type PublisherFailurePoint =
   | "before_read"
@@ -478,6 +480,7 @@ export function consumeEventIdempotent(
     event: EnterpriseEventEnvelope;
     consumer: string;
     handler: (event: EnterpriseEventEnvelope) => void;
+    force?: boolean;
   },
 ): { delivered: true; processed: boolean; reason?: string } | { delivered: false; reason: string } {
   ensureOutboxCollections(store);
@@ -506,8 +509,13 @@ export function consumeEventIdempotent(
       p.consumer === input.consumer &&
       p.eventId === input.event.eventId,
   );
-  if (prior) {
+  if (prior && !input.force) {
     return { delivered: true, processed: false, reason: "already_processed" };
+  }
+  if (prior && input.force) {
+    const idx = store.processedEvents.indexOf(prior);
+    if (idx >= 0) store.processedEvents.splice(idx, 1);
+    void removeProcessedEvent(store.dbPool, prior.tenantId, prior.consumer, prior.eventId);
   }
 
   try {
@@ -540,6 +548,7 @@ export function consumeEventIdempotent(
     processedAt: new Date().toISOString(),
   };
   store.processedEvents.push(key);
+  void persistProcessedEvent(store.dbPool, key);
   return { delivered: true, processed: true };
 }
 
@@ -776,4 +785,107 @@ export function traceEventCorrelation(store: Store, correlationId: string, tenan
     outbox.some((o) => o.envelope.eventId),
   );
   return { outbox, audit, processedCount: processed.length };
+}
+
+export function listConsumerProcessedEvents(
+  store: Store,
+  principal: Principal,
+  query?: { consumer?: string; limit?: number },
+) {
+  ensureOutboxCollections(store);
+  const decision = authorize({
+    principal,
+    permission: "events:read:operations",
+    action: "read:processed_events",
+  });
+  if (decision.result === "deny") {
+    bumpMetric(store, "authorizationFailures");
+    return { ok: false as const, reason: decision.reason };
+  }
+  const limit = Math.min(Math.max(query?.limit ?? 50, 1), 200);
+  const items = store.processedEvents
+    .filter(
+      (p) =>
+        p.tenantId === principal.tenantId &&
+        (!query?.consumer || p.consumer === query.consumer),
+    )
+    .slice(-limit);
+  return { ok: true as const, items };
+}
+
+function findEnvelopeForReplay(store: Store, tenantId: string, eventId: string): EnterpriseEventEnvelope | undefined {
+  const outbox = store.outboxEvents.find(
+    (r) => r.tenantId === tenantId && r.envelope.eventId === eventId,
+  );
+  if (outbox) return outbox.envelope;
+  return store.publishedBus.find((e) => e.tenantId === tenantId && e.eventId === eventId);
+}
+
+export function replayEventsToConsumer(
+  store: Store,
+  principal: Principal,
+  input: {
+    consumer: string;
+    eventIds: string[];
+    force?: boolean;
+    correlationId: string;
+  },
+):
+  | { ok: true; results: Array<{ eventId: string; processed: boolean; reason?: string }> }
+  | { ok: false; reason: string } {
+  ensureOutboxCollections(store);
+  const decision = authorize({
+    principal,
+    permission: "events:consume:outbox",
+    action: "replay:consumer_events",
+  });
+  if (decision.result === "deny") {
+    bumpMetric(store, "authorizationFailures");
+    return { ok: false, reason: decision.reason };
+  }
+  if (!input.eventIds.length) return { ok: false, reason: "event_ids_required" };
+
+  const results: Array<{ eventId: string; processed: boolean; reason?: string }> = [];
+  for (const eventId of input.eventIds) {
+    const envelope = findEnvelopeForReplay(store, principal.tenantId, eventId);
+    if (!envelope) {
+      results.push({ eventId, processed: false, reason: "event_not_found" });
+      continue;
+    }
+    const handlerFn = getEventHandler(envelope.eventType);
+    if (!handlerFn) {
+      results.push({ eventId, processed: false, reason: "no_handler_registered" });
+      continue;
+    }
+    const result = consumeEventIdempotent(store, principal, {
+      event: envelope,
+      consumer: input.consumer,
+      force: input.force === true,
+      handler: (event) => handlerFn(event, store),
+    });
+    if ("delivered" in result && result.delivered) {
+      results.push({
+        eventId,
+        processed: result.processed,
+        ...(result.reason !== undefined ? { reason: result.reason } : {}),
+      });
+    } else {
+      results.push({ eventId, processed: false, reason: result.reason });
+    }
+  }
+
+  if (store.eventMetrics) store.eventMetrics.replays += results.filter((r) => r.processed).length;
+  recordAudit(store, {
+    tenantId: principal.tenantId,
+    occurredAt: new Date().toISOString(),
+    actorType: principal.actorType,
+    actorPrincipalId: principal.id,
+    action: "events:consumer_replay",
+    resourceType: "consumer",
+    resourceId: input.consumer,
+    correlationId: input.correlationId,
+    authorization: "allow",
+    newState: { eventIds: input.eventIds, force: input.force === true, results },
+  });
+  return { ok: true, results };
 }

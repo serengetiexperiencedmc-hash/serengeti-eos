@@ -7,6 +7,7 @@ import { syncStoreToPostgres } from "./persistence/sync.js";
 import { hydrateCrmFromPostgres } from "./persistence/crm.js";
 import { hydrateNotifEmailTemplates } from "./persistence/notifications.js";
 import { hydratePendingOutbox } from "./persistence/outbox.js";
+import { hydrateProcessedEvents } from "./persistence/processed-events.js";
 import { initEventTransport } from "./events/transport-init.js";
 import { initEventConsumers } from "./events/consumer-init.js";
 import { publishPendingOutbox } from "./outbox.js";
@@ -42,8 +43,9 @@ if (databaseUrl) {
   logger.info("pg3_crm_hydrate", crmHydrated);
   logger.info("i3_email_templates_hydrate", { merged: templatesHydrated });
   const merged = await hydratePendingOutbox(pool, store);
+  const processedMerged = await hydrateProcessedEvents(pool, store);
   const drain = publishPendingOutbox(store);
-  logger.info("outbox_startup_drain", { mergedFromPg: merged, ...drain });
+  logger.info("outbox_startup_drain", { mergedFromPg: merged, processedMerged, ...drain });
   dbHealth = () => checkDatabaseHealth(pool);
 } else {
   logger.warn("database_url_missing", {

@@ -143,6 +143,29 @@
 
 ---
 
+### 18:51 — Preview fix + dev-preview hardening ✅
+
+**Commit:** `dbbbcb1`
+
+- Commercial layout RSC fix (direct client layout)
+- `Shell.tsx` import repair
+- `dev-preview.mjs` port probe, reuse running servers, graceful shutdown
+
+---
+
+### 18:58 — I4.3 + PG.4 ✅
+
+**Shipped:** server `0.36.0-i4.3-pg4`
+
+| Increment | Change |
+| --- | --- |
+| **I4.3** | `processed_events` PG dual-write + hydrate; consumer list/replay API; migration 039 |
+| **PG.4** | External identifiers, duplicate candidates, import batches dual-write/hydrate; migration 040 |
+
+**Tests:** API 229/229 passing (16 PG-gated skipped), web tsc clean.
+
+---
+
 ## Session summary (for user return)
 
 ### Completed this autonomous window
@@ -166,15 +189,15 @@
 
 ### Current project status
 
-- **Server version:** `0.35.0-i4.2-pg3plus-i3.5`
-- **Increments live:** C1–C10, O1–O4, I3.5, I4.2, I8.3, I9.2, J1–J2, PG.1–PG.3+
+- **Server version:** `0.36.0-i4.3-pg4`
+- **Increments live:** C1–C10, O1–O4, I3.5, I4.3, I8.3, I9.2, J1–J2, PG.1–PG.4
 - **All targeted tests passing**
 
 ### Recommended next increments
 
-1. I4.3 — processed_events PG persistence + consumer replay API
-2. PG.4 — external identifiers, duplicate candidates, import batches
-3. Email bounce/complaint webhooks for SES
+1. Email bounce/complaint webhooks for SES
+2. I4.4 — NATS consumer offset persistence / replay from stream
+3. PG.5 — supplier import batch PG dual-write (C4 parity)
 
 ### Issues resolved
 

@@ -11,6 +11,9 @@ import { createTag } from "../src/crm/tag.js";
 import { createTask } from "../src/crm/task.js";
 import {
   countCrmAccounts,
+  countCrmDuplicateCandidates,
+  countCrmExternalIdentifiers,
+  countCrmImportBatches,
   countCrmMergeRecords,
   countCrmNotes,
   countCrmOrganizations,
@@ -19,6 +22,9 @@ import {
   countCrmTasks,
 } from "../src/persistence/pg-repository.js";
 import { syncStoreToPostgres } from "../src/persistence/sync.js";
+import { createExternalIdentifier } from "../src/crm/external-identifier.js";
+import { createImportBatch } from "../src/crm/import.js";
+import { createOrganization } from "../src/crm/organization.js";
 import { allPrincipals } from "../src/store.js";
 
 const url = process.env.EOS_DATABASE_URL;
@@ -294,5 +300,81 @@ describePg("PG.3+ CRM relationships, tasks, tags dual-write", () => {
     expect("tag" in tag).toBe(true);
     await new Promise((r) => setTimeout(r, 50));
     expect(await countCrmTags(pool, tenantId)).toBeGreaterThan(tagBefore);
+  });
+});
+
+describePg("PG.4 CRM external IDs, duplicates, imports", () => {
+  const pool = createPool(url!);
+  const tenantId = "11111111-1111-4111-8111-111111111111";
+  const carolId = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+
+  afterAll(async () => {
+    await pool.end();
+  });
+
+  it("persists external identifiers, duplicate candidates, and import batches", async () => {
+    await migrate(pool);
+    const store = seedStore("pg4-secret", TEST_BOOTSTRAP_SECRETS);
+    store.dbPool = pool;
+    await syncStoreToPostgres(pool, store);
+
+    const principal = allPrincipals(store).find((p) => p.id === carolId)!;
+    const typeId = store.crmOrganizationTypes.find((t) => t.tenantId === tenantId)!.id;
+
+    const org = createOrganization(
+      store,
+      principal,
+      { legalName: "PG.4 External ID Org", organizationTypeId: typeId },
+      "pg4-ext-org",
+    );
+    expect("organization" in org).toBe(true);
+    await new Promise((r) => setTimeout(r, 50));
+
+    const extBefore = await countCrmExternalIdentifiers(pool, tenantId);
+    const ext = createExternalIdentifier(
+      store,
+      principal,
+      {
+        entityType: "organization",
+        entityId: org.organization.id,
+        systemKey: "salesforce",
+        externalId: `PG4-${Date.now()}`,
+      },
+      "pg4-ext",
+    );
+    expect("externalIdentifier" in ext).toBe(true);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(await countCrmExternalIdentifiers(pool, tenantId)).toBeGreaterThan(extBefore);
+
+    const dupBefore = await countCrmDuplicateCandidates(pool, tenantId);
+    createOrganization(
+      store,
+      principal,
+      { legalName: "PG.4 Dup Org A", organizationTypeId: typeId },
+      "pg4-dup-a",
+    );
+    createOrganization(
+      store,
+      principal,
+      { legalName: "PG.4 Dup Org B", tradingName: "PG.4 Dup Org A", organizationTypeId: typeId },
+      "pg4-dup-b",
+    );
+    await new Promise((r) => setTimeout(r, 100));
+    expect(await countCrmDuplicateCandidates(pool, tenantId)).toBeGreaterThan(dupBefore);
+
+    const importBefore = await countCrmImportBatches(pool, tenantId);
+    const batch = createImportBatch(
+      store,
+      principal,
+      {
+        sourceSystem: "pg4-test",
+        entityType: "organization",
+        csv: "legal_name,country\nPG.4 Import Org,TZ",
+      },
+      "pg4-import",
+    );
+    expect("batch" in batch).toBe(true);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(await countCrmImportBatches(pool, tenantId)).toBeGreaterThan(importBefore);
   });
 });

@@ -42,9 +42,11 @@ import {
   executeReplayRequest,
   getEventInfrastructureHealth,
   getEventOperationsView,
+  listConsumerProcessedEvents,
   listDeadLetters,
   publishPendingOutbox,
   registerEventType,
+  replayEventsToConsumer,
   requestReplay,
   traceEventCorrelation,
 } from "./app.js";
@@ -71,7 +73,7 @@ import {
   type Logger,
 } from "./observability.js";
 
-const VERSION = "0.35.0-i4.2-pg3plus-i3.5";
+const VERSION = "0.36.0-i4.3-pg4";
 
 export type ServerOptions = {
   store?: Store;
@@ -724,6 +726,39 @@ export function buildServer(options: ServerOptions | Store = {}) {
     const result = executeReplayRequest(store, principal, id, getCorrelationId(req));
     if (!result.ok) return reply.code(403).send({ error: "forbidden", reason: result.reason });
     return result;
+  });
+
+  app.get("/v1/events/consumers/processed", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const query = req.query as { consumer?: string; limit?: string };
+    const result = listConsumerProcessedEvents(store, principal, {
+      ...(query.consumer !== undefined ? { consumer: query.consumer } : {}),
+      ...(query.limit !== undefined ? { limit: Number(query.limit) } : {}),
+    });
+    if (!result.ok) return reply.code(403).send({ error: "forbidden", reason: result.reason });
+    return { items: result.items, increment: "I4.3" };
+  });
+
+  app.post("/v1/events/consumers/replay", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const body = (req.body ?? {}) as {
+      consumer?: string;
+      eventIds?: string[];
+      force?: boolean;
+    };
+    if (!body.consumer || !body.eventIds?.length) {
+      return reply.code(400).send({ error: "invalid_request" });
+    }
+    const result = replayEventsToConsumer(store, principal, {
+      consumer: body.consumer,
+      eventIds: body.eventIds,
+      ...(body.force !== undefined ? { force: body.force } : {}),
+      correlationId: getCorrelationId(req),
+    });
+    if (!result.ok) return reply.code(403).send({ error: "forbidden", reason: result.reason });
+    return { ...result, increment: "I4.3" };
   });
 
   app.post("/v1/events/catalogue", async (req, reply) => {
