@@ -3,8 +3,10 @@ import {
   buildEmailFromNotification,
   DEFAULT_EMAIL_TEMPLATES,
   isSmtpConfigured,
+  isSesConfigured,
   listEmailTemplateKeys,
   newId,
+  parseSesConfigFromEnv,
   parseSmtpConfigFromEnv,
   resolveEmailTemplate,
   shouldEmailNotification,
@@ -20,6 +22,7 @@ import { ensureNotificationCollections } from "./collections.js";
 import { buildLiveNotifications } from "./notifications.js";
 import { resolveEmailAdapterName } from "./email-config.js";
 import { sendViaSmtp } from "./smtp-transport.js";
+import { sendViaSes } from "./ses-transport.js";
 
 function templateOverrides(store: Store, tenantId: string): EmailTemplate[] {
   return (store.notifEmailTemplates ?? []).filter((t) => t.tenantId === tenantId);
@@ -114,8 +117,47 @@ export function createSmtpEmailAdapter(store: Store, principal: Principal): Emai
   };
 }
 
+export function createSesStubEmailAdapter(store: Store, principal: Principal): EmailNotificationAdapter {
+  return {
+    name: "ses-stub",
+    async send(message: EmailNotificationMessage) {
+      if (isDuplicate(store, principal, message.notificationKey)) {
+        return { status: "skipped", reason: "already_dispatched" };
+      }
+      await recordOutboxEntry(store, principal, message, "ses-stub", "sent");
+      return { status: "sent", reason: "ses_stub_noop" };
+    },
+  };
+}
+
+export function createSesEmailAdapter(store: Store, principal: Principal): EmailNotificationAdapter {
+  const config = parseSesConfigFromEnv();
+  return {
+    name: "ses",
+    async send(message: EmailNotificationMessage) {
+      if (isDuplicate(store, principal, message.notificationKey)) {
+        return { status: "skipped", reason: "already_dispatched" };
+      }
+      if (!config) {
+        await recordOutboxEntry(store, principal, message, "ses", "failed");
+        return { status: "skipped", reason: "ses_not_configured" };
+      }
+      try {
+        await sendViaSes(config, message);
+        await recordOutboxEntry(store, principal, message, "ses", "sent");
+        return { status: "sent" };
+      } catch (err) {
+        await recordOutboxEntry(store, principal, message, "ses", "failed");
+        return { status: "skipped", reason: err instanceof Error ? err.message : "ses_send_failed" };
+      }
+    },
+  };
+}
+
 export function createEmailAdapter(store: Store, principal: Principal): EmailNotificationAdapter {
   const name = resolveEmailAdapterName();
+  if (name === "ses") return createSesEmailAdapter(store, principal);
+  if (name === "ses-stub") return createSesStubEmailAdapter(store, principal);
   if (name === "smtp") return createSmtpEmailAdapter(store, principal);
   if (name === "smtp-stub") return createSmtpStubEmailAdapter(store, principal);
   return createDevOutboxEmailAdapter(store, principal);
@@ -260,13 +302,15 @@ export function getEmailAdapterHealth(store: Store) {
   const adapter = resolveEmailAdapterName();
   return {
     module: "notification-email",
-    increment: "I3.4",
+    increment: "I3.5",
     adapter,
     status: "ok" as const,
     outboxCount: (store.notifEmailOutbox ?? []).length,
     templateCount: listEmailTemplateKeys(store.notifEmailTemplates?.map(({ tenantId: _, ...t }) => t) ?? []).length,
     smtpConfigured: isSmtpConfigured(),
     smtpHost: process.env.EOS_SMTP_HOST ?? null,
+    sesConfigured: isSesConfigured(),
+    sesRegion: process.env.EOS_SES_REGION ?? null,
   };
 }
 

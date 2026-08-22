@@ -57,6 +57,7 @@ export * from "./notification.js";
 export * from "./notification-email.js";
 export * from "./notification-template.js";
 export * from "./notification-smtp.js";
+export * from "./notification-ses.js";
 export * from "./ops-field-sync.js";
 export * from "./field-cache-crypto.js";
 export * from "./ops-voucher.js";
