@@ -76,7 +76,7 @@ describe("PG.17 rate conflict prefer", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(before.statusCode).toBe(200);
-    expect(before.json().increment).toBe("PG.20");
+    expect(before.json().increment).toBe("PG.21");
     expect(before.json().count).toBe(1);
     expect(before.json().conflicts[0].resolved).toBe(false);
 
@@ -86,7 +86,7 @@ describe("PG.17 rate conflict prefer", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(preferred.statusCode).toBe(200);
-    expect(preferred.json().increment).toBe("PG.20");
+    expect(preferred.json().increment).toBe("PG.21");
     expect(preferred.json().rate.preferredInConflict).toBe(true);
 
     const after = await app.inject({
@@ -125,6 +125,6 @@ describe("PG.17 rate conflict prefer", () => {
       url: "/v1/suppliers/health",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(health.json().increment).toBe("PG.20");
+    expect(health.json().increment).toBe("PG.21");
   });
 });

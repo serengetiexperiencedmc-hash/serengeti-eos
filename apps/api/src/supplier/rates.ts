@@ -372,7 +372,7 @@ export function getSupplierRateCalendar(
     months,
     conflicts,
     unresolvedConflictCount: conflicts.filter((c) => !c.resolved).length,
-    increment: "PG.20" as const,
+    increment: "PG.21" as const,
   };
 }
 
@@ -478,7 +478,7 @@ export function getSupplierRateConflicts(
     conflicts,
     count: conflicts.length,
     unresolvedCount: conflicts.filter((c) => !c.resolved).length,
-    increment: "PG.20" as const,
+    increment: "PG.21" as const,
   };
 }
 
@@ -540,7 +540,7 @@ export function preferSupplierRate(
   return {
     rate: sanitizeRate(rate),
     clearedPeers: cleared,
-    increment: "PG.20" as const,
+    increment: "PG.21" as const,
   };
 }
 

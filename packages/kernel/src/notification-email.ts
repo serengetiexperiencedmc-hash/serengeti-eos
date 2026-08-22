@@ -102,6 +102,18 @@ export type NotifDlqSlaDigestRecipient = {
   revokedAt?: string;
 };
 
+/** I4.19 — last DLQ SLA digest dispatch stamp (per tenant, in-memory / dual-write later). */
+export type NotifDlqSlaDigestLastRun = {
+  tenantId: string;
+  day: string;
+  lastRunAt: string;
+  lastRunByPrincipalId: string;
+  breachedCount: number;
+  dispatchedCount: number;
+  skippedCount: number;
+  recipientCount: number;
+};
+
 export type NotifEmailDeliveryAnalytics = {
   deliveryEventsByType: Record<string, number>;
   suppressionsByReason: Record<string, number>;

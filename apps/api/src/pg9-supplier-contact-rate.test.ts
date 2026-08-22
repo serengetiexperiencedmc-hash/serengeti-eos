@@ -121,7 +121,7 @@ describe("PG.9 supplier contact and rate CRUD", () => {
       url: "/v1/suppliers/health",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(health.json().increment).toBe("PG.20");
+    expect(health.json().increment).toBe("PG.21");
   });
 });
 

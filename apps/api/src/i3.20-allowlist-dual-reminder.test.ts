@@ -52,7 +52,7 @@ describe("I3.20 allowlist dual-control reminder snooze/dismiss", () => {
       payload: { hours: 24 },
     });
     expect(snoozed.statusCode).toBe(200);
-    expect(snoozed.json().increment).toBe("I3.20");
+    expect(snoozed.json().increment).toBe("I3.21");
     expect(snoozed.json().entry.dualReminderSnoozeUntil).toBeTruthy();
 
     const whileSnoozed = await app.inject({
@@ -112,6 +112,6 @@ describe("I3.20 allowlist dual-control reminder snooze/dismiss", () => {
       url: "/v1/notifications/email/health",
       headers: { authorization: `Bearer ${carolToken}` },
     });
-    expect(health.json().increment).toBe("I3.20");
+    expect(health.json().increment).toBe("I3.21");
   });
 });

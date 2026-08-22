@@ -65,7 +65,7 @@ export function listDlqSlaDigestRecipients(store: Store, principal: Principal) {
   return {
     items: [...storeItems, ...envItems],
     count: storeItems.length + envItems.length,
-    increment: "I4.18" as const,
+    increment: "I4.19" as const,
   };
 }
 
@@ -93,7 +93,7 @@ export function addDlqSlaDigestRecipient(
       if (!input.note.trim()) delete existing.note;
       else existing.note = input.note.trim();
     }
-    return { recipient: sanitize(existing), updated: true, increment: "I4.18" as const };
+    return { recipient: sanitize(existing), updated: true, increment: "I4.19" as const };
   }
 
   const recipient: NotifDlqSlaDigestRecipient = {
@@ -106,7 +106,7 @@ export function addDlqSlaDigestRecipient(
     ...(input.note?.trim() ? { note: input.note.trim() } : {}),
   };
   store.notifDlqSlaDigestRecipients.push(recipient);
-  return { recipient: sanitize(recipient), updated: false, increment: "I4.18" as const };
+  return { recipient: sanitize(recipient), updated: false, increment: "I4.19" as const };
 }
 
 export function revokeDlqSlaDigestRecipient(store: Store, principal: Principal, id: string) {
@@ -123,5 +123,5 @@ export function revokeDlqSlaDigestRecipient(store: Store, principal: Principal, 
   );
   if (!entry) return { error: "not_found" as const };
   entry.revokedAt = new Date().toISOString();
-  return { recipient: sanitize(entry), increment: "I4.18" as const };
+  return { recipient: sanitize(entry), increment: "I4.19" as const };
 }

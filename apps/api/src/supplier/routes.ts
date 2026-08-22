@@ -25,8 +25,9 @@ import {
   archiveSupplierSeason,
   createSupplierSeason,
   listSupplierSeasons,
-  updateSupplierSeason,
   previewSeasonShrinkImpact,
+  reassignOutsideSeasonRates,
+  updateSupplierSeason,
 } from "./seasons.js";
 import {
   archiveSupplierContentBlock,
@@ -108,6 +109,32 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       principal,
       (req.params as { id: string }).id,
       (req.body ?? {}) as Parameters<typeof previewSeasonShrinkImpact>[3],
+    );
+    if ("error" in result) return sendSupplierError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/suppliers/seasons/:id/reassign-outside-rates", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const body = (req.body ?? {}) as {
+      mode?: "clear" | "move";
+      targetSeasonId?: string;
+      rateIds?: string[];
+    };
+    if (body.mode !== "clear" && body.mode !== "move") {
+      return reply.code(400).send({ error: "invalid_request", reason: "invalid_mode" });
+    }
+    const result = reassignOutsideSeasonRates(
+      store,
+      principal,
+      (req.params as { id: string }).id,
+      {
+        mode: body.mode,
+        ...(body.targetSeasonId !== undefined ? { targetSeasonId: body.targetSeasonId } : {}),
+        ...(body.rateIds !== undefined ? { rateIds: body.rateIds } : {}),
+      },
+      getCorrelationId(req),
     );
     if ("error" in result) return sendSupplierError(reply, result);
     return result;

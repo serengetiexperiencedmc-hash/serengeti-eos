@@ -388,11 +388,21 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **I3.20** | Dual-control reminder snooze / dismiss-with-reason / clear |
 | **I4.18** | External cron hook docs for DLQ SLA digest |
 
+### 26:xx — PG.21 + I3.21 + I4.19 ✅
+
+**Shipped:** server `0.59.0-pg21-i3.21-i4.19`
+
+| Increment | Change |
+| --- | --- |
+| **PG.21** | Bulk clear/move rates outside season bounds after shrink |
+| **I3.21** | Allowlist dual-control pending digest email |
+| **I4.19** | DLQ SLA digest last-run stamp + status analytics |
+
 ### Recommended next increments
 
-1. PG.21 — bulk reassign rates after season shrink
-2. I3.21 — dual-control reminder digest email
-3. I4.19 — digest delivery analytics / last-run stamp
+1. PG.22 — season expand backfill suggestions
+2. I3.22 — dual-control digest recipient aliases
+3. I4.20 — persist digest last-run to Postgres
 
 ### Issues resolved
 

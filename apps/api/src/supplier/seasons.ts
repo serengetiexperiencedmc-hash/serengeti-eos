@@ -1,8 +1,9 @@
-import { authorize, newId, type Principal, type SupSeason } from "@sedmc/kernel";
+import { authorize, newId, SUPPLIER_EVENT_TYPES, type Principal, type SupSeason } from "@sedmc/kernel";
 import type { Store } from "../store.js";
 import { allowSupplierAudit, denySupplierAudit } from "./audit.js";
 import { ensureSupplierCollections } from "./collections.js";
-import { buildSeasonShrinkImpact } from "./season-bounds.js";
+import { persistSupEntityAfterCommit } from "../persistence/supplier.js";
+import { assertRateWithinSeason, buildSeasonShrinkImpact, findLinkedRatesOutsideSeasonBounds } from "./season-bounds.js";
 
 const SEASON_CODE_PATTERN = /^[A-Z0-9_-]{2,32}$/;
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -101,7 +102,7 @@ export function listSupplierSeasons(
     .map(sanitizeSeason)
     .sort((a, b) => a.seasonCode.localeCompare(b.seasonCode));
 
-  return { items, count: items.length, increment: "PG.20" as const };
+  return { items, count: items.length, increment: "PG.21" as const };
 }
 
 export function createSupplierSeason(
@@ -179,7 +180,7 @@ export function createSupplierSeason(
     seasonCode,
     eventType: "supplier.season.created.v1",
   });
-  return { season: sanitizeSeason(season), increment: "PG.20" as const };
+  return { season: sanitizeSeason(season), increment: "PG.21" as const };
 }
 
 /** PG.20 — dry-run season shrink impact without mutating. */
@@ -219,7 +220,7 @@ export function previewSeasonShrinkImpact(
   return {
     proposedSeason: proposed,
     impact,
-    increment: "PG.20" as const,
+    increment: "PG.21" as const,
   };
 }
 
@@ -268,7 +269,7 @@ export function updateSupplierSeason(
     eventType: "supplier.season.updated.v1",
     outsideCount: impact.outsideCount,
   });
-  return { season: sanitizeSeason(season), impact, increment: "PG.20" as const };
+  return { season: sanitizeSeason(season), impact, increment: "PG.21" as const };
 }
 
 export function archiveSupplierSeason(
@@ -300,7 +301,120 @@ export function archiveSupplierSeason(
   allowSupplierAudit(store, principal, "supplier:write:supplier", "sup_season", season.id, correlationId, {
     eventType: "supplier.season.archived.v1",
   });
-  return { season: sanitizeSeason(season), increment: "PG.20" as const };
+  return { season: sanitizeSeason(season), increment: "PG.21" as const };
+}
+
+/**
+ * PG.21 — bulk clear or move rates that fall outside the season’s current bounds.
+ * `rateIds` optional; when omitted, all outside linked rates are targeted.
+ */
+export function reassignOutsideSeasonRates(
+  store: Store,
+  principal: Principal,
+  seasonId: string,
+  input: { mode: "clear" | "move"; targetSeasonId?: string; rateIds?: string[] },
+  correlationId: string,
+) {
+  ensureSupplierCollections(store);
+  const season = (store.supSeasons ?? []).find(
+    (s) => s.id === seasonId && s.tenantId === principal.tenantId && !s.archivedAt,
+  );
+  if (!season) return { error: "not_found" as const };
+
+  const decision = authorize({
+    principal,
+    permission: "supplier:write:supplier",
+    action: "reassign:sup_season_rates",
+  });
+  if (decision.result === "deny") {
+    denySupplierAudit(store, principal, "supplier:write:supplier", "sup_season", correlationId, decision.reason);
+    return { error: "forbidden" as const, reason: decision.reason };
+  }
+
+  if (input.mode !== "clear" && input.mode !== "move") {
+    return { error: "invalid_request" as const, reason: "invalid_mode" };
+  }
+
+  let target: SupSeason | undefined;
+  if (input.mode === "move") {
+    const targetId = (input.targetSeasonId ?? "").trim();
+    if (!targetId) return { error: "invalid_request" as const, reason: "target_season_required" };
+    if (targetId === seasonId) {
+      return { error: "invalid_request" as const, reason: "target_same_as_source" };
+    }
+    target = (store.supSeasons ?? []).find(
+      (s) => s.id === targetId && s.tenantId === principal.tenantId && !s.archivedAt,
+    );
+    if (!target) return { error: "invalid_request" as const, reason: "target_season_not_found" };
+  }
+
+  const outside = findLinkedRatesOutsideSeasonBounds(store.supRates ?? [], season, {
+    tenantId: principal.tenantId,
+    seasonId,
+  });
+  const wanted = input.rateIds?.length ? new Set(input.rateIds) : null;
+  const candidates = wanted ? outside.filter((r) => wanted.has(r.id)) : outside;
+  if (wanted) {
+    for (const id of wanted) {
+      if (!outside.some((r) => r.id === id)) {
+        return { error: "invalid_request" as const, reason: "rate_not_outside_bounds", rateId: id };
+      }
+    }
+  }
+
+  const now = new Date().toISOString();
+  const updated: Array<{ id: string; rateCode: string; supplierId: string; action: "cleared" | "moved" }> = [];
+  const skipped: Array<{ id: string; rateCode: string; reason: string }> = [];
+
+  for (const row of candidates) {
+    const rate = (store.supRates ?? []).find((r) => r.id === row.id);
+    if (!rate || rate.archivedAt) continue;
+
+    if (input.mode === "clear") {
+      delete rate.seasonId;
+      rate.version += 1;
+      rate.updatedAt = now;
+      rate.updatedByPrincipalId = principal.id;
+      void persistSupEntityAfterCommit(store.dbPool, store, "supplier_rate", rate.id);
+      updated.push({ id: rate.id, rateCode: rate.rateCode, supplierId: rate.supplierId, action: "cleared" });
+      continue;
+    }
+
+    const bounds = assertRateWithinSeason(
+      { validFrom: rate.validFrom, validTo: rate.validTo },
+      target!,
+    );
+    if (!bounds.ok) {
+      skipped.push({ id: rate.id, rateCode: rate.rateCode, reason: bounds.error });
+      continue;
+    }
+    rate.seasonId = target!.id;
+    rate.seasonLabel = target!.label;
+    rate.version += 1;
+    rate.updatedAt = now;
+    rate.updatedByPrincipalId = principal.id;
+    void persistSupEntityAfterCommit(store.dbPool, store, "supplier_rate", rate.id);
+    updated.push({ id: rate.id, rateCode: rate.rateCode, supplierId: rate.supplierId, action: "moved" });
+  }
+
+  allowSupplierAudit(store, principal, "supplier:write:supplier", "sup_season", season.id, correlationId, {
+    eventType: SUPPLIER_EVENT_TYPES.RATE_UPDATED,
+    mode: input.mode,
+    updatedCount: updated.length,
+    skippedCount: skipped.length,
+    ...(target ? { targetSeasonId: target.id } : {}),
+  });
+
+  const remainingImpact = buildSeasonShrinkImpact(store.supRates ?? [], season, principal.tenantId);
+  return {
+    mode: input.mode,
+    updated,
+    skipped,
+    updatedCount: updated.length,
+    skippedCount: skipped.length,
+    remainingImpact,
+    increment: "PG.21" as const,
+  };
 }
 
 export function findSeasonLabel(store: Store, tenantId: string, seasonId: string): string | undefined {

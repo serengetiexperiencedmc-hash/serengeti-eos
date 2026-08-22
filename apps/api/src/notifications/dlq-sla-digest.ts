@@ -1,13 +1,42 @@
-import { authorize, type Principal } from "@sedmc/kernel";
+import { authorize, type NotifDlqSlaDigestLastRun, type Principal } from "@sedmc/kernel";
 import type { Store } from "../store.js";
 import { listDeadLetters } from "../outbox.js";
 import { createEmailAdapter } from "./email.js";
 import { ensureNotificationCollections } from "./collections.js";
 import { resolveDlqSlaDigestRecipientEmails } from "./dlq-sla-digest-recipients.js";
 
+function stampLastRun(
+  store: Store,
+  principal: Principal,
+  day: string,
+  counts: {
+    breachedCount: number;
+    dispatchedCount: number;
+    skippedCount: number;
+    recipientCount: number;
+  },
+) {
+  ensureNotificationCollections(store);
+  const run: NotifDlqSlaDigestLastRun = {
+    tenantId: principal.tenantId,
+    day,
+    lastRunAt: new Date().toISOString(),
+    lastRunByPrincipalId: principal.id,
+    breachedCount: counts.breachedCount,
+    dispatchedCount: counts.dispatchedCount,
+    skippedCount: counts.skippedCount,
+    recipientCount: counts.recipientCount,
+  };
+  const idx = (store.notifDlqSlaDigestLastRuns ?? []).findIndex((r) => r.tenantId === principal.tenantId);
+  if (idx >= 0) store.notifDlqSlaDigestLastRuns[idx] = run;
+  else store.notifDlqSlaDigestLastRuns.push(run);
+  return run;
+}
+
 /**
- * I4.16–I4.18 — on-demand batched email summarizing open DLQ SLA breaches.
+ * I4.16–I4.19 — on-demand batched email summarizing open DLQ SLA breaches.
  * Fans out to caller + store/env ops aliases; dedupes per recipient per UTC day.
+ * I4.19 stamps last-run metadata for ops visibility.
  */
 export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
   const dispatchAuth = authorize({
@@ -43,6 +72,12 @@ export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
   const adapter = createEmailAdapter(store, principal);
 
   if (listed.items.length === 0) {
+    const lastRun = stampLastRun(store, principal, day, {
+      breachedCount: 0,
+      dispatchedCount: 0,
+      skippedCount: 1,
+      recipientCount: recipients.length,
+    });
     return {
       dispatched: [] as string[],
       skipped: [{ key: `dlq-sla-digest:${day}`, reason: "none_breached" }],
@@ -50,7 +85,8 @@ export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
       breachedCount: 0,
       thresholdHours: listed.sla.thresholdHours,
       recipientCount: recipients.length,
-      increment: "I4.18" as const,
+      lastRun,
+      increment: "I4.19" as const,
     };
   }
 
@@ -83,6 +119,13 @@ export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
     else skipped.push({ key, reason: result.reason, to: email });
   }
 
+  const lastRun = stampLastRun(store, principal, day, {
+    breachedCount: listed.sla.breachedCount,
+    dispatchedCount: dispatched.length,
+    skippedCount: skipped.length,
+    recipientCount: recipients.length,
+  });
+
   return {
     dispatched,
     skipped,
@@ -90,6 +133,41 @@ export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
     breachedCount: listed.sla.breachedCount,
     thresholdHours: listed.sla.thresholdHours,
     recipientCount: recipients.length,
-    increment: "I4.18" as const,
+    lastRun,
+    increment: "I4.19" as const,
+  };
+}
+
+/** I4.19 — last-run stamp + outbox digest analytics for the tenant. */
+export function getDlqSlaDigestStatus(store: Store, principal: Principal) {
+  const decision = authorize({
+    principal,
+    permission: "notification:read:email_outbox",
+    action: "read:dlq_sla_digest_status",
+  });
+  if (decision.result === "deny") {
+    return { error: "forbidden" as const, reason: decision.reason };
+  }
+
+  ensureNotificationCollections(store);
+  const lastRun =
+    (store.notifDlqSlaDigestLastRuns ?? []).find((r) => r.tenantId === principal.tenantId) ?? null;
+
+  const byStatus: Record<string, number> = {};
+  let outboxDigestCount = 0;
+  for (const entry of store.notifEmailOutbox ?? []) {
+    if (entry.tenantId !== principal.tenantId) continue;
+    if (!entry.notificationKey.startsWith("dlq-sla-digest:")) continue;
+    outboxDigestCount += 1;
+    byStatus[entry.status] = (byStatus[entry.status] ?? 0) + 1;
+  }
+
+  return {
+    lastRun,
+    analytics: {
+      outboxDigestCount,
+      outboxByStatus: byStatus,
+    },
+    increment: "I4.19" as const,
   };
 }

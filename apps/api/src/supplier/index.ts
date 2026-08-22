@@ -24,6 +24,7 @@ export {
   createSupplierSeason,
   listSupplierSeasons,
   previewSeasonShrinkImpact,
+  reassignOutsideSeasonRates,
   updateSupplierSeason,
 } from "./seasons.js";
 export {

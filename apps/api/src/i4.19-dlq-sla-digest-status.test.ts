@@ -15,15 +15,15 @@ async function loginCarol(app: ReturnType<typeof buildServer>) {
   return res.json().accessToken as string;
 }
 
-describe("I4.16 DLQ SLA escalation digest email", () => {
-  it("dispatches a daily digest and skips redispatch", async () => {
-    const store = seedStore("i416-digest", TEST_BOOTSTRAP_SECRETS);
+describe("I4.19 DLQ SLA digest last-run status", () => {
+  it("stamps lastRun on dispatch and exposes status analytics", async () => {
+    const store = seedStore("i419-status", TEST_BOOTSTRAP_SECRETS);
     const carol = allPrincipals(store).find((p) => p.email === "carol.admin@sedmc.local")!;
     commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",
-      correlationId: "i416-1",
+      correlationId: "i419-1",
       mutate: () => undefined,
     });
     const eventId = store.outboxEvents[0]!.envelope.eventId;
@@ -39,36 +39,31 @@ describe("I4.16 DLQ SLA escalation digest email", () => {
     const app = buildServer({ store });
     const token = await loginCarol(app);
 
-    const first = await app.inject({
-      method: "POST",
-      url: "/v1/notifications/email/dispatch-dlq-sla-digest",
+    const before = await app.inject({
+      method: "GET",
+      url: "/v1/notifications/email/dlq-sla-digest-status",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(first.statusCode).toBe(200);
-    expect(first.json().increment).toBe("I4.19");
-    expect(first.json().breachedCount).toBe(1);
-    expect(first.json().dispatched[0]).toMatch(/^dlq-sla-digest:\d{4}-\d{2}-\d{2}:/);
+    expect(before.statusCode).toBe(200);
+    expect(before.json().increment).toBe("I4.19");
+    expect(before.json().lastRun).toBeNull();
 
-    const second = await app.inject({
+    const dispatched = await app.inject({
       method: "POST",
       url: "/v1/notifications/email/dispatch-dlq-sla-digest",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(second.statusCode).toBe(200);
-    expect(second.json().dispatched).toHaveLength(0);
-    expect(second.json().skipped[0].reason).toBe("already_dispatched");
-  });
+    expect(dispatched.statusCode).toBe(200);
+    expect(dispatched.json().increment).toBe("I4.19");
+    expect(dispatched.json().lastRun.breachedCount).toBe(1);
+    expect(dispatched.json().lastRun.dispatchedCount).toBeGreaterThanOrEqual(1);
 
-  it("skips when no SLA breaches", async () => {
-    const store = seedStore("i416-none", TEST_BOOTSTRAP_SECRETS);
-    const app = buildServer({ store });
-    const token = await loginCarol(app);
-    const res = await app.inject({
-      method: "POST",
-      url: "/v1/notifications/email/dispatch-dlq-sla-digest",
+    const status = await app.inject({
+      method: "GET",
+      url: "/v1/notifications/email/dlq-sla-digest-status",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(res.statusCode).toBe(200);
-    expect(res.json().skipped[0].reason).toBe("none_breached");
+    expect(status.json().lastRun.breachedCount).toBe(1);
+    expect(status.json().analytics.outboxDigestCount).toBeGreaterThanOrEqual(1);
   });
 });
