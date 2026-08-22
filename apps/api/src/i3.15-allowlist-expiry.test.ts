@@ -39,7 +39,7 @@ describe("I3.15 allowlist expiry and export", () => {
       url: "/v1/notifications/email/allowlist",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(active.json().increment).toBe("I3.17");
+    expect(active.json().increment).toBe("I3.18");
     expect(active.json().items.every((e: { email: string }) => e.email !== "temp@example.com")).toBe(true);
 
     const withExpired = await app.inject({
@@ -55,7 +55,7 @@ describe("I3.15 allowlist expiry and export", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(exported.statusCode).toBe(200);
-    expect(exported.json().increment).toBe("I3.17");
+    expect(exported.json().increment).toBe("I3.18");
     expect(exported.json().csv).toContain("temp@example.com");
     expect(exported.json().csv).toContain("expiresAt");
 
@@ -64,7 +64,7 @@ describe("I3.15 allowlist expiry and export", () => {
       url: "/v1/notifications/email/health",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(health.json().increment).toBe("I3.17");
+    expect(health.json().increment).toBe("I3.18");
   });
 });
 

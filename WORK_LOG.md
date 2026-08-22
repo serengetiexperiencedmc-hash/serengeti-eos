@@ -189,7 +189,7 @@
 
 ### Current project status
 
-- **Server version:** `0.55.0-i3.17-pg17-i4.15`
+- **Server version:** `0.56.0-pg18-i3.18-i4.16`
 - **Increments live:** C1–C10, O1–O4, I3.6.1–I3.17, I4.3–I4.15, I8.3, I9.2, J1–J2, PG.1–PG.17
 - **All targeted tests passing**
 
@@ -357,11 +357,22 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **I4.15** | DLQ SLA acknowledge / snooze |
 | **Auth UX** | Session expiry clears dead tokens (fixes stale 401) |
 
+### 23:xx — Sign-in harden + PG.18 + I3.18 + I4.16 ✅
+
+**Shipped:** server `0.56.0-pg18-i3.18-i4.16`
+
+| Increment | Change |
+| --- | --- |
+| **Auth** | Session hydrate race fixed; local API falls back to documented Carol password when bootstrap env missing; `.env.example` aligned |
+| **PG.18** | Season-aware rate import (`seasonCode` / `seasonLabel` → `seasonId`) |
+| **I3.18** | Allowlist dual-control audit export (requester stamp, pending filter, counts) |
+| **I4.16** | DLQ SLA escalation digest email |
+
 ### Recommended next increments
 
-1. PG.18 — season-aware rate import mapping
-2. I3.18 — allowlist dual-control audit export
-3. I4.16 — DLQ SLA escalation digest email
+1. PG.19 — season date-range validation on rates
+2. I3.19 — allowlist dual-control reminder notifications
+3. I4.17 — DLQ SLA digest recipient allowlist / ops aliases
 
 ### Issues resolved
 
@@ -370,5 +381,7 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 - I3.3 health test aligned to I3.4 increment banner
 - I4.2 consumer wrapper runs synchronously for in-memory transport
 - Stale API session tokens after restart → clear session on 401 / `/v1/me` hydrate
+- Stale hydrate `/v1/me` 401 wiping a concurrent successful login
+- Bootstrap password mismatch (`replace-me-carol` vs Dev sign-in) → invalid_credentials
 
 ---

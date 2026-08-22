@@ -34,6 +34,16 @@ export const DEFAULT_EMAIL_TEMPLATES: EmailTemplate[] = [
     bodyText: "{{title}}\n\n{{body}}\n\nView in EOS: {{href}}",
   },
   {
+    key: "notif.operations.urgent",
+    subject: "[EOS URGENT] {{title}}",
+    bodyText: "{{title}}\n\n{{body}}\n\nView in EOS: {{href}}",
+  },
+  {
+    key: "notif.operations.dlq_sla_digest",
+    subject: "[EOS URGENT] {{title}}",
+    bodyText: "{{title}}\n\n{{body}}\n\nView in EOS: {{href}}",
+  },
+  {
     key: "notif.approval.urgent",
     subject: "[EOS URGENT] {{title}}",
     bodyText: "{{title}}\n\n{{body}}\n\nView in EOS: {{href}}",

@@ -29,6 +29,32 @@ function findBatch(store: Store, tenantId: string, batchId: string): SupImportBa
   return batch;
 }
 
+/** PG.18 — resolve CSV seasonCode / seasonLabel to an active catalogue season. */
+export function resolveSeasonForRateImport(
+  store: Store,
+  tenantId: string,
+  input: { seasonCode?: string; seasonLabel?: string },
+):
+  | { ok: true; season?: { id: string; label: string } }
+  | { ok: false; error: "season_not_found" | "ambiguous_season_label" } {
+  ensureSupplierCollections(store);
+  const seasons = (store.supSeasons ?? []).filter((s) => s.tenantId === tenantId && !s.archivedAt);
+  if (input.seasonCode) {
+    const code = input.seasonCode.trim().toUpperCase();
+    const match = seasons.find((s) => s.seasonCode.toUpperCase() === code);
+    if (!match) return { ok: false, error: "season_not_found" };
+    return { ok: true, season: { id: match.id, label: match.label } };
+  }
+  if (input.seasonLabel) {
+    const label = input.seasonLabel.trim().toLowerCase();
+    const matches = seasons.filter((s) => s.label.trim().toLowerCase() === label);
+    if (matches.length === 0) return { ok: false, error: "season_not_found" };
+    if (matches.length > 1) return { ok: false, error: "ambiguous_season_label" };
+    return { ok: true, season: { id: matches[0]!.id, label: matches[0]!.label } };
+  }
+  return { ok: true };
+}
+
 export type CreateSupplierImportInput = {
   sourceSystem: string;
   entityType: string;
@@ -53,6 +79,7 @@ function sanitizeBatch(batch: SupImportBatch) {
     committedAt: batch.committedAt,
     createdByPrincipalId: batch.createdByPrincipalId,
     committedByPrincipalId: batch.committedByPrincipalId,
+    increment: "PG.18" as const,
   };
 }
 
@@ -153,6 +180,17 @@ function validateBatchRows(store: Store, batch: SupImportBatch): SupImportRowRes
     if (missingRef) {
       results.push({ rowNumber, status: "invalid", errors: [missingRef] });
       continue;
+    }
+
+    if (batch.entityType === "supplier_rate") {
+      const rateRow = validated as { seasonCode?: string; seasonLabel?: string };
+      if (rateRow.seasonCode || rateRow.seasonLabel) {
+        const season = resolveSeasonForRateImport(store, batch.tenantId, rateRow);
+        if (!season.ok) {
+          results.push({ rowNumber, status: "invalid", errors: [season.error] });
+          continue;
+        }
+      }
     }
 
     results.push({ rowNumber, status: "valid" });
@@ -480,6 +518,14 @@ function commitImportRow(
 
   if (batch.entityType === "supplier_rate") {
     const row = validated as import("@sedmc/kernel").SupplierRateImportRow;
+    const seasonResolved =
+      row.seasonCode || row.seasonLabel
+        ? resolveSeasonForRateImport(store, batch.tenantId, {
+            ...(row.seasonCode ? { seasonCode: row.seasonCode } : {}),
+            ...(row.seasonLabel ? { seasonLabel: row.seasonLabel } : {}),
+          })
+        : ({ ok: true, season: undefined } as const);
+    if (!seasonResolved.ok) throw new Error(seasonResolved.error);
     const rate = {
       id: newId(),
       tenantId: batch.tenantId,
@@ -492,7 +538,11 @@ function commitImportRow(
       currency: row.currency,
       validFrom: row.validFrom,
       validTo: row.validTo,
-      ...(row.seasonLabel !== undefined ? { seasonLabel: row.seasonLabel } : {}),
+      ...(seasonResolved.season
+        ? { seasonId: seasonResolved.season.id, seasonLabel: seasonResolved.season.label }
+        : row.seasonLabel !== undefined
+          ? { seasonLabel: row.seasonLabel }
+          : {}),
       ...(row.minPax !== undefined ? { minPax: row.minPax } : {}),
       ...(row.maxPax !== undefined ? { maxPax: row.maxPax } : {}),
       ...(row.minNights !== undefined ? { minNights: row.minNights } : {}),

@@ -172,6 +172,7 @@ export type SupplierRateImportRow = {
   currency: string;
   validFrom: string;
   validTo: string;
+  seasonCode?: string;
   seasonLabel?: string;
   minPax?: number;
   maxPax?: number;
@@ -252,6 +253,7 @@ export function supplierImportHeaders(entityType: SupplierImportEntityType): str
         "currency",
         "validFrom",
         "validTo",
+        "seasonCode",
         "seasonLabel",
         "minPax",
         "maxPax",
@@ -445,6 +447,11 @@ export function validateSupplierRateImportRow(row: ParsedCsvRow): SupplierRateIm
   const statusResult = parseRequiredEnum(row.status, SUPPLIER_RATE_STATUSES, "status");
   if (typeof statusResult === "object") errors.push(statusResult.error);
 
+  const seasonCodeRaw = row.seasonCode?.trim();
+  if (seasonCodeRaw && !SUPPLIER_CODE_PATTERN.test(normalizeSupplierCode(seasonCodeRaw))) {
+    errors.push("invalid_seasonCode");
+  }
+
   if (errors.length > 0) return { errors };
 
   return {
@@ -458,6 +465,7 @@ export function validateSupplierRateImportRow(row: ParsedCsvRow): SupplierRateIm
     validTo: validTo!,
     status: statusResult as (typeof SUPPLIER_RATE_STATUSES)[number],
     ...(row.unitDescription?.trim() ? { unitDescription: row.unitDescription.trim() } : {}),
+    ...(seasonCodeRaw ? { seasonCode: normalizeSupplierCode(seasonCodeRaw) } : {}),
     ...(row.seasonLabel?.trim() ? { seasonLabel: row.seasonLabel.trim() } : {}),
     ...(row.cancellationPolicyRef?.trim()
       ? { cancellationPolicyRef: row.cancellationPolicyRef.trim() }

@@ -69,7 +69,7 @@ describe("I3.17 allowlist SES dual-control", () => {
       headers: { authorization: `Bearer ${aliceToken}` },
     });
     expect(approved.statusCode).toBe(200);
-    expect(approved.json().increment).toBe("I3.17");
+    expect(approved.json().increment).toBe("I3.18");
     expect(approved.json().entry.sesDualControlStatus).toBe("approved");
     expect(isEmailAllowlisted(store, alice.tenantId, "vip@example.com")).toBe(true);
 
@@ -78,6 +78,6 @@ describe("I3.17 allowlist SES dual-control", () => {
       url: "/v1/notifications/email/allowlist",
       headers: { authorization: `Bearer ${carolToken}` },
     });
-    expect(listed.json().increment).toBe("I3.17");
+    expect(listed.json().increment).toBe("I3.18");
   });
 });

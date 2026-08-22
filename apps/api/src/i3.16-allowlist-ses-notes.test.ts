@@ -26,7 +26,7 @@ describe("I3.17 allowlist SES sync notes", () => {
       },
     });
     expect("allowlistSesNoted" in result && result.allowlistSesNoted).toBe(1);
-    expect("increment" in result && result.increment).toBe("I3.17");
+    expect("increment" in result && result.increment).toBe("I3.18");
     const entry = store.notifEmailAllowlist.find((e) => e.email === "vip@example.com");
     expect(entry?.sesSyncNote).toContain("SES account suppression");
     expect(entry?.sesNotedAt).toBeTruthy();
@@ -43,7 +43,7 @@ describe("I3.17 allowlist SES sync notes", () => {
       url: "/v1/notifications/email/allowlist",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(listed.json().increment).toBe("I3.17");
+    expect(listed.json().increment).toBe("I3.18");
     expect(listed.json().items[0].sesSyncNote).toContain("bounce");
 
     const health = await app.inject({
@@ -51,6 +51,6 @@ describe("I3.17 allowlist SES sync notes", () => {
       url: "/v1/notifications/email/health",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(health.json().increment).toBe("I3.17");
+    expect(health.json().increment).toBe("I3.18");
   });
 });
