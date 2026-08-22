@@ -1,4 +1,5 @@
 import {
+  assessFinalInvoiceEligibility,
   authorize,
   buildInvoiceCode,
   buildQuoteCode,
@@ -108,14 +109,19 @@ function findBooking(store: Store, tenantId: string, bookingId: string) {
 
 export function getFinanceModuleHealth(store: Store) {
   ensureFinanceCollections(store);
+  const pendingPayments = store.finPaymentLinks.filter((link) => {
+    const payment = store.payments.get(link.paymentId);
+    return payment?.status === "pending_approval";
+  }).length;
   return {
     module: "finance",
-    increment: "I8",
+    increment: "I8.3",
     status: "ok" as const,
     invoices: store.finInvoices.length,
     quotes: store.finQuotes.length,
     reconciliations: store.finReconciliations.length,
     exceptions: store.finReconciliations.filter((r) => r.status === "exception").length,
+    pendingPaymentRequests: pendingPayments,
   };
 }
 
@@ -438,6 +444,61 @@ export function createFinalInvoice(
   const invoice = createTypedInvoice(store, principal, booking, "final", remaining);
   void correlationId;
   return { invoice: sanitizeInvoice(invoice) };
+}
+
+export function getFinalInvoiceEligibility(store: Store, principal: Principal, bookingId: string) {
+  ensureFinanceCollections(store);
+  const decision = authorize({ principal, permission: "finance:read:invoice", action: "read:fin_invoice" });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+
+  const booking = findBooking(store, principal.tenantId, bookingId);
+  if (!booking) return { error: "not_found" as const, reason: "booking_not_found" };
+
+  const invoices = store.finInvoices.filter((i) => i.bookingId === bookingId && i.tenantId === principal.tenantId);
+  const eligibility = assessFinalInvoiceEligibility(booking.sellPrice, invoices);
+  return { bookingId, ...eligibility };
+}
+
+export function autoCreateFinalInvoice(
+  store: Store,
+  principal: Principal,
+  input: { bookingId: string },
+  correlationId: string,
+) {
+  const eligibility = getFinalInvoiceEligibility(store, principal, input.bookingId);
+  if ("error" in eligibility) return eligibility;
+  if (!eligibility.eligible) return { error: "conflict" as const, reason: eligibility.reason ?? "not_eligible" };
+  return createFinalInvoice(store, principal, input, correlationId);
+}
+
+export function listPaymentRequests(store: Store, principal: Principal) {
+  ensureFinanceCollections(store);
+  const decision = authorize({ principal, permission: "finance:read:payment", action: "read:payment_requests" });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+
+  const items = store.finPaymentLinks
+    .map((link) => {
+      const payment = store.payments.get(link.paymentId);
+      const invoice = store.finInvoices.find((i) => i.id === link.invoiceId && i.tenantId === principal.tenantId);
+      const approval = store.approvals.get(link.approvalId);
+      if (!payment || payment.tenantId !== principal.tenantId || !invoice) return null;
+      return {
+        approvalId: link.approvalId,
+        paymentId: link.paymentId,
+        invoiceId: link.invoiceId,
+        invoiceCode: invoice.invoiceCode,
+        invoiceType: invoice.invoiceType,
+        bookingId: invoice.bookingId,
+        amount: link.amount,
+        currency: payment.currency,
+        beneficiary: payment.beneficiary,
+        status: payment.status,
+        approvalStatus: approval?.status ?? "unknown",
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
+
+  return { items };
 }
 
 export function requestInvoicePayment(

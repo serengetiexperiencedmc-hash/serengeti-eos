@@ -82,6 +82,44 @@ export async function createFinalInvoice(token: string, bookingId: string) {
   });
 }
 
+export async function autoCreateFinalInvoice(token: string, bookingId: string) {
+  return eosFetch<{ invoice: FinInvoice }>("/v1/finance/invoices/final/auto", {
+    token,
+    method: "POST",
+    body: JSON.stringify({ bookingId }),
+  });
+}
+
+export type FinalInvoiceEligibility = {
+  bookingId: string;
+  eligible: boolean;
+  reason?: string;
+  remainingAmount?: number;
+  prerequisites: { depositPaid: boolean; progressPaid: boolean; finalExists: boolean };
+};
+
+export async function getFinalInvoiceEligibility(token: string, bookingId: string) {
+  return eosFetch<FinalInvoiceEligibility>(`/v1/finance/bookings/${bookingId}/final-invoice-eligibility`, { token });
+}
+
+export type PaymentRequestItem = {
+  approvalId: string;
+  paymentId: string;
+  invoiceId: string;
+  invoiceCode: string;
+  invoiceType: string;
+  bookingId: string;
+  amount: number;
+  currency: string;
+  beneficiary: string;
+  status: string;
+  approvalStatus: string;
+};
+
+export async function listPaymentRequests(token: string) {
+  return eosFetch<{ items: PaymentRequestItem[] }>("/v1/finance/payment-requests", { token });
+}
+
 export async function issueInvoice(token: string, invoiceId: string) {
   return eosFetch<{ invoice: FinInvoice; reconciliation: FinReconciliation }>(
     `/v1/finance/invoices/${invoiceId}/issue`,

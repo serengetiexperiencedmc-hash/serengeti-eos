@@ -367,6 +367,8 @@ const PERMS = {
     ...OPS_PERMS,
     ...ANALYTICS_PERMS,
     ...FINANCE_MODULE_PERMS,
+    "finance:create:payment",
+    "finance:read:payment",
     ...NOTIFICATION_PERMS,
   ],
   commercialManager: [
@@ -403,6 +405,8 @@ const PERMS = {
     ...OPS_PERMS,
     ...ANALYTICS_PERMS,
     ...FINANCE_MODULE_PERMS,
+    "finance:create:payment",
+    "finance:read:payment",
     ...NOTIFICATION_PERMS,
   ],
 };

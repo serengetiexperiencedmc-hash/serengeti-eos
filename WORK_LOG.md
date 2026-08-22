@@ -51,19 +51,20 @@
   - `serengeti-eos` → `46b049f` on `master` (initial platform commit)
   - `SEDMC Software` → docs mirror initial commit
 
-### 17:33 — I3.1 Email Notification Adapter ✅
+### 17:36 — I8.3 Finance Automation ✅
 
-**Shipped:** server `0.29.0-i3.1`
+**Shipped:** server `0.30.0-i8.3`
 
 | Layer | Change |
 | --- | --- |
-| Kernel | `notification-email.ts` — adapter interface, email builder, urgency filter |
-| Migration | `032_i3_email_outbox.sql` |
-| API | `/v1/notifications/email/*` — health, outbox, dispatch-digest; dev-outbox adapter |
-| Web | `/commercial/notifications` — dispatch digest + email outbox panel |
-| Docs | `i3-email-preview.md` (+ SEDMC mirror), updated `i3-notifications-preview.md` |
+| Kernel | `finance-final-invoice.ts` — eligibility gate for auto-final |
+| Migration | `033_i8_final_invoice_automation.sql` |
+| API | eligibility check, `/invoices/final/auto`, `/payment-requests` list |
+| Web | Finance page — Auto final button + Payments tab |
+| RBAC | `finance:create/read:payment` for platform admin + commercial manager |
+| Docs | `i8.3-finance-preview.md` (+ SEDMC mirror) |
 
-**Tests:** kernel 51/51, API i3+i3.1 4/4, web tsc clean.
+**Tests:** kernel 52/52, API i8.3 3/3, web tsc clean.
 
 ---
 
@@ -71,22 +72,21 @@
 
 ### Completed this autonomous window
 
-1. **C10 Booking Command Center** (prior turn, confirmed tests pass)
-2. **J2 Operations Analytics** (prior turn)
-3. **I9.2 Encrypted Field Cache** (this session)
-4. **I3.1 Email Notification Adapter** (this session)
+1. **I9.2 Encrypted Field Cache**
+2. **I3.1 Email Notification Adapter**
+3. **I8.3 Finance Automation**
 
 ### Current project status
 
-- **Server version:** `0.29.0-i3.1`
-- **Increments live:** C1–C10, O1–O4, I3.1, I8, I9.2, J1–J2
+- **Server version:** `0.30.0-i8.3`
+- **Increments live:** C1–C10, O1–O4, I3.1, I8.3, I9.2, J1–J2
 - **All targeted tests passing**
 
-### Recommended next increments (when user returns)
+### Recommended next increments
 
-1. I8.3 Finance extensions (final invoice automation, payment request polish)
+1. I3.2 Template registry + SMTP adapter stub
 2. PostgreSQL persistence increment (larger — needs ADR/gate)
-3. I3.2 Template registry + SMTP adapter stub
+3. Login proxy fix (`/eos-api/*` route)
 
 ### Issues resolved
 

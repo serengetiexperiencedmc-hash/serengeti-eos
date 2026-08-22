@@ -9,12 +9,15 @@ import { EosApiError } from "@/lib/eos-client";
 import {
   applyApprovedPayment,
   approveFinancePayment,
+  autoCreateFinalInvoice,
   createDepositInvoice,
   createFinalInvoice,
   createProgressInvoice,
   createQuote,
+  getFinalInvoiceEligibility,
   issueInvoice,
   listInvoices,
+  listPaymentRequests,
   listQuotes,
   listReconciliations,
   requestInvoicePayment,
@@ -23,9 +26,10 @@ import {
   type FinInvoice,
   type FinQuote,
   type FinReconciliation,
+  type PaymentRequestItem,
 } from "@/lib/finance-api";
 
-type Tab = "quotes" | "invoices" | "reconciliation";
+type Tab = "quotes" | "invoices" | "payments" | "reconciliation";
 
 export default function FinancePage() {
   const { token, ready } = useEosSession();
@@ -33,6 +37,8 @@ export default function FinancePage() {
   const [quotes, setQuotes] = useState<FinQuote[]>([]);
   const [invoices, setInvoices] = useState<FinInvoice[]>([]);
   const [reconciliations, setReconciliations] = useState<FinReconciliation[]>([]);
+  const [paymentRequests, setPaymentRequests] = useState<PaymentRequestItem[]>([]);
+  const [finalEligibility, setFinalEligibility] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -41,10 +47,16 @@ export default function FinancePage() {
 
   async function reload() {
     if (!token) return;
-    const [q, inv, rec] = await Promise.all([listQuotes(token), listInvoices(token), listReconciliations(token)]);
+    const [q, inv, rec, pay] = await Promise.all([
+      listQuotes(token),
+      listInvoices(token),
+      listReconciliations(token),
+      listPaymentRequests(token),
+    ]);
     setQuotes(q.items);
     setInvoices(inv.items);
     setReconciliations(rec.items);
+    setPaymentRequests(pay.items);
   }
 
   useEffect(() => {
@@ -71,9 +83,9 @@ export default function FinancePage() {
   return (
     <>
       <PageHeader
-        eyebrow="I8 · Finance"
+        eyebrow="I8 · I8.3 · Finance"
         title="Quotes, Invoices & Reconciliation"
-        subtitle="Deposit / progress / final invoices · SoD payment approval · no live banking"
+        subtitle="Deposit / progress / final invoices · auto-final when paid · SoD payment queue"
         actions={
           <Link href="/commercial">
             <Btn variant="secondary">← Dashboard</Btn>
@@ -151,10 +163,32 @@ export default function FinancePage() {
         >
           + Final
         </Btn>
+        <Btn
+          variant="secondary"
+          size="sm"
+          disabled={busy || !bookingId || !token}
+          onClick={() =>
+            void runAction(async () => {
+              if (!token) return;
+              const check = await getFinalInvoiceEligibility(token, bookingId);
+              if (!check.eligible) {
+                setFinalEligibility(`Not eligible: ${check.reason ?? "unknown"}`);
+                return;
+              }
+              await autoCreateFinalInvoice(token, bookingId);
+              setFinalEligibility(`Auto-created final invoice for ${check.remainingAmount} USD`);
+              setMessage("Final invoice auto-created");
+              setTab("invoices");
+            })
+          }
+        >
+          Auto final
+        </Btn>
       </div>
+      {finalEligibility && <p className="mb-4 text-sm text-muted">{finalEligibility}</p>}
 
       <div className="mb-4 flex gap-2">
-        {(["quotes", "invoices", "reconciliation"] as Tab[]).map((t) => (
+        {(["quotes", "invoices", "payments", "reconciliation"] as Tab[]).map((t) => (
           <button
             key={t}
             type="button"
@@ -271,6 +305,43 @@ export default function FinancePage() {
               </div>
             ))}
             {invoices.length === 0 && <p className="text-sm text-muted">No invoices yet.</p>}
+          </div>
+        </Card>
+      )}
+
+      {tab === "payments" && (
+        <Card title={`Payment requests (${paymentRequests.length})`}>
+          <p className="mb-3 text-sm text-muted">SoD payment requests awaiting finance approver sign-off.</p>
+          <div className="space-y-2">
+            {paymentRequests.map((req) => (
+              <div key={req.approvalId} className="flex flex-wrap items-center justify-between gap-2 rounded border border-line px-3 py-2 text-sm">
+                <div>
+                  <div className="font-medium">
+                    {req.invoiceCode} · {formatCurrency(req.amount, req.currency)}
+                  </div>
+                  <div className="text-xs text-muted">
+                    {req.beneficiary} · {req.status} · approval {req.approvalStatus}
+                  </div>
+                </div>
+                {req.status === "pending_approval" && token && (
+                  <Btn
+                    size="sm"
+                    variant="gold"
+                    disabled={busy}
+                    onClick={() =>
+                      void runAction(async () => {
+                        await approveFinancePayment(token!, req.approvalId);
+                        await applyApprovedPayment(token!, req.invoiceId);
+                        setMessage("Payment approved and applied");
+                      })
+                    }
+                  >
+                    Approve & apply
+                  </Btn>
+                )}
+              </div>
+            ))}
+            {paymentRequests.length === 0 && <p className="text-sm text-muted">No pending payment requests.</p>}
           </div>
         </Card>
       )}

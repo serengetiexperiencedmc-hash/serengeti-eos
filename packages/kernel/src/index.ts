@@ -52,6 +52,7 @@ export * from "./analytics.js";
 export * from "./finance-invoice.js";
 export * from "./finance-reconciliation.js";
 export * from "./finance-quote.js";
+export * from "./finance-final-invoice.js";
 export * from "./notification.js";
 export * from "./notification-email.js";
 export * from "./ops-field-sync.js";
