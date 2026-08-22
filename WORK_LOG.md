@@ -43,15 +43,13 @@
 
 ## Blockers
 
-### BLOCKER-001: Git not available on this machine
+### BLOCKER-001: Git not available on this machine — RESOLVED
 
-- **Issue:** `git` command not found in PATH; commits cannot be created.
-- **Why blocked:** User requested frequent commits; no git executable detected (`where.exe git` failed).
-- **Need from user:** Install Git for Windows or add to PATH, then ask agent to commit accumulated changes.
-- **Suggested options:**
-  1. Install Git from https://git-scm.com/download/win and restart Cursor
-  2. Manually commit from another machine/IDE
-  3. Continue without commits until Git is available (current workaround — all changes on disk)
+- **Resolved:** User installed Git 2.55.0 at `C:\Program Files\Git\bin\git.exe`
+- **Note:** Git not in shell PATH; use full path or restart Cursor to pick up PATH
+- **Commits created:**
+  - `serengeti-eos` → `46b049f` on `master` (initial platform commit)
+  - `SEDMC Software` → docs mirror initial commit
 
 ---
 
