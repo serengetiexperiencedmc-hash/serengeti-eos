@@ -1,8 +1,14 @@
 import { checkDatabaseHealth, createPool, migrate } from "@sedmc/db";
 import { afterAll, describe, expect, it } from "vitest";
 import { seedStore, TEST_BOOTSTRAP_SECRETS } from "../src/app.js";
+import { createAccount } from "../src/crm/account.js";
+import { createNote } from "../src/crm/note.js";
 import { createOrganization } from "../src/crm/organization.js";
-import { countCrmOrganizations } from "../src/persistence/pg-repository.js";
+import {
+  countCrmAccounts,
+  countCrmNotes,
+  countCrmOrganizations,
+} from "../src/persistence/pg-repository.js";
 import { syncStoreToPostgres } from "../src/persistence/sync.js";
 import { allPrincipals } from "../src/store.js";
 
@@ -42,6 +48,78 @@ describePg("PG.3 CRM dual-write", () => {
 
     await new Promise((r) => setTimeout(r, 50));
     const after = await countCrmOrganizations(pool, tenantId);
+    expect(after).toBeGreaterThan(before);
+  });
+});
+
+describePg("PG.3.1 CRM accounts + notes dual-write", () => {
+  const pool = createPool(url!);
+  const tenantId = "11111111-1111-4111-8111-111111111111";
+  const carolId = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+
+  afterAll(async () => {
+    await pool.end();
+  });
+
+  it("persists accounts when dbPool is set", async () => {
+    await migrate(pool);
+    const store = seedStore("pg-crm31-secret", TEST_BOOTSTRAP_SECRETS);
+    store.dbPool = pool;
+    await syncStoreToPostgres(pool, store);
+
+    const principal = allPrincipals(store).find((p) => p.id === carolId)!;
+    const typeId = store.crmOrganizationTypes.find((t) => t.tenantId === tenantId)!.id;
+    const org = createOrganization(
+      store,
+      principal,
+      { legalName: "PG.3.1 Account Org", organizationTypeId: typeId },
+      "pg31-account-org",
+    );
+    expect("organization" in org).toBe(true);
+    await new Promise((r) => setTimeout(r, 50));
+
+    const before = await countCrmAccounts(pool, tenantId);
+    const account = createAccount(
+      store,
+      principal,
+      { organizationId: org.organization.id, accountName: "PG.3.1 Test Account" },
+      "pg31-account",
+    );
+    expect("account" in account).toBe(true);
+
+    await new Promise((r) => setTimeout(r, 50));
+    const after = await countCrmAccounts(pool, tenantId);
+    expect(after).toBeGreaterThan(before);
+  });
+
+  it("persists notes when dbPool is set", async () => {
+    await migrate(pool);
+    const store = seedStore("pg-crm31-note-secret", TEST_BOOTSTRAP_SECRETS);
+    store.dbPool = pool;
+    await syncStoreToPostgres(pool, store);
+
+    const principal = allPrincipals(store).find((p) => p.id === carolId)!;
+    const typeId = store.crmOrganizationTypes.find((t) => t.tenantId === tenantId)!.id;
+    const org = createOrganization(
+      store,
+      principal,
+      { legalName: "PG.3.1 Note Org", organizationTypeId: typeId },
+      "pg31-note-org",
+    );
+    expect("organization" in org).toBe(true);
+    await new Promise((r) => setTimeout(r, 50));
+
+    const before = await countCrmNotes(pool, tenantId);
+    const note = createNote(
+      store,
+      principal,
+      { entityType: "organization", entityId: org.organization.id, body: "PG.3.1 persistence note" },
+      "pg31-note",
+    );
+    expect("note" in note).toBe(true);
+
+    await new Promise((r) => setTimeout(r, 50));
+    const after = await countCrmNotes(pool, tenantId);
     expect(after).toBeGreaterThan(before);
   });
 });

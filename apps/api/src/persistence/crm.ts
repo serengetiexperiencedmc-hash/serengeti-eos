@@ -3,15 +3,18 @@ import type { CrmActivity, CrmContact, CrmOrganization } from "@sedmc/kernel";
 import { ensureCrmCollections, seedCrmCatalogues } from "../crm/collections.js";
 import type { Store } from "../store.js";
 import {
+  loadCrmAccounts,
   loadCrmActivities,
   loadCrmContacts,
+  loadCrmNotes,
   loadCrmOrganizations,
+  upsertCrmAccount,
   upsertCrmActivity,
   upsertCrmContact,
+  upsertCrmNote,
   upsertCrmOrganization,
   upsertCrmOrganizationType,
 } from "./pg-repository.js";
-
 async function syncCatalogues(pool: DbPool, store: Store, tenantId: string): Promise<void> {
   seedCrmCatalogues(store, tenantId);
   for (const t of store.crmOrganizationTypes.filter((x) => x.tenantId === tenantId)) {
@@ -42,6 +45,16 @@ export async function persistCrmEntityAfterCommit(
     if (entityType === "activity") {
       const activity = store.crmActivities.find((a) => a.id === entityId);
       if (activity) await upsertCrmActivity(pool, activity);
+      return;
+    }
+    if (entityType === "account") {
+      const account = store.crmAccounts.find((a) => a.id === entityId);
+      if (account) await upsertCrmAccount(pool, account);
+      return;
+    }
+    if (entityType === "note") {
+      const note = store.crmNotes.find((n) => n.id === entityId);
+      if (note) await upsertCrmNote(pool, note);
     }
   } catch {
     // Fire-and-forget dual-write; log hook can be added later.
@@ -62,6 +75,8 @@ export async function hydrateCrmFromPostgres(pool: DbPool, store: Store): Promis
   organizations: number;
   contacts: number;
   activities: number;
+  accounts: number;
+  notes: number;
 }> {
   ensureCrmCollections(store);
   for (const tenant of store.tenants.values()) {
@@ -69,15 +84,19 @@ export async function hydrateCrmFromPostgres(pool: DbPool, store: Store): Promis
     await syncCatalogues(pool, store, tenant.id);
   }
 
-  const [organizations, contacts, activities] = await Promise.all([
+  const [organizations, contacts, activities, accounts, notes] = await Promise.all([
     loadCrmOrganizations(pool),
     loadCrmContacts(pool),
     loadCrmActivities(pool),
+    loadCrmAccounts(pool),
+    loadCrmNotes(pool),
   ]);
 
   return {
     organizations: mergeById(store.crmOrganizations, organizations),
     contacts: mergeById(store.crmContacts, contacts),
     activities: mergeById(store.crmActivities, activities),
+    accounts: mergeById(store.crmAccounts, accounts),
+    notes: mergeById(store.crmNotes, notes),
   };
 }

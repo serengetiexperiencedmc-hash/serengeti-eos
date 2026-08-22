@@ -732,6 +732,139 @@ export async function countCrmOrganizations(pool: DbPool, tenantId: string): Pro
   return result.rows[0]?.c ?? 0;
 }
 
+export async function upsertCrmAccount(pool: DbPool, account: import("@sedmc/kernel").CrmAccount): Promise<void> {
+  await pool.query(
+    `INSERT INTO crm_accounts (
+      id, tenant_id, organization_id, relationship_id, account_name, owner_principal_id,
+      market, strategic_classification, priority, next_action, status, classification,
+      version, archived_at, created_at, updated_at, created_by_principal_id, updated_by_principal_id
+    ) VALUES (
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      organization_id = EXCLUDED.organization_id,
+      relationship_id = EXCLUDED.relationship_id,
+      account_name = EXCLUDED.account_name,
+      owner_principal_id = EXCLUDED.owner_principal_id,
+      market = EXCLUDED.market,
+      strategic_classification = EXCLUDED.strategic_classification,
+      priority = EXCLUDED.priority,
+      next_action = EXCLUDED.next_action,
+      status = EXCLUDED.status,
+      classification = EXCLUDED.classification,
+      version = EXCLUDED.version,
+      archived_at = EXCLUDED.archived_at,
+      updated_at = EXCLUDED.updated_at,
+      updated_by_principal_id = EXCLUDED.updated_by_principal_id`,
+    [
+      account.id,
+      account.tenantId,
+      account.organizationId,
+      account.relationshipId ?? null,
+      account.accountName,
+      account.ownerPrincipalId,
+      account.market ?? null,
+      account.strategicClassification ?? null,
+      account.priority ?? null,
+      account.nextAction ?? null,
+      account.status,
+      account.classification,
+      account.version,
+      account.archivedAt ?? null,
+      account.createdAt,
+      account.updatedAt,
+      account.createdByPrincipalId,
+      account.updatedByPrincipalId,
+    ],
+  );
+}
+
+export async function upsertCrmNote(pool: DbPool, note: import("@sedmc/kernel").CrmNote): Promise<void> {
+  await pool.query(
+    `INSERT INTO crm_notes (
+      id, tenant_id, body, entity_type, entity_id, classification,
+      version, archived_at, created_at, updated_at, created_by_principal_id, updated_by_principal_id
+    ) VALUES (
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      body = EXCLUDED.body,
+      entity_type = EXCLUDED.entity_type,
+      entity_id = EXCLUDED.entity_id,
+      classification = EXCLUDED.classification,
+      version = EXCLUDED.version,
+      archived_at = EXCLUDED.archived_at,
+      updated_at = EXCLUDED.updated_at,
+      updated_by_principal_id = EXCLUDED.updated_by_principal_id`,
+    [
+      note.id,
+      note.tenantId,
+      note.body,
+      note.entityType,
+      note.entityId,
+      note.classification,
+      note.version,
+      note.archivedAt ?? null,
+      note.createdAt,
+      note.updatedAt,
+      note.createdByPrincipalId,
+      note.updatedByPrincipalId,
+    ],
+  );
+}
+
+export async function loadCrmAccounts(pool: DbPool): Promise<import("@sedmc/kernel").CrmAccount[]> {
+  const result = await pool.query(`SELECT * FROM crm_accounts ORDER BY created_at ASC`);
+  return result.rows.map((row) => ({
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    organizationId: row.organization_id as string,
+    ...(row.relationship_id ? { relationshipId: row.relationship_id as string } : {}),
+    accountName: row.account_name as string,
+    ownerPrincipalId: row.owner_principal_id as string,
+    ...(row.market ? { market: row.market as string } : {}),
+    ...(row.strategic_classification ? { strategicClassification: row.strategic_classification as string } : {}),
+    ...(row.priority ? { priority: row.priority as string } : {}),
+    ...(row.next_action ? { nextAction: row.next_action as string } : {}),
+    status: row.status as import("@sedmc/kernel").CrmAccount["status"],
+    classification: row.classification as import("@sedmc/kernel").Classification,
+    version: row.version as number,
+    ...(row.archived_at ? { archivedAt: pgTimestamp(row, "archived_at") } : {}),
+    createdAt: pgTimestamp(row, "created_at"),
+    updatedAt: pgTimestamp(row, "updated_at"),
+    createdByPrincipalId: row.created_by_principal_id as string,
+    updatedByPrincipalId: row.updated_by_principal_id as string,
+  }));
+}
+
+export async function loadCrmNotes(pool: DbPool): Promise<import("@sedmc/kernel").CrmNote[]> {
+  const result = await pool.query(`SELECT * FROM crm_notes ORDER BY created_at ASC`);
+  return result.rows.map((row) => ({
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    body: row.body as string,
+    entityType: row.entity_type as string,
+    entityId: row.entity_id as string,
+    classification: row.classification as import("@sedmc/kernel").Classification,
+    version: row.version as number,
+    ...(row.archived_at ? { archivedAt: pgTimestamp(row, "archived_at") } : {}),
+    createdAt: pgTimestamp(row, "created_at"),
+    updatedAt: pgTimestamp(row, "updated_at"),
+    createdByPrincipalId: row.created_by_principal_id as string,
+    updatedByPrincipalId: row.updated_by_principal_id as string,
+  }));
+}
+
+export async function countCrmAccounts(pool: DbPool, tenantId: string): Promise<number> {
+  const result = await pool.query(`SELECT COUNT(*)::int AS c FROM crm_accounts WHERE tenant_id = $1`, [tenantId]);
+  return result.rows[0]?.c ?? 0;
+}
+
+export async function countCrmNotes(pool: DbPool, tenantId: string): Promise<number> {
+  const result = await pool.query(`SELECT COUNT(*)::int AS c FROM crm_notes WHERE tenant_id = $1`, [tenantId]);
+  return result.rows[0]?.c ?? 0;
+}
+
 export async function upsertNotifEmailTemplate(
   pool: DbPool,
   row: {

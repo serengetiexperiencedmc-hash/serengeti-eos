@@ -105,6 +105,18 @@
 
 ---
 
+### 18:19 — PG.3.1 CRM accounts + notes ✅
+
+**Shipped:** server `0.34.1-pg.3.1`
+
+| Increment | Change |
+| --- | --- |
+| **PG.3.1** | CRM accounts + notes dual-write + hydrate, migration 037 |
+
+**Tests:** pg-crm integration 3 skipped (gated), full API suite passing.
+
+---
+
 ## Session summary (for user return)
 
 ### Completed this autonomous window
@@ -120,22 +132,24 @@
 9. **PG.3 CRM dual-write + hydrate**
 10. **I4.1 NATS JetStream transport**
 11. **I3.4 Tenant email template editor**
+12. **PG.3.1 CRM accounts + notes persistence**
 
 ### Current project status
 
-- **Server version:** `0.34.0-pg.3-i4.1-i3.4`
-- **Increments live:** C1–C10, O1–O4, I3.4, I4.1, I8.3, I9.2, J1–J2, PG.1–PG.3
+- **Server version:** `0.34.1-pg.3.1`
+- **Increments live:** C1–C10, O1–O4, I3.4, I4.1, I8.3, I9.2, J1–J2, PG.1–PG.3.1
 - **All targeted tests passing**
 
 ### Recommended next increments
 
-1. PG.3+ — CRM accounts, notes, merge persistence slices
+1. PG.3.2 — CRM merge persistence (cascade upserts)
 2. I4.2 — NATS consumers + idempotent handlers
-3. Production SMTP/SES dispatch with tenant templates
+3. Production SMTP/SES with tenant templates
 
 ### Issues resolved
 
 - TypeScript `BufferSource` compatibility in `field-cache-crypto.ts` (web tsc)
 - `nats` npm dependency added for I4.1 transport
+- I3.3 health test aligned to I3.4 increment banner
 
 ---

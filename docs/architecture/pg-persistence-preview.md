@@ -38,6 +38,17 @@ Hydrate on startup when `EOS_DATABASE_URL` set. In-memory `Store` remains read S
 
 Tests: `pg-crm.integration.test.ts`, `crm.integration.test.ts` (`describePg` block)
 
+## PG.3.1 — CRM accounts + notes ✅
+
+| Table | Trigger |
+| --- | --- |
+| `crm_accounts` | Account create/update/archive/transition |
+| `crm_notes` | Note create/update/archive |
+
+Migration: `037_pg31_crm_accounts_notes.sql` (tenant + updated_at indexes)
+
+Tests: `pg-crm.integration.test.ts` (`PG.3.1` describe block)
+
 ## Dev/Test behavior
 
 - In-memory `Store` remains read SoR
@@ -47,4 +58,5 @@ Tests: `pg-crm.integration.test.ts`, `crm.integration.test.ts` (`describePg` blo
 
 - Read-through hydration for all modules
 - Production SoR cutover
-- CRM accounts, notes, merge — additional PG.3+ slices
+- CRM accounts, notes — **PG.3.1 done**
+- CRM merge — PG.3.2 (cascade upserts)
