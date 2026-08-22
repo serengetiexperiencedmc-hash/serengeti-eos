@@ -94,7 +94,7 @@ export default function EventsInfrastructurePage() {
     setMsg(null);
     try {
       const req = await requestEventReplay(token, {
-        reason: "Commercial UI replay (I4.13)",
+        reason: "Commercial UI replay (I4.14)",
         intent: "reexecute",
         deadLetterIds: [...selected],
       });
@@ -171,9 +171,9 @@ export default function EventsInfrastructurePage() {
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <PageHeader
-        eyebrow="I4 · I4.13 · Events"
+        eyebrow="I4 · I4.14 · Events"
         title="Event Infrastructure"
-        subtitle="NATS lag, DLQ SLA age filters, bulk owner assign, and controlled replay"
+        subtitle="NATS lag, DLQ SLA escalations, bulk owner assign, and controlled replay"
         actions={
           token && selected.size > 0 ? (
             <div className="flex flex-wrap items-center gap-2">
@@ -202,7 +202,7 @@ export default function EventsInfrastructurePage() {
       <div className="mt-6">
         <Card title={`Dead letter queue (${openDlq.length} open / ${dlq.length} total)`}>
           <p className="mb-3 text-sm text-muted">
-            Filter by owner/status/SLA age, bulk-assign owners, remediate, then replay (I4.13).
+            Filter by owner/status/SLA age, bulk-assign owners, remediate, then replay (I4.14).
             {slaSummary
               ? ` · SLA ${slaSummary.thresholdHours}h: ${slaSummary.breachedCount}/${slaSummary.openCount} open breached`
               : ""}

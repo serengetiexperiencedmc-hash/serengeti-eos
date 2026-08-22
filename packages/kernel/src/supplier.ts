@@ -114,6 +114,8 @@ export type SupRate = {
   cancellationPolicyRef?: string;
   notes?: string;
   status: string;
+  /** PG.16 — preferred winner when overlapping same-type rates conflict. */
+  preferredInConflict?: boolean;
   importBatchId?: string;
   version: number;
   archivedAt?: string;

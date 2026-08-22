@@ -78,7 +78,7 @@ import {
   type Logger,
 } from "./observability.js";
 
-const VERSION = "0.53.0-i3.16-i4.13";
+const VERSION = "0.54.0-pg16-i4.14";
 
 export type ServerOptions = {
   store?: Store;
@@ -811,7 +811,7 @@ export function buildServer(options: ServerOptions | Store = {}) {
       correlationId: getCorrelationId(req),
     });
     if (!result.ok) return reply.code(403).send({ error: "forbidden", reason: result.reason });
-    return { ...result.request, increment: "I4.13" };
+    return { ...result.request, increment: "I4.14" };
   });
 
   app.post("/v1/events/replay/:id/execute", async (req, reply) => {
@@ -820,7 +820,7 @@ export function buildServer(options: ServerOptions | Store = {}) {
     const { id } = req.params as { id: string };
     const result = executeReplayRequest(store, principal, id, getCorrelationId(req));
     if (!result.ok) return reply.code(403).send({ error: "forbidden", reason: result.reason });
-    return { ...result, increment: "I4.13" };
+    return { ...result, increment: "I4.14" };
   });
 
   app.get("/v1/events/consumers/processed", async (req, reply) => {

@@ -6,6 +6,7 @@ import {
   type Principal,
 } from "@sedmc/kernel";
 import type { Store } from "../store.js";
+import { DLQ_SLA_THRESHOLD_HOURS } from "../outbox.js";
 import { persistNotifDismissal } from "../persistence/notifications.js";
 import { ensureNotificationCollections } from "./collections.js";
 import { resolveEmailAdapterName } from "./email-config.js";
@@ -104,6 +105,30 @@ export function buildLiveNotifications(store: Store, principal: Principal): Noti
         body: `${booking.bookingCode} · ${draftVouchers} draft voucher(s)`,
         href: `/commercial/operations/${booking.id}`,
         createdAt: now,
+      });
+    }
+  }
+
+  // I4.14 — escalate open DLQ rows past SLA threshold
+  const canReadDlq =
+    authorize({ principal, permission: "events:read:dlq", action: "read:dlq" }).result === "allow";
+  if (canReadDlq) {
+    const thresholdMs = DLQ_SLA_THRESHOLD_HOURS * 3_600_000;
+    const nowMs = Date.now();
+    for (const dlq of store.deadLetters.filter(
+      (d) => d.tenantId === tenantId && d.status !== "closed" && d.status !== "resolved",
+    )) {
+      const ageMs = Math.max(0, nowMs - new Date(dlq.firstFailureAt).getTime());
+      if (ageMs < thresholdMs) continue;
+      const ageHours = Math.round((ageMs / 3_600_000) * 10) / 10;
+      items.push({
+        key: `dlq-sla:${dlq.id}`,
+        category: "operations",
+        severity: "urgent",
+        title: "DLQ SLA breached",
+        body: `${dlq.eventType} · ${ageHours}h open${dlq.owner ? ` · owner ${dlq.owner}` : ""}`,
+        href: "/commercial/events",
+        createdAt: dlq.firstFailureAt,
       });
     }
   }

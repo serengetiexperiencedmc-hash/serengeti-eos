@@ -13,8 +13,8 @@ async function loginCarol(app: ReturnType<typeof buildServer>) {
   return res.json().accessToken as string;
 }
 
-describe("PG.15 supplier rate conflicts", () => {
-  it("detects overlapping same-type rates and banners PG.15", async () => {
+describe("PG.16 supplier rate conflicts", () => {
+  it("detects overlapping same-type rates and banners PG.16", async () => {
     const store = seedStore("pg15-conf", TEST_BOOTSTRAP_SECRETS);
     const app = buildServer({ store });
     const token = await loginCarol(app);
@@ -71,7 +71,7 @@ describe("PG.15 supplier rate conflicts", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(conflicts.statusCode).toBe(200);
-    expect(conflicts.json().increment).toBe("PG.15");
+    expect(conflicts.json().increment).toBe("PG.16");
     expect(conflicts.json().count).toBe(1);
     expect(conflicts.json().conflicts[0].overlapFrom).toBe("2026-07-01");
     expect(conflicts.json().conflicts[0].overlapTo).toBe("2026-08-31");
@@ -81,7 +81,7 @@ describe("PG.15 supplier rate conflicts", () => {
       url: `/v1/suppliers/rates/calendar?from=2026-01-01&to=2026-12-31&supplierId=${supplierId}`,
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(calendar.json().increment).toBe("PG.15");
+    expect(calendar.json().increment).toBe("PG.16");
     expect(calendar.json().conflicts).toHaveLength(1);
 
     const health = await app.inject({
@@ -89,6 +89,6 @@ describe("PG.15 supplier rate conflicts", () => {
       url: "/v1/suppliers/health",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(health.json().increment).toBe("PG.15");
+    expect(health.json().increment).toBe("PG.16");
   });
 });

@@ -708,7 +708,7 @@ export function listDeadLetters(
   items: Array<DeadLetterRecord & { ageHours: number; slaBreached: boolean }>;
   owners: string[];
   sla: { thresholdHours: number; breachedCount: number; openCount: number };
-  increment: "I4.13";
+  increment: "I4.14";
 } | { ok: false; reason: string } {
   ensureOutboxCollections(store);
   const decision = authorize({
@@ -774,7 +774,7 @@ export function listDeadLetters(
       breachedCount,
       openCount: openAll.length,
     },
-    increment: "I4.13" as const,
+    increment: "I4.14" as const,
   };
 }
 
@@ -796,7 +796,7 @@ export function assignDeadLetterOwner(
   id: string,
   input: { owner: string | null },
   correlationId: string,
-): { ok: true; deadLetter: DeadLetterRecord; increment: "I4.13" } | { ok: false; reason: string } {
+): { ok: true; deadLetter: DeadLetterRecord; increment: "I4.14" } | { ok: false; reason: string } {
   ensureOutboxCollections(store);
   const decision = authorize({
     principal,
@@ -829,7 +829,7 @@ export function assignDeadLetterOwner(
     newState: { owner: dlq.owner },
   });
 
-  return { ok: true, deadLetter: dlq, increment: "I4.13" as const };
+  return { ok: true, deadLetter: dlq, increment: "I4.14" as const };
 }
 
 /** I4.12 — assign/clear owner on many DLQ rows in one call. */
@@ -838,7 +838,7 @@ export function bulkAssignDeadLetterOwners(
   principal: Principal,
   input: { ids: string[]; owner: string | null },
   correlationId: string,
-): { ok: true; updated: number; notFound: string[]; increment: "I4.13" } | { ok: false; reason: string } {
+): { ok: true; updated: number; notFound: string[]; increment: "I4.14" } | { ok: false; reason: string } {
   ensureOutboxCollections(store);
   const decision = authorize({
     principal,
@@ -865,7 +865,7 @@ export function bulkAssignDeadLetterOwners(
     updated += 1;
   }
 
-  return { ok: true, updated, notFound, increment: "I4.13" as const };
+  return { ok: true, updated, notFound, increment: "I4.14" as const };
 }
 
 export function updateDeadLetterRemediation(
@@ -874,7 +874,7 @@ export function updateDeadLetterRemediation(
   id: string,
   input: { status: DlqLifecycleStatus; owner?: string | null; remediation?: string | null },
   correlationId: string,
-): { ok: true; deadLetter: DeadLetterRecord; increment: "I4.13" } | { ok: false; reason: string } {
+): { ok: true; deadLetter: DeadLetterRecord; increment: "I4.14" } | { ok: false; reason: string } {
   ensureOutboxCollections(store);
   const decision = authorize({
     principal,
@@ -919,7 +919,7 @@ export function updateDeadLetterRemediation(
     newState: { status: dlq.status, owner: dlq.owner, remediation: dlq.remediation },
   });
 
-  return { ok: true, deadLetter: dlq, increment: "I4.13" as const };
+  return { ok: true, deadLetter: dlq, increment: "I4.14" as const };
 }
 
 export function getOrderedPublishedEvents(

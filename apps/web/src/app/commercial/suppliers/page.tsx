@@ -20,6 +20,7 @@ import {
   getSupplierFacets,
   getSupplierRateCalendar,
   listSuppliers,
+  preferSupplierRate,
   restoreSupplier,
   type SupplierDetail,
   type SupplierFacets,
@@ -140,7 +141,17 @@ function SupplierDetailDrawer({
   const [calendar, setCalendar] = useState<{
     seasons: Array<{ label: string; count: number }>;
     months: Array<{ month: string; count: number }>;
-    conflicts: Array<{ rateType: string; overlapFrom: string; overlapTo: string; aCode: string; bCode: string }>;
+    conflicts: Array<{
+      rateType: string;
+      overlapFrom: string;
+      overlapTo: string;
+      aId: string;
+      bId: string;
+      aCode: string;
+      bCode: string;
+      preferredRateId: string | null;
+      resolved: boolean;
+    }>;
   } | null>(null);
   const [blockForm, setBlockForm] = useState({
     blockCode: "",
@@ -168,8 +179,12 @@ function SupplierDetailDrawer({
           rateType: c.rateType,
           overlapFrom: c.overlapFrom,
           overlapTo: c.overlapTo,
+          aId: c.a.id,
+          bId: c.b.id,
           aCode: c.a.rateCode,
           bCode: c.b.rateCode,
+          preferredRateId: c.preferredRateId ?? null,
+          resolved: Boolean(c.resolved),
         })),
       });
     } catch {
@@ -251,6 +266,17 @@ function SupplierDetailDrawer({
       onRefresh();
     } catch (err) {
       setFormError(err instanceof EosApiError ? err.message : "Failed to remove contact");
+    }
+  }
+
+  async function handlePreferRate(rateId: string) {
+    if (!supplier) return;
+    try {
+      await preferSupplierRate(token, supplier.id, rateId);
+      onRefresh();
+      await loadCalendar();
+    } catch (err) {
+      setFormError(err instanceof EosApiError ? err.message : "Failed to prefer rate");
     }
   }
 
@@ -513,7 +539,7 @@ function SupplierDetailDrawer({
               )}
               {calendar && (
                 <div className="mb-3 rounded-md border border-line bg-ivory p-3">
-                  <div className="mb-2 text-xs uppercase tracking-wide text-muted">Rate calendar (PG.15)</div>
+                  <div className="mb-2 text-xs uppercase tracking-wide text-muted">Rate calendar (PG.16)</div>
                   <div className="mb-2 grid grid-cols-2 gap-2">
                     <input
                       type="date"
@@ -547,11 +573,38 @@ function SupplierDetailDrawer({
                   </div>
                   {calendar.conflicts.length > 0 && (
                     <div className="rounded border border-rose-200 bg-rose-50/60 p-2 text-xs text-rose-800">
-                      <div className="mb-1 font-medium">Conflicts ({calendar.conflicts.length})</div>
-                      <ul className="space-y-0.5">
+                      <div className="mb-1 font-medium">
+                        Conflicts ({calendar.conflicts.length}
+                        {calendar.conflicts.some((c) => !c.resolved)
+                          ? ` · ${calendar.conflicts.filter((c) => !c.resolved).length} unresolved`
+                          : ""}
+                        )
+                      </div>
+                      <ul className="space-y-1.5">
                         {calendar.conflicts.map((c, i) => (
-                          <li key={`${c.aCode}-${c.bCode}-${i}`}>
-                            {c.aCode} ↔ {c.bCode} · {c.rateType} · {c.overlapFrom}→{c.overlapTo}
+                          <li key={`${c.aCode}-${c.bCode}-${i}`} className="flex flex-wrap items-center gap-2">
+                            <span>
+                              {c.aCode} ↔ {c.bCode} · {c.rateType} · {c.overlapFrom}→{c.overlapTo}
+                              {c.resolved ? " · preferred set" : ""}
+                            </span>
+                            {!c.resolved && (
+                              <span className="flex gap-1">
+                                <button
+                                  type="button"
+                                  className="rounded border border-rose-300 bg-white px-1.5 py-0.5 text-[10px] text-rose-900 hover:bg-rose-100"
+                                  onClick={() => void handlePreferRate(c.aId)}
+                                >
+                                  Prefer {c.aCode}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="rounded border border-rose-300 bg-white px-1.5 py-0.5 text-[10px] text-rose-900 hover:bg-rose-100"
+                                  onClick={() => void handlePreferRate(c.bId)}
+                                >
+                                  Prefer {c.bCode}
+                                </button>
+                              </span>
+                            )}
                           </li>
                         ))}
                       </ul>
@@ -575,6 +628,7 @@ function SupplierDetailDrawer({
                           <div className="text-xs text-muted">
                             {r.validFrom} → {r.validTo}
                             {r.seasonLabel ? ` · ${r.seasonLabel}` : ""}
+                            {r.preferredInConflict ? " · preferred in conflict" : ""}
                           </div>
                         </div>
                         <button
@@ -746,7 +800,7 @@ export default function SuppliersPage() {
   const subtitle = useMemo(() => {
     if (!token) return "Sign in to load suppliers from EOS API";
     if (loading) return "Loading suppliers…";
-    return `${total} supplier${total === 1 ? "" : "s"} · Live API · PG.15 rate conflicts`;
+    return `${total} supplier${total === 1 ? "" : "s"} · Live API · PG.16 rate prefer`;
   }, [token, loading, total]);
 
   return (

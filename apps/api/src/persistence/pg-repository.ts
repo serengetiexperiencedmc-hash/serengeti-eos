@@ -1111,9 +1111,9 @@ export async function upsertSupRate(pool: DbPool, r: import("@sedmc/kernel").Sup
       id, tenant_id, supplier_id, rate_code, rate_name, rate_type, unit_description, amount, currency,
       valid_from, valid_to, season_label, min_pax, max_pax, min_nights, commission_percent, includes_tax,
       tax_percent, cancellation_policy_ref, notes, status, import_batch_id, version, archived_at,
-      created_at, updated_at, created_by_principal_id, updated_by_principal_id
+      created_at, updated_at, created_by_principal_id, updated_by_principal_id, preferred_in_conflict
     ) VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29
     )
     ON CONFLICT (id) DO UPDATE SET
       rate_name = EXCLUDED.rate_name,
@@ -1137,13 +1137,15 @@ export async function upsertSupRate(pool: DbPool, r: import("@sedmc/kernel").Sup
       version = EXCLUDED.version,
       archived_at = EXCLUDED.archived_at,
       updated_at = EXCLUDED.updated_at,
-      updated_by_principal_id = EXCLUDED.updated_by_principal_id`,
+      updated_by_principal_id = EXCLUDED.updated_by_principal_id,
+      preferred_in_conflict = EXCLUDED.preferred_in_conflict`,
     [
       r.id, r.tenantId, r.supplierId, r.rateCode, r.rateName, r.rateType, r.unitDescription ?? null, r.amount,
       r.currency, r.validFrom, r.validTo, r.seasonLabel ?? null, r.minPax ?? null, r.maxPax ?? null,
       r.minNights ?? null, r.commissionPercent ?? null, r.includesTax, r.taxPercent ?? null,
       r.cancellationPolicyRef ?? null, r.notes ?? null, r.status, r.importBatchId ?? null, r.version,
       r.archivedAt ?? null, r.createdAt, r.updatedAt, r.createdByPrincipalId, r.updatedByPrincipalId,
+      Boolean(r.preferredInConflict),
     ],
   );
 }
@@ -1172,6 +1174,7 @@ export async function loadSupRates(pool: DbPool): Promise<import("@sedmc/kernel"
     ...(row.cancellation_policy_ref ? { cancellationPolicyRef: row.cancellation_policy_ref as string } : {}),
     ...(row.notes ? { notes: row.notes as string } : {}),
     status: row.status as string,
+    ...(row.preferred_in_conflict ? { preferredInConflict: true } : {}),
     ...(row.import_batch_id ? { importBatchId: row.import_batch_id as string } : {}),
     version: row.version as number,
     ...(row.archived_at ? { archivedAt: new Date(row.archived_at as string).toISOString() } : {}),

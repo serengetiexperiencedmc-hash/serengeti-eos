@@ -42,7 +42,7 @@ describe("I4.11 DLQ owner assignment and filters", () => {
       payload: { owner: "ops-oncall" },
     });
     expect(assigned.statusCode).toBe(200);
-    expect(assigned.json().increment).toBe("I4.13");
+    expect(assigned.json().increment).toBe("I4.14");
     expect(assigned.json().deadLetter.owner).toBe("ops-oncall");
 
     const byOwner = await app.inject({
@@ -51,7 +51,7 @@ describe("I4.11 DLQ owner assignment and filters", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(byOwner.statusCode).toBe(200);
-    expect(byOwner.json().increment).toBe("I4.13");
+    expect(byOwner.json().increment).toBe("I4.14");
     expect(byOwner.json().items).toHaveLength(1);
     expect(byOwner.json().owners).toContain("ops-oncall");
 

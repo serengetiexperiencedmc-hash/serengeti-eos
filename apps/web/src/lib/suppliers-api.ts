@@ -37,6 +37,7 @@ export type SupplierDetail = {
     validTo: string;
     seasonLabel?: string;
     status: string;
+    preferredInConflict?: boolean;
   }>;
   contentBlocks: Array<{
     id: string;
@@ -367,19 +368,23 @@ export async function getSupplierRateCalendar(
       overlapTo: string;
       a: SupplierDetail["rates"][number];
       b: SupplierDetail["rates"][number];
+      preferredRateId: string | null;
+      resolved: boolean;
     }>;
+    unresolvedConflictCount?: number;
     increment: string;
   }>(`/v1/suppliers/rates/calendar?${params.toString()}`, { token });
 }
 
 export async function getSupplierRateConflicts(
   token: string,
-  query: { supplierId?: string; from?: string; to?: string } = {},
+  query: { supplierId?: string; from?: string; to?: string; unresolvedOnly?: boolean } = {},
 ) {
   const params = new URLSearchParams();
   if (query.supplierId) params.set("supplierId", query.supplierId);
   if (query.from) params.set("from", query.from);
   if (query.to) params.set("to", query.to);
+  if (query.unresolvedOnly) params.set("unresolvedOnly", "1");
   const qs = params.toString();
   return eosFetch<{
     conflicts: Array<{
@@ -389,10 +394,20 @@ export async function getSupplierRateConflicts(
       overlapTo: string;
       a: SupplierDetail["rates"][number] & { rateCode: string; rateName: string };
       b: SupplierDetail["rates"][number] & { rateCode: string; rateName: string };
+      preferredRateId: string | null;
+      resolved: boolean;
     }>;
     count: number;
+    unresolvedCount: number;
     increment: string;
   }>(`/v1/suppliers/rates/conflicts${qs ? `?${qs}` : ""}`, { token });
+}
+
+export async function preferSupplierRate(token: string, supplierId: string, rateId: string) {
+  return eosFetch<{ rate: SupplierDetail["rates"][number]; clearedPeers: number; increment: string }>(
+    `/v1/suppliers/${supplierId}/rates/${rateId}/prefer`,
+    { method: "POST", token },
+  );
 }
 
 export async function checkSupplierApiHealth(token: string): Promise<{ module: string; status: string; suppliers: number }> {

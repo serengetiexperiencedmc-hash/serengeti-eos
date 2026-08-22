@@ -15,15 +15,15 @@ async function loginCarol(app: ReturnType<typeof buildServer>) {
   return res.json().accessToken as string;
 }
 
-describe("I4.14 DLQ SLA age filters", () => {
-  it("reports ageHours, sla summary, and slaBreached filter", async () => {
-    const store = seedStore("i413-sla", TEST_BOOTSTRAP_SECRETS);
+describe("I4.14 DLQ SLA escalation notifications", () => {
+  it("emits urgent inbox item for open DLQ past SLA and banners I4.14", async () => {
+    const store = seedStore("i414-sla-notif", TEST_BOOTSTRAP_SECRETS);
     const carol = allPrincipals(store).find((p) => p.email === "carol.admin@sedmc.local")!;
     commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",
-      correlationId: "i413-1",
+      correlationId: "i414-1",
       mutate: () => undefined,
     });
     const eventId = store.outboxEvents[0]!.envelope.eventId;
@@ -46,23 +46,19 @@ describe("I4.14 DLQ SLA age filters", () => {
     });
     expect(listed.statusCode).toBe(200);
     expect(listed.json().increment).toBe("I4.14");
-    expect(listed.json().sla.thresholdHours).toBe(24);
-    expect(listed.json().sla.breachedCount).toBeGreaterThanOrEqual(1);
-    expect(listed.json().items[0].ageHours).toBeGreaterThanOrEqual(24);
     expect(listed.json().items[0].slaBreached).toBe(true);
 
-    const breached = await app.inject({
+    const inbox = await app.inject({
       method: "GET",
-      url: "/v1/events/dlq?slaBreached=1&slaHours=24",
+      url: "/v1/notifications",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(breached.json().items.every((d: { slaBreached: boolean }) => d.slaBreached)).toBe(true);
-
-    const young = await app.inject({
-      method: "GET",
-      url: "/v1/events/dlq?minAgeHours=1000",
-      headers: { authorization: `Bearer ${token}` },
-    });
-    expect(young.json().items).toHaveLength(0);
+    expect(inbox.statusCode).toBe(200);
+    const items = inbox.json().items as Array<{ key: string; title: string; href: string; severity: string }>;
+    const escalation = items.find((i) => i.key === `dlq-sla:${dlq.id}`);
+    expect(escalation).toBeTruthy();
+    expect(escalation!.title).toBe("DLQ SLA breached");
+    expect(escalation!.severity).toBe("urgent");
+    expect(escalation!.href).toBe("/commercial/events");
   });
 });

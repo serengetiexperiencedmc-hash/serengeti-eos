@@ -41,7 +41,7 @@ describe("I4.9 DLQ and replay Commercial API", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(listed.statusCode).toBe(200);
-    expect(listed.json().increment).toBe("I4.13");
+    expect(listed.json().increment).toBe("I4.14");
     expect(listed.json().items.length).toBeGreaterThan(0);
     const dlqId = listed.json().items[0].id as string;
 
@@ -56,7 +56,7 @@ describe("I4.9 DLQ and replay Commercial API", () => {
       },
     });
     expect(requested.statusCode).toBe(200);
-    expect(requested.json().increment).toBe("I4.13");
+    expect(requested.json().increment).toBe("I4.14");
     const requestId = requested.json().id as string;
 
     const executed = await app.inject({
@@ -66,7 +66,7 @@ describe("I4.9 DLQ and replay Commercial API", () => {
     });
     expect(executed.statusCode).toBe(200);
     expect(executed.json().replayed).toBe(1);
-    expect(executed.json().increment).toBe("I4.13");
+    expect(executed.json().increment).toBe("I4.14");
     expect(store.outboxEvents.find((o) => o.envelope.eventId === eventId)?.status).toBe("pending");
   });
 });

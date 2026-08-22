@@ -32,6 +32,7 @@ function sanitizeRate(r: SupRate) {
     includesTax: r.includesTax,
     taxPercent: r.taxPercent,
     status: r.status,
+    preferredInConflict: Boolean(r.preferredInConflict),
     version: r.version,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
@@ -78,6 +79,7 @@ export type CreateRateInput = {
   taxPercent?: number;
   status?: string;
   notes?: string;
+  preferredInConflict?: boolean;
 };
 
 export type UpdateRateInput = {
@@ -93,6 +95,7 @@ export type UpdateRateInput = {
   taxPercent?: number | null;
   status?: string;
   notes?: string | null;
+  preferredInConflict?: boolean;
 };
 
 export function createSupplierRate(
@@ -148,6 +151,7 @@ export function createSupplierRate(
     ...(input.taxPercent !== undefined ? { taxPercent: input.taxPercent } : {}),
     ...(input.notes?.trim() ? { notes: input.notes.trim() } : {}),
     status,
+    ...(input.preferredInConflict ? { preferredInConflict: true } : {}),
     version: 1,
     createdAt: now,
     updatedAt: now,
@@ -234,6 +238,9 @@ export function updateSupplierRate(
     if (input.notes === null || input.notes.trim() === "") delete rate.notes;
     else rate.notes = input.notes.trim();
   }
+  if (input.preferredInConflict !== undefined) {
+    rate.preferredInConflict = input.preferredInConflict;
+  }
 
   rate.version += 1;
   rate.updatedAt = new Date().toISOString();
@@ -312,23 +319,48 @@ export function getSupplierRateCalendar(
     .map(([month, rates]) => ({ month, count: rates.length, rates }))
     .sort((a, b) => a.month.localeCompare(b.month));
 
+  const conflicts = mapConflictViews(detectRateConflictsAmong(overlapping));
   return {
     from: query.from,
     to: query.to,
     items,
     seasons,
     months,
-    conflicts: detectRateConflictsAmong(overlapping).map((c) => ({
-      ...c,
-      a: sanitizeRate(c.a),
-      b: sanitizeRate(c.b),
-    })),
-    increment: "PG.15" as const,
+    conflicts,
+    unresolvedConflictCount: conflicts.filter((c) => !c.resolved).length,
+    increment: "PG.16" as const,
   };
 }
 
 function datesOverlap(aFrom: string, aTo: string, bFrom: string, bTo: string): boolean {
   return aFrom <= bTo && bFrom <= aTo;
+}
+
+function mapConflictViews(
+  raw: Array<{
+    supplierId: string;
+    rateType: string;
+    overlapFrom: string;
+    overlapTo: string;
+    a: import("@sedmc/kernel").SupRate;
+    b: import("@sedmc/kernel").SupRate;
+  }>,
+) {
+  return raw.map((c) => {
+    const aPref = Boolean(c.a.preferredInConflict);
+    const bPref = Boolean(c.b.preferredInConflict);
+    const resolved = aPref !== bPref;
+    return {
+      supplierId: c.supplierId,
+      rateType: c.rateType,
+      overlapFrom: c.overlapFrom,
+      overlapTo: c.overlapTo,
+      a: sanitizeRate(c.a),
+      b: sanitizeRate(c.b),
+      preferredRateId: aPref ? c.a.id : bPref ? c.b.id : null,
+      resolved,
+    };
+  });
 }
 
 /** Same supplier + rateType with overlapping validity windows. */
@@ -363,11 +395,11 @@ function detectRateConflictsAmong(rates: import("@sedmc/kernel").SupRate[]) {
   return conflicts;
 }
 
-/** PG.15 — detect overlapping rate cards (same supplier + rateType). */
+/** PG.15/PG.16 — detect overlapping rate cards (same supplier + rateType). */
 export function getSupplierRateConflicts(
   store: Store,
   principal: Principal,
-  query: { supplierId?: string; from?: string; to?: string } = {},
+  query: { supplierId?: string; from?: string; to?: string; unresolvedOnly?: boolean } = {},
 ) {
   ensureSupplierCollections(store);
   const decision = authorize({
@@ -395,19 +427,76 @@ export function getSupplierRateConflicts(
     return true;
   });
 
-  const conflicts = detectRateConflictsAmong(candidates).map((c) => ({
-    supplierId: c.supplierId,
-    rateType: c.rateType,
-    overlapFrom: c.overlapFrom,
-    overlapTo: c.overlapTo,
-    a: sanitizeRate(c.a),
-    b: sanitizeRate(c.b),
-  }));
+  let conflicts = mapConflictViews(detectRateConflictsAmong(candidates));
+  if (query.unresolvedOnly) conflicts = conflicts.filter((c) => !c.resolved);
 
   return {
     conflicts,
     count: conflicts.length,
-    increment: "PG.15" as const,
+    unresolvedCount: conflicts.filter((c) => !c.resolved).length,
+    increment: "PG.16" as const,
+  };
+}
+
+/**
+ * PG.16 — mark one rate as preferred in its conflict set; clear preferred on overlapping peers
+ * of the same rateType for that supplier.
+ */
+export function preferSupplierRate(
+  store: Store,
+  principal: Principal,
+  supplierId: string,
+  rateId: string,
+  correlationId: string,
+) {
+  ensureSupplierCollections(store);
+  const auth = authorizeWrite(store, principal, supplierId, correlationId, "prefer:sup_rate");
+  if ("error" in auth) return auth;
+
+  const rate = store.supRates.find(
+    (r) => r.id === rateId && r.supplierId === supplierId && r.tenantId === principal.tenantId && !r.archivedAt,
+  );
+  if (!rate) return { error: "not_found" as const };
+
+  const peers = store.supRates.filter(
+    (r) =>
+      r.tenantId === principal.tenantId &&
+      !r.archivedAt &&
+      r.supplierId === supplierId &&
+      r.rateType === rate.rateType &&
+      r.id !== rate.id &&
+      datesOverlap(rate.validFrom, rate.validTo, r.validFrom, r.validTo),
+  );
+
+  rate.preferredInConflict = true;
+  rate.version += 1;
+  rate.updatedAt = new Date().toISOString();
+  rate.updatedByPrincipalId = principal.id;
+  void persistSupEntityAfterCommit(store.dbPool, store, "supplier_rate", rate.id);
+
+  let cleared = 0;
+  for (const peer of peers) {
+    if (peer.preferredInConflict) {
+      peer.preferredInConflict = false;
+      peer.version += 1;
+      peer.updatedAt = rate.updatedAt;
+      peer.updatedByPrincipalId = principal.id;
+      void persistSupEntityAfterCommit(store.dbPool, store, "supplier_rate", peer.id);
+      cleared += 1;
+    }
+  }
+
+  allowSupplierAudit(store, principal, "supplier:write:supplier", "sup_rate", rate.id, correlationId, {
+    supplierId,
+    preferredInConflict: true,
+    clearedPeers: cleared,
+    eventType: SUPPLIER_EVENT_TYPES.RATE_UPDATED,
+  });
+
+  return {
+    rate: sanitizeRate(rate),
+    clearedPeers: cleared,
+    increment: "PG.16" as const,
   };
 }
 

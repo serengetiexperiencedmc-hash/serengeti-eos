@@ -49,7 +49,7 @@ describe("I4.12 DLQ bulk owner assign", () => {
       payload: { ids, owner: "night-ops" },
     });
     expect(bulk.statusCode).toBe(200);
-    expect(bulk.json().increment).toBe("I4.13");
+    expect(bulk.json().increment).toBe("I4.14");
     expect(bulk.json().updated).toBe(2);
     expect(store.deadLetters.filter((d) => d.owner === "night-ops").length).toBeGreaterThanOrEqual(2);
 
@@ -58,7 +58,7 @@ describe("I4.12 DLQ bulk owner assign", () => {
       url: "/v1/events/dlq?owner=night-ops",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(listed.json().increment).toBe("I4.13");
+    expect(listed.json().increment).toBe("I4.14");
     expect(listed.json().items.length).toBeGreaterThanOrEqual(2);
   });
 });

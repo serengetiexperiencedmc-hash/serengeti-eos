@@ -20,7 +20,7 @@ import {
   restoreSupplier,
 } from "./supplier.js";
 import { archiveSupplierContact, createSupplierContact, updateSupplierContact } from "./contacts.js";
-import { archiveSupplierRate, createSupplierRate, getSupplierRateCalendar, getSupplierRateConflicts, updateSupplierRate } from "./rates.js";
+import { archiveSupplierRate, createSupplierRate, getSupplierRateCalendar, getSupplierRateConflicts, preferSupplierRate, updateSupplierRate } from "./rates.js";
 import {
   archiveSupplierContentBlock,
   createSupplierContentBlock,
@@ -109,11 +109,17 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
   app.get("/v1/suppliers/rates/conflicts", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const query = req.query as { supplierId?: string; from?: string; to?: string };
+    const query = req.query as {
+      supplierId?: string;
+      from?: string;
+      to?: string;
+      unresolvedOnly?: string;
+    };
     const result = getSupplierRateConflicts(store, principal, {
       ...(query.supplierId ? { supplierId: query.supplierId } : {}),
       ...(query.from ? { from: query.from } : {}),
       ...(query.to ? { to: query.to } : {}),
+      ...(query.unresolvedOnly === "1" || query.unresolvedOnly === "true" ? { unresolvedOnly: true } : {}),
     });
     if ("error" in result) return sendSupplierError(reply, result);
     return result;
@@ -322,6 +328,16 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       req.body as Parameters<typeof updateSupplierRate>[4],
       correlationId,
     );
+    if ("error" in result) return sendSupplierError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/suppliers/:id/rates/:rateId/prefer", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const correlationId = getCorrelationId(req);
+    const params = req.params as { id: string; rateId: string };
+    const result = preferSupplierRate(store, principal, params.id, params.rateId, correlationId);
     if ("error" in result) return sendSupplierError(reply, result);
     return result;
   });
