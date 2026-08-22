@@ -100,7 +100,7 @@ function crmCatalogueEntry(
     schemaVersion: 1,
     classification,
     producer: "serengeti-eos-crm",
-    consumers: [],
+    consumers: ["platform-observer"],
     retentionDays: 365,
     compatibility: "backward",
     lifecycle: "active",

@@ -463,6 +463,7 @@ export function seedStore(
   const agentId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
   const partnerUser = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
   const carolId = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+  const observerId = "ffffffff-ffff-4fff-8fff-ffffffffffff";
 
   const alice: StoredPrincipal = {
     id: aliceId,
@@ -505,6 +506,17 @@ export function seedStore(
     permissions: [...PERMS.platformAdmin],
     passwordHash: hashPassword(bootstrap.carolPassword),
     attributes: { department: "it" },
+  };
+  const platformObserver: StoredPrincipal = {
+    id: observerId,
+    tenantId,
+    actorType: "Service",
+    displayName: "Platform Observer",
+    status: "active",
+    classificationClearance: "Restricted",
+    roles: ["platform.observer"],
+    permissions: ["events:consume:outbox", "events:read:operations", "events:read:dlq"],
+    attributes: { service: "platform-observer" },
   };
   const agent: StoredPrincipal = {
     id: agentId,
@@ -567,6 +579,13 @@ export function seedStore(
       name: "AI Agent",
       permissionKeys: ["finance:read:payment"],
     },
+    {
+      id: "role-platform-observer",
+      tenantId,
+      key: "platform.observer",
+      name: "Platform Observer",
+      permissionKeys: ["events:consume:outbox", "events:read:operations", "events:read:dlq"],
+    },
   ];
 
   const store: Store = {
@@ -581,6 +600,7 @@ export function seedStore(
       [alice.email!, alice],
       [bob.email!, bob],
       [carol.email!, carol],
+      [platformObserver.id, platformObserver],
       [partner.email!, partner],
       [agent.id, agent],
     ]),

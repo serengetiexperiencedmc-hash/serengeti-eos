@@ -8,6 +8,7 @@ import { hydrateCrmFromPostgres } from "./persistence/crm.js";
 import { hydrateNotifEmailTemplates } from "./persistence/notifications.js";
 import { hydratePendingOutbox } from "./persistence/outbox.js";
 import { initEventTransport } from "./events/transport-init.js";
+import { initEventConsumers } from "./events/consumer-init.js";
 import { publishPendingOutbox } from "./outbox.js";
 import { buildServer } from "./server.js";
 
@@ -52,6 +53,7 @@ if (databaseUrl) {
 }
 
 await initEventTransport(store, logger);
+await initEventConsumers(store, logger);
 
 const port = Number(process.env.EOS_PORT ?? 8080);
 const app = buildServer({
