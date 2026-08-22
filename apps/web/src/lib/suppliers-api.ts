@@ -14,6 +14,7 @@ export type SupplierSummary = {
   preferredPartner: boolean;
   defaultCurrency?: string;
   dataQualityStatus: string;
+  archivedAt?: string;
 };
 
 export type SupplierDetail = {
@@ -98,12 +99,13 @@ export function formatCategoryLabel(category: string): string {
 
 export async function listSuppliers(
   token: string,
-  query: { category?: string; status?: string; q?: string } = {},
+  query: { category?: string; status?: string; q?: string; archived?: boolean } = {},
 ): Promise<{ items: SupplierSummary[] }> {
   const params = new URLSearchParams();
   if (query.category) params.set("category", query.category);
   if (query.status) params.set("status", query.status);
   if (query.q) params.set("q", query.q);
+  if (query.archived) params.set("archived", "1");
   const qs = params.toString();
   return eosFetch(`/v1/suppliers${qs ? `?${qs}` : ""}`, { token });
 }
@@ -198,6 +200,17 @@ export async function archiveSupplier(token: string, id: string) {
   }>(`/v1/suppliers/${id}`, {
     method: "DELETE",
     token,
+  });
+}
+
+export async function restoreSupplier(token: string, id: string) {
+  return eosFetch<{
+    supplier: SupplierSummary;
+    restored: { contacts: number; rates: number; contentBlocks: number };
+  }>(`/v1/suppliers/${id}/restore`, {
+    method: "POST",
+    token,
+    body: "{}",
   });
 }
 

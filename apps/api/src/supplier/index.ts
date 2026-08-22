@@ -13,6 +13,7 @@ export {
   getSupplierModuleHealth,
   listSupplierCategories,
   listSuppliers,
+  restoreSupplier,
   updateSupplier,
 } from "./supplier.js";
 export { archiveSupplierContact, createSupplierContact, updateSupplierContact } from "./contacts.js";

@@ -189,8 +189,8 @@
 
 ### Current project status
 
-- **Server version:** `0.46.0-pg11-i3.11`
-- **Increments live:** C1–C10, O1–O4, I3.6.1–I3.11, I4.3–I4.8, I8.3, I9.2, J1–J2, PG.1–PG.11
+- **Server version:** `0.47.0-i4.9-pg12`
+- **Increments live:** C1–C10, O1–O4, I3.6.1–I3.11, I4.3–I4.9, I8.3, I9.2, J1–J2, PG.1–PG.12
 - **All targeted tests passing**
 
 ### 19:xx — Commercial preview fix ✅
@@ -274,11 +274,20 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **I3.11** | Email delivery analytics API + Notifications dashboard cards |
 | **C4 UI** | Archive supplier in detail drawer |
 
+### 20:xx — I4.9 + PG.12 ✅
+
+**Shipped:** server `0.47.0-i4.9-pg12`
+
+| Increment | Change |
+| --- | --- |
+| **I4.9** | DLQ list + request/execute replay on Commercial Events page |
+| **PG.12** | Supplier restore + `?archived=1` list; restore cascaded children |
+
 ### Recommended next increments
 
-1. I4.9 — NATS consumer DLQ / replay Commercial UI
-2. PG.12 — supplier restore / unarchive
-3. I3.12 — suppression export / webhook audit trail
+1. I3.12 — suppression export / webhook audit trail
+2. PG.13 — supplier search / facets for large libraries
+3. I4.10 — DLQ remediation workflow statuses in UI
 
 ### Issues resolved
 

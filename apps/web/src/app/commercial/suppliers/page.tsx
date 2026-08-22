@@ -18,18 +18,20 @@ import {
   formatCategoryLabel,
   getSupplier,
   listSuppliers,
+  restoreSupplier,
   type SupplierDetail,
   type SupplierSummary,
 } from "@/lib/suppliers-api";
 
 const FILTERS = [
-  { label: "All", category: undefined, preferredOnly: false },
-  { label: "Accommodation", category: "accommodation", preferredOnly: false },
-  { label: "Vehicle Hire", category: "vehicle_hire", preferredOnly: false },
-  { label: "Excursions", category: "excursion", preferredOnly: false },
-  { label: "AV & Entertainment", category: "av_entertainment", preferredOnly: false },
-  { label: "Décor", category: "decor", preferredOnly: false },
-  { label: "Preferred Partners", category: undefined, preferredOnly: true },
+  { label: "All", category: undefined, preferredOnly: false, archived: false },
+  { label: "Accommodation", category: "accommodation", preferredOnly: false, archived: false },
+  { label: "Vehicle Hire", category: "vehicle_hire", preferredOnly: false, archived: false },
+  { label: "Excursions", category: "excursion", preferredOnly: false, archived: false },
+  { label: "AV & Entertainment", category: "av_entertainment", preferredOnly: false, archived: false },
+  { label: "Décor", category: "decor", preferredOnly: false, archived: false },
+  { label: "Preferred Partners", category: undefined, preferredOnly: true, archived: false },
+  { label: "Archived", category: undefined, preferredOnly: false, archived: true },
 ] as const;
 
 function statusBadge(status: string) {
@@ -44,38 +46,47 @@ function statusBadge(status: string) {
 function SupplierCard({
   supplier,
   onSelect,
+  onRestore,
+  archivedView,
 }: {
   supplier: SupplierSummary;
   onSelect: (id: string) => void;
+  onRestore?: (id: string) => void;
+  archivedView?: boolean;
 }) {
   const displayName = supplier.tradingName ?? supplier.legalName;
   const location = [supplier.city, supplier.region, supplier.country].filter(Boolean).join(" · ");
 
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(supplier.id)}
-      className="cursor-pointer overflow-hidden rounded-[10px] border border-line bg-paper text-left transition hover:shadow-lg"
-    >
-      <div className="flex h-[120px] items-center justify-center bg-gradient-to-br from-sand to-line px-4 text-center">
-        <span className="font-display text-lg font-semibold text-ink-soft">{displayName}</span>
-      </div>
-      <div className="p-4">
-        <div className="font-medium text-ink">{displayName}</div>
-        <div className="text-xs text-muted">
-          {formatCategoryLabel(supplier.category)}
-          {location ? ` · ${location}` : ""}
-          {supplier.preferredPartner ? " · ★ Preferred" : ""}
+    <div className="overflow-hidden rounded-[10px] border border-line bg-paper text-left transition hover:shadow-lg">
+      <button type="button" onClick={() => onSelect(supplier.id)} className="w-full cursor-pointer text-left" disabled={archivedView}>
+        <div className="flex h-[120px] items-center justify-center bg-gradient-to-br from-sand to-line px-4 text-center">
+          <span className="font-display text-lg font-semibold text-ink-soft">{displayName}</span>
         </div>
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-          <span className="font-mono text-muted">{supplier.supplierCode}</span>
-          {statusBadge(supplier.status)}
-          {supplier.defaultCurrency && (
-            <span className="text-gold-deep">{supplier.defaultCurrency}</span>
-          )}
+        <div className="p-4">
+          <div className="font-medium text-ink">{displayName}</div>
+          <div className="text-xs text-muted">
+            {formatCategoryLabel(supplier.category)}
+            {location ? ` · ${location}` : ""}
+            {supplier.preferredPartner ? " · ★ Preferred" : ""}
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+            <span className="font-mono text-muted">{supplier.supplierCode}</span>
+            {statusBadge(supplier.status)}
+            {supplier.defaultCurrency && (
+              <span className="text-gold-deep">{supplier.defaultCurrency}</span>
+            )}
+          </div>
         </div>
-      </div>
-    </button>
+      </button>
+      {archivedView && onRestore ? (
+        <div className="border-t border-line px-4 py-3">
+          <Btn size="sm" variant="secondary" onClick={() => onRestore(supplier.id)}>
+            Restore
+          </Btn>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -594,6 +605,7 @@ export default function SuppliersPage() {
       const result = await listSuppliers(token, {
         category: filterConfig.category,
         q: search.trim() || undefined,
+        archived: filterConfig.archived,
       });
       let items = result.items;
       if (filterConfig.preferredOnly) {
@@ -709,7 +721,22 @@ export default function SuppliersPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {suppliers.map((s) => (
-            <SupplierCard key={s.id} supplier={s} onSelect={setSelectedId} />
+            <SupplierCard
+              key={s.id}
+              supplier={s}
+              archivedView={filterConfig.archived}
+              onSelect={(id) => {
+                if (filterConfig.archived) return;
+                setSelectedId(id);
+              }}
+              onRestore={(id) => {
+                void restoreSupplier(token!, id)
+                  .then(() => loadSuppliers())
+                  .catch((err) =>
+                    setError(err instanceof EosApiError ? err.message : "Failed to restore supplier"),
+                  );
+              }}
+            />
           ))}
         </div>
       )}

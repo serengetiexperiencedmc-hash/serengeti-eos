@@ -52,6 +52,7 @@ function sanitizeSupplier(s: SupSupplier) {
     dataQualityStatus: s.dataQualityStatus,
     classification: s.classification,
     version: s.version,
+    archivedAt: s.archivedAt,
     createdAt: s.createdAt,
     updatedAt: s.updatedAt,
   };
@@ -60,7 +61,7 @@ function sanitizeSupplier(s: SupSupplier) {
 export function listSuppliers(
   store: Store,
   principal: Principal,
-  query: { category?: string; status?: string; q?: string },
+  query: { category?: string; status?: string; q?: string; archived?: boolean },
 ) {
   ensureSupplierCollections(store);
   const decision = authorize({
@@ -72,7 +73,10 @@ export function listSuppliers(
     return { error: "forbidden" as const, reason: decision.reason };
   }
 
-  let items = store.supSuppliers.filter((s) => s.tenantId === principal.tenantId && !s.archivedAt);
+  let items = store.supSuppliers.filter((s) => {
+    if (s.tenantId !== principal.tenantId) return false;
+    return query.archived ? Boolean(s.archivedAt) : !s.archivedAt;
+  });
 
   if (query.category) {
     items = items.filter((s) => s.category === query.category);
@@ -542,12 +546,108 @@ export function archiveSupplier(store: Store, principal: Principal, id: string, 
   };
 }
 
+export function restoreSupplier(store: Store, principal: Principal, id: string, correlationId: string) {
+  ensureSupplierCollections(store);
+  const supplier = store.supSuppliers.find((s) => s.id === id && s.tenantId === principal.tenantId && s.archivedAt);
+  if (!supplier) return { error: "not_found" as const };
+
+  const decision = authorize({
+    principal,
+    permission: "supplier:write:supplier",
+    action: "restore:sup_supplier",
+    resource: {
+      tenantId: supplier.tenantId,
+      type: "supplier",
+      id: supplier.id,
+      classification: supplier.classification,
+    },
+  });
+  if (decision.result === "deny") {
+    denySupplierAudit(
+      store,
+      principal,
+      "supplier:write:supplier",
+      "sup_supplier",
+      correlationId,
+      decision.reason,
+      id,
+    );
+    return { error: "forbidden" as const, reason: decision.reason };
+  }
+
+  if (findSupplierByCode(store, principal.tenantId, supplier.supplierCode)) {
+    return { error: "conflict" as const, reason: "supplier_code_exists" };
+  }
+
+  const archivedAt = supplier.archivedAt;
+  const now = new Date().toISOString();
+  delete supplier.archivedAt;
+  supplier.status = "draft";
+  supplier.dataQualityStatus = "NeedsReview";
+  supplier.version += 1;
+  supplier.updatedAt = now;
+  supplier.updatedByPrincipalId = principal.id;
+
+  let restoredContacts = 0;
+  let restoredRates = 0;
+  let restoredContentBlocks = 0;
+
+  for (const contact of store.supContacts) {
+    if (contact.supplierId !== supplier.id || contact.tenantId !== principal.tenantId || !contact.archivedAt) continue;
+    if (archivedAt && contact.archivedAt !== archivedAt) continue;
+    delete contact.archivedAt;
+    contact.version += 1;
+    contact.updatedAt = now;
+    contact.updatedByPrincipalId = principal.id;
+    restoredContacts += 1;
+    void persistSupEntityAfterCommit(store.dbPool, store, "supplier_contact", contact.id);
+  }
+  for (const rate of store.supRates) {
+    if (rate.supplierId !== supplier.id || rate.tenantId !== principal.tenantId || !rate.archivedAt) continue;
+    if (archivedAt && rate.archivedAt !== archivedAt) continue;
+    delete rate.archivedAt;
+    rate.version += 1;
+    rate.updatedAt = now;
+    rate.updatedByPrincipalId = principal.id;
+    restoredRates += 1;
+    void persistSupEntityAfterCommit(store.dbPool, store, "supplier_rate", rate.id);
+  }
+  for (const block of store.supContentBlocks) {
+    if (block.supplierId !== supplier.id || block.tenantId !== principal.tenantId || !block.archivedAt) continue;
+    if (archivedAt && block.archivedAt !== archivedAt) continue;
+    delete block.archivedAt;
+    block.version += 1;
+    block.updatedAt = now;
+    block.updatedByPrincipalId = principal.id;
+    restoredContentBlocks += 1;
+    void persistSupEntityAfterCommit(store.dbPool, store, "supplier_content_block", block.id);
+  }
+
+  allowSupplierAudit(store, principal, "supplier:write:supplier", "sup_supplier", supplier.id, correlationId, {
+    supplierCode: supplier.supplierCode,
+    eventType: SUPPLIER_EVENT_TYPES.SUPPLIER_RESTORED,
+    restoredContacts,
+    restoredRates,
+    restoredContentBlocks,
+  });
+  void persistSupEntityAfterCommit(store.dbPool, store, "supplier", supplier.id);
+
+  return {
+    supplier: sanitizeSupplier(supplier),
+    restored: {
+      contacts: restoredContacts,
+      rates: restoredRates,
+      contentBlocks: restoredContentBlocks,
+    },
+  };
+}
+
 export function getSupplierModuleHealth(store: Store) {
   ensureSupplierCollections(store);
   return {
     module: "supplier",
     status: "ok" as const,
-    increment: "PG.11",
+    increment: "PG.12",
     suppliers: store.supSuppliers.filter((s) => !s.archivedAt).length,
     archivedSuppliers: store.supSuppliers.filter((s) => Boolean(s.archivedAt)).length,
     importBatches: store.supImportBatches.length,

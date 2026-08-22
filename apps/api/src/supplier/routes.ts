@@ -16,6 +16,7 @@ import {
   listSuppliers,
   updateSupplier,
   archiveSupplier,
+  restoreSupplier,
 } from "./supplier.js";
 import { archiveSupplierContact, createSupplierContact, updateSupplierContact } from "./contacts.js";
 import { archiveSupplierRate, createSupplierRate, updateSupplierRate } from "./rates.js";
@@ -105,8 +106,13 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
   app.get("/v1/suppliers", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const query = req.query as { category?: string; status?: string; q?: string };
-    const result = listSuppliers(store, principal, query);
+    const query = req.query as { category?: string; status?: string; q?: string; archived?: string };
+    const result = listSuppliers(store, principal, {
+      ...(query.category !== undefined ? { category: query.category } : {}),
+      ...(query.status !== undefined ? { status: query.status } : {}),
+      ...(query.q !== undefined ? { q: query.q } : {}),
+      ...(query.archived === "1" || query.archived === "true" ? { archived: true } : {}),
+    });
     if ("error" in result) return sendSupplierError(reply, result);
     return result;
   });
@@ -153,6 +159,15 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = archiveSupplier(store, principal, (req.params as { id: string }).id, correlationId);
+    if ("error" in result) return sendSupplierError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/suppliers/:id/restore", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const correlationId = getCorrelationId(req);
+    const result = restoreSupplier(store, principal, (req.params as { id: string }).id, correlationId);
     if ("error" in result) return sendSupplierError(reply, result);
     return result;
   });

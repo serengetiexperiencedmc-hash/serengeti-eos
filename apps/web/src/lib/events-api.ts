@@ -63,3 +63,43 @@ export async function listNatsConsumerOffsets(token: string) {
     { token },
   );
 }
+
+export type DeadLetterItem = {
+  id: string;
+  outboxId: string;
+  eventType: string;
+  eventId: string;
+  failureReason: string;
+  consumer: string;
+  attempts: number;
+  status: string;
+  lastFailureAt: string;
+  replayStatus?: string;
+};
+
+export async function listDeadLetters(token: string) {
+  return eosFetch<{ items: DeadLetterItem[]; increment: string }>("/v1/events/dlq", { token });
+}
+
+export async function requestEventReplay(
+  token: string,
+  input: {
+    reason: string;
+    intent: "reconstruction" | "reexecute";
+    deadLetterIds: string[];
+    targetConsumer?: string;
+  },
+) {
+  return eosFetch<{ id: string; status: string; increment: string }>("/v1/events/replay/request", {
+    token,
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function executeEventReplay(token: string, requestId: string) {
+  return eosFetch<{ ok: true; replayed: number; increment: string }>(
+    `/v1/events/replay/${requestId}/execute`,
+    { token, method: "POST", body: "{}" },
+  );
+}
