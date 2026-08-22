@@ -1,0 +1,9 @@
+supplierCode,rateCode,rateName,rateType,unitDescription,amount,currency,validFrom,validTo,seasonLabel,minPax,maxPax,minNights,commissionPercent,includesTax,taxPercent,cancellationPolicyRef,notes,status
+LOD-SERONERA-SOP,DBL-HIGH-2025,Double Room - High Season 2025,per_room_per_night,Standard double full board,450.00,USD,2025-07-01,2025-10-31,High Season 2025,2,2,2,15.00,false,18.00,CANC-LOD-STD,Subject to park fee increases,active
+LOD-SERONERA-SOP,DBL-LOW-2025,Double Room - Low Season 2025,per_room_per_night,Standard double full board,320.00,USD,2025-11-01,2026-06-30,Low Season 2025,2,2,2,15.00,false,18.00,CANC-LOD-STD,,active
+LOD-SERONERA-SOP,SGL-SUP-2025,Single Supplement - High Season,per_person_per_night,Single occupancy supplement,180.00,USD,2025-07-01,2025-10-31,High Season 2025,1,1,2,15.00,false,18.00,CANC-LOD-STD,,active
+VEH-SEDMC-LC200,LC200-DAY-2025,Land Cruiser 200 - Full Day,per_vehicle_per_day,Max 6 pax including driver-guide,280.00,USD,2025-01-01,2025-12-31,Standard 2025,1,6,1,0.00,true,0.00,CANC-VEH-STD,Fuel and driver included,active
+VEH-SEDMC-LC200,LC200-TRANS-2025,Airport Transfer - Arusha,flat_fee,One-way Kilimanjaro Airport to Arusha,85.00,USD,2025-01-01,2025-12-31,Standard 2025,1,6,0,0.00,true,0.00,CANC-VEH-STD,,active
+EXC-BALLOON-SRN,BALLOON-PAX-2025,Hot Air Balloon Safari,per_person,Including champagne breakfast,599.00,USD,2025-01-01,2025-12-31,Year-round 2025,1,16,0,10.00,false,18.00,CANC-EXC-BALLOON,Conservation fee separate,active
+AVN-SOUND-ARU,PA-FULL-2025,Full PA System - Full Day,flat_fee,500 pax capacity with 2 techs,2500.00,USD,2025-01-01,2025-12-31,Standard 2025,1,500,0,0.00,false,18.00,CANC-AVN-STD,Transport from Arusha included,active
+AVN-SOUND-ARU,DJ-MC-DAY-2025,DJ and MC - Full Day,flat_fee,Professional DJ and bilingual MC,800.00,USD,2025-01-01,2025-12-31,Standard 2025,1,1,0,0.00,false,18.00,CANC-AVN-STD,,active

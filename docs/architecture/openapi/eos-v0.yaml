@@ -1,0 +1,395 @@
+openapi: 3.1.0
+info:
+  title: Serengeti EOS API
+  version: 0.1.1
+  description: |
+    Increment 0 kernel + Increment 1 Admin Shell API.
+    Development/Testing only. Not production-ready.
+    Authentication: Development-only local IdentityProvider (ADR-0013 IdP product OPEN).
+    Secrets: EnvSecretsProvider in Development (ADR-0012 OPEN for UAT/Prod).
+servers:
+  - url: http://127.0.0.1:8080
+    description: Local Development
+tags:
+  - name: Health
+  - name: Auth
+  - name: Identity
+  - name: Organisation
+  - name: Admin
+  - name: Approvals
+  - name: Audit
+  - name: Config
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Liveness
+      responses:
+        "200":
+          description: Process is up
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+  /ready:
+    get:
+      tags: [Health]
+      summary: Readiness
+      responses:
+        "200":
+          description: Kernel ready
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+  /v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Development-only password login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Session issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Invalid credentials
+  /v1/me:
+    get:
+      tags: [Identity]
+      security: [{ bearerAuth: [] }]
+      summary: Current principal
+      responses:
+        "200":
+          description: Principal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Me"
+        "401":
+          description: Missing or invalid token
+  /v1/org-units:
+    get:
+      tags: [Organisation]
+      security: [{ bearerAuth: [] }]
+      summary: List org units in caller tenant
+      responses:
+        "200":
+          description: Units
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/OrgUnit"
+    post:
+      tags: [Admin, Organisation]
+      security: [{ bearerAuth: [] }]
+      summary: Create org unit (I1)
+      responses:
+        "201":
+          description: Created
+        "403":
+          description: Forbidden
+  /v1/organisations:
+    get:
+      tags: [Admin, Organisation]
+      security: [{ bearerAuth: [] }]
+      summary: List organisations (I1)
+      responses:
+        "200":
+          description: Organisations
+  /v1/locations:
+    get:
+      tags: [Admin, Organisation]
+      security: [{ bearerAuth: [] }]
+      summary: List locations (I1)
+      responses:
+        "200":
+          description: Locations
+    post:
+      tags: [Admin, Organisation]
+      security: [{ bearerAuth: [] }]
+      summary: Create location (I1)
+      responses:
+        "201":
+          description: Created
+  /v1/cost-centers:
+    post:
+      tags: [Admin, Organisation]
+      security: [{ bearerAuth: [] }]
+      summary: Create cost center (I1)
+      responses:
+        "201":
+          description: Created
+  /v1/principals:
+    get:
+      tags: [Admin, Identity]
+      security: [{ bearerAuth: [] }]
+      summary: List principals in tenant (I1)
+      responses:
+        "200":
+          description: Principals
+    post:
+      tags: [Admin, Identity]
+      security: [{ bearerAuth: [] }]
+      summary: Create principal Human/Service/AiAgent (I1)
+      responses:
+        "201":
+          description: Created
+  /v1/principals/{id}/status:
+    post:
+      tags: [Admin, Identity]
+      security: [{ bearerAuth: [] }]
+      summary: Change principal lifecycle status (I1)
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Updated
+  /v1/roles:
+    get:
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      summary: List roles (I1)
+      responses:
+        "200":
+          description: Roles
+  /v1/role-grants:
+    post:
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      summary: Grant role (denies self platform.admin escalation) (I1)
+      responses:
+        "201":
+          description: Granted
+        "403":
+          description: Forbidden
+  /v1/config/{key}/drafts:
+    post:
+      tags: [Admin, Config]
+      security: [{ bearerAuth: [] }]
+      summary: Create config draft version (I1)
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Draft created
+  /v1/config/versions/{id}/approve:
+    post:
+      tags: [Admin, Config]
+      security: [{ bearerAuth: [] }]
+      summary: Approve config version — SoD enforced (I1)
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Approved
+        "403":
+          description: Self-approval or SoD denied
+  /v1/sessions/{id}/revoke:
+    post:
+      tags: [Admin]
+      security: [{ bearerAuth: [] }]
+      summary: Revoke session (I1)
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Revoked
+  /v1/payments:
+    post:
+      tags: [Approvals]
+      security: [{ bearerAuth: [] }]
+      summary: Create a payment request (SoD demonstration object)
+      description: |
+        Increment 0 uses a synthetic payment object to prove SoD and
+        human approval. This is not a bank integration.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentCreate"
+      responses:
+        "201":
+          description: Created pending approval
+        "403":
+          description: Not permitted
+  /v1/payments/{id}:
+    get:
+      tags: [Approvals]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Payment
+        "404":
+          description: Missing or unauthorised
+  /v1/approvals/{id}/decision:
+    post:
+      tags: [Approvals]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApprovalDecision"
+      responses:
+        "200":
+          description: Decision recorded
+        "403":
+          description: SoD or authority failure
+        "404":
+          description: Missing or unauthorised
+  /v1/audit-events:
+    get:
+      tags: [Audit]
+      security: [{ bearerAuth: [] }]
+      summary: List recent audit events in tenant
+      responses:
+        "200":
+          description: Events
+        "403":
+          description: Not permitted
+  /v1/audit-events/verify:
+    get:
+      tags: [Audit]
+      security: [{ bearerAuth: [] }]
+      summary: Verify hash chain integrity
+      responses:
+        "200":
+          description: Chain status
+  /v1/config/{key}:
+    get:
+      tags: [Config]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Approved config
+        "404":
+          description: Missing or unauthorised
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    Health:
+      type: object
+      required: [status, service, version, productionReady]
+      properties:
+        status:
+          type: string
+        service:
+          type: string
+        version:
+          type: string
+        productionReady:
+          type: boolean
+          enum: [false]
+    LoginRequest:
+      type: object
+      required: [email, password, tenantSlug]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        tenantSlug:
+          type: string
+    LoginResponse:
+      type: object
+      required: [accessToken, expiresInSeconds, principal]
+      properties:
+        accessToken:
+          type: string
+        expiresInSeconds:
+          type: integer
+        principal:
+          $ref: "#/components/schemas/Me"
+    Me:
+      type: object
+      required: [id, tenantId, actorType, displayName, roles]
+      properties:
+        id:
+          type: string
+        tenantId:
+          type: string
+        actorType:
+          type: string
+          enum: [Human, Service, AiAgent]
+        displayName:
+          type: string
+        email:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+    OrgUnit:
+      type: object
+      properties:
+        id:
+          type: string
+        code:
+          type: string
+        name:
+          type: string
+        departmentKey:
+          type: string
+    PaymentCreate:
+      type: object
+      required: [amount, currency, beneficiary]
+      properties:
+        amount:
+          type: number
+        currency:
+          type: string
+        beneficiary:
+          type: string
+        idempotencyKey:
+          type: string
+    ApprovalDecision:
+      type: object
+      required: [outcome]
+      properties:
+        outcome:
+          type: string
+          enum: [approved, rejected]
+        reason:
+          type: string

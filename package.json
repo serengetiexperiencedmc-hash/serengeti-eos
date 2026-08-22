@@ -1,0 +1,20 @@
+{
+  "name": "serengeti-eos",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Serengeti Experience DMC Enterprise Operating System — Increment 0 kernel (not production-ready)",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run typecheck",
+    "migrate": "npm run migrate -w @sedmc/db"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

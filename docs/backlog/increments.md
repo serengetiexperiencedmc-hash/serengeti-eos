@@ -1,0 +1,43 @@
+# Development backlog — independently deployable increments
+
+Each increment must be releasable to **Test** on its own (Production only after ADRs and gates). Dependencies are listed; do not skip.
+
+| ID | Increment | Depends on | Includes | Not included |
+| --- | --- | --- | --- | --- |
+| **I0** | Platform kernel | Phase 0 docs | Tenancy, principals, local OIDC-dev login, RBAC/ABAC, SoD, audit hash chain, config versions, approval tasks, OpenAPI, CI tests | UI polish, BPM designer, AI, business modules |
+| **I1** | Org + admin shell | I0 | Org hierarchy, locations, cost centers, principal lifecycle, role grants, config versioning/approval, session revoke, IdP/secrets abstractions | PAM, corporate IdP product, Prod secrets |
+| **I2** | Workflow + rules kernel | I1 | Process instances, human tasks, versioned rules, simulation | Temporal |
+| **I3** | Notifications | I2 | Templates, in-app + email adapter interface | SMS/Teams until contracted |
+| **I4** | Event bus productionisation | I0 | Outbox publisher, NATS, DLQ, registry enforcement | Kafka |
+| **I5** | CRM + Sales | I2–I4 | Parties, leads, opportunities | Marketing automation |
+| **I6** | Supplier master | I5 | Suppliers, contracts metadata, performance stub | Rate engines |
+| **I7** | MICE RFP → proposal | I5–I6 | RFP, programme, itinerary, costing, margin gates | Channel manager |
+| **I8** | Finance quotes/invoices | I7 | Quotes, invoices, SoD payments (no bank file until provider known) | GL replacement |
+| **I9** | Operations + field offline | I7 | Tasks, assignments, encrypted cache | UEM |
+| **I10** | HR core | I1 | Employee, leave, skills | Payroll engine |
+| **I11** | ITSM + CMDB | I4 | Tickets, CIs | Discovery |
+| **I12** | Observability | I11 | OTel, health dependency map | Full AIOps |
+| **I13** | Defensive SOC integration | I12 | Alert ingest, IR casefile | Homegrown SIEM |
+| **I14** | PAM / secrets / ZTNA | I1, ADR-0012/13 | JIT, vault refs | Custom VPN |
+| **I15** | ERM + compliance + privacy | I2 | Registers, RoPA, DSR workflow | Legal opinion automation |
+| **I16** | Internal audit | I15 | Engagements, workpapers | |
+| **I17** | BCM + backup proof | ADR-0011 | 19:00 EAT job, restore probe evidence | Hot site unless ADR |
+| **I18** | Crisis + emcomms + exercises | I3, I17 | Command center | Voice until provider |
+| **I19** | Knowledge + search | I0 | Authority states, permissioned search | Graph DB |
+| **I20** | AI orchestration | I19, ADR-0008 | Providers, prompts, agents L0–L1 | L3+ tools |
+| **I21** | Decision intelligence | I20 | Forecasts labelled as estimates | |
+| **I22** | Partner edge | I0, I4 | Partner IAM, isolation tests | Public catalogue |
+| **I23** | Process mining / AIOps | I4, I12 | | Autonomous remediation |
+
+## Highest-priority build order (now)
+
+1. ~~I0 kernel~~ — Development/Testing only  
+2. ~~I1 admin shell~~ — **CLOSED** for Development/Testing  
+3. ~~I2 workflow/rules~~ — **HARDENED** for Dev/Test  
+4. ~~I4 outbox/events~~ — **ACCEPTED** + hardened for Dev/Test  
+5. **C1 CRM Foundation** — preview **READY FOR REVIEW** ([`c1-crm-preview.md`](../architecture/c1-crm-preview.md) + [`c1/`](../architecture/c1/)) — **implementation NOT YET AUTHORIZED**  
+6. C2–C9 commercial increments — authorized in dependency order ([commercial-roadmap.md](../architecture/commercial-roadmap.md))  
+
+AI agents, UAT and Production remain blocked. ADR-0006 / ADR-0012 / ADR-0013 + Production Readiness Review still required for Production.
+
+Official status: Development/Test foundation + authorized commercial-domain increments — not UAT-ready, not Production-ready.

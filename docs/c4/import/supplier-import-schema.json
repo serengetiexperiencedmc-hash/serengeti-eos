@@ -1,0 +1,275 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://serengetiexperience.com/eos/schemas/c4/supplier-import-v1.json",
+  "title": "Serengeti EOS C4 Supplier Import Schema",
+  "description": "JSON Schema for validating supplier migration data. Mirrors CSV import templates.",
+  "version": "1.0.0",
+  "definitions": {
+    "supplierCode": {
+      "type": "string",
+      "pattern": "^[A-Z0-9_-]{2,32}$",
+      "description": "Stable supplier identifier, uppercase alphanumeric with hyphens/underscores"
+    },
+    "isoCountry": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}$",
+      "description": "ISO 3166-1 alpha-2 country code"
+    },
+    "isoCurrency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$",
+      "description": "ISO 4217 currency code"
+    },
+    "isoDate": {
+      "type": "string",
+      "format": "date",
+      "description": "ISO 8601 date YYYY-MM-DD"
+    },
+    "classification": {
+      "type": "string",
+      "enum": ["Internal", "Confidential", "Restricted"],
+      "default": "Confidential"
+    },
+    "supplierCategory": {
+      "type": "string",
+      "enum": [
+        "accommodation",
+        "vehicle_hire",
+        "excursion",
+        "av_entertainment",
+        "decor",
+        "catering",
+        "venue",
+        "guide_staff",
+        "air_charter",
+        "miscellaneous"
+      ]
+    },
+    "supplierStatus": {
+      "type": "string",
+      "enum": ["draft", "pending_review", "active", "inactive", "suspended"]
+    },
+    "contactRole": {
+      "type": "string",
+      "enum": ["reservations", "operations", "finance", "management", "sales", "emergency", "other"]
+    },
+    "rateType": {
+      "type": "string",
+      "enum": [
+        "per_room_per_night",
+        "per_person_per_night",
+        "per_vehicle_per_day",
+        "per_person",
+        "flat_fee",
+        "per_hour",
+        "per_km",
+        "percentage"
+      ]
+    },
+    "rateStatus": {
+      "type": "string",
+      "enum": ["draft", "active", "expired", "superseded"]
+    },
+    "contentBlockType": {
+      "type": "string",
+      "enum": [
+        "description",
+        "highlights",
+        "room_type",
+        "inclusions",
+        "exclusions",
+        "location",
+        "programme_snippet",
+        "image_caption",
+        "terms"
+      ]
+    },
+    "contentBlockStatus": {
+      "type": "string",
+      "enum": ["draft", "reviewed", "approved", "archived"]
+    },
+    "SupplierRecord": {
+      "type": "object",
+      "required": ["supplierCode", "legalName", "category", "country", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "supplierCode": { "$ref": "#/definitions/supplierCode" },
+        "legalName": { "type": "string", "minLength": 2, "maxLength": 200 },
+        "tradingName": { "type": "string", "maxLength": 200 },
+        "category": { "$ref": "#/definitions/supplierCategory" },
+        "subcategory": { "type": "string", "maxLength": 100 },
+        "country": { "$ref": "#/definitions/isoCountry" },
+        "region": { "type": "string", "maxLength": 200 },
+        "city": { "type": "string", "maxLength": 100 },
+        "address": { "type": "string", "maxLength": 500 },
+        "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+        "longitude": { "type": "number", "minimum": -180, "maximum": 180 },
+        "telephone": { "type": "string", "maxLength": 30 },
+        "email": { "type": "string", "format": "email" },
+        "website": { "type": "string", "format": "uri" },
+        "status": { "$ref": "#/definitions/supplierStatus" },
+        "preferredPartner": { "type": "boolean" },
+        "paymentTermsDays": { "type": "integer", "minimum": 0, "maximum": 365 },
+        "defaultCurrency": { "$ref": "#/definitions/isoCurrency" },
+        "taxRegistrationNumber": { "type": "string", "maxLength": 50 },
+        "contractRef": { "type": "string", "maxLength": 50 },
+        "contractValidFrom": { "$ref": "#/definitions/isoDate" },
+        "contractValidTo": { "$ref": "#/definitions/isoDate" },
+        "maintainedByEmail": { "type": "string", "format": "email" },
+        "notes": { "type": "string", "maxLength": 2000 },
+        "sourceRecordId": { "type": "string", "maxLength": 100 },
+        "classification": { "$ref": "#/definitions/classification" }
+      },
+      "if": {
+        "required": ["contractValidFrom", "contractValidTo"]
+      },
+      "then": {
+        "properties": {
+          "contractValidTo": { "$ref": "#/definitions/isoDate" }
+        }
+      }
+    },
+    "SupplierContactRecord": {
+      "type": "object",
+      "required": ["supplierCode", "contactRole", "givenName", "familyName"],
+      "additionalProperties": false,
+      "properties": {
+        "supplierCode": { "$ref": "#/definitions/supplierCode" },
+        "contactRole": { "$ref": "#/definitions/contactRole" },
+        "givenName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "familyName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "email": { "type": "string", "format": "email" },
+        "telephone": { "type": "string", "maxLength": 30 },
+        "whatsapp": { "type": "string", "maxLength": 20 },
+        "isPrimary": { "type": "boolean" },
+        "notes": { "type": "string", "maxLength": 500 }
+      }
+    },
+    "SupplierRateRecord": {
+      "type": "object",
+      "required": [
+        "supplierCode",
+        "rateCode",
+        "rateName",
+        "rateType",
+        "amount",
+        "currency",
+        "validFrom",
+        "validTo",
+        "status"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "supplierCode": { "$ref": "#/definitions/supplierCode" },
+        "rateCode": {
+          "type": "string",
+          "pattern": "^[A-Z0-9_-]{2,32}$"
+        },
+        "rateName": { "type": "string", "minLength": 2, "maxLength": 200 },
+        "rateType": { "$ref": "#/definitions/rateType" },
+        "unitDescription": { "type": "string", "maxLength": 300 },
+        "amount": { "type": "number", "minimum": 0 },
+        "currency": { "$ref": "#/definitions/isoCurrency" },
+        "validFrom": { "$ref": "#/definitions/isoDate" },
+        "validTo": { "$ref": "#/definitions/isoDate" },
+        "seasonLabel": { "type": "string", "maxLength": 100 },
+        "minPax": { "type": "integer", "minimum": 0 },
+        "maxPax": { "type": "integer", "minimum": 0 },
+        "minNights": { "type": "integer", "minimum": 0 },
+        "commissionPercent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "includesTax": { "type": "boolean" },
+        "taxPercent": { "type": "number", "minimum": 0, "maximum": 100 },
+        "cancellationPolicyRef": { "type": "string", "maxLength": 50 },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "status": { "$ref": "#/definitions/rateStatus" }
+      }
+    },
+    "SupplierContentBlockRecord": {
+      "type": "object",
+      "required": ["supplierCode", "blockCode", "blockType", "body", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "supplierCode": { "$ref": "#/definitions/supplierCode" },
+        "blockCode": {
+          "type": "string",
+          "pattern": "^[A-Z0-9_-]{2,32}$"
+        },
+        "blockType": { "$ref": "#/definitions/contentBlockType" },
+        "title": { "type": "string", "maxLength": 200 },
+        "body": { "type": "string", "minLength": 1, "maxLength": 5000 },
+        "language": { "type": "string", "pattern": "^[a-z]{2}$", "default": "en" },
+        "assetFilename": { "type": "string", "maxLength": 255 },
+        "assetAltText": { "type": "string", "maxLength": 300 },
+        "tags": { "type": "string", "maxLength": 500 },
+        "isDefault": { "type": "boolean" },
+        "status": { "$ref": "#/definitions/contentBlockStatus" }
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "title": "SupplierImportBatch",
+      "type": "object",
+      "required": ["entityType", "sourceSystem", "records"],
+      "properties": {
+        "entityType": { "const": "supplier" },
+        "sourceSystem": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "mode": { "type": "string", "enum": ["create_only", "upsert"], "default": "create_only" },
+        "records": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5000,
+          "items": { "$ref": "#/definitions/SupplierRecord" }
+        }
+      }
+    },
+    {
+      "title": "SupplierContactImportBatch",
+      "type": "object",
+      "required": ["entityType", "sourceSystem", "records"],
+      "properties": {
+        "entityType": { "const": "supplier_contact" },
+        "sourceSystem": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "mode": { "type": "string", "enum": ["create_only", "upsert"], "default": "create_only" },
+        "records": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": { "$ref": "#/definitions/SupplierContactRecord" }
+        }
+      }
+    },
+    {
+      "title": "SupplierRateImportBatch",
+      "type": "object",
+      "required": ["entityType", "sourceSystem", "records"],
+      "properties": {
+        "entityType": { "const": "supplier_rate" },
+        "sourceSystem": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "mode": { "type": "string", "enum": ["create_only", "upsert"], "default": "create_only" },
+        "records": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20000,
+          "items": { "$ref": "#/definitions/SupplierRateRecord" }
+        }
+      }
+    },
+    {
+      "title": "SupplierContentBlockImportBatch",
+      "type": "object",
+      "required": ["entityType", "sourceSystem", "records"],
+      "properties": {
+        "entityType": { "const": "supplier_content_block" },
+        "sourceSystem": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "mode": { "type": "string", "enum": ["create_only", "upsert"], "default": "create_only" },
+        "records": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000,
+          "items": { "$ref": "#/definitions/SupplierContentBlockRecord" }
+        }
+      }
+    }
+  ]
+}

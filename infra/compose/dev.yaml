@@ -1,0 +1,28 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: eos
+      POSTGRES_PASSWORD: eos-dev-only
+      POSTGRES_DB: eos
+    ports:
+      - "5432:5432"
+    volumes:
+      - eos_pg:/var/lib/postgresql/data
+    # Schema is applied by: npm run migrate -w @sedmc/db
+    # (not via docker-entrypoint) so migrations are authoritative.
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+  nats:
+    image: nats:2.10-alpine
+    command: ["--jetstream", "--store_dir", "/data"]
+    ports:
+      - "4222:4222"
+    volumes:
+      - eos_nats:/data
+
+volumes:
+  eos_pg:
+  eos_nats:

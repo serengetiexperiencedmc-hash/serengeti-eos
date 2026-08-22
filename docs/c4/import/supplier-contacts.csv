@@ -1,0 +1,6 @@
+supplierCode,contactRole,givenName,familyName,email,telephone,whatsapp,isPrimary,notes
+LOD-SERONERA-SOP,reservations,Anna,Mwanga,anna.m@seronera-lodge.example.co.tz,+255 754 111 222,+255754111222,true,Available Mon-Sat 08:00-18:00 EAT
+LOD-SERONERA-SOP,operations,John,Kileo,john.k@seronera-lodge.example.co.tz,+255 754 111 223,,false,Ops contact for group check-in
+VEH-SEDMC-LC200,operations,Peter,Mollel,logistics@serengetiexperience.com,+255 754 222 333,+255754222333,true,Internal fleet coordinator
+EXC-BALLOON-SRN,reservations,Grace,Ndungu,bookings@balloon.example.co.tz,+255 754 333 444,+255754333444,true,Book 48hrs in advance minimum
+AVN-SOUND-ARU,management,David,Kimaro,events@arushaav.example.co.tz,+255 754 444 555,,true,Technical site visit required for large events

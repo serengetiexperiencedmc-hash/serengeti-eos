@@ -1,0 +1,4182 @@
+openapi: 3.1.0
+info:
+  title: Serengeti EOS CRM API (C1)
+  version: "1.0.0"
+  description: |
+    CRM bounded context — Increment C1 (`/v1/crm/*`).
+    Development/Testing only. Not production-ready.
+    Authentication: bearer token (local IdP in Development).
+    Optimistic concurrency: `If-Match` header (entity version integer) on PATCH where noted.
+    Idempotency: `Idempotency-Key` header required on merge execute and import execute.
+servers:
+  - url: "http://127.0.0.1:8080"
+    description: Local Development
+tags:
+  - name: Health
+    description: Module health (Dev/Test)
+  - name: Dev
+    description: Development/Testing diagnostics only
+  - name: Catalogues
+  - name: Organizations
+  - name: OrganizationUnits
+  - name: Contacts
+  - name: Relationships
+  - name: Activities
+  - name: Accounts
+  - name: Notes
+  - name: Tasks
+  - name: Search
+  - name: Duplicates
+  - name: Merges
+  - name: Imports
+  - name: Tags
+  - name: TagAssignments
+  - name: ExternalIdentifiers
+paths:
+  /v1/crm/health:
+    get:
+      tags:
+        - Health
+      security:
+        - bearerAuth: []
+      summary: CRM module health (Dev/Test only)
+      description: Returns CRM module metadata and entity counts. Requires authentication only.
+      responses:
+        200:
+          description: Module health
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrmModuleHealth"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/dev/outbox-events:
+    get:
+      tags:
+        - Dev
+      security:
+        - bearerAuth: []
+      summary: List CRM outbox events (Dev/Test only)
+      description: "Requires `events:read:operations` permission."
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+      responses:
+        200:
+          description: Recent CRM outbox events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OutboxEventList"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/organization-types:
+    get:
+      tags:
+        - Catalogues
+      security:
+        - bearerAuth: []
+      summary: List organization types
+      description: "Requires `crm:read:organization` permission."
+      responses:
+        200:
+          description: Catalogue items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CatalogueList"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/relationship-types:
+    get:
+      tags:
+        - Catalogues
+      security:
+        - bearerAuth: []
+      summary: List relationship types
+      description: "Requires `crm:read:relationship` permission."
+      responses:
+        200:
+          description: Catalogue items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CatalogueList"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/activity-types:
+    get:
+      tags:
+        - Catalogues
+      security:
+        - bearerAuth: []
+      summary: List activity types
+      description: "Requires `crm:read:activity` permission."
+      responses:
+        200:
+          description: Catalogue items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CatalogueList"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/organizations:
+    get:
+      tags:
+        - Organizations
+      security:
+        - bearerAuth: []
+      summary: List organizations
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: organizationTypeId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Organizations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationList"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+    post:
+      tags:
+        - Organizations
+      security:
+        - bearerAuth: []
+      summary: Create organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrganizationRequest"
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/organizations/{id}:
+    get:
+      tags:
+        - Organizations
+      security:
+        - bearerAuth: []
+      summary: Get organization
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      responses:
+        200:
+          description: Organization
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+    patch:
+      tags:
+        - Organizations
+      security:
+        - bearerAuth: []
+      summary: Update organization
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOrganizationRequest"
+      responses:
+        200:
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/organizations/{id}/transitions:
+    post:
+      tags:
+        - Organizations
+      security:
+        - bearerAuth: []
+      summary: Transition organization status
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrganizationTransitionRequest"
+      responses:
+        200:
+          description: Transitioned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/organizations/{id}/archive:
+    post:
+      tags:
+        - Organizations
+      security:
+        - bearerAuth: []
+      summary: Archive organization
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      responses:
+        200:
+          description: Archived
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/organizations/{orgId}/units:
+    get:
+      tags:
+        - OrganizationUnits
+      security:
+        - bearerAuth: []
+      summary: List organization units
+      parameters:
+        - $ref: "#/components/parameters/OrgId"
+      responses:
+        200:
+          description: Units
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationUnitList"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+    post:
+      tags:
+        - OrganizationUnits
+      security:
+        - bearerAuth: []
+      summary: Create organization unit
+      parameters:
+        - $ref: "#/components/parameters/OrgId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrganizationUnitRequest"
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationUnitEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/organization-units/{id}:
+    get:
+      tags:
+        - OrganizationUnits
+      security:
+        - bearerAuth: []
+      summary: Get organization unit
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      responses:
+        200:
+          description: Unit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationUnitEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+    patch:
+      tags:
+        - OrganizationUnits
+      security:
+        - bearerAuth: []
+      summary: Update organization unit
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOrganizationUnitRequest"
+      responses:
+        200:
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationUnitEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/contacts:
+    get:
+      tags:
+        - Contacts
+      security:
+        - bearerAuth: []
+      summary: List contacts
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: organizationId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: email
+          in: query
+          schema:
+            type: string
+      responses:
+        200:
+          description: Contacts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactList"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+    post:
+      tags:
+        - Contacts
+      security:
+        - bearerAuth: []
+      summary: Create contact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateContactRequest"
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/contacts/{id}:
+    get:
+      tags:
+        - Contacts
+      security:
+        - bearerAuth: []
+      summary: Get contact
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      responses:
+        200:
+          description: Contact
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+    patch:
+      tags:
+        - Contacts
+      security:
+        - bearerAuth: []
+      summary: Update contact
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateContactRequest"
+      responses:
+        200:
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/contacts/{id}/archive:
+    post:
+      tags:
+        - Contacts
+      security:
+        - bearerAuth: []
+      summary: Archive contact
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      responses:
+        200:
+          description: Archived
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContactEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/contacts/{id}/relationships:
+    get:
+      tags:
+        - Relationships
+      security:
+        - bearerAuth: []
+      summary: List contact relationships
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+        - name: organizationId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        200:
+          description: Relationships
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RelationshipList"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/relationships:
+    get:
+      tags:
+        - Relationships
+      security:
+        - bearerAuth: []
+      summary: List relationships
+      parameters:
+        - name: contactId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: organizationId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: organizationUnitId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        200:
+          description: Relationships
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RelationshipList"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+    post:
+      tags:
+        - Relationships
+      security:
+        - bearerAuth: []
+      summary: Create relationship
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRelationshipRequest"
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RelationshipEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/relationships/{id}:
+    get:
+      tags:
+        - Relationships
+      security:
+        - bearerAuth: []
+      summary: Get relationship
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      responses:
+        200:
+          description: Relationship
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RelationshipEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+    patch:
+      tags:
+        - Relationships
+      security:
+        - bearerAuth: []
+      summary: Update relationship
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRelationshipRequest"
+      responses:
+        200:
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RelationshipEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/relationships/{id}/transitions:
+    post:
+      tags:
+        - Relationships
+      security:
+        - bearerAuth: []
+      summary: Transition relationship status
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RelationshipTransitionRequest"
+      responses:
+        200:
+          description: Transitioned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RelationshipEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/organizations/{orgId}/relationships:
+    get:
+      tags:
+        - Relationships
+      security:
+        - bearerAuth: []
+      summary: List organization relationships
+      parameters:
+        - $ref: "#/components/parameters/OrgId"
+        - name: contactId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        200:
+          description: Relationships
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RelationshipList"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/activities:
+    get:
+      tags:
+        - Activities
+      security:
+        - bearerAuth: []
+      summary: List activities
+      parameters:
+        - name: activityType
+          in: query
+          schema:
+            type: string
+        - name: contactId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: organizationId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: organizationUnitId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: relationshipId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: occurredFrom
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: occurredTo
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: includeArchived
+          in: query
+          schema:
+            type: string
+            enum:
+              - "true"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        200:
+          description: Activities
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityList"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+    post:
+      tags:
+        - Activities
+      security:
+        - bearerAuth: []
+      summary: Create activity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateActivityRequest"
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/activities/{id}:
+    get:
+      tags:
+        - Activities
+      security:
+        - bearerAuth: []
+      summary: Get activity
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      responses:
+        200:
+          description: Activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+    patch:
+      tags:
+        - Activities
+      security:
+        - bearerAuth: []
+      summary: Update activity
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateActivityRequest"
+      responses:
+        200:
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/activities/{id}/archive:
+    post:
+      tags:
+        - Activities
+      security:
+        - bearerAuth: []
+      summary: Archive activity
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      responses:
+        200:
+          description: Archived
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/contacts/{id}/activities:
+    get:
+      tags:
+        - Activities
+      security:
+        - bearerAuth: []
+      summary: List scoped activities
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+        - name: activityType
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        200:
+          description: Activities
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityList"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/organizations/{orgId}/activities:
+    get:
+      tags:
+        - Activities
+      security:
+        - bearerAuth: []
+      summary: List scoped activities
+      parameters:
+        - $ref: "#/components/parameters/OrgId"
+        - name: activityType
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        200:
+          description: Activities
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityList"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/relationships/{id}/activities:
+    get:
+      tags:
+        - Activities
+      security:
+        - bearerAuth: []
+      summary: List scoped activities
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        200:
+          description: Activities
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityList"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/organization-units/{id}/activities:
+    get:
+      tags:
+        - Activities
+      security:
+        - bearerAuth: []
+      summary: List scoped activities
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        200:
+          description: Activities
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityList"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/accounts:
+    get:
+      tags:
+        - Accounts
+      security:
+        - bearerAuth: []
+      summary: List accounts
+      parameters:
+        - name: organizationId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: ownerPrincipalId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        200:
+          description: Accounts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountList"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+    post:
+      tags:
+        - Accounts
+      security:
+        - bearerAuth: []
+      summary: Create account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAccountRequest"
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/accounts/{id}:
+    get:
+      tags:
+        - Accounts
+      security:
+        - bearerAuth: []
+      summary: Get account
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      responses:
+        200:
+          description: Account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+    patch:
+      tags:
+        - Accounts
+      security:
+        - bearerAuth: []
+      summary: Update account
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAccountRequest"
+      responses:
+        200:
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/accounts/{id}/transitions:
+    post:
+      tags:
+        - Accounts
+      security:
+        - bearerAuth: []
+      summary: Transition account status
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      responses:
+        200:
+          description: Transition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountTransitionRequest"
+  /v1/crm/accounts/{id}/archive:
+    post:
+      tags:
+        - Accounts
+      security:
+        - bearerAuth: []
+      summary: Archive account
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      responses:
+        200:
+          description: Archive
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/accounts/{id}/reassign-owner:
+    post:
+      tags:
+        - Accounts
+      security:
+        - bearerAuth: []
+      summary: Reassign account owner
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      responses:
+        200:
+          description: Reassign
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReassignAccountOwnerRequest"
+  /v1/crm/organizations/{orgId}/accounts:
+    get:
+      tags:
+        - Accounts
+      security:
+        - bearerAuth: []
+      summary: List organization accounts
+      parameters:
+        - $ref: "#/components/parameters/OrgId"
+      responses:
+        200:
+          description: Accounts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountList"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/notes:
+    get:
+      tags:
+        - Notes
+      security:
+        - bearerAuth: []
+      summary: List notes
+      parameters:
+        - name: entityType
+          in: query
+          schema:
+            type: string
+        - name: entityId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        200:
+          description: Notes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NoteList"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+    post:
+      tags:
+        - Notes
+      security:
+        - bearerAuth: []
+      summary: Create note
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateNoteRequest"
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NoteEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/notes/{id}:
+    get:
+      tags:
+        - Notes
+      security:
+        - bearerAuth: []
+      summary: Get note
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      responses:
+        200:
+          description: Note
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NoteEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+    patch:
+      tags:
+        - Notes
+      security:
+        - bearerAuth: []
+      summary: Update note
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateNoteRequest"
+      responses:
+        200:
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NoteEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/notes/{id}/archive:
+    post:
+      tags:
+        - Notes
+      security:
+        - bearerAuth: []
+      summary: Archive note
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      responses:
+        200:
+          description: Archived
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NoteEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/contacts/{id}/notes:
+    get:
+      tags:
+        - Notes
+      security:
+        - bearerAuth: []
+      summary: List contact notes
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      responses:
+        200:
+          description: Notes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NoteList"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/organizations/{orgId}/notes:
+    get:
+      tags:
+        - Notes
+      security:
+        - bearerAuth: []
+      summary: List organization notes
+      parameters:
+        - $ref: "#/components/parameters/OrgId"
+      responses:
+        200:
+          description: Notes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NoteList"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/tasks:
+    get:
+      tags:
+        - Tasks
+      security:
+        - bearerAuth: []
+      summary: List tasks
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: assigneePrincipalId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        200:
+          description: Tasks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskList"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+    post:
+      tags:
+        - Tasks
+      security:
+        - bearerAuth: []
+      summary: Create task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaskRequest"
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/tasks/{id}:
+    get:
+      tags:
+        - Tasks
+      security:
+        - bearerAuth: []
+      summary: Get task
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      responses:
+        200:
+          description: Task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+    patch:
+      tags:
+        - Tasks
+      security:
+        - bearerAuth: []
+      summary: Update task
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTaskRequest"
+      responses:
+        200:
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/tasks/{id}/complete:
+    post:
+      tags:
+        - Tasks
+      security:
+        - bearerAuth: []
+      summary: Complete task
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      responses:
+        200:
+          description: Completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/tasks/{id}/cancel:
+    post:
+      tags:
+        - Tasks
+      security:
+        - bearerAuth: []
+      summary: Cancel task
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      responses:
+        200:
+          description: Canceld
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/search:
+    get:
+      tags:
+        - Search
+      security:
+        - bearerAuth: []
+      summary: Search CRM entities
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+        - name: types
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: owner
+          in: query
+          schema:
+            type: string
+        - name: country
+          in: query
+          schema:
+            type: string
+        - name: type
+          in: query
+          schema:
+            type: string
+      responses:
+        200:
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchResultList"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/duplicates:
+    get:
+      tags:
+        - Duplicates
+      security:
+        - bearerAuth: []
+      summary: List duplicate candidates
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: entityType
+          in: query
+          schema:
+            type: string
+            enum:
+              - organization
+              - contact
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        200:
+          description: Duplicate candidates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DuplicateCandidateList"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/duplicates/{id}:
+    get:
+      tags:
+        - Duplicates
+      security:
+        - bearerAuth: []
+      summary: Get duplicate candidate
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      responses:
+        200:
+          description: Duplicate candidate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DuplicateCandidateEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/duplicates/{id}/review:
+    post:
+      tags:
+        - Duplicates
+      security:
+        - bearerAuth: []
+      summary: Review duplicate candidate
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewDuplicateRequest"
+      responses:
+        200:
+          description: Reviewed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DuplicateCandidateEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/merges:
+    post:
+      tags:
+        - Merges
+      security:
+        - bearerAuth: []
+      summary: Execute merge
+      description: Requires `Idempotency-Key` header. Returns 201 on first execution, 200 on replay.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExecuteMergeRequest"
+      responses:
+        200:
+          description: Idempotent replay
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MergeEnvelope"
+        201:
+          description: Merge executed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MergeEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/merges/{id}:
+    get:
+      tags:
+        - Merges
+      security:
+        - bearerAuth: []
+      summary: Get merge record
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      responses:
+        200:
+          description: Merge record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MergeEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/imports:
+    post:
+      tags:
+        - Imports
+      security:
+        - bearerAuth: []
+      summary: Create import batch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateImportRequest"
+      responses:
+        201:
+          description: Import batch created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportBatchEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/imports/{id}:
+    get:
+      tags:
+        - Imports
+      security:
+        - bearerAuth: []
+      summary: Get import batch
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      responses:
+        200:
+          description: Import batch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportBatchEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/imports/{id}/validate:
+    post:
+      tags:
+        - Imports
+      security:
+        - bearerAuth: []
+      summary: Validate import batch
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      responses:
+        200:
+          description: Validated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportBatchEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/imports/{id}/execute:
+    post:
+      tags:
+        - Imports
+      security:
+        - bearerAuth: []
+      summary: Execute import batch
+      description: Requires `Idempotency-Key` header.
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        200:
+          description: Committed (or idempotent replay)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportBatchEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/tags:
+    get:
+      tags:
+        - Tags
+      security:
+        - bearerAuth: []
+      summary: List tags
+      parameters:
+        - name: includeArchived
+          in: query
+          schema:
+            type: string
+            enum:
+              - "true"
+      responses:
+        200:
+          description: Tags
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TagList"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+    post:
+      tags:
+        - Tags
+      security:
+        - bearerAuth: []
+      summary: Create tag
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTagRequest"
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TagEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/tags/{id}:
+    get:
+      tags:
+        - Tags
+      security:
+        - bearerAuth: []
+      summary: Get tag
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      responses:
+        200:
+          description: Tag
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TagEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+    patch:
+      tags:
+        - Tags
+      security:
+        - bearerAuth: []
+      summary: Update tag
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+        - $ref: "#/components/parameters/IfMatch"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTagRequest"
+      responses:
+        200:
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TagEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/tags/{id}/archive:
+    post:
+      tags:
+        - Tags
+      security:
+        - bearerAuth: []
+      summary: Archive tag
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      responses:
+        200:
+          description: Archived
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TagEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/tag-assignments:
+    get:
+      tags:
+        - TagAssignments
+      security:
+        - bearerAuth: []
+      summary: List tag assignments
+      parameters:
+        - name: tagId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: entityType
+          in: query
+          schema:
+            type: string
+        - name: entityId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        200:
+          description: Tag assignments
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EntityTagList"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+    post:
+      tags:
+        - TagAssignments
+      security:
+        - bearerAuth: []
+      summary: Assign tag to entity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignTagRequest"
+      responses:
+        201:
+          description: Assigned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EntityTagEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/tag-assignments/{id}:
+    delete:
+      tags:
+        - TagAssignments
+      security:
+        - bearerAuth: []
+      summary: Remove tag assignment
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      responses:
+        200:
+          description: Removed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RemoveTagAssignmentResponse"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/external-identifiers/lookup/{systemKey}/{externalId}:
+    get:
+      tags:
+        - ExternalIdentifiers
+      security:
+        - bearerAuth: []
+      summary: Lookup external identifier
+      parameters:
+        - $ref: "#/components/parameters/SystemKey"
+        - $ref: "#/components/parameters/ExternalId"
+      responses:
+        200:
+          description: External identifier
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExternalIdentifierEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/external-identifiers:
+    post:
+      tags:
+        - ExternalIdentifiers
+      security:
+        - bearerAuth: []
+      summary: Create external identifier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateExternalIdentifierRequest"
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExternalIdentifierEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+  /v1/crm/external-identifiers/{id}:
+    get:
+      tags:
+        - ExternalIdentifiers
+      security:
+        - bearerAuth: []
+      summary: Get external identifier
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      responses:
+        200:
+          description: External identifier
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExternalIdentifierEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+    delete:
+      tags:
+        - ExternalIdentifiers
+      security:
+        - bearerAuth: []
+      summary: Delete external identifier
+      parameters:
+        - $ref: "#/components/parameters/Id"
+          name: id
+          description: Resource UUID
+      responses:
+        200:
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExternalIdentifierEnvelope"
+        400:
+          $ref: "#/components/responses/BadRequest"
+        401:
+          $ref: "#/components/responses/Unauthorized"
+        403:
+          $ref: "#/components/responses/Forbidden"
+        404:
+          $ref: "#/components/responses/NotFound"
+        409:
+          $ref: "#/components/responses/Conflict"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    OrgId:
+      name: orgId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Organization UUID
+    IfMatch:
+      name: If-Match
+      in: header
+      required: false
+      schema:
+        type: integer
+      description: Expected entity version for optimistic concurrency
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+      description: Client-supplied idempotency key
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      schema:
+        type: string
+    SystemKey:
+      name: systemKey
+      in: path
+      required: true
+      schema:
+        type: string
+    ExternalId:
+      name: externalId
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    Unauthorized:
+      description: Missing or invalid bearer token
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/UnauthenticatedError"
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CrmError"
+    Forbidden:
+      description: Authorization denied
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CrmError"
+    NotFound:
+      description: Resource not found or not visible
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CrmError"
+    Conflict:
+      description: Conflict (version mismatch, duplicate, invalid state)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CrmError"
+  schemas:
+    UnauthenticatedError:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          enum:
+            - unauthenticated
+    CrmError:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          enum:
+            - invalid_request
+            - forbidden
+            - not_found
+            - conflict
+        reason:
+          type: string
+    Classification:
+      type: string
+      enum:
+        - Public
+        - Internal
+        - Confidential
+        - Restricted
+        - HighlyRestricted
+    CatalogueType:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        key:
+          type: string
+        label:
+          type: string
+        active:
+          type: boolean
+    CatalogueList:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CatalogueType"
+    CrmModuleHealth:
+      type: object
+      properties:
+        module:
+          type: string
+          enum:
+            - crm
+        increment:
+          type: string
+        environment:
+          type: string
+          enum:
+            - Development/Test
+        productionReady:
+          type: boolean
+          enum:
+            - false
+        entities:
+          type: object
+          additionalProperties:
+            type: integer
+        note:
+          type: string
+    OutboxEventList:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+    Organization:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        legalName:
+          type: string
+        tradingName:
+          type: string
+        organizationTypeId:
+          type: string
+          format: uuid
+        country:
+          type: string
+        region:
+          type: string
+        market:
+          type: string
+        website:
+          type: string
+        domain:
+          type: string
+        primaryEmail:
+          type: string
+        primaryTelephone:
+          type: string
+        address:
+          type: object
+          additionalProperties: true
+        status:
+          type: string
+          enum:
+            - Prospect
+            - Engaged
+            - Qualified
+            - Active
+            - Dormant
+            - Disqualified
+            - Archived
+        dataQualityStatus:
+          type: string
+        classification:
+          $ref: "#/components/schemas/Classification"
+        ownerPrincipalId:
+          type: string
+          format: uuid
+        source:
+          type: string
+        version:
+          type: integer
+        mergedIntoId:
+          type: string
+          format: uuid
+        archivedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        createdByPrincipalId:
+          type: string
+          format: uuid
+        updatedByPrincipalId:
+          type: string
+          format: uuid
+    OrganizationList:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Organization"
+    OrganizationEnvelope:
+      type: object
+      required:
+        - organization
+      properties:
+        organization:
+          $ref: "#/components/schemas/Organization"
+    CreateOrganizationRequest:
+      type: object
+      required:
+        - legalName
+        - organizationTypeId
+      properties:
+        legalName:
+          type: string
+        tradingName:
+          type: string
+        organizationTypeId:
+          type: string
+          format: uuid
+        country:
+          type: string
+        region:
+          type: string
+        market:
+          type: string
+        website:
+          type: string
+        domain:
+          type: string
+        primaryEmail:
+          type: string
+        primaryTelephone:
+          type: string
+        address:
+          type: object
+          additionalProperties: true
+        classification:
+          $ref: "#/components/schemas/Classification"
+        ownerPrincipalId:
+          type: string
+          format: uuid
+        source:
+          type: string
+    UpdateOrganizationRequest:
+      type: object
+      properties:
+        legalName:
+          type: string
+        tradingName:
+          type: string
+        organizationTypeId:
+          type: string
+          format: uuid
+        country:
+          type: string
+        region:
+          type: string
+        market:
+          type: string
+        website:
+          type: string
+        domain:
+          type: string
+        primaryEmail:
+          type: string
+        primaryTelephone:
+          type: string
+        address:
+          type: object
+          additionalProperties: true
+        classification:
+          $ref: "#/components/schemas/Classification"
+        ownerPrincipalId:
+          type: string
+          format: uuid
+        source:
+          type: string
+    OrganizationTransitionRequest:
+      type: object
+      required:
+        - to
+      properties:
+        to:
+          type: string
+          enum:
+            - Prospect
+            - Engaged
+            - Qualified
+            - Active
+            - Dormant
+            - Disqualified
+            - Archived
+        reason:
+          type: string
+    OrganizationUnit:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        organizationId:
+          type: string
+          format: uuid
+        parentUnitId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        unitType:
+          type: string
+          enum:
+            - division
+            - department
+            - branch
+            - regional_office
+            - subsidiary
+            - business_unit
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    OrganizationUnitList:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrganizationUnit"
+    OrganizationUnitEnvelope:
+      type: object
+      required:
+        - unit
+      properties:
+        unit:
+          $ref: "#/components/schemas/OrganizationUnit"
+    CreateOrganizationUnitRequest:
+      type: object
+      required:
+        - name
+        - unitType
+      properties:
+        name:
+          type: string
+        unitType:
+          type: string
+        parentUnitId:
+          type: string
+          format: uuid
+    UpdateOrganizationUnitRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        unitType:
+          type: string
+        parentUnitId:
+          type:
+            - string
+            - "null"
+          format: uuid
+    Contact:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        givenName:
+          type: string
+        familyName:
+          type: string
+        preferredName:
+          type: string
+        jobTitle:
+          type: string
+        department:
+          type: string
+        email:
+          type: string
+        telephone:
+          type: string
+        mobile:
+          type: string
+        country:
+          type: string
+        timezone:
+          type: string
+        language:
+          type: string
+        status:
+          type: string
+          enum:
+            - Active
+            - Inactive
+            - Archived
+        dataQualityStatus:
+          type: string
+        classification:
+          $ref: "#/components/schemas/Classification"
+        communicationPreferences:
+          type: object
+          additionalProperties: true
+        source:
+          type: string
+        mergedIntoId:
+          type: string
+          format: uuid
+        archivedAt:
+          type: string
+          format: date-time
+        version:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        createdByPrincipalId:
+          type: string
+          format: uuid
+        updatedByPrincipalId:
+          type: string
+          format: uuid
+    ContactList:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Contact"
+    ContactEnvelope:
+      type: object
+      required:
+        - contact
+      properties:
+        contact:
+          $ref: "#/components/schemas/Contact"
+    CreateContactRequest:
+      type: object
+      required:
+        - givenName
+        - familyName
+      properties:
+        givenName:
+          type: string
+        familyName:
+          type: string
+        preferredName:
+          type: string
+        jobTitle:
+          type: string
+        department:
+          type: string
+        email:
+          type: string
+        telephone:
+          type: string
+        mobile:
+          type: string
+        country:
+          type: string
+        timezone:
+          type: string
+        language:
+          type: string
+        classification:
+          $ref: "#/components/schemas/Classification"
+        communicationPreferences:
+          type: object
+          additionalProperties: true
+        source:
+          type: string
+    UpdateContactRequest:
+      allOf:
+        - $ref: "#/components/schemas/CreateContactRequest"
+        - type: object
+          properties:
+            status:
+              type: string
+              enum:
+                - Active
+                - Inactive
+                - Archived
+    Relationship:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        relationshipTypeId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+            - Unknown
+            - Identified
+            - Contacted
+            - Engaged
+            - Partner
+            - Strategic
+            - Dormant
+            - Disqualified
+        fromOrganizationId:
+          type: string
+          format: uuid
+        toOrganizationId:
+          type: string
+          format: uuid
+        fromContactId:
+          type: string
+          format: uuid
+        toContactId:
+          type: string
+          format: uuid
+        organizationUnitId:
+          type: string
+          format: uuid
+        notes:
+          type: string
+        version:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        createdByPrincipalId:
+          type: string
+          format: uuid
+        updatedByPrincipalId:
+          type: string
+          format: uuid
+    RelationshipList:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Relationship"
+    RelationshipEnvelope:
+      type: object
+      required:
+        - relationship
+      properties:
+        relationship:
+          $ref: "#/components/schemas/Relationship"
+    CreateRelationshipRequest:
+      type: object
+      required:
+        - relationshipTypeId
+      properties:
+        relationshipTypeId:
+          type: string
+          format: uuid
+        contactId:
+          type: string
+          format: uuid
+        organizationId:
+          type: string
+          format: uuid
+        organizationUnitId:
+          type: string
+          format: uuid
+        fromOrganizationId:
+          type: string
+          format: uuid
+        toOrganizationId:
+          type: string
+          format: uuid
+        notes:
+          type: string
+        status:
+          $ref: "#/components/schemas/Relationship/properties/status"
+    UpdateRelationshipRequest:
+      type: object
+      properties:
+        notes:
+          type: string
+        organizationUnitId:
+          type:
+            - string
+            - "null"
+          format: uuid
+    RelationshipTransitionRequest:
+      type: object
+      required:
+        - to
+      properties:
+        to:
+          $ref: "#/components/schemas/Relationship/properties/status"
+        reason:
+          type: string
+    Activity:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        activityType:
+          type: string
+        subject:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
+        organizationId:
+          type: string
+          format: uuid
+        organizationUnitId:
+          type: string
+          format: uuid
+        contactId:
+          type: string
+          format: uuid
+        relationshipId:
+          type: string
+          format: uuid
+        ownerPrincipalId:
+          type: string
+          format: uuid
+        outcome:
+          type: string
+        notes:
+          type: string
+        classification:
+          $ref: "#/components/schemas/Classification"
+        version:
+          type: integer
+        archivedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        createdByPrincipalId:
+          type: string
+          format: uuid
+        updatedByPrincipalId:
+          type: string
+          format: uuid
+    ActivityList:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Activity"
+        nextCursor:
+          type: string
+    ActivityEnvelope:
+      type: object
+      required:
+        - activity
+      properties:
+        activity:
+          $ref: "#/components/schemas/Activity"
+    CreateActivityRequest:
+      type: object
+      required:
+        - activityType
+        - subject
+        - occurredAt
+      properties:
+        activityType:
+          type: string
+        subject:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
+        contactId:
+          type: string
+          format: uuid
+        organizationId:
+          type: string
+          format: uuid
+        organizationUnitId:
+          type: string
+          format: uuid
+        relationshipId:
+          type: string
+          format: uuid
+        ownerPrincipalId:
+          type: string
+          format: uuid
+        outcome:
+          type: string
+        notes:
+          type: string
+        classification:
+          $ref: "#/components/schemas/Classification"
+    UpdateActivityRequest:
+      type: object
+      properties:
+        activityType:
+          type: string
+        subject:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
+        outcome:
+          type: string
+        notes:
+          type: string
+    Account:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        organizationId:
+          type: string
+          format: uuid
+        relationshipId:
+          type: string
+          format: uuid
+        accountName:
+          type: string
+        ownerPrincipalId:
+          type: string
+          format: uuid
+        market:
+          type: string
+        strategicClassification:
+          type: string
+        priority:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+            - strategic
+        nextAction:
+          type: string
+        status:
+          type: string
+          enum:
+            - Prospect
+            - Active
+            - OnHold
+            - Closed
+            - Archived
+        classification:
+          $ref: "#/components/schemas/Classification"
+        version:
+          type: integer
+        archivedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        createdByPrincipalId:
+          type: string
+          format: uuid
+        updatedByPrincipalId:
+          type: string
+          format: uuid
+    AccountList:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Account"
+        nextCursor:
+          type: string
+    AccountEnvelope:
+      type: object
+      required:
+        - account
+      properties:
+        account:
+          $ref: "#/components/schemas/Account"
+    CreateAccountRequest:
+      type: object
+      required:
+        - organizationId
+        - accountName
+      properties:
+        organizationId:
+          type: string
+          format: uuid
+        accountName:
+          type: string
+        relationshipId:
+          type: string
+          format: uuid
+        ownerPrincipalId:
+          type: string
+          format: uuid
+        market:
+          type: string
+        strategicClassification:
+          type: string
+        priority:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+            - strategic
+        nextAction:
+          type: string
+        classification:
+          $ref: "#/components/schemas/Classification"
+    UpdateAccountRequest:
+      type: object
+      properties:
+        accountName:
+          type: string
+        market:
+          type: string
+        strategicClassification:
+          type: string
+        priority:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+            - strategic
+        nextAction:
+          type: string
+        classification:
+          $ref: "#/components/schemas/Classification"
+    AccountTransitionRequest:
+      type: object
+      required:
+        - to
+      properties:
+        to:
+          type: string
+          enum:
+            - Prospect
+            - Active
+            - OnHold
+            - Closed
+    ReassignAccountOwnerRequest:
+      type: object
+      required:
+        - ownerPrincipalId
+      properties:
+        ownerPrincipalId:
+          type: string
+          format: uuid
+    Note:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        body:
+          type: string
+        entityType:
+          type: string
+          enum:
+            - organization
+            - organization_unit
+            - contact
+            - relationship
+            - account
+            - activity
+        entityId:
+          type: string
+          format: uuid
+        classification:
+          $ref: "#/components/schemas/Classification"
+        version:
+          type: integer
+        archivedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        createdByPrincipalId:
+          type: string
+          format: uuid
+        updatedByPrincipalId:
+          type: string
+          format: uuid
+    NoteList:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Note"
+        nextCursor:
+          type: string
+    NoteEnvelope:
+      type: object
+      required:
+        - note
+      properties:
+        note:
+          $ref: "#/components/schemas/Note"
+    CreateNoteRequest:
+      type: object
+      required:
+        - body
+        - entityType
+        - entityId
+      properties:
+        body:
+          type: string
+        entityType:
+          $ref: "#/components/schemas/Note/properties/entityType"
+        entityId:
+          type: string
+          format: uuid
+        classification:
+          $ref: "#/components/schemas/Classification"
+    UpdateNoteRequest:
+      type: object
+      properties:
+        body:
+          type: string
+    Task:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        assigneePrincipalId:
+          type: string
+          format: uuid
+        priority:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+            - urgent
+        dueAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+            - Open
+            - InProgress
+            - Completed
+            - Cancelled
+            - Deferred
+        relatedOrganizationId:
+          type: string
+          format: uuid
+        relatedContactId:
+          type: string
+          format: uuid
+        relatedAccountId:
+          type: string
+          format: uuid
+        relatedActivityId:
+          type: string
+          format: uuid
+        classification:
+          $ref: "#/components/schemas/Classification"
+        version:
+          type: integer
+        completedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        createdByPrincipalId:
+          type: string
+          format: uuid
+        updatedByPrincipalId:
+          type: string
+          format: uuid
+    TaskList:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Task"
+        nextCursor:
+          type: string
+    TaskEnvelope:
+      type: object
+      required:
+        - task
+      properties:
+        task:
+          $ref: "#/components/schemas/Task"
+    CreateTaskRequest:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        assigneePrincipalId:
+          type: string
+          format: uuid
+        priority:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+            - urgent
+        dueAt:
+          type: string
+          format: date-time
+        relatedOrganizationId:
+          type: string
+          format: uuid
+        relatedContactId:
+          type: string
+          format: uuid
+        relatedAccountId:
+          type: string
+          format: uuid
+        relatedActivityId:
+          type: string
+          format: uuid
+        classification:
+          $ref: "#/components/schemas/Classification"
+    UpdateTaskRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        assigneePrincipalId:
+          type: string
+          format: uuid
+        priority:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+            - urgent
+        dueAt:
+          type: string
+          format: date-time
+        status:
+          $ref: "#/components/schemas/Task/properties/status"
+    SearchResult:
+      type: object
+      properties:
+        entityType:
+          type: string
+          enum:
+            - organization
+            - contact
+            - account
+            - activity
+            - task
+        entityId:
+          type: string
+          format: uuid
+        displayLabel:
+          type: string
+        matchedField:
+          type: string
+        classification:
+          $ref: "#/components/schemas/Classification"
+    SearchResultList:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/SearchResult"
+        nextCursor:
+          type: string
+    DuplicateCandidate:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        entityType:
+          type: string
+          enum:
+            - organization
+            - contact
+        entityIdA:
+          type: string
+          format: uuid
+        entityIdB:
+          type: string
+          format: uuid
+        score:
+          type: number
+        detectionRule:
+          type: string
+        matchReason:
+          type: string
+        status:
+          type: string
+          enum:
+            - PotentialDuplicate
+            - UnderReview
+            - ConfirmedDuplicate
+            - NotDuplicate
+        detectedAt:
+          type: string
+          format: date-time
+        reviewedAt:
+          type: string
+          format: date-time
+        reviewedByPrincipalId:
+          type: string
+          format: uuid
+        reviewReason:
+          type: string
+    DuplicateCandidateList:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/DuplicateCandidate"
+        nextCursor:
+          type: string
+    DuplicateCandidateEnvelope:
+      type: object
+      required:
+        - candidate
+      properties:
+        candidate:
+          $ref: "#/components/schemas/DuplicateCandidate"
+    ReviewDuplicateRequest:
+      type: object
+      required:
+        - decision
+        - reason
+      properties:
+        decision:
+          type: string
+          enum:
+            - confirm
+            - reject
+        reason:
+          type: string
+    MergeRecord:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        entityType:
+          type: string
+          enum:
+            - organization
+            - contact
+        survivorId:
+          type: string
+          format: uuid
+        mergedIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        duplicateCandidateId:
+          type: string
+          format: uuid
+        fieldResolutions:
+          type: object
+          additionalProperties: true
+        reason:
+          type: string
+        idempotencyKey:
+          type: string
+        affectedCounts:
+          type: object
+          additionalProperties:
+            type: integer
+        mergedAt:
+          type: string
+          format: date-time
+        mergedByPrincipalId:
+          type: string
+          format: uuid
+    MergeEnvelope:
+      type: object
+      required:
+        - merge
+      properties:
+        merge:
+          $ref: "#/components/schemas/MergeRecord"
+        replay:
+          type: boolean
+    ExecuteMergeRequest:
+      type: object
+      required:
+        - entityType
+        - survivorId
+        - duplicateIds
+        - reason
+      properties:
+        entityType:
+          type: string
+          enum:
+            - organization
+            - contact
+        survivorId:
+          type: string
+          format: uuid
+        duplicateIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+          maxItems: 1
+        fieldResolutions:
+          type: object
+          additionalProperties: true
+        reason:
+          type: string
+        duplicateCandidateId:
+          type: string
+          format: uuid
+        expectedVersions:
+          type: object
+          additionalProperties:
+            type: integer
+    ImportBatch:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        sourceSystem:
+          type: string
+        entityType:
+          type: string
+          enum:
+            - organization
+            - contact
+        mode:
+          type: string
+          enum:
+            - create_only
+        status:
+          type: string
+          enum:
+            - pending
+            - validated
+            - committed
+            - failed
+        rowCount:
+          type: integer
+        validCount:
+          type: integer
+        invalidCount:
+          type: integer
+        committedCount:
+          type: integer
+        validationResults:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImportRowResult"
+        createdAt:
+          type: string
+          format: date-time
+        validatedAt:
+          type: string
+          format: date-time
+        committedAt:
+          type: string
+          format: date-time
+        createdByPrincipalId:
+          type: string
+          format: uuid
+        committedByPrincipalId:
+          type: string
+          format: uuid
+    ImportRowResult:
+      type: object
+      properties:
+        rowNumber:
+          type: integer
+        status:
+          type: string
+          enum:
+            - valid
+            - invalid
+            - committed
+            - skipped
+        errors:
+          type: array
+          items:
+            type: string
+        entityId:
+          type: string
+          format: uuid
+        warnings:
+          type: array
+          items:
+            type: string
+    ImportBatchEnvelope:
+      type: object
+      required:
+        - batch
+      properties:
+        batch:
+          $ref: "#/components/schemas/ImportBatch"
+        replay:
+          type: boolean
+    CreateImportRequest:
+      type: object
+      required:
+        - sourceSystem
+        - entityType
+        - csv
+      properties:
+        sourceSystem:
+          type: string
+        entityType:
+          type: string
+          enum:
+            - organization
+            - contact
+        csv:
+          type: string
+          description: CSV content with header row
+    Tag:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        key:
+          type: string
+        label:
+          type: string
+        active:
+          type: boolean
+        archivedAt:
+          type: string
+          format: date-time
+        version:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        createdByPrincipalId:
+          type: string
+          format: uuid
+        updatedByPrincipalId:
+          type: string
+          format: uuid
+    TagList:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Tag"
+    TagEnvelope:
+      type: object
+      required:
+        - tag
+      properties:
+        tag:
+          $ref: "#/components/schemas/Tag"
+    CreateTagRequest:
+      type: object
+      required:
+        - key
+        - label
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+    UpdateTagRequest:
+      type: object
+      properties:
+        label:
+          type: string
+    EntityTag:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        tagId:
+          type: string
+          format: uuid
+        entityType:
+          type: string
+          enum:
+            - organization
+            - organization_unit
+            - contact
+            - relationship
+            - account
+            - activity
+            - task
+        entityId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        createdByPrincipalId:
+          type: string
+          format: uuid
+    EntityTagList:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/EntityTag"
+        nextCursor:
+          type: string
+    EntityTagEnvelope:
+      type: object
+      required:
+        - assignment
+      properties:
+        assignment:
+          $ref: "#/components/schemas/EntityTag"
+    AssignTagRequest:
+      type: object
+      required:
+        - tagId
+        - entityType
+        - entityId
+      properties:
+        tagId:
+          type: string
+          format: uuid
+        entityType:
+          $ref: "#/components/schemas/EntityTag/properties/entityType"
+        entityId:
+          type: string
+          format: uuid
+    RemoveTagAssignmentResponse:
+      type: object
+      required:
+        - removed
+      properties:
+        removed:
+          type: boolean
+          enum:
+            - true
+    ExternalIdentifier:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        systemKey:
+          type: string
+        externalId:
+          type: string
+        entityType:
+          type: string
+          enum:
+            - organization
+            - contact
+        entityId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        createdByPrincipalId:
+          type: string
+          format: uuid
+    ExternalIdentifierEnvelope:
+      type: object
+      required:
+        - externalIdentifier
+      properties:
+        externalIdentifier:
+          $ref: "#/components/schemas/ExternalIdentifier"
+    CreateExternalIdentifierRequest:
+      type: object
+      required:
+        - entityType
+        - entityId
+        - systemKey
+        - externalId
+      properties:
+        entityType:
+          type: string
+          enum:
+            - organization
+            - contact
+        entityId:
+          type: string
+          format: uuid
+        systemKey:
+          type: string
+        externalId:
+          type: string
