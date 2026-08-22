@@ -10,11 +10,14 @@ import {
   dispatchEmailDigest,
   getEmailAdapterHealth,
   listEmailOutbox,
+  listEmailSuppressions,
   listEmailTemplates,
   listNotifications,
+  liftEmailSuppression,
   previewEmailTemplate,
   saveEmailTemplate,
   type EmailOutboxItem,
+  type EmailSuppressionItem,
   type EmailTemplateItem,
   type NotificationItem,
 } from "@/lib/notifications-api";
@@ -23,6 +26,7 @@ export default function NotificationsPage() {
   const { token, ready } = useEosSession();
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [outbox, setOutbox] = useState<EmailOutboxItem[]>([]);
+  const [suppressions, setSuppressions] = useState<EmailSuppressionItem[]>([]);
   const [templates, setTemplates] = useState<EmailTemplateItem[]>([]);
   const [adapter, setAdapter] = useState("dev-outbox");
   const [error, setError] = useState<string | null>(null);
@@ -42,16 +46,18 @@ export default function NotificationsPage() {
 
   async function reload() {
     if (!token) return;
-    const [inbox, emailOutbox, tmpl, health] = await Promise.all([
+    const [inbox, emailOutbox, tmpl, health, suppressed] = await Promise.all([
       listNotifications(token),
       listEmailOutbox(token),
       listEmailTemplates(token),
       getEmailAdapterHealth(token),
+      listEmailSuppressions(token),
     ]);
     setItems(inbox.items);
     setOutbox(emailOutbox.items);
     setTemplates(tmpl.items);
     setAdapter(health.adapter);
+    setSuppressions(suppressed.items);
     if (tmpl.items.length > 0 && !selectedKey) {
       const first = tmpl.items[0];
       setSelectedKey(first.key);
@@ -118,7 +124,7 @@ export default function NotificationsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="I3 · I3.4 · Notifications"
+        eyebrow="I3 · I3.9 · Notifications"
         title="Action Inbox"
         subtitle={`Live alerts + email digest · adapter: ${adapter}`}
         actions={
@@ -176,6 +182,35 @@ export default function NotificationsPage() {
               </div>
             ))}
             {outbox.length === 0 && <p className="text-sm text-muted">No emails dispatched yet.</p>}
+          </div>
+        </Card>
+      </div>
+      <div className="mt-4">
+        <Card title={`Email suppressions (${suppressions.length})`}>
+          <p className="mb-3 text-sm text-muted">
+            Bounce, complaint, and reject events block further sends until lifted (I3.9).
+          </p>
+          <div className="space-y-2">
+            {suppressions.map((s) => (
+              <div key={s.id} className="flex items-center justify-between gap-3 rounded border border-line px-3 py-3">
+                <div>
+                  <div className="font-medium text-ink">{s.email}</div>
+                  <div className="text-xs capitalize text-muted">
+                    {s.reason} · {new Date(s.createdAt).toLocaleString()}
+                  </div>
+                </div>
+                {token && (
+                  <Btn
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => void liftEmailSuppression(token, s.id).then(reload)}
+                  >
+                    Lift
+                  </Btn>
+                )}
+              </div>
+            ))}
+            {suppressions.length === 0 && <p className="text-sm text-muted">No active suppressions.</p>}
           </div>
         </Card>
       </div>

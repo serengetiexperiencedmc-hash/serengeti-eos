@@ -8,6 +8,10 @@ import { SupplierFormModal } from "@/components/commercial/SupplierFormModal";
 import { Btn, PageHeader } from "@/components/commercial/ui";
 import { EosApiError } from "@/lib/eos-client";
 import {
+  archiveSupplierContact,
+  archiveSupplierRate,
+  createSupplierContact,
+  createSupplierRate,
   formatCategoryLabel,
   getSupplier,
   listSuppliers,
@@ -73,19 +77,124 @@ function SupplierCard({
 }
 
 function SupplierDetailDrawer({
+  token,
   detail,
   loading,
   onClose,
   onEdit,
+  onRefresh,
 }: {
+  token: string;
   detail: SupplierDetail | null;
   loading: boolean;
   onClose: () => void;
   onEdit: () => void;
+  onRefresh: () => void;
 }) {
+  const [contactBusy, setContactBusy] = useState(false);
+  const [rateBusy, setRateBusy] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [showContactForm, setShowContactForm] = useState(false);
+  const [showRateForm, setShowRateForm] = useState(false);
+  const [contactForm, setContactForm] = useState({
+    contactRole: "reservations",
+    givenName: "",
+    familyName: "",
+    email: "",
+    isPrimary: false,
+  });
+  const [rateForm, setRateForm] = useState({
+    rateCode: "",
+    rateName: "",
+    rateType: "per_room_per_night",
+    amount: "100",
+    currency: "USD",
+    validFrom: "2026-01-01",
+    validTo: "2026-12-31",
+    status: "active",
+  });
+
   if (!detail && !loading) return null;
 
   const supplier = detail?.supplier;
+
+  async function handleAddContact(e: React.FormEvent) {
+    e.preventDefault();
+    if (!supplier) return;
+    setContactBusy(true);
+    setFormError(null);
+    try {
+      await createSupplierContact(token, supplier.id, {
+        contactRole: contactForm.contactRole,
+        givenName: contactForm.givenName,
+        familyName: contactForm.familyName,
+        ...(contactForm.email.trim() ? { email: contactForm.email.trim() } : {}),
+        isPrimary: contactForm.isPrimary,
+      });
+      setShowContactForm(false);
+      setContactForm({ contactRole: "reservations", givenName: "", familyName: "", email: "", isPrimary: false });
+      onRefresh();
+    } catch (err) {
+      setFormError(err instanceof EosApiError ? err.message : "Failed to add contact");
+    } finally {
+      setContactBusy(false);
+    }
+  }
+
+  async function handleAddRate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!supplier) return;
+    setRateBusy(true);
+    setFormError(null);
+    try {
+      await createSupplierRate(token, supplier.id, {
+        rateCode: rateForm.rateCode,
+        rateName: rateForm.rateName,
+        rateType: rateForm.rateType,
+        amount: Number(rateForm.amount),
+        currency: rateForm.currency,
+        validFrom: rateForm.validFrom,
+        validTo: rateForm.validTo,
+        status: rateForm.status,
+      });
+      setShowRateForm(false);
+      setRateForm({
+        rateCode: "",
+        rateName: "",
+        rateType: "per_room_per_night",
+        amount: "100",
+        currency: "USD",
+        validFrom: "2026-01-01",
+        validTo: "2026-12-31",
+        status: "active",
+      });
+      onRefresh();
+    } catch (err) {
+      setFormError(err instanceof EosApiError ? err.message : "Failed to add rate");
+    } finally {
+      setRateBusy(false);
+    }
+  }
+
+  async function handleArchiveContact(contactId: string) {
+    if (!supplier) return;
+    try {
+      await archiveSupplierContact(token, supplier.id, contactId);
+      onRefresh();
+    } catch (err) {
+      setFormError(err instanceof EosApiError ? err.message : "Failed to remove contact");
+    }
+  }
+
+  async function handleArchiveRate(rateId: string) {
+    if (!supplier) return;
+    try {
+      await archiveSupplierRate(token, supplier.id, rateId);
+      onRefresh();
+    } catch (err) {
+      setFormError(err instanceof EosApiError ? err.message : "Failed to remove rate");
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-[90] flex justify-end bg-ink/30">
@@ -105,8 +214,11 @@ function SupplierDetailDrawer({
             </button>
           </div>
         </div>
-        {supplier && (
+        {supplier && detail && (
           <div className="space-y-5 p-5 text-sm">
+            {formError && (
+              <div className="rounded-md border border-danger/30 bg-danger-bg px-3 py-2 text-danger">{formError}</div>
+            )}
             <div>
               <div className="text-xs uppercase tracking-wide text-muted">Legal name</div>
               <div className="text-ink">{supplier.legalName}</div>
@@ -123,21 +235,86 @@ function SupplierDetailDrawer({
             </div>
 
             <section>
-              <h3 className="mb-2 font-display text-lg font-semibold text-ink">
-                Contacts ({detail.contacts.length})
-              </h3>
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="font-display text-lg font-semibold text-ink">
+                  Contacts ({detail.contacts.length})
+                </h3>
+                <Btn size="sm" variant="secondary" onClick={() => setShowContactForm((v) => !v)}>
+                  {showContactForm ? "Cancel" : "+ Contact"}
+                </Btn>
+              </div>
+              {showContactForm && (
+                <form onSubmit={handleAddContact} className="mb-3 space-y-2 rounded-md border border-line bg-ivory p-3">
+                  <select
+                    value={contactForm.contactRole}
+                    onChange={(e) => setContactForm((f) => ({ ...f, contactRole: e.target.value }))}
+                    className="w-full rounded-md border border-line bg-paper px-2 py-1.5 text-sm"
+                  >
+                    {["reservations", "operations", "finance", "management", "sales", "emergency", "other"].map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      required
+                      placeholder="Given name"
+                      value={contactForm.givenName}
+                      onChange={(e) => setContactForm((f) => ({ ...f, givenName: e.target.value }))}
+                      className="rounded-md border border-line bg-paper px-2 py-1.5 text-sm"
+                    />
+                    <input
+                      required
+                      placeholder="Family name"
+                      value={contactForm.familyName}
+                      onChange={(e) => setContactForm((f) => ({ ...f, familyName: e.target.value }))}
+                      className="rounded-md border border-line bg-paper px-2 py-1.5 text-sm"
+                    />
+                  </div>
+                  <input
+                    type="email"
+                    placeholder="Email"
+                    value={contactForm.email}
+                    onChange={(e) => setContactForm((f) => ({ ...f, email: e.target.value }))}
+                    className="w-full rounded-md border border-line bg-paper px-2 py-1.5 text-sm"
+                  />
+                  <label className="flex items-center gap-2 text-xs text-ink">
+                    <input
+                      type="checkbox"
+                      checked={contactForm.isPrimary}
+                      onChange={(e) => setContactForm((f) => ({ ...f, isPrimary: e.target.checked }))}
+                    />
+                    Primary contact
+                  </label>
+                  <Btn type="submit" size="sm" disabled={contactBusy}>
+                    {contactBusy ? "Saving…" : "Save contact"}
+                  </Btn>
+                </form>
+              )}
               {detail.contacts.length === 0 ? (
-                <p className="text-muted">No contacts imported yet.</p>
+                <p className="text-muted">No contacts yet.</p>
               ) : (
                 <ul className="space-y-2">
                   {detail.contacts.map((c) => (
                     <li key={c.id} className="rounded-md border border-line bg-ivory p-3">
-                      <div className="font-medium text-ink">
-                        {c.givenName} {c.familyName}
-                        {c.isPrimary ? " · Primary" : ""}
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="font-medium text-ink">
+                            {c.givenName} {c.familyName}
+                            {c.isPrimary ? " · Primary" : ""}
+                          </div>
+                          <div className="text-xs capitalize text-muted">{c.contactRole.replace(/_/g, " ")}</div>
+                          {c.email && <div className="text-xs text-ink-soft">{c.email}</div>}
+                        </div>
+                        <button
+                          type="button"
+                          className="text-xs text-muted hover:text-danger"
+                          onClick={() => void handleArchiveContact(c.id)}
+                        >
+                          Remove
+                        </button>
                       </div>
-                      <div className="text-xs capitalize text-muted">{c.contactRole.replace(/_/g, " ")}</div>
-                      {c.email && <div className="text-xs text-ink-soft">{c.email}</div>}
                     </li>
                   ))}
                 </ul>
@@ -145,22 +322,93 @@ function SupplierDetailDrawer({
             </section>
 
             <section>
-              <h3 className="mb-2 font-display text-lg font-semibold text-ink">
-                Rate cards ({detail.rates.length})
-              </h3>
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="font-display text-lg font-semibold text-ink">
+                  Rate cards ({detail.rates.length})
+                </h3>
+                <Btn size="sm" variant="secondary" onClick={() => setShowRateForm((v) => !v)}>
+                  {showRateForm ? "Cancel" : "+ Rate"}
+                </Btn>
+              </div>
+              {showRateForm && (
+                <form onSubmit={handleAddRate} className="mb-3 space-y-2 rounded-md border border-line bg-ivory p-3">
+                  <input
+                    required
+                    placeholder="Rate code"
+                    value={rateForm.rateCode}
+                    onChange={(e) => setRateForm((f) => ({ ...f, rateCode: e.target.value }))}
+                    className="w-full rounded-md border border-line bg-paper px-2 py-1.5 font-mono text-sm"
+                  />
+                  <input
+                    required
+                    placeholder="Rate name"
+                    value={rateForm.rateName}
+                    onChange={(e) => setRateForm((f) => ({ ...f, rateName: e.target.value }))}
+                    className="w-full rounded-md border border-line bg-paper px-2 py-1.5 text-sm"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      required
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={rateForm.amount}
+                      onChange={(e) => setRateForm((f) => ({ ...f, amount: e.target.value }))}
+                      className="rounded-md border border-line bg-paper px-2 py-1.5 text-sm"
+                    />
+                    <input
+                      required
+                      maxLength={3}
+                      value={rateForm.currency}
+                      onChange={(e) => setRateForm((f) => ({ ...f, currency: e.target.value.toUpperCase() }))}
+                      className="rounded-md border border-line bg-paper px-2 py-1.5 font-mono text-sm"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      required
+                      type="date"
+                      value={rateForm.validFrom}
+                      onChange={(e) => setRateForm((f) => ({ ...f, validFrom: e.target.value }))}
+                      className="rounded-md border border-line bg-paper px-2 py-1.5 text-sm"
+                    />
+                    <input
+                      required
+                      type="date"
+                      value={rateForm.validTo}
+                      onChange={(e) => setRateForm((f) => ({ ...f, validTo: e.target.value }))}
+                      className="rounded-md border border-line bg-paper px-2 py-1.5 text-sm"
+                    />
+                  </div>
+                  <Btn type="submit" size="sm" disabled={rateBusy}>
+                    {rateBusy ? "Saving…" : "Save rate"}
+                  </Btn>
+                </form>
+              )}
               {detail.rates.length === 0 ? (
-                <p className="text-muted">No rates imported yet.</p>
+                <p className="text-muted">No rates yet.</p>
               ) : (
                 <ul className="space-y-2">
                   {detail.rates.map((r) => (
                     <li key={r.id} className="rounded-md border border-line bg-ivory p-3">
-                      <div className="font-medium text-ink">{r.rateName}</div>
-                      <div className="text-xs text-muted">{r.rateCode}</div>
-                      <div className="mt-1 text-gold-deep">
-                        {r.currency} {r.amount.toFixed(2)}
-                      </div>
-                      <div className="text-xs text-muted">
-                        {r.validFrom} → {r.validTo}
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="font-medium text-ink">{r.rateName}</div>
+                          <div className="text-xs text-muted">{r.rateCode}</div>
+                          <div className="mt-1 text-gold-deep">
+                            {r.currency} {r.amount.toFixed(2)}
+                          </div>
+                          <div className="text-xs text-muted">
+                            {r.validFrom} → {r.validTo}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="text-xs text-muted hover:text-danger"
+                          onClick={() => void handleArchiveRate(r.id)}
+                        >
+                          Remove
+                        </button>
                       </div>
                     </li>
                   ))}
@@ -361,14 +609,20 @@ export default function SuppliersPage() {
         />
       )}
 
-      {(selectedId || detailLoading) && (
+      {(selectedId || detailLoading) && token && (
         <SupplierDetailDrawer
+          token={token}
           detail={detail}
           loading={detailLoading}
           onClose={() => setSelectedId(null)}
           onEdit={() => {
             setFormMode("edit");
             setFormOpen(true);
+          }}
+          onRefresh={() => {
+            if (!selectedId) return;
+            void getSupplier(token, selectedId).then(setDetail).catch(() => setDetail(null));
+            void loadSuppliers();
           }}
         />
       )}

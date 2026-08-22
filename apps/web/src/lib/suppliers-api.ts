@@ -191,6 +191,60 @@ export async function updateSupplier(
   });
 }
 
+export async function createSupplierContact(
+  token: string,
+  supplierId: string,
+  input: {
+    contactRole: string;
+    givenName: string;
+    familyName: string;
+    email?: string;
+    telephone?: string;
+    isPrimary?: boolean;
+  },
+) {
+  return eosFetch<{ contact: SupplierDetail["contacts"][number] }>(`/v1/suppliers/${supplierId}/contacts`, {
+    method: "POST",
+    token,
+    body: JSON.stringify(input),
+  });
+}
+
+export async function archiveSupplierContact(token: string, supplierId: string, contactId: string) {
+  return eosFetch(`/v1/suppliers/${supplierId}/contacts/${contactId}`, {
+    method: "DELETE",
+    token,
+  });
+}
+
+export async function createSupplierRate(
+  token: string,
+  supplierId: string,
+  input: {
+    rateCode: string;
+    rateName: string;
+    rateType: string;
+    amount: number;
+    currency: string;
+    validFrom: string;
+    validTo: string;
+    status?: string;
+  },
+) {
+  return eosFetch<{ rate: SupplierDetail["rates"][number] }>(`/v1/suppliers/${supplierId}/rates`, {
+    method: "POST",
+    token,
+    body: JSON.stringify(input),
+  });
+}
+
+export async function archiveSupplierRate(token: string, supplierId: string, rateId: string) {
+  return eosFetch(`/v1/suppliers/${supplierId}/rates/${rateId}`, {
+    method: "DELETE",
+    token,
+  });
+}
+
 export async function checkSupplierApiHealth(token: string): Promise<{ module: string; status: string; suppliers: number }> {
   return eosFetch("/v1/suppliers/health", { token });
 }

@@ -14,4 +14,6 @@ export {
   listSuppliers,
   updateSupplier,
 } from "./supplier.js";
+export { archiveSupplierContact, createSupplierContact, updateSupplierContact } from "./contacts.js";
+export { archiveSupplierRate, createSupplierRate, updateSupplierRate } from "./rates.js";
 export { registerSupplierRoutes } from "./routes.js";

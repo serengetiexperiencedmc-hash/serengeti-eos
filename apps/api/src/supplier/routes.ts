@@ -16,6 +16,8 @@ import {
   listSuppliers,
   updateSupplier,
 } from "./supplier.js";
+import { archiveSupplierContact, createSupplierContact, updateSupplierContact } from "./contacts.js";
+import { archiveSupplierRate, createSupplierRate, updateSupplierRate } from "./rates.js";
 
 function sendSupplierError(
   reply: { code: (n: number) => { send: (b: unknown) => unknown } },
@@ -136,6 +138,90 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       req.body as Parameters<typeof updateSupplier>[3],
       correlationId,
     );
+    if ("error" in result) return sendSupplierError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/suppliers/:id/contacts", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const correlationId = getCorrelationId(req);
+    const result = createSupplierContact(
+      store,
+      principal,
+      (req.params as { id: string }).id,
+      req.body as Parameters<typeof createSupplierContact>[3],
+      correlationId,
+    );
+    if ("error" in result) return sendSupplierError(reply, result);
+    return reply.code(201).send(result);
+  });
+
+  app.patch("/v1/suppliers/:id/contacts/:contactId", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const correlationId = getCorrelationId(req);
+    const params = req.params as { id: string; contactId: string };
+    const result = updateSupplierContact(
+      store,
+      principal,
+      params.id,
+      params.contactId,
+      req.body as Parameters<typeof updateSupplierContact>[4],
+      correlationId,
+    );
+    if ("error" in result) return sendSupplierError(reply, result);
+    return result;
+  });
+
+  app.delete("/v1/suppliers/:id/contacts/:contactId", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const correlationId = getCorrelationId(req);
+    const params = req.params as { id: string; contactId: string };
+    const result = archiveSupplierContact(store, principal, params.id, params.contactId, correlationId);
+    if ("error" in result) return sendSupplierError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/suppliers/:id/rates", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const correlationId = getCorrelationId(req);
+    const result = createSupplierRate(
+      store,
+      principal,
+      (req.params as { id: string }).id,
+      req.body as Parameters<typeof createSupplierRate>[3],
+      correlationId,
+    );
+    if ("error" in result) return sendSupplierError(reply, result);
+    return reply.code(201).send(result);
+  });
+
+  app.patch("/v1/suppliers/:id/rates/:rateId", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const correlationId = getCorrelationId(req);
+    const params = req.params as { id: string; rateId: string };
+    const result = updateSupplierRate(
+      store,
+      principal,
+      params.id,
+      params.rateId,
+      req.body as Parameters<typeof updateSupplierRate>[4],
+      correlationId,
+    );
+    if ("error" in result) return sendSupplierError(reply, result);
+    return result;
+  });
+
+  app.delete("/v1/suppliers/:id/rates/:rateId", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const correlationId = getCorrelationId(req);
+    const params = req.params as { id: string; rateId: string };
+    const result = archiveSupplierRate(store, principal, params.id, params.rateId, correlationId);
     if ("error" in result) return sendSupplierError(reply, result);
     return result;
   });

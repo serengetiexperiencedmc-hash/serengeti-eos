@@ -153,4 +153,10 @@ export const SUPPLIER_EVENT_TYPES = {
   IMPORT_FAILED: "supplier.import.failed.v1",
   SUPPLIER_CREATED: "supplier.supplier.created.v1",
   SUPPLIER_UPDATED: "supplier.supplier.updated.v1",
+  CONTACT_CREATED: "supplier.contact.created.v1",
+  CONTACT_UPDATED: "supplier.contact.updated.v1",
+  CONTACT_ARCHIVED: "supplier.contact.archived.v1",
+  RATE_CREATED: "supplier.rate.created.v1",
+  RATE_UPDATED: "supplier.rate.updated.v1",
+  RATE_ARCHIVED: "supplier.rate.archived.v1",
 } as const;

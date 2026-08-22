@@ -459,9 +459,11 @@ export function getSupplierModuleHealth(store: Store) {
   return {
     module: "supplier",
     status: "ok" as const,
-    increment: "PG.8",
+    increment: "PG.9",
     suppliers: store.supSuppliers.length,
     importBatches: store.supImportBatches.length,
+    contacts: store.supContacts.filter((c) => !c.archivedAt).length,
+    rates: store.supRates.filter((r) => !r.archivedAt).length,
   };
 }
 

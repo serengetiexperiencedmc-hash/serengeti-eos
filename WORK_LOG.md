@@ -189,8 +189,8 @@
 
 ### Current project status
 
-- **Server version:** `0.43.0-i3.9-i4.8`
-- **Increments live:** C1–C10, O1–O4, I3.6.1–I3.9, I4.3–I4.8, I8.3, I9.2, J1–J2, PG.1–PG.8
+- **Server version:** `0.44.0-pg9-c4-ui`
+- **Increments live:** C1–C10, O1–O4, I3.6.1–I3.9, I4.3–I4.8, I8.3, I9.2, J1–J2, PG.1–PG.9
 - **All targeted tests passing**
 
 ### 19:xx — Commercial preview fix ✅
@@ -244,11 +244,21 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **I3.9** | Email suppression list from bounce/complaint/reject; skip sends; list/lift API |
 | **I4.8** | Auto-provision tenant JetStream durables on first publish |
 
+### 20:xx — PG.9 + C4/I3 UI ✅
+
+**Shipped:** server `0.44.0-pg9-c4-ui`
+
+| Increment | Change |
+| --- | --- |
+| **PG.9** | Supplier contact + rate create/update/archive REST with dual-write |
+| **C4 UI** | Detail drawer add/remove contacts and rates |
+| **I3 UI** | Notifications page email suppressions list + lift |
+
 ### Recommended next increments
 
-1. Rate/contact manual CRUD UI + API
-2. I3.10 — suppression sync with SES account-level suppression list
-3. Notifications Commercial UI for suppressions
+1. I3.10 — SES account-level suppression sync
+2. Content-block manual CRUD
+3. PG.10 — soft-delete cascade / archive indexes
 
 ### Issues resolved
 

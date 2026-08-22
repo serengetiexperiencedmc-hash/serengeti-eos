@@ -54,9 +54,36 @@ export async function dispatchEmailDigest(token: string) {
 }
 
 export async function getEmailAdapterHealth(token: string) {
-  return eosFetch<{ module: string; increment: string; adapter: string; status: string; outboxCount: number; templateCount?: number; smtpConfigured?: boolean }>(
-    "/v1/notifications/email/health",
+  return eosFetch<{
+    module: string;
+    increment: string;
+    adapter: string;
+    status: string;
+    outboxCount: number;
+    suppressionCount?: number;
+    templateCount?: number;
+    smtpConfigured?: boolean;
+  }>("/v1/notifications/email/health", { token });
+}
+
+export type EmailSuppressionItem = {
+  id: string;
+  email: string;
+  reason: string;
+  createdAt: string;
+};
+
+export async function listEmailSuppressions(token: string) {
+  return eosFetch<{ items: EmailSuppressionItem[]; increment: string }>(
+    "/v1/notifications/email/suppressions",
     { token },
+  );
+}
+
+export async function liftEmailSuppression(token: string, id: string) {
+  return eosFetch<{ suppression: EmailSuppressionItem & { liftedAt?: string }; increment: string }>(
+    `/v1/notifications/email/suppressions/${id}/lift`,
+    { token, method: "POST", body: "{}" },
   );
 }
 
