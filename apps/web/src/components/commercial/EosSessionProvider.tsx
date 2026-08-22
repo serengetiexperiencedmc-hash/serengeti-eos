@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { EosApiError } from "@/lib/eos-client";
+import { EosApiError, eosFetch, onSessionExpired } from "@/lib/eos-client";
 import { clearSession, getStoredEmail, getStoredToken, login, storeSession } from "@/lib/eos-session";
 
 type SessionState = {
@@ -29,9 +29,51 @@ export function EosSessionProvider({ children }: { children: React.ReactNode }) 
   });
 
   useEffect(() => {
+    let cancelled = false;
     const token = getStoredToken();
     const email = getStoredEmail();
-    setState((s) => ({ ...s, token, email, ready: true }));
+
+    async function hydrate() {
+      if (!token) {
+        if (!cancelled) setState((s) => ({ ...s, token: null, email: null, ready: true }));
+        return;
+      }
+      try {
+        await eosFetch("/v1/me", { token });
+        if (!cancelled) setState((s) => ({ ...s, token, email, ready: true, error: null }));
+      } catch (err) {
+        clearSession();
+        if (!cancelled) {
+          setState((s) => ({
+            ...s,
+            token: null,
+            email: null,
+            ready: true,
+            error:
+              err instanceof EosApiError && err.status === 401
+                ? "Previous session expired — sign in again"
+                : null,
+          }));
+        }
+      }
+    }
+
+    void hydrate();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    return onSessionExpired(() => {
+      clearSession();
+      setState((s) => ({
+        ...s,
+        token: null,
+        email: null,
+        error: "Session expired — sign in again",
+      }));
+    });
   }, []);
 
   const doLogin = useCallback(async (email: string, password: string) => {
@@ -49,7 +91,9 @@ export function EosSessionProvider({ children }: { children: React.ReactNode }) 
     } catch (err) {
       const message =
         err instanceof EosApiError
-          ? err.message
+          ? err.status === 401
+            ? "Invalid credentials — check email/password"
+            : err.message
           : err instanceof Error
             ? err.message
             : "Login failed";

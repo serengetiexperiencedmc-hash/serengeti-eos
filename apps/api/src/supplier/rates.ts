@@ -29,6 +29,7 @@ function sanitizeRate(r: SupRate) {
     validFrom: r.validFrom,
     validTo: r.validTo,
     seasonLabel: r.seasonLabel,
+    seasonId: r.seasonId,
     includesTax: r.includesTax,
     taxPercent: r.taxPercent,
     status: r.status,
@@ -75,6 +76,7 @@ export type CreateRateInput = {
   validTo: string;
   unitDescription?: string;
   seasonLabel?: string;
+  seasonId?: string;
   includesTax?: boolean;
   taxPercent?: number;
   status?: string;
@@ -91,6 +93,7 @@ export type UpdateRateInput = {
   validTo?: string;
   unitDescription?: string | null;
   seasonLabel?: string | null;
+  seasonId?: string | null;
   includesTax?: boolean;
   taxPercent?: number | null;
   status?: string;
@@ -133,6 +136,16 @@ export function createSupplierRate(
   );
   if (duplicate) return { error: "conflict" as const, reason: "rate_code_exists" };
 
+  let seasonLabel = input.seasonLabel?.trim() || undefined;
+  let seasonId = input.seasonId?.trim() || undefined;
+  if (seasonId) {
+    const season = (store.supSeasons ?? []).find(
+      (s) => s.id === seasonId && s.tenantId === principal.tenantId && !s.archivedAt,
+    );
+    if (!season) return { error: "invalid_request" as const, reason: "season_not_found" };
+    seasonLabel = season.label;
+  }
+
   const now = new Date().toISOString();
   const rate: SupRate = {
     id: newId(),
@@ -146,7 +159,8 @@ export function createSupplierRate(
     currency,
     validFrom: input.validFrom,
     validTo: input.validTo,
-    ...(input.seasonLabel?.trim() ? { seasonLabel: input.seasonLabel.trim() } : {}),
+    ...(seasonLabel ? { seasonLabel } : {}),
+    ...(seasonId ? { seasonId } : {}),
     includesTax: input.includesTax ?? false,
     ...(input.taxPercent !== undefined ? { taxPercent: input.taxPercent } : {}),
     ...(input.notes?.trim() ? { notes: input.notes.trim() } : {}),
@@ -328,7 +342,7 @@ export function getSupplierRateCalendar(
     months,
     conflicts,
     unresolvedConflictCount: conflicts.filter((c) => !c.resolved).length,
-    increment: "PG.16" as const,
+    increment: "PG.17" as const,
   };
 }
 
@@ -395,7 +409,7 @@ function detectRateConflictsAmong(rates: import("@sedmc/kernel").SupRate[]) {
   return conflicts;
 }
 
-/** PG.15/PG.16 — detect overlapping rate cards (same supplier + rateType). */
+/** PG.15/PG.17 — detect overlapping rate cards (same supplier + rateType). */
 export function getSupplierRateConflicts(
   store: Store,
   principal: Principal,
@@ -434,12 +448,12 @@ export function getSupplierRateConflicts(
     conflicts,
     count: conflicts.length,
     unresolvedCount: conflicts.filter((c) => !c.resolved).length,
-    increment: "PG.16" as const,
+    increment: "PG.17" as const,
   };
 }
 
 /**
- * PG.16 — mark one rate as preferred in its conflict set; clear preferred on overlapping peers
+ * PG.17 — mark one rate as preferred in its conflict set; clear preferred on overlapping peers
  * of the same rateType for that supplier.
  */
 export function preferSupplierRate(
@@ -496,7 +510,7 @@ export function preferSupplierRate(
   return {
     rate: sanitizeRate(rate),
     clearedPeers: cleared,
-    increment: "PG.16" as const,
+    increment: "PG.17" as const,
   };
 }
 

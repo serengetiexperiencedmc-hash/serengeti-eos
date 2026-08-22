@@ -115,7 +115,7 @@ describe("I3.11 email delivery analytics", () => {
       url: "/v1/notifications/email/health",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(health.json().increment).toBe("I3.16");
+    expect(health.json().increment).toBe("I3.17");
   });
 });
 

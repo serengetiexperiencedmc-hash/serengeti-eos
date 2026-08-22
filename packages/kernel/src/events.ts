@@ -57,6 +57,10 @@ export type DeadLetterRecord = {
   owner?: string;
   remediation?: string;
   replayStatus?: "none" | "pending" | "approved" | "replayed" | "rejected";
+  /** I4.15 — suppress SLA escalation until cleared or snooze expires. */
+  slaAcknowledgedAt?: string;
+  slaAcknowledgedByPrincipalId?: string;
+  slaSnoozeUntil?: string;
 };
 
 export type EventCatalogueEntry = {

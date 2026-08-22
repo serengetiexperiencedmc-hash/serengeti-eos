@@ -451,14 +451,19 @@ export async function upsertNotifEmailAllowlist(
 ): Promise<void> {
   await pool.query(
     `INSERT INTO notif_email_allowlist (
-      id, tenant_id, email, note, created_at, created_by_principal_id, revoked_at, expires_at, ses_noted_at, ses_sync_note
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+      id, tenant_id, email, note, created_at, created_by_principal_id, revoked_at, expires_at, ses_noted_at, ses_sync_note,
+      ses_dual_control_status, ses_approved_at, ses_approved_by_principal_id, ses_approval_requested_by_principal_id
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
      ON CONFLICT (id) DO UPDATE SET
        note = EXCLUDED.note,
        revoked_at = EXCLUDED.revoked_at,
        expires_at = EXCLUDED.expires_at,
        ses_noted_at = EXCLUDED.ses_noted_at,
-       ses_sync_note = EXCLUDED.ses_sync_note`,
+       ses_sync_note = EXCLUDED.ses_sync_note,
+       ses_dual_control_status = EXCLUDED.ses_dual_control_status,
+       ses_approved_at = EXCLUDED.ses_approved_at,
+       ses_approved_by_principal_id = EXCLUDED.ses_approved_by_principal_id,
+       ses_approval_requested_by_principal_id = EXCLUDED.ses_approval_requested_by_principal_id`,
     [
       entry.id,
       entry.tenantId,
@@ -470,6 +475,10 @@ export async function upsertNotifEmailAllowlist(
       entry.expiresAt ?? null,
       entry.sesNotedAt ?? null,
       entry.sesSyncNote ?? null,
+      entry.sesDualControlStatus ?? null,
+      entry.sesApprovedAt ?? null,
+      entry.sesApprovedByPrincipalId ?? null,
+      entry.sesApprovalRequestedByPrincipalId ?? null,
     ],
   );
 }
@@ -478,7 +487,8 @@ export async function loadNotifEmailAllowlist(
   pool: DbPool,
 ): Promise<import("@sedmc/kernel").NotifEmailAllowlistEntry[]> {
   const result = await pool.query(
-    `SELECT id, tenant_id, email, note, created_at, created_by_principal_id, revoked_at, expires_at, ses_noted_at, ses_sync_note
+    `SELECT id, tenant_id, email, note, created_at, created_by_principal_id, revoked_at, expires_at, ses_noted_at, ses_sync_note,
+            ses_dual_control_status, ses_approved_at, ses_approved_by_principal_id, ses_approval_requested_by_principal_id
      FROM notif_email_allowlist`,
   );
   return result.rows.map((row) => ({
@@ -492,6 +502,16 @@ export async function loadNotifEmailAllowlist(
     ...(row.expires_at ? { expiresAt: (row.expires_at as Date).toISOString() } : {}),
     ...(row.ses_noted_at ? { sesNotedAt: (row.ses_noted_at as Date).toISOString() } : {}),
     ...(row.ses_sync_note ? { sesSyncNote: row.ses_sync_note as string } : {}),
+    ...(row.ses_dual_control_status
+      ? { sesDualControlStatus: row.ses_dual_control_status as "not_required" | "pending" | "approved" }
+      : {}),
+    ...(row.ses_approved_at ? { sesApprovedAt: (row.ses_approved_at as Date).toISOString() } : {}),
+    ...(row.ses_approved_by_principal_id
+      ? { sesApprovedByPrincipalId: row.ses_approved_by_principal_id as string }
+      : {}),
+    ...(row.ses_approval_requested_by_principal_id
+      ? { sesApprovalRequestedByPrincipalId: row.ses_approval_requested_by_principal_id as string }
+      : {}),
   }));
 }
 

@@ -80,6 +80,8 @@ export type DeadLetterItem = {
   remediation?: string;
   ageHours?: number;
   slaBreached?: boolean;
+  slaAcknowledgedAt?: string;
+  slaSnoozeUntil?: string;
 };
 
 export async function listDeadLetters(
@@ -137,6 +139,27 @@ export async function updateDeadLetterRemediation(
     method: "PATCH",
     body: JSON.stringify(input),
   });
+}
+
+export async function acknowledgeDeadLetterSla(token: string, id: string) {
+  return eosFetch<{ ok: true; deadLetter: DeadLetterItem; increment: string }>(
+    `/v1/events/dlq/${id}/sla-acknowledge`,
+    { token, method: "POST", body: "{}" },
+  );
+}
+
+export async function snoozeDeadLetterSla(token: string, id: string, input: { hours?: number; until?: string } = { hours: 24 }) {
+  return eosFetch<{ ok: true; deadLetter: DeadLetterItem; increment: string }>(
+    `/v1/events/dlq/${id}/sla-snooze`,
+    { token, method: "POST", body: JSON.stringify(input) },
+  );
+}
+
+export async function clearDeadLetterSlaSuppression(token: string, id: string) {
+  return eosFetch<{ ok: true; deadLetter: DeadLetterItem; increment: string }>(
+    `/v1/events/dlq/${id}/sla-clear`,
+    { token, method: "POST", body: "{}" },
+  );
 }
 
 export async function requestEventReplay(

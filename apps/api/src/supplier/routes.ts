@@ -22,6 +22,12 @@ import {
 import { archiveSupplierContact, createSupplierContact, updateSupplierContact } from "./contacts.js";
 import { archiveSupplierRate, createSupplierRate, getSupplierRateCalendar, getSupplierRateConflicts, preferSupplierRate, updateSupplierRate } from "./rates.js";
 import {
+  archiveSupplierSeason,
+  createSupplierSeason,
+  listSupplierSeasons,
+  updateSupplierSeason,
+} from "./seasons.js";
+import {
   archiveSupplierContentBlock,
   createSupplierContentBlock,
   updateSupplierContentBlock,
@@ -49,6 +55,75 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     void getCorrelationId(req);
     return getSupplierModuleHealth(store);
+  });
+
+  app.get("/v1/suppliers/seasons", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const query = req.query as { archived?: string };
+    const result = listSupplierSeasons(store, principal, {
+      ...(query.archived === "1" || query.archived === "true" ? { archived: true } : {}),
+    });
+    if ("error" in result) return sendSupplierError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/suppliers/seasons", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const body = (req.body ?? {}) as {
+      seasonCode?: string;
+      label?: string;
+      validFrom?: string;
+      validTo?: string;
+      monthFrom?: number;
+      monthTo?: number;
+    };
+    if (!body.seasonCode || !body.label) {
+      return reply.code(400).send({ error: "invalid_request", reason: "season_code_and_label_required" });
+    }
+    const result = createSupplierSeason(
+      store,
+      principal,
+      {
+        seasonCode: body.seasonCode,
+        label: body.label,
+        ...(body.validFrom !== undefined ? { validFrom: body.validFrom } : {}),
+        ...(body.validTo !== undefined ? { validTo: body.validTo } : {}),
+        ...(body.monthFrom !== undefined ? { monthFrom: body.monthFrom } : {}),
+        ...(body.monthTo !== undefined ? { monthTo: body.monthTo } : {}),
+      },
+      getCorrelationId(req),
+    );
+    if ("error" in result) return sendSupplierError(reply, result);
+    return reply.code(201).send(result);
+  });
+
+  app.patch("/v1/suppliers/seasons/:id", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = updateSupplierSeason(
+      store,
+      principal,
+      (req.params as { id: string }).id,
+      (req.body ?? {}) as Parameters<typeof updateSupplierSeason>[3],
+      getCorrelationId(req),
+    );
+    if ("error" in result) return sendSupplierError(reply, result);
+    return result;
+  });
+
+  app.delete("/v1/suppliers/seasons/:id", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = archiveSupplierSeason(
+      store,
+      principal,
+      (req.params as { id: string }).id,
+      getCorrelationId(req),
+    );
+    if ("error" in result) return sendSupplierError(reply, result);
+    return result;
   });
 
   app.get("/v1/suppliers/categories", async (req, reply) => {

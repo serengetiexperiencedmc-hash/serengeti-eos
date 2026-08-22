@@ -27,7 +27,9 @@ async function proxyRequest(req: NextRequest, pathSegments: string[]) {
     );
   }
 
-  return new Response(upstream.body, {
+  // Buffer the body so clients always receive JSON error payloads (avoids empty 401 bodies).
+  const body = await upstream.arrayBuffer();
+  return new Response(body, {
     status: upstream.status,
     statusText: upstream.statusText,
     headers: filterProxyResponseHeaders(upstream.headers),

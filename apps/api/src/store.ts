@@ -47,6 +47,7 @@ import {
   type SupContentBlock,
   type SupImportBatch,
   type SupRate,
+  type SupSeason,
   type SupSupplier,
   type OppOpportunity,
   type OppStageHistory,
@@ -165,6 +166,8 @@ export type Store = {
   supSuppliers: SupSupplier[];
   supContacts: SupContact[];
   supRates: SupRate[];
+  /** PG.17 — named season catalogue. */
+  supSeasons: SupSeason[];
   supContentBlocks: SupContentBlock[];
   supImportExecuteIdempotency: Record<string, string>;
   oppOpportunities: OppOpportunity[];
@@ -778,6 +781,7 @@ export function seedStore(
     supSuppliers: [],
     supContacts: [],
     supRates: [],
+    supSeasons: [],
     supContentBlocks: [],
     supImportExecuteIdempotency: {},
     oppOpportunities: [],

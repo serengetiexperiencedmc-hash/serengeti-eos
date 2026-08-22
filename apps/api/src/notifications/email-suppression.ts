@@ -94,7 +94,7 @@ export function listEmailSuppressions(store: Store, principal: Principal) {
   const items = (store.notifEmailSuppressions ?? [])
     .filter((s) => s.tenantId === principal.tenantId && !s.liftedAt)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  return { items, increment: "I3.16" as const };
+  return { items, increment: "I3.17" as const };
 }
 
 export function exportEmailSuppressions(
@@ -137,7 +137,7 @@ export function exportEmailSuppressions(
       csv: [header, ...rows].join("\n"),
       count: items.length,
       generatedAt,
-      increment: "I3.16" as const,
+      increment: "I3.17" as const,
     };
   }
 
@@ -146,7 +146,7 @@ export function exportEmailSuppressions(
     items,
     count: items.length,
     generatedAt,
-    increment: "I3.16" as const,
+    increment: "I3.17" as const,
   };
 }
 
@@ -181,7 +181,7 @@ export async function liftEmailSuppression(
     }
   }
 
-  return { suppression: entry, increment: "I3.16" as const };
+  return { suppression: entry, increment: "I3.17" as const };
 }
 
 export async function bulkLiftEmailSuppressions(
@@ -230,7 +230,7 @@ export async function bulkLiftEmailSuppressions(
   return {
     lifted,
     notFound: Math.max(0, requested - lifted),
-    increment: "I3.16" as const,
+    increment: "I3.17" as const,
   };
 }
 
@@ -314,7 +314,7 @@ export async function importEmailSuppressions(
     updated,
     skipped,
     errors,
-    increment: "I3.16" as const,
+    increment: "I3.17" as const,
   };
 }
 
@@ -377,6 +377,6 @@ export async function syncEmailSuppressionsFromSes(
     ).length,
     allowlistSesNotes,
     allowlistSesNoted: allowlistSesNotes.length,
-    increment: "I3.16" as const,
+    increment: "I3.17" as const,
   };
 }

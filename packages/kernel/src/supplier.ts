@@ -105,6 +105,8 @@ export type SupRate = {
   validFrom: string;
   validTo: string;
   seasonLabel?: string;
+  /** PG.17 — optional link to named season catalogue. */
+  seasonId?: string;
   minPax?: number;
   maxPax?: number;
   minNights?: number;
@@ -167,3 +169,21 @@ export const SUPPLIER_EVENT_TYPES = {
   CONTENT_BLOCK_UPDATED: "supplier.content_block.updated.v1",
   CONTENT_BLOCK_ARCHIVED: "supplier.content_block.archived.v1",
 } as const;
+
+/** PG.17 — named season catalogue for rate calendars. */
+export type SupSeason = {
+  id: string;
+  tenantId: string;
+  seasonCode: string;
+  label: string;
+  validFrom?: string;
+  validTo?: string;
+  monthFrom?: number;
+  monthTo?: number;
+  version: number;
+  archivedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  createdByPrincipalId: string;
+  updatedByPrincipalId: string;
+};

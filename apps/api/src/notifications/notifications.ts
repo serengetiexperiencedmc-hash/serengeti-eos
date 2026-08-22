@@ -109,7 +109,7 @@ export function buildLiveNotifications(store: Store, principal: Principal): Noti
     }
   }
 
-  // I4.14 — escalate open DLQ rows past SLA threshold
+  // I4.14/I4.15 — escalate open DLQ rows past SLA threshold (unless ack/snooze)
   const canReadDlq =
     authorize({ principal, permission: "events:read:dlq", action: "read:dlq" }).result === "allow";
   if (canReadDlq) {
@@ -118,6 +118,8 @@ export function buildLiveNotifications(store: Store, principal: Principal): Noti
     for (const dlq of store.deadLetters.filter(
       (d) => d.tenantId === tenantId && d.status !== "closed" && d.status !== "resolved",
     )) {
+      if (dlq.slaAcknowledgedAt) continue;
+      if (dlq.slaSnoozeUntil && new Date(dlq.slaSnoozeUntil).getTime() > nowMs) continue;
       const ageMs = Math.max(0, nowMs - new Date(dlq.firstFailureAt).getTime());
       if (ageMs < thresholdMs) continue;
       const ageHours = Math.round((ageMs / 3_600_000) * 10) / 10;

@@ -15,8 +15,8 @@ async function loginCarol(app: ReturnType<typeof buildServer>) {
   return res.json().accessToken as string;
 }
 
-describe("I4.14 DLQ SLA escalation notifications", () => {
-  it("emits urgent inbox item for open DLQ past SLA and banners I4.14", async () => {
+describe("I4.15 DLQ SLA escalation notifications", () => {
+  it("emits urgent inbox item for open DLQ past SLA and banners I4.15", async () => {
     const store = seedStore("i414-sla-notif", TEST_BOOTSTRAP_SECRETS);
     const carol = allPrincipals(store).find((p) => p.email === "carol.admin@sedmc.local")!;
     commitWithOutbox(store, carol, {
@@ -45,7 +45,7 @@ describe("I4.14 DLQ SLA escalation notifications", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(listed.statusCode).toBe(200);
-    expect(listed.json().increment).toBe("I4.14");
+    expect(listed.json().increment).toBe("I4.15");
     expect(listed.json().items[0].slaBreached).toBe(true);
 
     const inbox = await app.inject({

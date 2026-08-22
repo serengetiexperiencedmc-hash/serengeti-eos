@@ -120,7 +120,7 @@ export function listSuppliers(store: Store, principal: Principal, query: Supplie
   return {
     items: page.map(sanitizeSupplier),
     total: filtered.length,
-    increment: "PG.16" as const,
+    increment: "PG.17" as const,
   };
 }
 
@@ -153,7 +153,7 @@ export function getSupplierFacets(store: Store, principal: Principal, query: Sup
       preferredPartner: facetCounts(forPreferred.map((s) => (s.preferredPartner ? "true" : "false"))),
     },
     total,
-    increment: "PG.16" as const,
+    increment: "PG.17" as const,
   };
 }
 
@@ -708,12 +708,13 @@ export function getSupplierModuleHealth(store: Store) {
   return {
     module: "supplier",
     status: "ok" as const,
-    increment: "PG.16",
+    increment: "PG.17",
     suppliers: store.supSuppliers.filter((s) => !s.archivedAt).length,
     archivedSuppliers: store.supSuppliers.filter((s) => Boolean(s.archivedAt)).length,
     importBatches: store.supImportBatches.length,
     contacts: store.supContacts.filter((c) => !c.archivedAt).length,
     rates: store.supRates.filter((r) => !r.archivedAt).length,
+    seasons: (store.supSeasons ?? []).filter((s) => !s.archivedAt).length,
     contentBlocks: store.supContentBlocks.filter((b) => !b.archivedAt).length,
   };
 }

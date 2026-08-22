@@ -410,6 +410,40 @@ export async function preferSupplierRate(token: string, supplierId: string, rate
   );
 }
 
+export async function listSupplierSeasons(token: string, archived = false) {
+  const qs = archived ? "?archived=1" : "";
+  return eosFetch<{
+    items: Array<{
+      id: string;
+      seasonCode: string;
+      label: string;
+      validFrom?: string;
+      validTo?: string;
+      monthFrom?: number;
+      monthTo?: number;
+    }>;
+    count: number;
+    increment: string;
+  }>(`/v1/suppliers/seasons${qs}`, { token });
+}
+
+export async function createSupplierSeason(
+  token: string,
+  input: {
+    seasonCode: string;
+    label: string;
+    validFrom?: string;
+    validTo?: string;
+    monthFrom?: number;
+    monthTo?: number;
+  },
+) {
+  return eosFetch<{ season: { id: string; seasonCode: string; label: string }; increment: string }>(
+    "/v1/suppliers/seasons",
+    { method: "POST", token, body: JSON.stringify(input) },
+  );
+}
+
 export async function checkSupplierApiHealth(token: string): Promise<{ module: string; status: string; suppliers: number }> {
   return eosFetch("/v1/suppliers/health", { token });
 }

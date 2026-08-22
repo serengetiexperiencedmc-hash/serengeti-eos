@@ -51,6 +51,9 @@ import {
   assignDeadLetterOwner,
   bulkAssignDeadLetterOwners,
   updateDeadLetterRemediation,
+  acknowledgeDeadLetterSla,
+  snoozeDeadLetterSla,
+  clearDeadLetterSlaSuppression,
   traceEventCorrelation,
 } from "./app.js";
 import { listNatsConsumerOffsets, replayNatsStreamFromSeq } from "./events/nats-replay.js";
@@ -78,7 +81,7 @@ import {
   type Logger,
 } from "./observability.js";
 
-const VERSION = "0.54.0-pg16-i4.14";
+const VERSION = "0.55.0-i3.17-pg17-i4.15";
 
 export type ServerOptions = {
   store?: Store;
@@ -791,6 +794,70 @@ export function buildServer(options: ServerOptions | Store = {}) {
     return result;
   });
 
+  app.post("/v1/events/dlq/:id/sla-acknowledge", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = acknowledgeDeadLetterSla(
+      store,
+      principal,
+      (req.params as { id: string }).id,
+      getCorrelationId(req),
+    );
+    if (!result.ok) {
+      const code = result.reason === "not_found" ? 404 : 403;
+      return reply.code(code).send({
+        error: result.reason === "not_found" ? "not_found" : "forbidden",
+        reason: result.reason,
+      });
+    }
+    return result;
+  });
+
+  app.post("/v1/events/dlq/:id/sla-snooze", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const body = (req.body ?? {}) as { until?: string; hours?: number };
+    const result = snoozeDeadLetterSla(
+      store,
+      principal,
+      (req.params as { id: string }).id,
+      body,
+      getCorrelationId(req),
+    );
+    if (!result.ok) {
+      const code =
+        result.reason === "not_found"
+          ? 404
+          : result.reason === "until_or_hours_required" || result.reason === "invalid_until"
+            ? 400
+            : 403;
+      return reply.code(code).send({
+        error: result.reason === "not_found" ? "not_found" : code === 400 ? "invalid_request" : "forbidden",
+        reason: result.reason,
+      });
+    }
+    return result;
+  });
+
+  app.post("/v1/events/dlq/:id/sla-clear", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = clearDeadLetterSlaSuppression(
+      store,
+      principal,
+      (req.params as { id: string }).id,
+      getCorrelationId(req),
+    );
+    if (!result.ok) {
+      const code = result.reason === "not_found" ? 404 : 403;
+      return reply.code(code).send({
+        error: result.reason === "not_found" ? "not_found" : "forbidden",
+        reason: result.reason,
+      });
+    }
+    return result;
+  });
+
   app.post("/v1/events/replay/request", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
@@ -811,7 +878,7 @@ export function buildServer(options: ServerOptions | Store = {}) {
       correlationId: getCorrelationId(req),
     });
     if (!result.ok) return reply.code(403).send({ error: "forbidden", reason: result.reason });
-    return { ...result.request, increment: "I4.14" };
+    return { ...result.request, increment: "I4.15" };
   });
 
   app.post("/v1/events/replay/:id/execute", async (req, reply) => {
@@ -820,7 +887,7 @@ export function buildServer(options: ServerOptions | Store = {}) {
     const { id } = req.params as { id: string };
     const result = executeReplayRequest(store, principal, id, getCorrelationId(req));
     if (!result.ok) return reply.code(403).send({ error: "forbidden", reason: result.reason });
-    return { ...result, increment: "I4.14" };
+    return { ...result, increment: "I4.15" };
   });
 
   app.get("/v1/events/consumers/processed", async (req, reply) => {

@@ -25,6 +25,7 @@ import {
   listEmailAllowlist,
   addEmailAllowlist,
   revokeEmailAllowlist,
+  approveSesNotedAllowlist,
   exportEmailAllowlist,
   type EmailDeliveryAnalytics,
   type EmailDeliveryEventItem,
@@ -478,18 +479,35 @@ export default function NotificationsPage() {
                   <div className="text-xs text-muted">
                     {a.note ? `${a.note} · ` : ""}
                     {a.expiresAt ? `expires ${new Date(a.expiresAt).toLocaleString()} · ` : ""}
+                    {a.sesDualControlStatus === "pending" ? "SES dual-control pending · " : ""}
+                    {a.sesDualControlStatus === "approved" ? "SES dual-control approved · " : ""}
                     {a.sesSyncNote ? `${a.sesSyncNote} · ` : ""}
                     {new Date(a.createdAt).toLocaleString()}
                   </div>
                 </div>
                 {token && (
-                  <Btn
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => void revokeEmailAllowlist(token, a.id).then(reload)}
-                  >
-                    Revoke
-                  </Btn>
+                  <div className="flex gap-2">
+                    {a.sesDualControlStatus === "pending" && (
+                      <Btn
+                        variant="secondary"
+                        size="sm"
+                        onClick={() =>
+                          void approveSesNotedAllowlist(token, a.id)
+                            .then(reload)
+                            .catch((err) => setError(err instanceof Error ? err.message : "Approve failed"))
+                        }
+                      >
+                        Approve SES
+                      </Btn>
+                    )}
+                    <Btn
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => void revokeEmailAllowlist(token, a.id).then(reload)}
+                    >
+                      Revoke
+                    </Btn>
+                  </div>
                 )}
               </div>
             ))}

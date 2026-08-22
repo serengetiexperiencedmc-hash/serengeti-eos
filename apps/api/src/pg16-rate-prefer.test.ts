@@ -14,8 +14,8 @@ async function loginCarol(app: ReturnType<typeof buildServer>) {
   return res.json().accessToken as string;
 }
 
-describe("PG.16 rate conflict prefer", () => {
-  it("lists PG.16 migration", () => {
+describe("PG.17 rate conflict prefer", () => {
+  it("lists PG.17 migration", () => {
     expect(listMigrationFiles().some((f) => f.includes("053_pg16_rate_preferred_conflict"))).toBe(true);
   });
 
@@ -76,7 +76,7 @@ describe("PG.16 rate conflict prefer", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(before.statusCode).toBe(200);
-    expect(before.json().increment).toBe("PG.16");
+    expect(before.json().increment).toBe("PG.17");
     expect(before.json().count).toBe(1);
     expect(before.json().conflicts[0].resolved).toBe(false);
 
@@ -86,7 +86,7 @@ describe("PG.16 rate conflict prefer", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(preferred.statusCode).toBe(200);
-    expect(preferred.json().increment).toBe("PG.16");
+    expect(preferred.json().increment).toBe("PG.17");
     expect(preferred.json().rate.preferredInConflict).toBe(true);
 
     const after = await app.inject({
@@ -125,6 +125,6 @@ describe("PG.16 rate conflict prefer", () => {
       url: "/v1/suppliers/health",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(health.json().increment).toBe("PG.16");
+    expect(health.json().increment).toBe("PG.17");
   });
 });

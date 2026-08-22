@@ -100,7 +100,7 @@ export function Sidebar() {
       <div className="border-t border-white/10 px-5 py-4 text-xs text-muted">
         Serengeti Experience DMC
         <br />
-        v0.33 · Dev/Test
+        v0.55 · Dev/Test
       </div>
     </aside>
   );

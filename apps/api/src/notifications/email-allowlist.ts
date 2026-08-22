@@ -13,6 +13,12 @@ function isAllowlistActive(entry: NotifEmailAllowlistEntry, now = Date.now()): b
   return true;
 }
 
+/** SES-noted VIP overrides require second-principal approval before bypass (I3.17). */
+function passesSesDualControl(entry: NotifEmailAllowlistEntry): boolean {
+  if (!entry.sesNotedAt) return true;
+  return entry.sesDualControlStatus === "approved";
+}
+
 export function findActiveAllowlistEntry(
   store: Store,
   tenantId: string,
@@ -26,7 +32,9 @@ export function findActiveAllowlistEntry(
 }
 
 export function isEmailAllowlisted(store: Store, tenantId: string, email: string): boolean {
-  return Boolean(findActiveAllowlistEntry(store, tenantId, email));
+  const entry = findActiveAllowlistEntry(store, tenantId, email);
+  if (!entry) return false;
+  return passesSesDualControl(entry);
 }
 
 function sanitizeAllowlistEntry(e: NotifEmailAllowlistEntry) {
@@ -39,10 +47,16 @@ function sanitizeAllowlistEntry(e: NotifEmailAllowlistEntry) {
     ...(e.revokedAt ? { revokedAt: e.revokedAt } : {}),
     ...(e.sesNotedAt ? { sesNotedAt: e.sesNotedAt } : {}),
     ...(e.sesSyncNote ? { sesSyncNote: e.sesSyncNote } : {}),
+    ...(e.sesDualControlStatus ? { sesDualControlStatus: e.sesDualControlStatus } : {}),
+    ...(e.sesApprovedAt ? { sesApprovedAt: e.sesApprovedAt } : {}),
+    ...(e.sesApprovedByPrincipalId ? { sesApprovedByPrincipalId: e.sesApprovedByPrincipalId } : {}),
+    ...(e.sesApprovalRequestedByPrincipalId
+      ? { sesApprovalRequestedByPrincipalId: e.sesApprovalRequestedByPrincipalId }
+      : {}),
   };
 }
 
-/** I3.16 — stamp allowlist entries that also appear on the SES account suppression list. */
+/** I3.16/I3.17 — stamp allowlist entries that also appear on the SES account suppression list. */
 export function noteAllowlistSesOverlap(
   store: Store,
   tenantId: string,
@@ -57,6 +71,12 @@ export function noteAllowlistSesOverlap(
     const sesSyncNote = `SES account suppression (${row.reason}) observed at sync`;
     entry.sesNotedAt = now;
     entry.sesSyncNote = sesSyncNote;
+    if (entry.sesDualControlStatus !== "approved") {
+      entry.sesDualControlStatus = "pending";
+      entry.sesApprovalRequestedByPrincipalId = entry.createdByPrincipalId ?? entry.sesApprovalRequestedByPrincipalId;
+      delete entry.sesApprovedAt;
+      delete entry.sesApprovedByPrincipalId;
+    }
     void persistNotifEmailAllowlist(store.dbPool, entry);
     noted.push({ email: entry.email, sesSyncNote });
   }
@@ -87,7 +107,7 @@ export function listEmailAllowlist(
     .map(sanitizeAllowlistEntry)
     .sort((a, b) => a.email.localeCompare(b.email));
 
-  return { items, increment: "I3.16" as const };
+  return { items, increment: "I3.17" as const };
 }
 
 export function exportEmailAllowlist(
@@ -122,12 +142,16 @@ export function exportEmailAllowlist(
       createdByPrincipalId: e.createdByPrincipalId ?? "",
       sesNotedAt: e.sesNotedAt ?? "",
       sesSyncNote: e.sesSyncNote ?? "",
+      sesDualControlStatus: e.sesDualControlStatus ?? "",
+      sesApprovedAt: e.sesApprovedAt ?? "",
+      sesApprovedByPrincipalId: e.sesApprovedByPrincipalId ?? "",
     }));
 
   const generatedAt = new Date().toISOString();
   const format = options.format === "csv" ? "csv" : "json";
   if (format === "csv") {
-    const header = "id,email,note,createdAt,expiresAt,revokedAt,createdByPrincipalId,sesNotedAt,sesSyncNote";
+    const header =
+      "id,email,note,createdAt,expiresAt,revokedAt,createdByPrincipalId,sesNotedAt,sesSyncNote,sesDualControlStatus,sesApprovedAt,sesApprovedByPrincipalId";
     const rows = items.map((row) =>
       [
         row.id,
@@ -139,6 +163,9 @@ export function exportEmailAllowlist(
         row.createdByPrincipalId,
         row.sesNotedAt,
         row.sesSyncNote,
+        row.sesDualControlStatus,
+        row.sesApprovedAt,
+        row.sesApprovedByPrincipalId,
       ]
         .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
         .join(","),
@@ -148,7 +175,7 @@ export function exportEmailAllowlist(
       csv: [header, ...rows].join("\n"),
       count: items.length,
       generatedAt,
-      increment: "I3.16" as const,
+      increment: "I3.17" as const,
     };
   }
 
@@ -157,7 +184,7 @@ export function exportEmailAllowlist(
     items,
     count: items.length,
     generatedAt,
-    increment: "I3.16" as const,
+    increment: "I3.17" as const,
   };
 }
 
@@ -194,7 +221,7 @@ export async function addEmailAllowlistEntry(
       else existing.expiresAt = new Date(input.expiresAt).toISOString();
     }
     void persistNotifEmailAllowlist(store.dbPool, existing);
-    return { entry: sanitizeAllowlistEntry(existing), updated: true, increment: "I3.16" as const };
+    return { entry: sanitizeAllowlistEntry(existing), updated: true, increment: "I3.17" as const };
   }
 
   const entry: NotifEmailAllowlistEntry = {
@@ -205,10 +232,11 @@ export async function addEmailAllowlistEntry(
     ...(input.expiresAt?.trim() ? { expiresAt: new Date(input.expiresAt).toISOString() } : {}),
     createdAt: new Date().toISOString(),
     createdByPrincipalId: principal.id,
+    sesDualControlStatus: "not_required",
   };
   store.notifEmailAllowlist.push(entry);
   void persistNotifEmailAllowlist(store.dbPool, entry);
-  return { entry: sanitizeAllowlistEntry(entry), updated: false, increment: "I3.16" as const };
+  return { entry: sanitizeAllowlistEntry(entry), updated: false, increment: "I3.17" as const };
 }
 
 export async function revokeEmailAllowlistEntry(store: Store, principal: Principal, id: string) {
@@ -227,5 +255,41 @@ export async function revokeEmailAllowlistEntry(store: Store, principal: Princip
 
   entry.revokedAt = new Date().toISOString();
   void persistNotifEmailAllowlist(store.dbPool, entry);
-  return { entry: sanitizeAllowlistEntry(entry), increment: "I3.16" as const };
+  return { entry: sanitizeAllowlistEntry(entry), increment: "I3.17" as const };
+}
+
+/** I3.17 — second principal approves SES-noted VIP allowlist override. */
+export async function approveSesNotedAllowlistEntry(store: Store, principal: Principal, id: string) {
+  const decision = authorize({
+    principal,
+    permission: "notification:dispatch:email",
+    action: "approve:email_allowlist_ses",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+  if (principal.actorType === "AiAgent") {
+    return { error: "forbidden" as const, reason: "ai_cannot_approve" };
+  }
+
+  ensureNotificationCollections(store);
+  const entry = (store.notifEmailAllowlist ?? []).find(
+    (e) => e.id === id && e.tenantId === principal.tenantId && !e.revokedAt,
+  );
+  if (!entry) return { error: "not_found" as const };
+  if (!entry.sesNotedAt) {
+    return { error: "invalid_request" as const, reason: "ses_note_required" };
+  }
+  if (entry.sesDualControlStatus === "approved") {
+    return { entry: sanitizeAllowlistEntry(entry), increment: "I3.17" as const };
+  }
+
+  const requesterId = entry.sesApprovalRequestedByPrincipalId ?? entry.createdByPrincipalId;
+  if (requesterId && requesterId === principal.id) {
+    return { error: "forbidden" as const, reason: "self_approval_forbidden" };
+  }
+
+  entry.sesDualControlStatus = "approved";
+  entry.sesApprovedAt = new Date().toISOString();
+  entry.sesApprovedByPrincipalId = principal.id;
+  void persistNotifEmailAllowlist(store.dbPool, entry);
+  return { entry: sanitizeAllowlistEntry(entry), increment: "I3.17" as const };
 }

@@ -6,6 +6,7 @@ import { handleSesDeliveryWebhook, listEmailDeliveryEvents } from "./ses-webhook
 import { liftEmailSuppression, listEmailSuppressions, syncEmailSuppressionsFromSes, exportEmailSuppressions, bulkLiftEmailSuppressions, importEmailSuppressions } from "./email-suppression.js";
 import {
   addEmailAllowlistEntry,
+  approveSesNotedAllowlistEntry,
   exportEmailAllowlist,
   listEmailAllowlist,
   revokeEmailAllowlistEntry,
@@ -215,6 +216,14 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = await revokeEmailAllowlistEntry(store, principal, (req.params as { id: string }).id);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/notifications/email/allowlist/:id/approve-ses", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = await approveSesNotedAllowlistEntry(store, principal, (req.params as { id: string }).id);
     if ("error" in result) return sendError(reply, result);
     return result;
   });

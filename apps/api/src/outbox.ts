@@ -708,7 +708,7 @@ export function listDeadLetters(
   items: Array<DeadLetterRecord & { ageHours: number; slaBreached: boolean }>;
   owners: string[];
   sla: { thresholdHours: number; breachedCount: number; openCount: number };
-  increment: "I4.14";
+  increment: "I4.15";
 } | { ok: false; reason: string } {
   ensureOutboxCollections(store);
   const decision = authorize({
@@ -744,10 +744,12 @@ export function listDeadLetters(
     const ageMs = Math.max(0, now - new Date(d.firstFailureAt).getTime());
     const ageHours = ageMs / 3_600_000;
     const open = d.status !== "closed" && d.status !== "resolved";
+    const snoozed = Boolean(d.slaSnoozeUntil && new Date(d.slaSnoozeUntil).getTime() > now);
+    const acknowledged = Boolean(d.slaAcknowledgedAt);
     return {
       ...d,
       ageHours: Math.round(ageHours * 10) / 10,
-      slaBreached: open && ageHours >= thresholdHours,
+      slaBreached: open && ageHours >= thresholdHours && !snoozed && !acknowledged,
     };
   });
 
@@ -774,7 +776,7 @@ export function listDeadLetters(
       breachedCount,
       openCount: openAll.length,
     },
-    increment: "I4.14" as const,
+    increment: "I4.15" as const,
   };
 }
 
@@ -796,7 +798,7 @@ export function assignDeadLetterOwner(
   id: string,
   input: { owner: string | null },
   correlationId: string,
-): { ok: true; deadLetter: DeadLetterRecord; increment: "I4.14" } | { ok: false; reason: string } {
+): { ok: true; deadLetter: DeadLetterRecord; increment: "I4.15" } | { ok: false; reason: string } {
   ensureOutboxCollections(store);
   const decision = authorize({
     principal,
@@ -829,7 +831,7 @@ export function assignDeadLetterOwner(
     newState: { owner: dlq.owner },
   });
 
-  return { ok: true, deadLetter: dlq, increment: "I4.14" as const };
+  return { ok: true, deadLetter: dlq, increment: "I4.15" as const };
 }
 
 /** I4.12 — assign/clear owner on many DLQ rows in one call. */
@@ -838,7 +840,7 @@ export function bulkAssignDeadLetterOwners(
   principal: Principal,
   input: { ids: string[]; owner: string | null },
   correlationId: string,
-): { ok: true; updated: number; notFound: string[]; increment: "I4.14" } | { ok: false; reason: string } {
+): { ok: true; updated: number; notFound: string[]; increment: "I4.15" } | { ok: false; reason: string } {
   ensureOutboxCollections(store);
   const decision = authorize({
     principal,
@@ -865,7 +867,7 @@ export function bulkAssignDeadLetterOwners(
     updated += 1;
   }
 
-  return { ok: true, updated, notFound, increment: "I4.14" as const };
+  return { ok: true, updated, notFound, increment: "I4.15" as const };
 }
 
 export function updateDeadLetterRemediation(
@@ -874,7 +876,7 @@ export function updateDeadLetterRemediation(
   id: string,
   input: { status: DlqLifecycleStatus; owner?: string | null; remediation?: string | null },
   correlationId: string,
-): { ok: true; deadLetter: DeadLetterRecord; increment: "I4.14" } | { ok: false; reason: string } {
+): { ok: true; deadLetter: DeadLetterRecord; increment: "I4.15" } | { ok: false; reason: string } {
   ensureOutboxCollections(store);
   const decision = authorize({
     principal,
@@ -919,7 +921,134 @@ export function updateDeadLetterRemediation(
     newState: { status: dlq.status, owner: dlq.owner, remediation: dlq.remediation },
   });
 
-  return { ok: true, deadLetter: dlq, increment: "I4.14" as const };
+  return { ok: true, deadLetter: dlq, increment: "I4.15" as const };
+}
+
+/** I4.15 — acknowledge open DLQ SLA escalation (suppresses inbox + slaBreached). */
+export function acknowledgeDeadLetterSla(
+  store: Store,
+  principal: Principal,
+  id: string,
+  correlationId: string,
+): { ok: true; deadLetter: DeadLetterRecord; increment: "I4.15" } | { ok: false; reason: string } {
+  ensureOutboxCollections(store);
+  const decision = authorize({
+    principal,
+    permission: "events:replay:outbox",
+    action: "ack:dlq_sla",
+  });
+  if (decision.result === "deny") {
+    bumpMetric(store, "authorizationFailures");
+    return { ok: false, reason: decision.reason };
+  }
+  const dlq = store.deadLetters.find((d) => d.id === id && d.tenantId === principal.tenantId);
+  if (!dlq) return { ok: false, reason: "not_found" };
+
+  dlq.slaAcknowledgedAt = new Date().toISOString();
+  dlq.slaAcknowledgedByPrincipalId = principal.id;
+  recordAudit(store, {
+    tenantId: principal.tenantId,
+    occurredAt: dlq.slaAcknowledgedAt,
+    actorType: principal.actorType,
+    actorPrincipalId: principal.id,
+    action: "events:dlq:sla_acknowledge",
+    resourceType: "dead_letter",
+    resourceId: dlq.id,
+    correlationId,
+    authorization: "allow",
+    newState: { slaAcknowledgedAt: dlq.slaAcknowledgedAt },
+  });
+  return { ok: true, deadLetter: dlq, increment: "I4.15" as const };
+}
+
+/** I4.15 — snooze DLQ SLA escalation until a future timestamp. */
+export function snoozeDeadLetterSla(
+  store: Store,
+  principal: Principal,
+  id: string,
+  input: { until?: string; hours?: number },
+  correlationId: string,
+): { ok: true; deadLetter: DeadLetterRecord; increment: "I4.15" } | { ok: false; reason: string } {
+  ensureOutboxCollections(store);
+  const decision = authorize({
+    principal,
+    permission: "events:replay:outbox",
+    action: "snooze:dlq_sla",
+  });
+  if (decision.result === "deny") {
+    bumpMetric(store, "authorizationFailures");
+    return { ok: false, reason: decision.reason };
+  }
+  const dlq = store.deadLetters.find((d) => d.id === id && d.tenantId === principal.tenantId);
+  if (!dlq) return { ok: false, reason: "not_found" };
+
+  let until: string;
+  if (input.until) {
+    const t = new Date(input.until).getTime();
+    if (Number.isNaN(t)) return { ok: false, reason: "invalid_until" };
+    until = new Date(t).toISOString();
+  } else if (typeof input.hours === "number" && input.hours > 0) {
+    until = new Date(Date.now() + input.hours * 3_600_000).toISOString();
+  } else {
+    return { ok: false, reason: "until_or_hours_required" };
+  }
+
+  dlq.slaSnoozeUntil = until;
+  // Snooze replaces prior ack so escalation can return after snooze expires.
+  delete dlq.slaAcknowledgedAt;
+  delete dlq.slaAcknowledgedByPrincipalId;
+
+  recordAudit(store, {
+    tenantId: principal.tenantId,
+    occurredAt: new Date().toISOString(),
+    actorType: principal.actorType,
+    actorPrincipalId: principal.id,
+    action: "events:dlq:sla_snooze",
+    resourceType: "dead_letter",
+    resourceId: dlq.id,
+    correlationId,
+    authorization: "allow",
+    newState: { slaSnoozeUntil: dlq.slaSnoozeUntil },
+  });
+  return { ok: true, deadLetter: dlq, increment: "I4.15" as const };
+}
+
+/** I4.15 — clear ack/snooze so SLA escalation can fire again. */
+export function clearDeadLetterSlaSuppression(
+  store: Store,
+  principal: Principal,
+  id: string,
+  correlationId: string,
+): { ok: true; deadLetter: DeadLetterRecord; increment: "I4.15" } | { ok: false; reason: string } {
+  ensureOutboxCollections(store);
+  const decision = authorize({
+    principal,
+    permission: "events:replay:outbox",
+    action: "clear:dlq_sla",
+  });
+  if (decision.result === "deny") {
+    bumpMetric(store, "authorizationFailures");
+    return { ok: false, reason: decision.reason };
+  }
+  const dlq = store.deadLetters.find((d) => d.id === id && d.tenantId === principal.tenantId);
+  if (!dlq) return { ok: false, reason: "not_found" };
+
+  delete dlq.slaAcknowledgedAt;
+  delete dlq.slaAcknowledgedByPrincipalId;
+  delete dlq.slaSnoozeUntil;
+  recordAudit(store, {
+    tenantId: principal.tenantId,
+    occurredAt: new Date().toISOString(),
+    actorType: principal.actorType,
+    actorPrincipalId: principal.id,
+    action: "events:dlq:sla_clear",
+    resourceType: "dead_letter",
+    resourceId: dlq.id,
+    correlationId,
+    authorization: "allow",
+    newState: { cleared: true },
+  });
+  return { ok: true, deadLetter: dlq, increment: "I4.15" as const };
 }
 
 export function getOrderedPublishedEvents(

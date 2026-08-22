@@ -20,6 +20,12 @@ export {
 export { archiveSupplierContact, createSupplierContact, updateSupplierContact } from "./contacts.js";
 export { archiveSupplierRate, createSupplierRate, getSupplierRateCalendar, getSupplierRateConflicts, preferSupplierRate, updateSupplierRate } from "./rates.js";
 export {
+  archiveSupplierSeason,
+  createSupplierSeason,
+  listSupplierSeasons,
+  updateSupplierSeason,
+} from "./seasons.js";
+export {
   archiveSupplierContentBlock,
   createSupplierContentBlock,
   updateSupplierContentBlock,

@@ -76,6 +76,11 @@ export type NotifEmailAllowlistEntry = {
   sesNotedAt?: string;
   /** SES reason captured during sync when allowlisted (I3.16). */
   sesSyncNote?: string;
+  /** I3.17 — dual-control gate when SES-noted VIP override is active. */
+  sesDualControlStatus?: "not_required" | "pending" | "approved";
+  sesApprovedAt?: string;
+  sesApprovedByPrincipalId?: string;
+  sesApprovalRequestedByPrincipalId?: string;
 };
 
 export type NotifEmailDeliveryAnalytics = {

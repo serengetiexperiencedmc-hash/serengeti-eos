@@ -189,8 +189,8 @@
 
 ### Current project status
 
-- **Server version:** `0.54.0-pg16-i4.14`
-- **Increments live:** C1–C10, O1–O4, I3.6.1–I3.16, I4.3–I4.14, I8.3, I9.2, J1–J2, PG.1–PG.16
+- **Server version:** `0.55.0-i3.17-pg17-i4.15`
+- **Increments live:** C1–C10, O1–O4, I3.6.1–I3.17, I4.3–I4.15, I8.3, I9.2, J1–J2, PG.1–PG.17
 - **All targeted tests passing**
 
 ### 19:xx — Commercial preview fix ✅
@@ -346,11 +346,22 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **PG.16** | Rate conflict prefer flag + resolve UI |
 | **I4.14** | DLQ SLA escalation notifications |
 
+### 22:xx — I3.17 + PG.17 + I4.15 ✅
+
+**Shipped:** server `0.55.0-i3.17-pg17-i4.15`
+
+| Increment | Change |
+| --- | --- |
+| **I3.17** | SES-noted VIP allowlist dual-control |
+| **PG.17** | Named rate seasons catalogue |
+| **I4.15** | DLQ SLA acknowledge / snooze |
+| **Auth UX** | Session expiry clears dead tokens (fixes stale 401) |
+
 ### Recommended next increments
 
-1. I3.17 — allowlist require dual-control for SES-noted VIPs
-2. PG.17 — rate seasons catalogue / named season CRUD
-3. I4.15 — DLQ escalation acknowledge / snooze
+1. PG.18 — season-aware rate import mapping
+2. I3.18 — allowlist dual-control audit export
+3. I4.16 — DLQ SLA escalation digest email
 
 ### Issues resolved
 
@@ -358,5 +369,6 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 - `nats` npm dependency added for I4.1 transport
 - I3.3 health test aligned to I3.4 increment banner
 - I4.2 consumer wrapper runs synchronously for in-memory transport
+- Stale API session tokens after restart → clear session on 401 / `/v1/me` hydrate
 
 ---

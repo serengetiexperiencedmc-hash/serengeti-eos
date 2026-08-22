@@ -6,6 +6,8 @@ import { Btn, Card, PageHeader } from "@/components/commercial/ui";
 import {
   assignDeadLetterOwner,
   bulkAssignDeadLetterOwners,
+  acknowledgeDeadLetterSla,
+  snoozeDeadLetterSla,
   executeEventReplay,
   getNatsConsumerLag,
   listDeadLetters,
@@ -124,6 +126,36 @@ export default function EventsInfrastructurePage() {
     }
   }
 
+  async function handleSlaAck(id: string) {
+    if (!token) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      await acknowledgeDeadLetterSla(token, id);
+      setMsg("SLA escalation acknowledged");
+      await reload();
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : "Acknowledge failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleSlaSnooze(id: string) {
+    if (!token) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      await snoozeDeadLetterSla(token, id, { hours: 24 });
+      setMsg("SLA escalation snoozed 24h");
+      await reload();
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : "Snooze failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleBulkAssign() {
     if (!token || selected.size === 0) return;
     setBusy(true);
@@ -171,9 +203,9 @@ export default function EventsInfrastructurePage() {
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <PageHeader
-        eyebrow="I4 · I4.14 · Events"
+        eyebrow="I4 · I4.15 · Events"
         title="Event Infrastructure"
-        subtitle="NATS lag, DLQ SLA escalations, bulk owner assign, and controlled replay"
+        subtitle="NATS lag, DLQ SLA ack/snooze, bulk owner assign, and controlled replay"
         actions={
           token && selected.size > 0 ? (
             <div className="flex flex-wrap items-center gap-2">
@@ -202,7 +234,7 @@ export default function EventsInfrastructurePage() {
       <div className="mt-6">
         <Card title={`Dead letter queue (${openDlq.length} open / ${dlq.length} total)`}>
           <p className="mb-3 text-sm text-muted">
-            Filter by owner/status/SLA age, bulk-assign owners, remediate, then replay (I4.14).
+            Filter by owner/status/SLA age, ack/snooze escalations, bulk-assign owners, remediate, then replay (I4.15).
             {slaSummary
               ? ` · SLA ${slaSummary.thresholdHours}h: ${slaSummary.breachedCount}/${slaSummary.openCount} open breached`
               : ""}
@@ -319,6 +351,26 @@ export default function EventsInfrastructurePage() {
                       <td className="py-2 pr-3 text-muted">{d.failureReason}</td>
                       <td className="py-2">
                         <div className="flex flex-wrap gap-1">
+                          {d.slaBreached && (
+                            <>
+                              <button
+                                type="button"
+                                disabled={busy}
+                                className="rounded border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs text-amber-900 hover:bg-amber-100 disabled:opacity-50"
+                                onClick={() => void handleSlaAck(d.id)}
+                              >
+                                Ack SLA
+                              </button>
+                              <button
+                                type="button"
+                                disabled={busy}
+                                className="rounded border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs text-amber-900 hover:bg-amber-100 disabled:opacity-50"
+                                onClick={() => void handleSlaSnooze(d.id)}
+                              >
+                                Snooze 24h
+                              </button>
+                            </>
+                          )}
                           {(NEXT_STATUS[d.status] ?? []).map((next) => (
                             <button
                               key={next}

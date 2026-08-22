@@ -15,6 +15,21 @@ export function getApiBase(): string {
   return API_BASE;
 }
 
+const SESSION_EXPIRED_EVENT = "sedmc:eos-session-expired";
+
+/** Fired when an authenticated API call returns 401 so the session provider can clear local state. */
+export function onSessionExpired(handler: () => void): () => void {
+  if (typeof window === "undefined") return () => undefined;
+  const listener = () => handler();
+  window.addEventListener(SESSION_EXPIRED_EVENT, listener);
+  return () => window.removeEventListener(SESSION_EXPIRED_EVENT, listener);
+}
+
+function notifySessionExpired(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+}
+
 export async function eosFetch<T>(
   path: string,
   options: RequestInit & { token?: string } = {},
@@ -35,6 +50,12 @@ export async function eosFetch<T>(
       message = body.reason;
     } else if (res.status === 502 && body?.error === "upstream_unavailable") {
       message = "EOS API not reachable — run npm run dev:preview from the repo root";
+    } else if (res.status === 401) {
+      message =
+        typeof body?.error === "string" && body.error !== "unauthenticated"
+          ? body.error
+          : "Session expired — sign in again";
+      if (token) notifySessionExpired();
     } else if (typeof body?.error === "string") {
       message = body.error;
     }

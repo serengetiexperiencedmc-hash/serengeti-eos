@@ -163,6 +163,8 @@ export type EmailAllowlistItem = {
   revokedAt?: string;
   sesNotedAt?: string;
   sesSyncNote?: string;
+  sesDualControlStatus?: "not_required" | "pending" | "approved";
+  sesApprovedAt?: string;
 };
 
 export async function listEmailAllowlist(token: string, options: { includeExpired?: boolean } = {}) {
@@ -188,6 +190,13 @@ export async function addEmailAllowlist(
 export async function revokeEmailAllowlist(token: string, id: string) {
   return eosFetch<{ entry: EmailAllowlistItem & { revokedAt?: string }; increment: string }>(
     `/v1/notifications/email/allowlist/${id}/revoke`,
+    { token, method: "POST", body: "{}" },
+  );
+}
+
+export async function approveSesNotedAllowlist(token: string, id: string) {
+  return eosFetch<{ entry: EmailAllowlistItem; increment: string }>(
+    `/v1/notifications/email/allowlist/${id}/approve-ses`,
     { token, method: "POST", body: "{}" },
   );
 }
