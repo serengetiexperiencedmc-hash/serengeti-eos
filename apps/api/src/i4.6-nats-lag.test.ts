@@ -27,11 +27,12 @@ describe("I4.6 per-tenant NATS stream lag", () => {
       const result = await getNatsConsumerLagMetrics(store, carol(store));
       expect(result.ok).toBe(true);
       if (!result.ok) return;
-      expect(result.metrics.increment).toBe("I4.6");
+      expect(result.metrics.increment).toBe("I4.7");
       expect(result.metrics.natsConfigured).toBe(false);
       expect(result.metrics.summary.status).toBe("unavailable");
       expect(result.metrics.summary.maxTenantStreamLag).toBeNull();
       expect(result.metrics.tenantIndex).toBeNull();
+      expect(result.metrics.tenantFilter?.subject).toContain(carol(store).tenantId);
       expect(result.metrics.offsets).toHaveLength(1);
       expect(result.metrics.offsets[0]!.tenantStreamLag).toBeNull();
       expect(result.metrics.offsets[0]!.streamHeadSeq).toBeNull();
@@ -64,8 +65,10 @@ describe("I4.6 per-tenant NATS stream lag", () => {
         headers: { authorization: `Bearer ${token}` },
       });
       expect(res.statusCode).toBe(200);
-      expect(res.json().increment).toBe("I4.6");
+      expect(res.json().increment).toBe("I4.7");
       expect(res.json().summary).toHaveProperty("maxTenantStreamLag");
+      expect(res.json().summary).toHaveProperty("tenantBrokerLag");
+      expect(res.json().tenantFilter).toBeTruthy();
       expect(res.json().tenantIndex).toBeNull();
     } finally {
       if (prevUrl === undefined) delete process.env.EOS_NATS_URL;

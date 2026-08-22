@@ -27,7 +27,7 @@ describe("I4.5 NATS consumer lag metrics", () => {
       const result = await getNatsConsumerLagMetrics(store, carol(store));
       expect(result.ok).toBe(true);
       if (!result.ok) return;
-      expect(result.metrics.increment).toBe("I4.6");
+      expect(result.metrics.increment).toBe("I4.7");
       expect(result.metrics.natsConfigured).toBe(false);
       expect(result.metrics.summary.status).toBe("unavailable");
       expect(result.metrics.offsets).toHaveLength(1);
@@ -61,7 +61,7 @@ describe("I4.5 NATS consumer lag metrics", () => {
         headers: { authorization: `Bearer ${token}` },
       });
       expect(res.statusCode).toBe(200);
-      expect(res.json().increment).toBe("I4.6");
+      expect(res.json().increment).toBe("I4.7");
       expect(res.json().summary.tenantsTracked).toBe(0);
     } finally {
       if (prevUrl === undefined) delete process.env.EOS_NATS_URL;

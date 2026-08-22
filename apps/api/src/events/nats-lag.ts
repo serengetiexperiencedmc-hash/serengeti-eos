@@ -1,14 +1,19 @@
 import { authorize, type Principal } from "@sedmc/kernel";
 import { connect, StringCodec } from "nats";
 import type { Store } from "../store.js";
-import { createNatsTransportFromEnv } from "./nats-transport.js";
+import {
+  buildNatsTenantFilterSubject,
+  createNatsTransportFromEnv,
+  parseTenantIdFromNatsSubject,
+  tenantDurableConsumerName,
+} from "./nats-transport.js";
 import { DEFAULT_EVENT_CONSUMER } from "./consumer.js";
 import { getEventTransport } from "../outbox.js";
 
 const TENANT_SCAN_LIMIT = 50;
 
 export type NatsLagMetrics = {
-  increment: "I4.6";
+  increment: "I4.7";
   asOf: string;
   natsConfigured: boolean;
   stream: {
@@ -25,6 +30,12 @@ export type NatsLagMetrics = {
     numAckPending: number;
     ackFloorStreamSeq: number | null;
     deliveredStreamSeq: number | null;
+    brokerLag: number | null;
+  } | null;
+  tenantFilter: {
+    subject: string;
+    durableName: string;
+    numPending: number | null;
     brokerLag: number | null;
   } | null;
   transport: { ok: boolean; detail: string };
@@ -49,6 +60,7 @@ export type NatsLagMetrics = {
     maxStalenessMs: number;
     maxTenantStreamLag: number | null;
     brokerLag: number | null;
+    tenantBrokerLag: number | null;
     status: "ok" | "degraded" | "unavailable";
   };
 };
@@ -57,9 +69,15 @@ function lagStatus(
   brokerLag: number | null,
   maxStalenessMs: number,
   maxTenantStreamLag: number | null,
+  tenantBrokerLag: number | null,
 ): NatsLagMetrics["summary"]["status"] {
-  if (brokerLag === null && maxTenantStreamLag === null) return "unavailable";
-  if ((brokerLag ?? 0) > 1000 || maxStalenessMs > 15 * 60 * 1000 || (maxTenantStreamLag ?? 0) > 500) {
+  if (brokerLag === null && maxTenantStreamLag === null && tenantBrokerLag === null) return "unavailable";
+  if (
+    (brokerLag ?? 0) > 1000 ||
+    maxStalenessMs > 15 * 60 * 1000 ||
+    (maxTenantStreamLag ?? 0) > 500 ||
+    (tenantBrokerLag ?? 0) > 500
+  ) {
     return "degraded";
   }
   return "ok";
@@ -71,6 +89,7 @@ async function scanTenantMessageIndex(
   tenantId: string,
   lastSeq: number,
   firstSeq: number,
+  subjectPrefix: string,
 ): Promise<NatsLagMetrics["tenantIndex"]> {
   const sc = StringCodec();
   const startSeq = Math.max(firstSeq, lastSeq - TENANT_SCAN_LIMIT + 1);
@@ -82,6 +101,12 @@ async function scanTenantMessageIndex(
     try {
       const stored = await js.getMessage(stream, { seq });
       scanned += 1;
+      const subjectTenant = parseTenantIdFromNatsSubject(stored.subject, subjectPrefix);
+      if (subjectTenant) {
+        if (subjectTenant === tenantId) tenantMessages += 1;
+        else otherTenantMessages += 1;
+        continue;
+      }
       const envelope = JSON.parse(sc.decode(stored.data)) as { tenantId?: string };
       if (envelope.tenantId === tenantId) tenantMessages += 1;
       else otherTenantMessages += 1;
@@ -109,6 +134,10 @@ export async function getNatsConsumerLagMetrics(
   const nowMs = Date.now();
   const opts = createNatsTransportFromEnv();
   const transportHealth = await getEventTransport(store).health();
+  const tenantFilterSubject = opts
+    ? buildNatsTenantFilterSubject(opts.subjectPrefix, principal.tenantId)
+    : `eos.events.${principal.tenantId}.>`;
+  const tenantDurable = tenantDurableConsumerName(principal.tenantId);
 
   const baseOffsets = (store.natsConsumerOffsets ?? []).filter((o) => o.tenantId === principal.tenantId);
 
@@ -129,11 +158,17 @@ export async function getNatsConsumerLagMetrics(
     return {
       ok: true,
       metrics: {
-        increment: "I4.6",
+        increment: "I4.7",
         asOf,
         natsConfigured: false,
         stream: null,
         durableConsumer: null,
+        tenantFilter: {
+          subject: tenantFilterSubject,
+          durableName: tenantDurable,
+          numPending: null,
+          brokerLag: null,
+        },
         transport: transportHealth,
         tenantIndex: null,
         offsets,
@@ -142,6 +177,7 @@ export async function getNatsConsumerLagMetrics(
           maxStalenessMs,
           maxTenantStreamLag: null,
           brokerLag: null,
+          tenantBrokerLag: null,
           status: "unavailable",
         },
       },
@@ -162,10 +198,20 @@ export async function getNatsConsumerLagMetrics(
       consumerInfo = null;
     }
 
+    let tenantConsumerInfo: Awaited<ReturnType<typeof jsm.consumers.info>> | null = null;
+    try {
+      tenantConsumerInfo = await jsm.consumers.info(stream, tenantDurable);
+    } catch {
+      tenantConsumerInfo = null;
+    }
+
     const lastSeq = streamInfo.state.last_seq;
     const firstSeq = streamInfo.state.first_seq;
     const ackFloor = consumerInfo?.ack_floor.stream_seq ?? null;
     const brokerLag = ackFloor != null && lastSeq >= ackFloor ? lastSeq - ackFloor : null;
+    const tenantAckFloor = tenantConsumerInfo?.ack_floor.stream_seq ?? null;
+    const tenantBrokerLag =
+      tenantAckFloor != null && lastSeq >= tenantAckFloor ? lastSeq - tenantAckFloor : null;
 
     const offsets = baseOffsets.map((o) => {
       const tenantStreamLag = lastSeq >= o.lastStreamSeq ? lastSeq - o.lastStreamSeq : null;
@@ -190,13 +236,20 @@ export async function getNatsConsumerLagMetrics(
 
     let tenantIndex: NatsLagMetrics["tenantIndex"] = null;
     if (lastSeq > 0) {
-      tenantIndex = await scanTenantMessageIndex(js, stream, principal.tenantId, lastSeq, firstSeq);
+      tenantIndex = await scanTenantMessageIndex(
+        js,
+        stream,
+        principal.tenantId,
+        lastSeq,
+        firstSeq,
+        opts.subjectPrefix,
+      );
     }
 
     return {
       ok: true,
       metrics: {
-        increment: "I4.6",
+        increment: "I4.7",
         asOf,
         natsConfigured: true,
         stream: {
@@ -217,6 +270,12 @@ export async function getNatsConsumerLagMetrics(
               brokerLag,
             }
           : null,
+        tenantFilter: {
+          subject: tenantFilterSubject,
+          durableName: tenantDurable,
+          numPending: tenantConsumerInfo?.num_pending ?? null,
+          brokerLag: tenantBrokerLag,
+        },
         transport: transportHealth,
         tenantIndex,
         offsets,
@@ -225,7 +284,8 @@ export async function getNatsConsumerLagMetrics(
           maxStalenessMs,
           maxTenantStreamLag,
           brokerLag,
-          status: lagStatus(brokerLag, maxStalenessMs, maxTenantStreamLag),
+          tenantBrokerLag,
+          status: lagStatus(brokerLag, maxStalenessMs, maxTenantStreamLag, tenantBrokerLag),
         },
       },
     };

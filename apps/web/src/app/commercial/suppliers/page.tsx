@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/commercial/Badge";
 import { useEosSession } from "@/components/commercial/EosSessionProvider";
 import { SupplierImportModal } from "@/components/commercial/SupplierImportModal";
+import { SupplierFormModal } from "@/components/commercial/SupplierFormModal";
 import { Btn, PageHeader } from "@/components/commercial/ui";
 import { EosApiError } from "@/lib/eos-client";
 import {
@@ -75,10 +76,12 @@ function SupplierDetailDrawer({
   detail,
   loading,
   onClose,
+  onEdit,
 }: {
   detail: SupplierDetail | null;
   loading: boolean;
   onClose: () => void;
+  onEdit: () => void;
 }) {
   if (!detail && !loading) return null;
 
@@ -91,9 +94,16 @@ function SupplierDetailDrawer({
           <h2 className="font-display text-xl font-semibold text-ink">
             {loading ? "Loading…" : (supplier?.tradingName ?? supplier?.legalName)}
           </h2>
-          <button type="button" onClick={onClose} className="text-muted hover:text-ink">
-            ✕
-          </button>
+          <div className="flex items-center gap-2">
+            {supplier && (
+              <Btn variant="secondary" onClick={onEdit}>
+                Edit
+              </Btn>
+            )}
+            <button type="button" onClick={onClose} className="text-muted hover:text-ink">
+              ✕
+            </button>
+          </div>
         </div>
         {supplier && (
           <div className="space-y-5 p-5 text-sm">
@@ -189,6 +199,8 @@ export default function SuppliersPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<SupplierDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -252,7 +264,12 @@ export default function SuppliersPage() {
               <Btn variant="secondary" onClick={() => setImportOpen(true)}>
                 Import CSV
               </Btn>
-              <Btn disabled title="Manual create coming soon">
+              <Btn
+                onClick={() => {
+                  setFormMode("create");
+                  setFormOpen(true);
+                }}
+              >
                 + Add Supplier
               </Btn>
             </>
@@ -328,11 +345,31 @@ export default function SuppliersPage() {
         />
       )}
 
+      {token && (
+        <SupplierFormModal
+          token={token}
+          open={formOpen}
+          mode={formMode}
+          initial={formMode === "edit" ? detail?.supplier ?? null : null}
+          onClose={() => setFormOpen(false)}
+          onSaved={() => {
+            void loadSuppliers();
+            if (selectedId) {
+              void getSupplier(token, selectedId).then(setDetail).catch(() => setDetail(null));
+            }
+          }}
+        />
+      )}
+
       {(selectedId || detailLoading) && (
         <SupplierDetailDrawer
           detail={detail}
           loading={detailLoading}
           onClose={() => setSelectedId(null)}
+          onEdit={() => {
+            setFormMode("edit");
+            setFormOpen(true);
+          }}
         />
       )}
     </>

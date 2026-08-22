@@ -35,7 +35,7 @@ export default function EventsInfrastructurePage() {
     <div className="mx-auto max-w-6xl px-6 py-8">
       <PageHeader
         title="Event Infrastructure"
-        subtitle="NATS JetStream consumer lag and tenant offset checkpoints (I4.6)"
+        subtitle="NATS JetStream consumer lag and tenant filter subjects (I4.7)"
       />
 
       {error ? (
@@ -79,6 +79,29 @@ export default function EventsInfrastructurePage() {
               <div className="mt-1 text-sm text-stone-600">since last processed seq</div>
             </Card>
           </div>
+
+          {metrics.tenantFilter ? (
+            <div className="mt-6">
+              <Card title="Tenant filter subject (I4.7)">
+                <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="sm:col-span-2">
+                    <dt className="text-stone-500">Filter</dt>
+                    <dd className="font-mono text-xs font-medium">{metrics.tenantFilter.subject}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-stone-500">Durable</dt>
+                    <dd className="font-medium">{metrics.tenantFilter.durableName}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-stone-500">Tenant broker lag</dt>
+                    <dd className="font-medium">
+                      {metrics.summary.tenantBrokerLag ?? metrics.tenantFilter.brokerLag ?? "—"}
+                    </dd>
+                  </div>
+                </dl>
+              </Card>
+            </div>
+          ) : null}
 
           {metrics.tenantIndex ? (
             <div className="mt-6">

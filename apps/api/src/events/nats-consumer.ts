@@ -10,12 +10,37 @@ import type { EnterpriseEventEnvelope } from "@sedmc/kernel";
 import type { Logger } from "../observability.js";
 import type { Store } from "../store.js";
 import { DEFAULT_EVENT_CONSUMER, processEventEnvelope } from "./consumer.js";
-import { createNatsTransportFromEnv } from "./nats-transport.js";
+import {
+  buildNatsTenantFilterSubject,
+  createNatsTransportFromEnv,
+  tenantDurableConsumerName,
+} from "./nats-transport.js";
 import { recordNatsConsumerOffset } from "../persistence/nats-offsets.js";
 
 export type NatsConsumerHandle = {
   stop(): Promise<void>;
 };
+
+function resolveSubscribeSubject(subjectPrefix: string): { subject: string; durableName: string; filterMode: "all" | "tenant" } {
+  const consumerName = process.env.EOS_NATS_CONSUMER ?? "EOS_PLATFORM_OBSERVER";
+  const filterTenant = process.env.EOS_NATS_FILTER_TENANT?.trim();
+  if (filterTenant) {
+    return {
+      subject: buildNatsTenantFilterSubject(subjectPrefix, filterTenant),
+      durableName: process.env.EOS_NATS_CONSUMER ?? tenantDurableConsumerName(filterTenant),
+      filterMode: "tenant",
+    };
+  }
+  const explicitFilter = process.env.EOS_NATS_FILTER_SUBJECT?.trim();
+  if (explicitFilter) {
+    return { subject: explicitFilter, durableName: consumerName, filterMode: "tenant" };
+  }
+  return {
+    subject: `${subjectPrefix}.>`,
+    durableName: consumerName,
+    filterMode: "all",
+  };
+}
 
 export async function startNatsJetStreamConsumer(
   store: Store,
@@ -24,23 +49,25 @@ export async function startNatsJetStreamConsumer(
   const opts = createNatsTransportFromEnv();
   if (!opts) return null;
 
-  const consumerName = process.env.EOS_NATS_CONSUMER ?? "EOS_PLATFORM_OBSERVER";
+  const resolved = resolveSubscribeSubject(opts.subjectPrefix);
   const nc: NatsConnection = await connect({ servers: opts.url });
   const js = nc.jetstream();
   const sc = StringCodec();
 
   let sub: JetStreamSubscription;
   try {
-    sub = await js.subscribe(`${opts.subjectPrefix}.>`, {
+    sub = await js.subscribe(resolved.subject, {
       config: {
-        durable_name: consumerName,
+        durable_name: resolved.durableName,
         ack_policy: AckPolicy.Explicit,
         deliver_policy: DeliverPolicy.All,
+        filter_subject: resolved.subject,
       },
     });
   } catch (err) {
     logger.error("nats_consumer_subscribe_failed", {
       err: err instanceof Error ? err.message : "unknown",
+      subject: resolved.subject,
     });
     await nc.drain();
     await nc.close();
@@ -49,8 +76,10 @@ export async function startNatsJetStreamConsumer(
 
   logger.info("nats_consumer_started", {
     consumer: DEFAULT_EVENT_CONSUMER,
-    durable: consumerName,
-    subject: `${opts.subjectPrefix}.>`,
+    durable: resolved.durableName,
+    subject: resolved.subject,
+    filterMode: resolved.filterMode,
+    increment: "I4.7",
   });
 
   let stopped = false;

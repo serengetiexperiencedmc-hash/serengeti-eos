@@ -12,6 +12,25 @@ export type NatsTransportHandle = EventTransport & {
   close(): Promise<void>;
 };
 
+/** I4.7: tenant-scoped subject — `{prefix}.{tenantId}.{eventType}` */
+export function buildNatsEventSubject(subjectPrefix: string, tenantId: string, eventType: string): string {
+  const normalizedType = eventType.replaceAll(".", "_");
+  return `${subjectPrefix}.${tenantId}.${normalizedType}`;
+}
+
+/** Filter subject for a single tenant's events. */
+export function buildNatsTenantFilterSubject(subjectPrefix: string, tenantId: string): string {
+  return `${subjectPrefix}.${tenantId}.>`;
+}
+
+export function parseTenantIdFromNatsSubject(subject: string, subjectPrefix: string): string | undefined {
+  const prefix = `${subjectPrefix}.`;
+  if (!subject.startsWith(prefix)) return undefined;
+  const rest = subject.slice(prefix.length);
+  const tenantId = rest.split(".")[0];
+  return tenantId || undefined;
+}
+
 export async function createNatsJetStreamTransport(opts: NatsTransportOptions): Promise<NatsTransportHandle> {
   const nc = await connect({ servers: opts.url });
   const js = nc.jetstream();
@@ -29,7 +48,7 @@ export async function createNatsJetStreamTransport(opts: NatsTransportOptions): 
   return {
     kind: "nats-jetstream",
     async publish(envelope: EnterpriseEventEnvelope) {
-      const subject = `${opts.subjectPrefix}.${envelope.eventType.replaceAll(".", "_")}`;
+      const subject = buildNatsEventSubject(opts.subjectPrefix, envelope.tenantId, envelope.eventType);
       await js.publish(subject, sc.encode(JSON.stringify(envelope)));
     },
     health() {
@@ -37,7 +56,6 @@ export async function createNatsJetStreamTransport(opts: NatsTransportOptions): 
     },
     async close() {
       await nc.drain();
-      await nc.close();
     },
   };
 }
@@ -63,4 +81,9 @@ export async function probeNatsJetStream(url: string): Promise<{ ok: boolean; de
   } catch (err) {
     return { ok: false, detail: err instanceof Error ? err.message : "nats_unreachable" };
   }
+}
+
+export function tenantDurableConsumerName(tenantId: string): string {
+  const compact = tenantId.replace(/-/g, "").slice(0, 16).toUpperCase();
+  return `EOS_TENANT_${compact}`;
 }

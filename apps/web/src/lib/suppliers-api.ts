@@ -145,6 +145,52 @@ export async function executeImportBatch(
   });
 }
 
+export async function createSupplier(
+  token: string,
+  input: {
+    supplierCode: string;
+    legalName: string;
+    tradingName?: string;
+    category: string;
+    country: string;
+    region?: string;
+    city?: string;
+    status?: string;
+    preferredPartner?: boolean;
+    defaultCurrency?: string;
+    notes?: string;
+  },
+): Promise<{ supplier: SupplierSummary }> {
+  return eosFetch("/v1/suppliers", {
+    method: "POST",
+    token,
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateSupplier(
+  token: string,
+  id: string,
+  input: {
+    legalName?: string;
+    tradingName?: string | null;
+    category?: string;
+    country?: string;
+    region?: string | null;
+    city?: string | null;
+    status?: string;
+    preferredPartner?: boolean;
+    defaultCurrency?: string | null;
+    notes?: string | null;
+  },
+): Promise<{ supplier: SupplierSummary }> {
+  return eosFetch(`/v1/suppliers/${id}`, {
+    method: "PATCH",
+    token,
+    body: JSON.stringify(input),
+  });
+}
+
 export async function checkSupplierApiHealth(token: string): Promise<{ module: string; status: string; suppliers: number }> {
   return eosFetch("/v1/suppliers/health", { token });
 }
