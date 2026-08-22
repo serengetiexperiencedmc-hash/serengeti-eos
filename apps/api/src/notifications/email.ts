@@ -15,7 +15,7 @@ import {
   type Principal,
 } from "@sedmc/kernel";
 import type { Store } from "../store.js";
-import { persistNotifEmailOutbox } from "../persistence/notifications.js";
+import { persistNotifEmailOutbox, persistNotifEmailTemplate } from "../persistence/notifications.js";
 import { ensureNotificationCollections } from "./collections.js";
 import { buildLiveNotifications } from "./notifications.js";
 import { resolveEmailAdapterName } from "./email-config.js";
@@ -209,12 +209,58 @@ export function previewEmailTemplate(
   return { preview: resolved };
 }
 
+export type UpsertEmailTemplateInput = {
+  subject: string;
+  bodyText: string;
+  bodyHtml?: string;
+};
+
+export async function upsertEmailTemplate(
+  store: Store,
+  principal: Principal,
+  templateKey: string,
+  input: UpsertEmailTemplateInput,
+) {
+  const decision = authorize({
+    principal,
+    permission: "notification:dispatch:email",
+    action: "write:email_template",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+
+  if (!templateKey.trim() || !input.subject.trim() || !input.bodyText.trim()) {
+    return { error: "invalid_request" as const, reason: "template_fields_required" };
+  }
+
+  ensureNotificationCollections(store);
+  const existingIdx = store.notifEmailTemplates.findIndex(
+    (t) => t.tenantId === principal.tenantId && t.key === templateKey,
+  );
+  const template: EmailTemplate & { tenantId: string } = {
+    tenantId: principal.tenantId,
+    key: templateKey,
+    subject: input.subject.trim(),
+    bodyText: input.bodyText.trim(),
+    ...(input.bodyHtml !== undefined ? { bodyHtml: input.bodyHtml.trim() } : {}),
+  };
+
+  if (existingIdx >= 0) store.notifEmailTemplates[existingIdx] = template;
+  else store.notifEmailTemplates.push(template);
+
+  await persistNotifEmailTemplate(store.dbPool, {
+    ...template,
+    id: newId(),
+  });
+
+  return { template: { ...template, source: "tenant" as const } };
+}
+
 export function getEmailAdapterHealth(store: Store) {
   ensureNotificationCollections(store);
   const adapter = resolveEmailAdapterName();
   return {
     module: "notification-email",
-    increment: "I3.3",
+    increment: "I3.4",
     adapter,
     status: "ok" as const,
     outboxCount: (store.notifEmailOutbox ?? []).length,

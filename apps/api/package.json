@@ -15,6 +15,7 @@
     "@sedmc/db": "0.1.0",
     "@sedmc/kernel": "0.1.0",
     "fastify": "^5.2.1",
+    "nats": "^2.29.3",
     "pg": "^8.14.1"
   },
   "devDependencies": {

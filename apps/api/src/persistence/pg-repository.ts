@@ -440,3 +440,340 @@ export async function countPendingOutboxEvents(pool: DbPool, tenantId?: string):
     : await pool.query(`SELECT COUNT(*)::int AS c FROM outbox_events WHERE status = 'pending'`);
   return result.rows[0]?.c ?? 0;
 }
+
+// --- PG.3 CRM persistence ---
+
+export async function upsertCrmOrganizationType(
+  pool: DbPool,
+  row: { id: string; tenantId: string; key: string; label: string; active: boolean },
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO crm_organization_types (id, tenant_id, key, label, active)
+     VALUES ($1,$2,$3,$4,$5)
+     ON CONFLICT (tenant_id, key) DO UPDATE SET label = EXCLUDED.label, active = EXCLUDED.active`,
+    [row.id, row.tenantId, row.key, row.label, row.active],
+  );
+}
+
+export async function upsertCrmOrganization(pool: DbPool, org: import("@sedmc/kernel").CrmOrganization): Promise<void> {
+  await pool.query(
+    `INSERT INTO crm_organizations (
+      id, tenant_id, legal_name, trading_name, organization_type_id, country, region, market,
+      website, domain, primary_email, primary_telephone, address, status, data_quality_status,
+      classification, owner_principal_id, source, source_system, source_record_id, import_batch_id,
+      version, merged_into_id, archived_at, created_at, updated_at, created_by_principal_id, updated_by_principal_id
+    ) VALUES (
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13::jsonb,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      legal_name = EXCLUDED.legal_name,
+      trading_name = EXCLUDED.trading_name,
+      organization_type_id = EXCLUDED.organization_type_id,
+      country = EXCLUDED.country,
+      region = EXCLUDED.region,
+      market = EXCLUDED.market,
+      website = EXCLUDED.website,
+      domain = EXCLUDED.domain,
+      primary_email = EXCLUDED.primary_email,
+      primary_telephone = EXCLUDED.primary_telephone,
+      address = EXCLUDED.address,
+      status = EXCLUDED.status,
+      data_quality_status = EXCLUDED.data_quality_status,
+      classification = EXCLUDED.classification,
+      owner_principal_id = EXCLUDED.owner_principal_id,
+      source = EXCLUDED.source,
+      version = EXCLUDED.version,
+      merged_into_id = EXCLUDED.merged_into_id,
+      archived_at = EXCLUDED.archived_at,
+      updated_at = EXCLUDED.updated_at,
+      updated_by_principal_id = EXCLUDED.updated_by_principal_id`,
+    [
+      org.id,
+      org.tenantId,
+      org.legalName,
+      org.tradingName ?? null,
+      org.organizationTypeId,
+      org.country ?? null,
+      org.region ?? null,
+      org.market ?? null,
+      org.website ?? null,
+      org.domain ?? null,
+      org.primaryEmail ?? null,
+      org.primaryTelephone ?? null,
+      org.address ? JSON.stringify(org.address) : null,
+      org.status,
+      org.dataQualityStatus,
+      org.classification,
+      org.ownerPrincipalId ?? null,
+      org.source ?? null,
+      org.sourceSystem ?? null,
+      org.sourceRecordId ?? null,
+      org.importBatchId ?? null,
+      org.version,
+      org.mergedIntoId ?? null,
+      org.archivedAt ?? null,
+      org.createdAt,
+      org.updatedAt,
+      org.createdByPrincipalId,
+      org.updatedByPrincipalId,
+    ],
+  );
+}
+
+export async function upsertCrmContact(pool: DbPool, contact: import("@sedmc/kernel").CrmContact): Promise<void> {
+  await pool.query(
+    `INSERT INTO crm_contacts (
+      id, tenant_id, given_name, family_name, preferred_name, job_title, department, email, telephone, mobile,
+      country, timezone, language, status, data_quality_status, classification, communication_preferences,
+      source, merged_into_id, archived_at, version, created_at, updated_at, created_by_principal_id, updated_by_principal_id
+    ) VALUES (
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17::jsonb,$18,$19,$20,$21,$22,$23,$24,$25
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      given_name = EXCLUDED.given_name,
+      family_name = EXCLUDED.family_name,
+      preferred_name = EXCLUDED.preferred_name,
+      job_title = EXCLUDED.job_title,
+      department = EXCLUDED.department,
+      email = EXCLUDED.email,
+      telephone = EXCLUDED.telephone,
+      mobile = EXCLUDED.mobile,
+      country = EXCLUDED.country,
+      timezone = EXCLUDED.timezone,
+      language = EXCLUDED.language,
+      status = EXCLUDED.status,
+      data_quality_status = EXCLUDED.data_quality_status,
+      classification = EXCLUDED.classification,
+      communication_preferences = EXCLUDED.communication_preferences,
+      source = EXCLUDED.source,
+      merged_into_id = EXCLUDED.merged_into_id,
+      archived_at = EXCLUDED.archived_at,
+      version = EXCLUDED.version,
+      updated_at = EXCLUDED.updated_at,
+      updated_by_principal_id = EXCLUDED.updated_by_principal_id`,
+    [
+      contact.id,
+      contact.tenantId,
+      contact.givenName,
+      contact.familyName,
+      contact.preferredName ?? null,
+      contact.jobTitle ?? null,
+      contact.department ?? null,
+      contact.email ?? null,
+      contact.telephone ?? null,
+      contact.mobile ?? null,
+      contact.country ?? null,
+      contact.timezone ?? null,
+      contact.language ?? null,
+      contact.status,
+      contact.dataQualityStatus,
+      contact.classification,
+      contact.communicationPreferences ? JSON.stringify(contact.communicationPreferences) : null,
+      contact.source ?? null,
+      contact.mergedIntoId ?? null,
+      contact.archivedAt ?? null,
+      contact.version,
+      contact.createdAt,
+      contact.updatedAt,
+      contact.createdByPrincipalId,
+      contact.updatedByPrincipalId,
+    ],
+  );
+}
+
+export async function upsertCrmActivity(pool: DbPool, activity: import("@sedmc/kernel").CrmActivity): Promise<void> {
+  await pool.query(
+    `INSERT INTO crm_activities (
+      id, tenant_id, activity_type, subject, occurred_at, organization_id, contact_id,
+      organization_unit_id, relationship_id, owner_principal_id, outcome, notes, classification,
+      version, archived_at, created_at, updated_at, created_by_principal_id, updated_by_principal_id
+    ) VALUES (
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      activity_type = EXCLUDED.activity_type,
+      subject = EXCLUDED.subject,
+      occurred_at = EXCLUDED.occurred_at,
+      organization_id = EXCLUDED.organization_id,
+      contact_id = EXCLUDED.contact_id,
+      organization_unit_id = EXCLUDED.organization_unit_id,
+      relationship_id = EXCLUDED.relationship_id,
+      owner_principal_id = EXCLUDED.owner_principal_id,
+      outcome = EXCLUDED.outcome,
+      notes = EXCLUDED.notes,
+      classification = EXCLUDED.classification,
+      version = EXCLUDED.version,
+      archived_at = EXCLUDED.archived_at,
+      updated_at = EXCLUDED.updated_at,
+      updated_by_principal_id = EXCLUDED.updated_by_principal_id`,
+    [
+      activity.id,
+      activity.tenantId,
+      activity.activityType,
+      activity.subject,
+      activity.occurredAt,
+      activity.organizationId ?? null,
+      activity.contactId ?? null,
+      activity.organizationUnitId ?? null,
+      activity.relationshipId ?? null,
+      activity.ownerPrincipalId,
+      activity.outcome ?? null,
+      activity.notes ?? null,
+      activity.classification,
+      activity.version,
+      activity.archivedAt ?? null,
+      activity.createdAt,
+      activity.updatedAt,
+      activity.createdByPrincipalId,
+      activity.updatedByPrincipalId,
+    ],
+  );
+}
+
+function pgTimestamp(row: Record<string, unknown>, key: string): string {
+  const v = row[key];
+  return v instanceof Date ? v.toISOString() : String(v);
+}
+
+export async function loadCrmOrganizations(pool: DbPool): Promise<import("@sedmc/kernel").CrmOrganization[]> {
+  const result = await pool.query(`SELECT * FROM crm_organizations ORDER BY created_at ASC`);
+  return result.rows.map((row) => ({
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    legalName: row.legal_name as string,
+    ...(row.trading_name ? { tradingName: row.trading_name as string } : {}),
+    organizationTypeId: row.organization_type_id as string,
+    ...(row.country ? { country: row.country as string } : {}),
+    ...(row.region ? { region: row.region as string } : {}),
+    ...(row.market ? { market: row.market as string } : {}),
+    ...(row.website ? { website: row.website as string } : {}),
+    ...(row.domain ? { domain: row.domain as string } : {}),
+    ...(row.primary_email ? { primaryEmail: row.primary_email as string } : {}),
+    ...(row.primary_telephone ? { primaryTelephone: row.primary_telephone as string } : {}),
+    ...(row.address ? { address: row.address as Record<string, unknown> } : {}),
+    status: row.status as import("@sedmc/kernel").CrmOrganization["status"],
+    dataQualityStatus: row.data_quality_status as import("@sedmc/kernel").CrmOrganization["dataQualityStatus"],
+    classification: row.classification as import("@sedmc/kernel").Classification,
+    ...(row.owner_principal_id ? { ownerPrincipalId: row.owner_principal_id as string } : {}),
+    ...(row.source ? { source: row.source as string } : {}),
+    ...(row.source_system ? { sourceSystem: row.source_system as string } : {}),
+    ...(row.source_record_id ? { sourceRecordId: row.source_record_id as string } : {}),
+    ...(row.import_batch_id ? { importBatchId: row.import_batch_id as string } : {}),
+    version: row.version as number,
+    ...(row.merged_into_id ? { mergedIntoId: row.merged_into_id as string } : {}),
+    ...(row.archived_at ? { archivedAt: pgTimestamp(row, "archived_at") } : {}),
+    createdAt: pgTimestamp(row, "created_at"),
+    updatedAt: pgTimestamp(row, "updated_at"),
+    createdByPrincipalId: row.created_by_principal_id as string,
+    updatedByPrincipalId: row.updated_by_principal_id as string,
+  }));
+}
+
+export async function loadCrmContacts(pool: DbPool): Promise<import("@sedmc/kernel").CrmContact[]> {
+  const result = await pool.query(`SELECT * FROM crm_contacts ORDER BY created_at ASC`);
+  return result.rows.map((row) => ({
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    givenName: row.given_name as string,
+    familyName: row.family_name as string,
+    ...(row.preferred_name ? { preferredName: row.preferred_name as string } : {}),
+    ...(row.job_title ? { jobTitle: row.job_title as string } : {}),
+    ...(row.department ? { department: row.department as string } : {}),
+    ...(row.email ? { email: row.email as string } : {}),
+    ...(row.telephone ? { telephone: row.telephone as string } : {}),
+    ...(row.mobile ? { mobile: row.mobile as string } : {}),
+    ...(row.country ? { country: row.country as string } : {}),
+    ...(row.timezone ? { timezone: row.timezone as string } : {}),
+    ...(row.language ? { language: row.language as string } : {}),
+    status: row.status as import("@sedmc/kernel").CrmContact["status"],
+    dataQualityStatus: row.data_quality_status as import("@sedmc/kernel").CrmContact["dataQualityStatus"],
+    classification: row.classification as import("@sedmc/kernel").Classification,
+    ...(row.communication_preferences
+      ? { communicationPreferences: row.communication_preferences as Record<string, unknown> }
+      : {}),
+    ...(row.source ? { source: row.source as string } : {}),
+    ...(row.merged_into_id ? { mergedIntoId: row.merged_into_id as string } : {}),
+    ...(row.archived_at ? { archivedAt: pgTimestamp(row, "archived_at") } : {}),
+    version: row.version as number,
+    createdAt: pgTimestamp(row, "created_at"),
+    updatedAt: pgTimestamp(row, "updated_at"),
+    createdByPrincipalId: row.created_by_principal_id as string,
+    updatedByPrincipalId: row.updated_by_principal_id as string,
+  }));
+}
+
+export async function loadCrmActivities(pool: DbPool): Promise<import("@sedmc/kernel").CrmActivity[]> {
+  const result = await pool.query(`SELECT * FROM crm_activities ORDER BY occurred_at ASC`);
+  return result.rows.map((row) => ({
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    activityType: row.activity_type as string,
+    subject: row.subject as string,
+    occurredAt: pgTimestamp(row, "occurred_at"),
+    ...(row.organization_id ? { organizationId: row.organization_id as string } : {}),
+    ...(row.contact_id ? { contactId: row.contact_id as string } : {}),
+    ...(row.organization_unit_id ? { organizationUnitId: row.organization_unit_id as string } : {}),
+    ...(row.relationship_id ? { relationshipId: row.relationship_id as string } : {}),
+    ownerPrincipalId: row.owner_principal_id as string,
+    ...(row.outcome ? { outcome: row.outcome as string } : {}),
+    ...(row.notes ? { notes: row.notes as string } : {}),
+    classification: row.classification as import("@sedmc/kernel").Classification,
+    version: row.version as number,
+    ...(row.archived_at ? { archivedAt: pgTimestamp(row, "archived_at") } : {}),
+    createdAt: pgTimestamp(row, "created_at"),
+    updatedAt: pgTimestamp(row, "updated_at"),
+    createdByPrincipalId: row.created_by_principal_id as string,
+    updatedByPrincipalId: row.updated_by_principal_id as string,
+  }));
+}
+
+export async function countCrmOrganizations(pool: DbPool, tenantId: string): Promise<number> {
+  const result = await pool.query(`SELECT COUNT(*)::int AS c FROM crm_organizations WHERE tenant_id = $1`, [tenantId]);
+  return result.rows[0]?.c ?? 0;
+}
+
+export async function upsertNotifEmailTemplate(
+  pool: DbPool,
+  row: {
+    id: string;
+    tenantId: string;
+    templateKey: string;
+    subject: string;
+    bodyText: string;
+    bodyHtml?: string;
+  },
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO notif_email_templates (id, tenant_id, template_key, subject, body_text, body_html)
+     VALUES ($1,$2,$3,$4,$5,$6)
+     ON CONFLICT (tenant_id, template_key) DO UPDATE SET
+       subject = EXCLUDED.subject,
+       body_text = EXCLUDED.body_text,
+       body_html = EXCLUDED.body_html,
+       updated_at = now()`,
+    [row.id, row.tenantId, row.templateKey, row.subject, row.bodyText, row.bodyHtml ?? null],
+  );
+}
+
+export async function loadNotifEmailTemplates(
+  pool: DbPool,
+): Promise<Array<{ id: string; tenantId: string; templateKey: string; subject: string; bodyText: string; bodyHtml?: string }>> {
+  const result = await pool.query(
+    `SELECT id, tenant_id, template_key, subject, body_text, body_html FROM notif_email_templates`,
+  );
+  return result.rows.map((row) => ({
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    templateKey: row.template_key as string,
+    subject: row.subject as string,
+    bodyText: row.body_text as string,
+    ...(row.body_html ? { bodyHtml: row.body_html as string } : {}),
+  }));
+}
+
+export async function countNotifEmailTemplates(pool: DbPool, tenantId: string): Promise<number> {
+  const result = await pool.query(`SELECT COUNT(*)::int AS c FROM notif_email_templates WHERE tenant_id = $1`, [
+    tenantId,
+  ]);
+  return result.rows[0]?.c ?? 0;
+}

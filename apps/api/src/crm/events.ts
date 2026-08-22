@@ -14,6 +14,7 @@ import {
   type Principal,
 } from "@sedmc/kernel";
 import { ensureOutboxCollections } from "../outbox.js";
+import { persistCrmEntityAfterCommit } from "../persistence/crm.js";
 import { persistOutboxInsert } from "../persistence/outbox.js";
 import type { Store } from "../store.js";
 
@@ -276,6 +277,7 @@ export function commitCrmWithOutbox(
   const domainSnapshot = snapshotCrmDomain(store);
   try {
     input.mutate();
+    void persistCrmEntityAfterCommit(store.dbPool, store, input.entityType, input.entityId, principal.tenantId);
     if (input.simulateOutboxWriteFailure) {
       throw new Error("outbox_write_failed");
     }

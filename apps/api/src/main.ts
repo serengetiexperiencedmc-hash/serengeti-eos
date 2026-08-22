@@ -4,7 +4,10 @@ import { seedDemoCommercialData } from "./dev/seed-demo-data.js";
 import { createLogger } from "./observability.js";
 import { createEnvSecretsProvider } from "./ports/secrets.js";
 import { syncStoreToPostgres } from "./persistence/sync.js";
+import { hydrateCrmFromPostgres } from "./persistence/crm.js";
+import { hydrateNotifEmailTemplates } from "./persistence/notifications.js";
 import { hydratePendingOutbox } from "./persistence/outbox.js";
+import { initEventTransport } from "./events/transport-init.js";
 import { publishPendingOutbox } from "./outbox.js";
 import { buildServer } from "./server.js";
 
@@ -33,6 +36,10 @@ if (databaseUrl) {
   await syncStoreToPostgres(pool, store);
   store.dbPool = pool;
   logger.info("database_seed_synced", { mode: "development_bootstrap", pgDualWrite: "I3-PG.1" });
+  const crmHydrated = await hydrateCrmFromPostgres(pool, store);
+  const templatesHydrated = await hydrateNotifEmailTemplates(pool, store);
+  logger.info("pg3_crm_hydrate", crmHydrated);
+  logger.info("i3_email_templates_hydrate", { merged: templatesHydrated });
   const merged = await hydratePendingOutbox(pool, store);
   const drain = publishPendingOutbox(store);
   logger.info("outbox_startup_drain", { mergedFromPg: merged, ...drain });
@@ -43,6 +50,8 @@ if (databaseUrl) {
     note: "Set EOS_DATABASE_URL for PostgreSQL persistence",
   });
 }
+
+await initEventTransport(store, logger);
 
 const port = Number(process.env.EOS_PORT ?? 8080);
 const app = buildServer({

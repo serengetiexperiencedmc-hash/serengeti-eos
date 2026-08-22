@@ -136,6 +136,7 @@ export type Store = {
   eventMetrics: EventOperationsMetrics;
   /** Active dev transport kind recorded for health/readiness */
   eventTransportKind: "in-memory-dev" | "nats-jetstream";
+  eventTransport?: import("@sedmc/kernel").EventTransport;
   aggregateSequences: Map<string, number>;
   crmOrganizationTypes: CrmOrganizationType[];
   crmRelationshipTypes: CrmRelationshipType[];

@@ -3,8 +3,6 @@ import {
   assertSchemaCompatibility,
   authorize,
   buildEnvelope,
-  createInMemoryDevTransport,
-  createNatsJetStreamTransportStub,
   createOutboxRecord,
   newId,
   validateEnvelopeSchema,
@@ -21,6 +19,7 @@ import {
 } from "@sedmc/kernel";
 import { recordAudit, type Store } from "./store.js";
 import { persistOutboxInsert, persistOutboxPublish } from "./persistence/outbox.js";
+import { resolveEventTransport } from "./events/transport-init.js";
 
 export type PublisherFailurePoint =
   | "before_read"
@@ -54,14 +53,7 @@ export function ensureOutboxCollections(store: Store): void {
 }
 
 export function getEventTransport(store: Store, opts?: { allowDuplicateRepublish?: boolean }): EventTransport {
-  if (store.eventTransportKind === "nats-jetstream") {
-    return createNatsJetStreamTransportStub();
-  }
-  const transportOpts =
-    opts?.allowDuplicateRepublish !== undefined
-      ? { allowDuplicateRepublish: opts.allowDuplicateRepublish }
-      : {};
-  return createInMemoryDevTransport(store.publishedBus, transportOpts);
+  return resolveEventTransport(store, opts);
 }
 
 function catalogueToSchema(entry: EventCatalogueEntry) {

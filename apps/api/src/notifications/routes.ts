@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { principalFromAuthHeader } from "../app.js";
 import type { Store } from "../store.js";
-import { dispatchEmailDigest, getEmailAdapterHealth, listEmailOutbox, listEmailTemplates, previewEmailTemplate } from "./email.js";
+import { dispatchEmailDigest, getEmailAdapterHealth, listEmailOutbox, listEmailTemplates, previewEmailTemplate, upsertEmailTemplate } from "./email.js";
 import { dismissAllNotifications, dismissNotification, getNotificationHealth, listNotifications } from "./notifications.js";
 
 function sendError(
@@ -91,6 +91,21 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const templateKey = decodeURIComponent((req.params as { key: string }).key);
     const result = previewEmailTemplate(store, principal, templateKey);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.put("/v1/notifications/email/templates/:key", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const templateKey = decodeURIComponent((req.params as { key: string }).key);
+    const body = (req.body ?? {}) as { subject?: string; bodyText?: string; bodyHtml?: string };
+    if (!body.subject || !body.bodyText) return reply.code(400).send({ error: "invalid_request" });
+    const result = await upsertEmailTemplate(store, principal, templateKey, {
+      subject: body.subject,
+      bodyText: body.bodyText,
+      ...(body.bodyHtml !== undefined ? { bodyHtml: body.bodyHtml } : {}),
+    });
     if ("error" in result) return sendError(reply, result);
     return result;
   });

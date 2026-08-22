@@ -113,3 +113,53 @@ describePg("C1.11 CRM PostgreSQL integration", () => {
     expect(Number(pgCount.rows[0]?.count ?? 0)).toBe(0);
   });
 });
+
+describePg("PG.3 CRM dual-write via API", () => {
+  const pool = createPool(url!);
+
+  afterAll(async () => {
+    await pool.end();
+  });
+
+  it("persists organizations when store.dbPool is set", async () => {
+    await migrate(pool);
+    const store = seedStore("crm-pg3-test", TEST_BOOTSTRAP_SECRETS);
+    store.dbPool = pool;
+    await syncStoreToPostgres(pool, store);
+    const app = buildServer({ store, dbHealth: () => checkDatabaseHealth(pool) });
+
+    const login = await app.inject({
+      method: "POST",
+      url: "/v1/auth/login",
+      payload: {
+        email: "carol.admin@sedmc.local",
+        password: TEST_BOOTSTRAP_SECRETS.carolPassword,
+        tenantSlug: "sedmc",
+      },
+    });
+    const token = login.json().accessToken as string;
+
+    const types = await app.inject({
+      method: "GET",
+      url: "/v1/crm/organization-types",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    const typeId = types.json().items[0].id as string;
+
+    const created = await app.inject({
+      method: "POST",
+      url: "/v1/crm/organizations",
+      headers: { authorization: `Bearer ${token}` },
+      payload: { legalName: "PG.3 CRM Org Ltd", organizationTypeId: typeId },
+    });
+    expect(created.statusCode).toBe(201);
+    const orgId = created.json().organization.id as string;
+
+    await new Promise((r) => setTimeout(r, 50));
+    const pgCount = await pool.query<{ count: string }>(
+      `SELECT count(*)::text AS count FROM crm_organizations WHERE id = $1`,
+      [orgId],
+    );
+    expect(Number(pgCount.rows[0]?.count ?? 0)).toBe(1);
+  });
+});
