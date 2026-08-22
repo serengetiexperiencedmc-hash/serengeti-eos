@@ -75,6 +75,7 @@ import {
   type OpsSyncConflict,
   type OpsVoucher,
   type NotifDismissal,
+  type NotifEmailOutboxEntry,
 } from "@sedmc/kernel";
 import { seedCrmCatalogues } from "./crm/collections.js";
 
@@ -188,6 +189,7 @@ export type Store = {
   opsSyncConflicts: OpsSyncConflict[];
   opsVouchers: OpsVoucher[];
   notifDismissals: NotifDismissal[];
+  notifEmailOutbox: NotifEmailOutboxEntry[];
 };
 
 const CRM_PERMS = [
@@ -280,7 +282,12 @@ const OPS_PERMS = [
 
 const ANALYTICS_PERMS = ["analytics:read:commercial", "analytics:read:operations"] as const;
 
-const NOTIFICATION_PERMS = ["notification:read:inbox", "notification:write:inbox"] as const;
+const NOTIFICATION_PERMS = [
+  "notification:read:inbox",
+  "notification:write:inbox",
+  "notification:read:email_outbox",
+  "notification:dispatch:email",
+] as const;
 
 const FINANCE_MODULE_PERMS = [
   "finance:read:invoice",
@@ -764,6 +771,7 @@ export function seedStore(
     opsSyncConflicts: [],
     opsVouchers: [],
     notifDismissals: [],
+    notifEmailOutbox: [],
   };
   seedCrmCatalogues(store, tenantId);
   return store;

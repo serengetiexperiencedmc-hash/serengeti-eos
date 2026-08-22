@@ -51,6 +51,20 @@
   - `serengeti-eos` → `46b049f` on `master` (initial platform commit)
   - `SEDMC Software` → docs mirror initial commit
 
+### 17:33 — I3.1 Email Notification Adapter ✅
+
+**Shipped:** server `0.29.0-i3.1`
+
+| Layer | Change |
+| --- | --- |
+| Kernel | `notification-email.ts` — adapter interface, email builder, urgency filter |
+| Migration | `032_i3_email_outbox.sql` |
+| API | `/v1/notifications/email/*` — health, outbox, dispatch-digest; dev-outbox adapter |
+| Web | `/commercial/notifications` — dispatch digest + email outbox panel |
+| Docs | `i3-email-preview.md` (+ SEDMC mirror), updated `i3-notifications-preview.md` |
+
+**Tests:** kernel 51/51, API i3+i3.1 4/4, web tsc clean.
+
 ---
 
 ## Session summary (for user return)
@@ -60,18 +74,19 @@
 1. **C10 Booking Command Center** (prior turn, confirmed tests pass)
 2. **J2 Operations Analytics** (prior turn)
 3. **I9.2 Encrypted Field Cache** (this session)
+4. **I3.1 Email Notification Adapter** (this session)
 
 ### Current project status
 
-- **Server version:** `0.28.0-i9.2`
-- **Increments live:** C1–C10, O1–O4, I3, I8, I9.2, J1–J2
+- **Server version:** `0.29.0-i3.1`
+- **Increments live:** C1–C10, O1–O4, I3.1, I8, I9.2, J1–J2
 - **All targeted tests passing**
 
 ### Recommended next increments (when user returns)
 
-1. I3.1 Email notification adapter (interface + dev no-op sender)
-2. I8.3 Finance extensions (final invoice automation, payment request polish)
-3. PostgreSQL persistence increment (larger — needs ADR/gate)
+1. I8.3 Finance extensions (final invoice automation, payment request polish)
+2. PostgreSQL persistence increment (larger — needs ADR/gate)
+3. I3.2 Template registry + SMTP adapter stub
 
 ### Issues resolved
 

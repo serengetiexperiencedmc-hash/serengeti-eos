@@ -40,6 +40,6 @@ Permissions: `notification:read:inbox`, `notification:write:inbox`
 
 Dismissals are per-principal; underlying issues remain until resolved in source module.
 
-## Future (Phase 1+)
+## I3.1 — Email adapter (Dev/Test)
 
-Email adapter, template registry, and outbox-driven push — not in this Dev/Test increment.
+See **`i3-email-preview.md`** for outbox schema, dispatch digest API, and UI outbox panel.

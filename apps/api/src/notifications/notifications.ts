@@ -146,8 +146,10 @@ export function getNotificationHealth(store: Store) {
   ensureNotificationCollections(store);
   return {
     module: "notifications",
-    increment: "I3",
+    increment: "I3-I3.1",
     status: "ok" as const,
     dismissals: store.notifDismissals.length,
+    emailOutbox: (store.notifEmailOutbox ?? []).length,
+    emailAdapter: "dev-outbox",
   };
 }

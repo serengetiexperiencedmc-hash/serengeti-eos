@@ -53,6 +53,7 @@ export * from "./finance-invoice.js";
 export * from "./finance-reconciliation.js";
 export * from "./finance-quote.js";
 export * from "./notification.js";
+export * from "./notification-email.js";
 export * from "./ops-field-sync.js";
 export * from "./field-cache-crypto.js";
 export * from "./ops-voucher.js";
