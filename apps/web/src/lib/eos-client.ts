@@ -30,11 +30,15 @@ export async function eosFetch<T>(
   const body = await res.json().catch(() => undefined);
 
   if (!res.ok) {
-    throw new EosApiError(
-      typeof body?.reason === "string" ? body.reason : `Request failed (${res.status})`,
-      res.status,
-      body,
-    );
+    let message = `Request failed (${res.status})`;
+    if (typeof body?.reason === "string") {
+      message = body.reason;
+    } else if (res.status === 502 && body?.error === "upstream_unavailable") {
+      message = "EOS API not reachable — run npm run dev:preview from the repo root";
+    } else if (typeof body?.error === "string") {
+      message = body.error;
+    }
+    throw new EosApiError(message, res.status, body);
   }
 
   return body as T;

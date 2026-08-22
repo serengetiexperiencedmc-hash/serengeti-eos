@@ -54,7 +54,6 @@ export function EosSessionProvider({ children }: { children: React.ReactNode }) 
             ? err.message
             : "Login failed";
       setState((s) => ({ ...s, loggingIn: false, error: message }));
-      throw err;
     }
   }, []);
 
@@ -103,14 +102,15 @@ export function DevLoginPanel() {
     <div className="mb-5 rounded-[10px] border border-gold/40 bg-warning-bg px-5 py-4">
       <div className="mb-3 font-display text-lg font-semibold text-ink">Connect to EOS API</div>
       <p className="mb-4 text-sm text-ink-soft">
-        Sign in with your Development credentials. Start the API with{" "}
-        <code className="rounded bg-paper px-1.5 py-0.5 text-xs">npm run dev -w @sedmc/api</code> on port 8080.
+        Start both servers with{" "}
+        <code className="rounded bg-paper px-1.5 py-0.5 text-xs">npm run dev:preview</code> from the repo root
+        (API on 8080, UI on 3001).
       </p>
       <form
         className="flex flex-wrap items-end gap-3"
-        onSubmit={async (e) => {
+        onSubmit={(e) => {
           e.preventDefault();
-          await login(formEmail, password);
+          void login(formEmail, password);
         }}
       >
         <label className="flex flex-col gap-1 text-xs text-muted">
@@ -140,7 +140,18 @@ export function DevLoginPanel() {
         >
           {loggingIn ? "Signing in…" : "Sign in"}
         </button>
+        <button
+          type="button"
+          disabled={loggingIn}
+          onClick={() => void login("carol.admin@sedmc.local", "test-carol-not-for-prod")}
+          className="rounded-md border border-line bg-paper px-4 py-2 text-sm font-medium text-ink disabled:opacity-60"
+        >
+          Dev sign-in
+        </button>
       </form>
+      <p className="mt-2 text-xs text-muted">
+        Dev credentials: carol.admin@sedmc.local / test-carol-not-for-prod
+      </p>
       {error && <p className="mt-3 text-sm text-danger">{error}</p>}
     </div>
   );

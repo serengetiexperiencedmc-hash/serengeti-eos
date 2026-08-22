@@ -104,15 +104,13 @@ export default function CommercialDashboardPage() {
         }
         actions={
           <div className="flex gap-2">
-            <Link href="/commercial/analytics">
-              <Btn variant="secondary">Analytics</Btn>
-            </Link>
-            <Link href="/commercial/suppliers">
-              <Btn variant="secondary">Supplier Library</Btn>
-            </Link>
-            <Link href="/commercial/proposals">
-              <Btn>+ Create Proposal</Btn>
-            </Link>
+            <Btn href="/commercial/analytics" variant="secondary">
+              Analytics
+            </Btn>
+            <Btn href="/commercial/suppliers" variant="secondary">
+              Supplier Library
+            </Btn>
+            <Btn href="/commercial/proposals">+ Create Proposal</Btn>
           </div>
         }
       />
@@ -230,11 +228,9 @@ export default function CommercialDashboardPage() {
                       </td>
                       <td className="px-4 py-3">{rfp.value}</td>
                       <td className="px-4 py-3">
-                        <Link href={rfp.href}>
-                          <Btn variant="secondary" size="sm">
-                            Open
-                          </Btn>
-                        </Link>
+                        <Btn href={rfp.href} variant="secondary" size="sm">
+                          Open
+                        </Btn>
                       </td>
                     </tr>
                   ))

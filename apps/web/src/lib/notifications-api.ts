@@ -71,6 +71,17 @@ export async function listEmailTemplates(token: string) {
   return eosFetch<{ items: EmailTemplateItem[]; adapter: string }>("/v1/notifications/email/templates", { token });
 }
 
+export async function saveEmailTemplate(
+  token: string,
+  templateKey: string,
+  input: { subject: string; bodyText: string; bodyHtml?: string },
+) {
+  return eosFetch<{ template: EmailTemplateItem }>(
+    `/v1/notifications/email/templates/${encodeURIComponent(templateKey)}`,
+    { token, method: "PUT", body: JSON.stringify(input) },
+  );
+}
+
 export async function previewEmailTemplate(token: string, templateKey: string) {
   return eosFetch<{ preview: { subject: string; bodyText: string; templateKey: string } }>(
     `/v1/notifications/email/templates/${encodeURIComponent(templateKey)}/preview`,

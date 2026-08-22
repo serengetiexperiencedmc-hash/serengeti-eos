@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export function PageHeader({
   eyebrow,
   title,
@@ -49,11 +51,13 @@ export function Btn({
   variant = "primary",
   size = "md",
   className = "",
+  href,
   children,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "secondary" | "gold" | "ghost";
   size?: "sm" | "md";
+  href?: string;
 }) {
   const base =
     "inline-flex items-center gap-2 rounded-md font-medium transition-colors cursor-pointer border";
@@ -64,9 +68,18 @@ export function Btn({
     gold: "border-gold bg-gold text-ink hover:bg-gold-deep hover:text-paper",
     ghost: "border-transparent bg-transparent text-ink-soft hover:bg-sand",
   };
+  const classes = `${base} ${sizes[size]} ${variants[variant]} ${className}`;
+
+  if (href) {
+    return (
+      <Link href={href} className={classes}>
+        {children}
+      </Link>
+    );
+  }
 
   return (
-    <button className={`${base} ${sizes[size]} ${variants[variant]} ${className}`} {...props}>
+    <button className={classes} {...props}>
       {children}
     </button>
   );

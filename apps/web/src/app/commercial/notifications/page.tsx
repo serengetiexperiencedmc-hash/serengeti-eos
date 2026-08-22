@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useEosSession } from "@/components/commercial/EosSessionProvider";
 import { Btn, Card, PageHeader } from "@/components/commercial/ui";
 import {
@@ -12,6 +12,8 @@ import {
   listEmailOutbox,
   listEmailTemplates,
   listNotifications,
+  previewEmailTemplate,
+  saveEmailTemplate,
   type EmailOutboxItem,
   type EmailTemplateItem,
   type NotificationItem,
@@ -26,6 +28,18 @@ export default function NotificationsPage() {
   const [error, setError] = useState<string | null>(null);
   const [dispatchMsg, setDispatchMsg] = useState<string | null>(null);
 
+  const [selectedKey, setSelectedKey] = useState<string>("");
+  const [editSubject, setEditSubject] = useState("");
+  const [editBody, setEditBody] = useState("");
+  const [editorMsg, setEditorMsg] = useState<string | null>(null);
+  const [editorBusy, setEditorBusy] = useState(false);
+  const [preview, setPreview] = useState<{ subject: string; bodyText: string } | null>(null);
+
+  const selectedTemplate = useMemo(
+    () => templates.find((t) => t.key === selectedKey),
+    [templates, selectedKey],
+  );
+
   async function reload() {
     if (!token) return;
     const [inbox, emailOutbox, tmpl, health] = await Promise.all([
@@ -38,12 +52,26 @@ export default function NotificationsPage() {
     setOutbox(emailOutbox.items);
     setTemplates(tmpl.items);
     setAdapter(health.adapter);
+    if (tmpl.items.length > 0 && !selectedKey) {
+      const first = tmpl.items[0];
+      setSelectedKey(first.key);
+      setEditSubject(first.subject);
+      setEditBody(first.bodyText);
+    }
   }
 
   useEffect(() => {
     if (!token) return;
     reload().catch((err) => setError(err instanceof Error ? err.message : "Failed to load"));
   }, [token]);
+
+  useEffect(() => {
+    if (!selectedTemplate) return;
+    setEditSubject(selectedTemplate.subject);
+    setEditBody(selectedTemplate.bodyText);
+    setPreview(null);
+    setEditorMsg(null);
+  }, [selectedKey, selectedTemplate]);
 
   async function handleDispatch() {
     if (!token) return;
@@ -53,12 +81,44 @@ export default function NotificationsPage() {
     await reload();
   }
 
+  async function handleSaveTemplate() {
+    if (!token || !selectedKey) return;
+    setEditorBusy(true);
+    setEditorMsg(null);
+    try {
+      const res = await saveEmailTemplate(token, selectedKey, {
+        subject: editSubject,
+        bodyText: editBody,
+      });
+      setEditorMsg(`Saved tenant override for ${res.template.key}`);
+      await reload();
+    } catch (err) {
+      setEditorMsg(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setEditorBusy(false);
+    }
+  }
+
+  async function handlePreview() {
+    if (!token || !selectedKey) return;
+    setEditorBusy(true);
+    setEditorMsg(null);
+    try {
+      const res = await previewEmailTemplate(token, selectedKey);
+      setPreview(res.preview);
+    } catch (err) {
+      setEditorMsg(err instanceof Error ? err.message : "Preview failed");
+    } finally {
+      setEditorBusy(false);
+    }
+  }
+
   if (ready && !token) return <p className="text-sm text-muted">Sign in to view notifications.</p>;
 
   return (
     <>
       <PageHeader
-        eyebrow="I3 · I3.2 · Notifications"
+        eyebrow="I3 · I3.4 · Notifications"
         title="Action Inbox"
         subtitle={`Live alerts + email digest · adapter: ${adapter}`}
         actions={
@@ -102,32 +162,99 @@ export default function NotificationsPage() {
       </Card>
       <div className="mt-4">
         <Card title={`Email outbox (${outbox.length})`}>
-        <p className="mb-3 text-sm text-muted">
-          Dev/Test adapter records urgent and warning alerts as email messages (no SMTP). Idempotent per notification key.
-        </p>
-        <div className="space-y-2">
-          {outbox.map((entry) => (
-            <div key={entry.id} className="rounded border border-line px-3 py-3">
-              <div className="text-xs uppercase tracking-wide text-muted">{entry.templateKey}</div>
-              <div className="font-medium text-ink">{entry.subject}</div>
-              <div className="text-sm text-muted">
-                To {entry.to} · {entry.status} · {entry.adapter}
+          <p className="mb-3 text-sm text-muted">
+            Dev/Test adapter records urgent and warning alerts as email messages (no SMTP). Idempotent per notification key.
+          </p>
+          <div className="space-y-2">
+            {outbox.map((entry) => (
+              <div key={entry.id} className="rounded border border-line px-3 py-3">
+                <div className="text-xs uppercase tracking-wide text-muted">{entry.templateKey}</div>
+                <div className="font-medium text-ink">{entry.subject}</div>
+                <div className="text-sm text-muted">
+                  To {entry.to} · {entry.status} · {entry.adapter}
+                </div>
               </div>
-            </div>
-          ))}
-          {outbox.length === 0 && <p className="text-sm text-muted">No emails dispatched yet.</p>}
-        </div>
-      </Card>
+            ))}
+            {outbox.length === 0 && <p className="text-sm text-muted">No emails dispatched yet.</p>}
+          </div>
+        </Card>
       </div>
       <div className="mt-4">
         <Card title={`Email templates (${templates.length})`}>
-          <p className="mb-3 text-sm text-muted">Kernel defaults with optional tenant overrides. Variables: title, body, href, severity.</p>
+          <p className="mb-3 text-sm text-muted">
+            Kernel defaults with optional tenant overrides. Variables: title, body, href, severity.
+          </p>
+          {templates.length > 0 && token && (
+            <div className="mb-4 space-y-3 rounded border border-line bg-sand/20 p-4">
+              <div className="text-sm font-medium text-ink">Tenant template editor (I3.4)</div>
+              <label className="block text-xs uppercase tracking-wide text-muted">
+                Template
+                <select
+                  className="mt-1 w-full rounded border border-line bg-white px-3 py-2 text-sm"
+                  value={selectedKey}
+                  onChange={(e) => setSelectedKey(e.target.value)}
+                >
+                  {templates.map((t) => (
+                    <option key={t.key} value={t.key}>
+                      {t.key} ({t.source})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {selectedTemplate && (
+                <p className="text-xs text-muted">
+                  Current source: {selectedTemplate.source} · subject: {selectedTemplate.subject}
+                </p>
+              )}
+              <label className="block text-xs uppercase tracking-wide text-muted">
+                Subject
+                <input
+                  className="mt-1 w-full rounded border border-line px-3 py-2 text-sm"
+                  value={editSubject}
+                  onChange={(e) => setEditSubject(e.target.value)}
+                />
+              </label>
+              <label className="block text-xs uppercase tracking-wide text-muted">
+                Body (plain text)
+                <textarea
+                  className="mt-1 min-h-[120px] w-full rounded border border-line px-3 py-2 text-sm"
+                  value={editBody}
+                  onChange={(e) => setEditBody(e.target.value)}
+                />
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <Btn variant="gold" disabled={editorBusy || !editSubject.trim()} onClick={() => void handleSaveTemplate()}>
+                  Save tenant override
+                </Btn>
+                <Btn variant="secondary" disabled={editorBusy} onClick={() => void handlePreview()}>
+                  Preview with sample data
+                </Btn>
+              </div>
+              {editorMsg && <p className="text-sm text-gold-deep">{editorMsg}</p>}
+              {preview && (
+                <div className="rounded border border-line bg-white p-3">
+                  <div className="text-xs uppercase tracking-wide text-muted">Preview</div>
+                  <div className="mt-1 font-medium text-ink">{preview.subject}</div>
+                  <pre className="mt-2 whitespace-pre-wrap text-sm text-muted">{preview.bodyText}</pre>
+                </div>
+              )}
+            </div>
+          )}
           <div className="space-y-2">
             {templates.slice(0, 8).map((t) => (
-              <div key={t.key} className="rounded border border-line px-3 py-2 text-sm">
+              <button
+                key={t.key}
+                type="button"
+                className={`w-full rounded border px-3 py-2 text-left text-sm transition-colors ${
+                  t.key === selectedKey ? "border-gold-deep bg-gold/10" : "border-line hover:bg-sand/30"
+                }`}
+                onClick={() => setSelectedKey(t.key)}
+              >
                 <div className="font-medium">{t.key}</div>
-                <div className="text-xs text-muted">{t.source} · {t.subject}</div>
-              </div>
+                <div className="text-xs text-muted">
+                  {t.source} · {t.subject}
+                </div>
+              </button>
             ))}
           </div>
         </Card>

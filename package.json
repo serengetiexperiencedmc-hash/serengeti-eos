@@ -12,7 +12,8 @@
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "npm run typecheck",
-    "migrate": "npm run migrate -w @sedmc/db"
+    "migrate": "npm run migrate -w @sedmc/db",
+    "dev:preview": "node scripts/dev-preview.mjs"
   },
   "engines": {
     "node": ">=20"

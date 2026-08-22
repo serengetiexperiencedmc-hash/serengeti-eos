@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { useEosSession } from "@/components/commercial/EosSessionProvider";
+import { useEffect, useState, useSyncExternalStore } from "react";import { useEosSession } from "@/components/commercial/EosSessionProvider";
 import { navItems, type NavBadgeKey } from "@/lib/mock-data";
 import { fetchNavBadges, type NavBadgeCounts } from "@/lib/nav-badges";
 import { NotificationBell } from "@/components/commercial/NotificationBell";
@@ -38,10 +37,19 @@ function badgeValue(counts: NavBadgeCounts | null, key?: NavBadgeKey): number | 
   return value > 0 ? value : undefined;
 }
 
+function useClientMounted(): boolean {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   const { token } = useEosSession();
   const [badges, setBadges] = useState<NavBadgeCounts | null>(null);
+  const mounted = useClientMounted();
 
   useEffect(() => {
     if (!token) {
@@ -52,7 +60,6 @@ export function Sidebar() {
       .then(setBadges)
       .catch(() => setBadges(null));
   }, [token]);
-
   return (
     <aside className="fixed left-0 top-0 z-50 flex h-screen w-[260px] flex-col bg-ink text-sand">
       <div className="border-b border-white/10 px-6 py-5">
@@ -66,7 +73,7 @@ export function Sidebar() {
             <div className="mb-2 px-3 text-[0.65rem] uppercase tracking-wider text-muted">{section.section}</div>
             {section.items.map((item) => {
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-              const badge = badgeValue(badges, "badgeKey" in item ? item.badgeKey : undefined);
+              const badge = mounted ? badgeValue(badges, "badgeKey" in item ? item.badgeKey : undefined) : undefined;
               return (
                 <Link
                   key={item.href}
@@ -92,7 +99,7 @@ export function Sidebar() {
       <div className="border-t border-white/10 px-5 py-4 text-xs text-muted">
         Serengeti Experience DMC
         <br />
-        v0.22 · Dev/Test
+        v0.33 · Dev/Test
       </div>
     </aside>
   );
@@ -130,7 +137,7 @@ export function Topbar() {
 export function MockupBanner() {
   return (
     <div className="bg-gold py-1.5 text-center text-[0.7rem] font-semibold uppercase tracking-wide text-ink">
-      Serengeti EOS · C1–C10 · O1–O4 · I3.3 · I8.3 · I9.2 · J1–J2
+      Serengeti EOS · C1–C10 · O1–O4 · I3.4 · I4.1 · PG.3 · J1–J2
     </div>
   );
 }
