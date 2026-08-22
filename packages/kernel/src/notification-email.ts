@@ -47,6 +47,18 @@ export type NotifEmailDeliveryEvent = {
   receivedAt: string;
 };
 
+export type NotifEmailSuppressionReason = "bounce" | "complaint" | "reject" | "manual";
+
+export type NotifEmailSuppression = {
+  id: string;
+  tenantId: string;
+  email: string;
+  reason: NotifEmailSuppressionReason;
+  sourceEventId?: string;
+  createdAt: string;
+  liftedAt?: string;
+};
+
 export function buildEmailFromNotification(
   item: NotifItem,
   recipientEmail: string,

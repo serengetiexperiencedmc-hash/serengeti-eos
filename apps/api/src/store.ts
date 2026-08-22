@@ -78,6 +78,7 @@ import {
   type NotifDismissal,
   type NotifEmailOutboxEntry,
   type NotifEmailDeliveryEvent,
+  type NotifEmailSuppression,
   type EmailTemplate,
   type NatsConsumerOffset,
 } from "@sedmc/kernel";
@@ -197,6 +198,7 @@ export type Store = {
   notifEmailOutbox: NotifEmailOutboxEntry[];
   notifEmailDeliveryEvents: NotifEmailDeliveryEvent[];
   notifEmailTemplates: Array<EmailTemplate & { tenantId: string }>;
+  notifEmailSuppressions: NotifEmailSuppression[];
   natsConsumerOffsets: NatsConsumerOffset[];
   /** Optional PostgreSQL pool for dual-write persistence (PG.1+) */
   dbPool?: DbPool;
@@ -808,6 +810,7 @@ export function seedStore(
     notifEmailOutbox: [],
     notifEmailDeliveryEvents: [],
     notifEmailTemplates: [],
+    notifEmailSuppressions: [],
     natsConsumerOffsets: [],
   };
   seedCrmCatalogues(store, tenantId);

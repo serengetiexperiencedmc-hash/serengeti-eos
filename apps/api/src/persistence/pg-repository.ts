@@ -403,6 +403,48 @@ export async function countNotifEmailOutbox(pool: DbPool, tenantId: string): Pro
   return result.rows[0]?.c ?? 0;
 }
 
+export async function upsertNotifEmailSuppression(
+  pool: DbPool,
+  entry: import("@sedmc/kernel").NotifEmailSuppression,
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO notif_email_suppressions (
+      id, tenant_id, email, reason, source_event_id, created_at, lifted_at
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7)
+     ON CONFLICT (id) DO UPDATE SET
+       reason = EXCLUDED.reason,
+       source_event_id = COALESCE(EXCLUDED.source_event_id, notif_email_suppressions.source_event_id),
+       lifted_at = EXCLUDED.lifted_at`,
+    [
+      entry.id,
+      entry.tenantId,
+      entry.email,
+      entry.reason,
+      entry.sourceEventId ?? null,
+      entry.createdAt,
+      entry.liftedAt ?? null,
+    ],
+  );
+}
+
+export async function loadNotifEmailSuppressions(
+  pool: DbPool,
+): Promise<import("@sedmc/kernel").NotifEmailSuppression[]> {
+  const result = await pool.query(
+    `SELECT id, tenant_id, email, reason, source_event_id, created_at, lifted_at
+     FROM notif_email_suppressions`,
+  );
+  return result.rows.map((row) => ({
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    email: row.email as string,
+    reason: row.reason as import("@sedmc/kernel").NotifEmailSuppressionReason,
+    ...(row.source_event_id ? { sourceEventId: row.source_event_id as string } : {}),
+    createdAt: (row.created_at as Date).toISOString(),
+    ...(row.lifted_at ? { liftedAt: (row.lifted_at as Date).toISOString() } : {}),
+  }));
+}
+
 export async function countNotifDismissals(pool: DbPool, tenantId: string): Promise<number> {
   const result = await pool.query(`SELECT COUNT(*)::int AS c FROM notif_dismissals WHERE tenant_id = $1`, [tenantId]);
   return result.rows[0]?.c ?? 0;

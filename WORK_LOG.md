@@ -189,8 +189,8 @@
 
 ### Current project status
 
-- **Server version:** `0.42.0-i4.7-c4-ui`
-- **Increments live:** C1–C10, O1–O4, I3.6.1–I3.8, I4.3–I4.7, I8.3, I9.2, J1–J2, PG.1–PG.8
+- **Server version:** `0.43.0-i3.9-i4.8`
+- **Increments live:** C1–C10, O1–O4, I3.6.1–I3.9, I4.3–I4.8, I8.3, I9.2, J1–J2, PG.1–PG.8
 - **All targeted tests passing**
 
 ### 19:xx — Commercial preview fix ✅
@@ -235,11 +235,20 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **I4.7** | Tenant-scoped NATS subjects + filter consumer env + lag `tenantFilter` |
 | **C4 UI** | Supplier Library create/edit modal wired to PG.8 REST |
 
+### 20:xx — I3.9 + I4.8 ✅
+
+**Shipped:** server `0.43.0-i3.9-i4.8`
+
+| Increment | Change |
+| --- | --- |
+| **I3.9** | Email suppression list from bounce/complaint/reject; skip sends; list/lift API |
+| **I4.8** | Auto-provision tenant JetStream durables on first publish |
+
 ### Recommended next increments
 
-1. I3.9 — SES suppression list / bounce hygiene
-2. I4.8 — auto-provision tenant durables on first publish
-3. Rate/contact manual CRUD UI
+1. Rate/contact manual CRUD UI + API
+2. I3.10 — suppression sync with SES account-level suppression list
+3. Notifications Commercial UI for suppressions
 
 ### Issues resolved
 

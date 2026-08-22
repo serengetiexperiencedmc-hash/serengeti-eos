@@ -5,4 +5,5 @@ export function ensureNotificationCollections(store: Store): void {
   if (!store.notifEmailOutbox) store.notifEmailOutbox = [];
   if (!store.notifEmailDeliveryEvents) store.notifEmailDeliveryEvents = [];
   if (!store.notifEmailTemplates) store.notifEmailTemplates = [];
+  if (!store.notifEmailSuppressions) store.notifEmailSuppressions = [];
 }

@@ -25,9 +25,21 @@ import { sendViaSmtp } from "./smtp-transport.js";
 import { sendViaSes } from "./ses-transport.js";
 import { isSnsSignatureVerificationEnabled } from "./sns-signature.js";
 import { isSnsAutoConfirmEnabled } from "./sns-subscription.js";
+import { isEmailSuppressed } from "./email-suppression.js";
 
 function templateOverrides(store: Store, tenantId: string): EmailTemplate[] {
   return (store.notifEmailTemplates ?? []).filter((t) => t.tenantId === tenantId);
+}
+
+async function guardSuppressed(
+  store: Store,
+  principal: Principal,
+  message: EmailNotificationMessage,
+  adapter: string,
+): Promise<{ status: "skipped"; reason: string } | null> {
+  if (!isEmailSuppressed(store, principal.tenantId, message.to)) return null;
+  await recordOutboxEntry(store, principal, message, adapter, "failed");
+  return { status: "skipped", reason: "suppressed" };
 }
 
 async function recordOutboxEntry(
@@ -78,6 +90,8 @@ export function createDevOutboxEmailAdapter(store: Store, principal: Principal):
       if (isDuplicate(store, principal, message.notificationKey)) {
         return { status: "skipped", reason: "already_dispatched" };
       }
+      const suppressed = await guardSuppressed(store, principal, message, "dev-outbox");
+      if (suppressed) return suppressed;
       await recordOutboxEntry(store, principal, message, "dev-outbox", "sent");
       return { status: "sent" };
     },
@@ -91,6 +105,8 @@ export function createSmtpStubEmailAdapter(store: Store, principal: Principal): 
       if (isDuplicate(store, principal, message.notificationKey)) {
         return { status: "skipped", reason: "already_dispatched" };
       }
+      const suppressed = await guardSuppressed(store, principal, message, "smtp-stub");
+      if (suppressed) return suppressed;
       await recordOutboxEntry(store, principal, message, "smtp-stub", "sent");
       return { status: "sent", reason: "smtp_stub_noop" };
     },
@@ -105,6 +121,8 @@ export function createSmtpEmailAdapter(store: Store, principal: Principal): Emai
       if (isDuplicate(store, principal, message.notificationKey)) {
         return { status: "skipped", reason: "already_dispatched" };
       }
+      const suppressed = await guardSuppressed(store, principal, message, "smtp");
+      if (suppressed) return suppressed;
       if (!config) {
         await recordOutboxEntry(store, principal, message, "smtp", "failed");
         return { status: "skipped", reason: "smtp_not_configured" };
@@ -128,6 +146,8 @@ export function createSesStubEmailAdapter(store: Store, principal: Principal): E
       if (isDuplicate(store, principal, message.notificationKey)) {
         return { status: "skipped", reason: "already_dispatched" };
       }
+      const suppressed = await guardSuppressed(store, principal, message, "ses-stub");
+      if (suppressed) return suppressed;
       await recordOutboxEntry(store, principal, message, "ses-stub", "sent");
       return { status: "sent", reason: "ses_stub_noop" };
     },
@@ -142,6 +162,8 @@ export function createSesEmailAdapter(store: Store, principal: Principal): Email
       if (isDuplicate(store, principal, message.notificationKey)) {
         return { status: "skipped", reason: "already_dispatched" };
       }
+      const suppressed = await guardSuppressed(store, principal, message, "ses");
+      if (suppressed) return suppressed;
       if (!config) {
         await recordOutboxEntry(store, principal, message, "ses", "failed");
         return { status: "skipped", reason: "ses_not_configured" };
@@ -309,11 +331,12 @@ export function getEmailAdapterHealth(store: Store) {
   const adapter = resolveEmailAdapterName();
   return {
     module: "notification-email",
-    increment: "I3.8",
+    increment: "I3.9",
     adapter,
     status: "ok" as const,
     outboxCount: (store.notifEmailOutbox ?? []).length,
     deliveryEventCount: (store.notifEmailDeliveryEvents ?? []).length,
+    suppressionCount: (store.notifEmailSuppressions ?? []).filter((s) => !s.liftedAt).length,
     templateCount: listEmailTemplateKeys(store.notifEmailTemplates?.map(({ tenantId: _, ...t }) => t) ?? []).length,
     smtpConfigured: isSmtpConfigured(),
     smtpHost: process.env.EOS_SMTP_HOST ?? null,

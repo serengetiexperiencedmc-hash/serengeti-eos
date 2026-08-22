@@ -9,6 +9,7 @@ import {
 import { persistNotifEmailDeliveryEvent } from "../persistence/notifications.js";
 import { isSnsSignatureVerificationEnabled, verifySnsMessage } from "./sns-signature.js";
 import { confirmSnsSubscription } from "./sns-subscription.js";
+import { upsertEmailSuppression } from "./email-suppression.js";
 
 type DeliveryEventType = NotifEmailDeliveryEvent["eventType"];
 type OutboxStatus = NotifEmailOutboxEntry["status"];
@@ -102,6 +103,22 @@ async function applyDeliveryEvent(
   };
   store.notifEmailDeliveryEvents.push(delivery);
   await persistNotifEmailDeliveryEvent(store.dbPool, delivery, input.payload);
+
+  if (
+    (input.eventType === "bounce" || input.eventType === "complaint" || input.eventType === "reject") &&
+    (input.recipient || outbox?.to)
+  ) {
+    const email = input.recipient ?? outbox!.to;
+    const tenantId = outbox?.tenantId;
+    if (tenantId) {
+      await upsertEmailSuppression(store, {
+        tenantId,
+        email,
+        reason: input.eventType,
+        sourceEventId: delivery.id,
+      });
+    }
+  }
 
   return outbox && nextStatus ? { status: "updated", outboxId: outbox.id } : { status: "recorded_only", ...(outbox ? { outboxId: outbox.id } : {}) };
 }
