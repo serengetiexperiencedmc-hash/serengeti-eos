@@ -4,6 +4,8 @@ import { seedDemoCommercialData } from "./dev/seed-demo-data.js";
 import { createLogger } from "./observability.js";
 import { createEnvSecretsProvider } from "./ports/secrets.js";
 import { syncStoreToPostgres } from "./persistence/sync.js";
+import { hydratePendingOutbox } from "./persistence/outbox.js";
+import { publishPendingOutbox } from "./outbox.js";
 import { buildServer } from "./server.js";
 
 const logger = createLogger((process.env.EOS_LOG_LEVEL as "info") ?? "info");
@@ -31,6 +33,9 @@ if (databaseUrl) {
   await syncStoreToPostgres(pool, store);
   store.dbPool = pool;
   logger.info("database_seed_synced", { mode: "development_bootstrap", pgDualWrite: "I3-PG.1" });
+  const merged = await hydratePendingOutbox(pool, store);
+  const drain = publishPendingOutbox(store);
+  logger.info("outbox_startup_drain", { mergedFromPg: merged, ...drain });
   dbHealth = () => checkDatabaseHealth(pool);
 } else {
   logger.warn("database_url_missing", {

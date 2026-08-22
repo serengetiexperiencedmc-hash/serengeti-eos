@@ -14,6 +14,7 @@ import {
   type Principal,
 } from "@sedmc/kernel";
 import { ensureOutboxCollections } from "../outbox.js";
+import { persistOutboxInsert } from "../persistence/outbox.js";
 import type { Store } from "../store.js";
 
 const CLASSIFICATION_RANK: Record<Classification, number> = {
@@ -279,8 +280,10 @@ export function commitCrmWithOutbox(
       throw new Error("outbox_write_failed");
     }
     store.outboxEvents.push(outbox);
+    void persistOutboxInsert(store.dbPool, outbox);
     for (const extra of additionalPrepared) {
       store.outboxEvents.push(extra.outbox);
+      void persistOutboxInsert(store.dbPool, extra.outbox);
     }
   } catch (err) {
     restoreCrmDomain(store, domainSnapshot);
@@ -332,6 +335,7 @@ export function emitCrmEvent(
   const sequence = assignAggregateSequence(store, entry, envelope);
   if (sequence !== undefined) outbox.sequence = sequence;
   store.outboxEvents.push(outbox);
+  void persistOutboxInsert(store.dbPool, outbox);
   if (store.eventMetrics) store.eventMetrics.eventsCommitted += 1;
   return { ok: true, outbox, envelope };
 }

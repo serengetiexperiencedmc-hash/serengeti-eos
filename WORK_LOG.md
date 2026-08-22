@@ -78,6 +78,17 @@
 
 **Tests:** kernel 55/55, API i3+i3.2+proxy 10/10, web tsc clean.
 
+### 17:52 — PG.2 + I3.3 ✅
+
+**Shipped:** server `0.33.0-i3.3-pg.2`
+
+| Increment | Change |
+| --- | --- |
+| **PG.2** | I4 outbox dual-write, hydrate + drain on startup, migration 035 |
+| **I3.3** | Real SMTP adapter, kernel `notification-smtp.ts`, Mailhog-compatible client |
+
+**Tests:** kernel 57/57, API i3.3+i4 14/14, web tsc clean.
+
 ---
 
 ## Session summary (for user return)
@@ -90,18 +101,20 @@
 4. **I3.2 Template registry + SMTP stub**
 5. **PG.1 Notification dual-write + ADR-0017**
 6. **Login proxy fix**
+7. **PG.2 I4 outbox insert/drain**
+8. **I3.3 Real SMTP transport**
 
 ### Current project status
 
-- **Server version:** `0.32.0-i3.2-pg.1`
-- **Increments live:** C1–C10, O1–O4, I3.2, I8.3, I9.2, J1–J2
+- **Server version:** `0.33.0-i3.3-pg.2`
+- **Increments live:** C1–C10, O1–O4, I3.3, I8.3, I9.2, J1–J2, PG.1, PG.2
 - **All targeted tests passing**
 
 ### Recommended next increments
 
-1. PG.2 — I4 outbox insert/drain on startup
-2. I3.3 — Real SMTP transport (when provider known)
-3. PG.3 — CRM persistence (separate gate)
+1. PG.3 — CRM full persistence (separate gate)
+2. I4 transport — NATS JetStream wiring (Production gate)
+3. Tenant email template editor UI
 
 ### Issues resolved
 

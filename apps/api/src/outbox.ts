@@ -20,6 +20,7 @@ import {
   type ReplayRequest,
 } from "@sedmc/kernel";
 import { recordAudit, type Store } from "./store.js";
+import { persistOutboxInsert, persistOutboxPublish } from "./persistence/outbox.js";
 
 export type PublisherFailurePoint =
   | "before_read"
@@ -264,6 +265,7 @@ export function commitWithOutbox(
       throw new Error("outbox_write_failed");
     }
     store.outboxEvents.push(outbox);
+    void persistOutboxInsert(store.dbPool, outbox);
   } catch (err) {
     restoreDomain(store, domainSnapshot);
     store.outboxEvents.length = outboxLen;
@@ -428,6 +430,7 @@ export function publishPendingOutbox(store: Store, opts: PublishOptions = {}): P
       }
       row.publishedAt = new Date().toISOString();
       row.status = "published";
+      void persistOutboxPublish(store.dbPool, row);
       bumpMetric(store, "eventsPublished");
       published += 1;
     } catch (err) {
@@ -449,6 +452,7 @@ function pendingCount(store: Store): number {
 
 function moveToDlq(store: Store, row: OutboxRecord, consumer: string): void {
   row.status = "dead_letter";
+  void persistOutboxPublish(store.dbPool, row);
   const now = new Date().toISOString();
   const existing = store.deadLetters.find((d) => d.outboxId === row.id && d.consumer === consumer);
   if (existing) {

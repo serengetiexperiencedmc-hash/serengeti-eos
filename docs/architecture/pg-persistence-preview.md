@@ -1,31 +1,35 @@
-# PG.1 Notification Persistence — Preview
+# PostgreSQL Persistence — Preview
 
-Increment **PG.1** implements dual-write persistence for I3 notifications per [ADR-0017](../adr/ADR-0017-persistence-increment-boundary.md).
+Phased persistence per [ADR-0017](../adr/ADR-0017-persistence-increment-boundary.md).
 
-## Scope
+## PG.1 — I3 notifications ✅
 
 | Table | Trigger |
 | --- | --- |
-| `notif_dismissals` | `POST /v1/notifications/:key/dismiss` |
-| `notif_email_outbox` | Email adapter `send()` |
+| `notif_dismissals` | Dismiss notification |
+| `notif_email_outbox` | Email adapter send |
 
-## Wiring
+Tests: `pg-i3.integration.test.ts`
 
-- `main.ts` sets `store.dbPool` when `EOS_DATABASE_URL` is configured
-- `persistence/notifications.ts` — optional dual-write helpers
-- `pg-repository.ts` — `insertNotifDismissal`, `insertNotifEmailOutbox`, count helpers
+## PG.2 — I4 outbox ✅
+
+| Action | When |
+| --- | --- |
+| **Insert** | `commitWithOutbox`, CRM `commitCrmWithOutbox`, `emitCrmEvent` |
+| **Update** | `publishPendingOutbox` (published / dead_letter) |
+| **Hydrate + drain** | API startup when `EOS_DATABASE_URL` set |
+
+Migration: `035_pg2_outbox_persistence.sql` (pending index)
+
+Tests: `pg-i4.integration.test.ts` (gated)
 
 ## Dev/Test behavior
 
-- **Without PG:** in-memory only (default for unit tests)
-- **With PG:** dual-write on dismiss + email dispatch; reads still from memory
+- In-memory `Store` remains read SoR
+- PG dual-write when `store.dbPool` is set via `main.ts`
 
-## Tests
+## Future
 
-- `pg-i3.integration.test.ts` — gated by `EOS_RUN_PG_TESTS=1`
-
-## Future (PG.2+)
-
-- I4 outbox insert/drain
-- Read-through hydration on startup
-- CRM full persistence (PG.3, separate gate)
+- **PG.3** — CRM full read/write persistence (separate gate)
+- Read-through hydration for all modules
+- Production SoR cutover

@@ -1,5 +1,5 @@
 import type { DbPool } from "@sedmc/db";
-import type { ChainedAuditRecord, Classification, StoredPrincipal } from "@sedmc/kernel";
+import type { ChainedAuditRecord, Classification, OutboxRecord, StoredPrincipal } from "@sedmc/kernel";
 
 export async function withTransaction<T>(
   pool: DbPool,
@@ -361,5 +361,82 @@ export async function countNotifEmailOutbox(pool: DbPool, tenantId: string): Pro
 
 export async function countNotifDismissals(pool: DbPool, tenantId: string): Promise<number> {
   const result = await pool.query(`SELECT COUNT(*)::int AS c FROM notif_dismissals WHERE tenant_id = $1`, [tenantId]);
+  return result.rows[0]?.c ?? 0;
+}
+
+function mapOutboxRow(row: Record<string, unknown>): OutboxRecord {
+  const envelope = row.envelope as OutboxRecord["envelope"];
+  return {
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    eventType: row.event_type as string,
+    envelope,
+    classification: row.classification as OutboxRecord["classification"],
+    createdAt: (row.created_at as Date).toISOString(),
+    publishedAt: row.published_at ? (row.published_at as Date).toISOString() : undefined,
+    attempts: row.attempts as number,
+    lastError: (row.last_error as string) ?? undefined,
+    status: row.status as OutboxRecord["status"],
+  };
+}
+
+export async function insertOutboxEvent(pool: DbPool, outbox: OutboxRecord): Promise<void> {
+  await pool.query(
+    `INSERT INTO outbox_events (
+      id, tenant_id, event_type, payload, classification, created_at,
+      published_at, attempts, envelope, status, last_error, correlation_id, aggregate_id
+    ) VALUES ($1,$2,$3,$4::jsonb,$5,$6,$7,$8,$9::jsonb,$10,$11,$12,$13)
+     ON CONFLICT (id) DO NOTHING`,
+    [
+      outbox.id,
+      outbox.tenantId,
+      outbox.eventType,
+      JSON.stringify(outbox.envelope.payload),
+      outbox.classification,
+      outbox.createdAt,
+      outbox.publishedAt ?? null,
+      outbox.attempts,
+      JSON.stringify(outbox.envelope),
+      outbox.status,
+      outbox.lastError ?? null,
+      outbox.envelope.correlationId,
+      outbox.envelope.aggregateId ?? null,
+    ],
+  );
+}
+
+export async function updateOutboxEventStatus(
+  pool: DbPool,
+  input: {
+    id: string;
+    status: OutboxRecord["status"];
+    publishedAt?: string;
+    attempts: number;
+    lastError?: string;
+  },
+): Promise<void> {
+  await pool.query(
+    `UPDATE outbox_events
+     SET status = $2, published_at = $3, attempts = $4, last_error = $5
+     WHERE id = $1`,
+    [input.id, input.status, input.publishedAt ?? null, input.attempts, input.lastError ?? null],
+  );
+}
+
+export async function hydratePendingOutboxEvents(pool: DbPool): Promise<OutboxRecord[]> {
+  const result = await pool.query(
+    `SELECT id, tenant_id, event_type, payload, classification, created_at,
+            published_at, attempts, envelope, status, last_error, correlation_id, aggregate_id
+     FROM outbox_events WHERE status = 'pending' ORDER BY created_at ASC`,
+  );
+  return result.rows.map((row) => mapOutboxRow(row));
+}
+
+export async function countPendingOutboxEvents(pool: DbPool, tenantId?: string): Promise<number> {
+  const result = tenantId
+    ? await pool.query(`SELECT COUNT(*)::int AS c FROM outbox_events WHERE status = 'pending' AND tenant_id = $1`, [
+        tenantId,
+      ])
+    : await pool.query(`SELECT COUNT(*)::int AS c FROM outbox_events WHERE status = 'pending'`);
   return result.rows[0]?.c ?? 0;
 }
