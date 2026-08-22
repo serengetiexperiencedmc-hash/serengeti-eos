@@ -79,8 +79,27 @@ export type DeadLetterItem = {
   remediation?: string;
 };
 
-export async function listDeadLetters(token: string) {
-  return eosFetch<{ items: DeadLetterItem[]; increment: string }>("/v1/events/dlq", { token });
+export async function listDeadLetters(
+  token: string,
+  query: { owner?: string; status?: string; unassigned?: boolean } = {},
+) {
+  const params = new URLSearchParams();
+  if (query.owner) params.set("owner", query.owner);
+  if (query.status) params.set("status", query.status);
+  if (query.unassigned) params.set("unassigned", "1");
+  const qs = params.toString();
+  return eosFetch<{ items: DeadLetterItem[]; owners: string[]; increment: string }>(
+    `/v1/events/dlq${qs ? `?${qs}` : ""}`,
+    { token },
+  );
+}
+
+export async function assignDeadLetterOwner(token: string, id: string, owner: string | null) {
+  return eosFetch<{ ok: true; deadLetter: DeadLetterItem; increment: string }>(`/v1/events/dlq/${id}`, {
+    token,
+    method: "PATCH",
+    body: JSON.stringify({ owner }),
+  });
 }
 
 export async function updateDeadLetterRemediation(

@@ -189,8 +189,8 @@
 
 ### Current project status
 
-- **Server version:** `0.50.0-pg14-i3.14`
-- **Increments live:** C1–C10, O1–O4, I3.6.1–I3.14, I4.3–I4.10, I8.3, I9.2, J1–J2, PG.1–PG.14
+- **Server version:** `0.51.0-i4.11-i3.15`
+- **Increments live:** C1–C10, O1–O4, I3.6.1–I3.15, I4.3–I4.11, I8.3, I9.2, J1–J2, PG.1–PG.14
 - **All targeted tests passing**
 
 ### 19:xx — Commercial preview fix ✅
@@ -310,11 +310,20 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **PG.14** | Supplier rate calendar by season/month window |
 | **I3.14** | Email allowlist transactional override of suppressions |
 
+### 20:xx — I4.11 + I3.15 ✅
+
+**Shipped:** server `0.51.0-i4.11-i3.15`
+
+| Increment | Change |
+| --- | --- |
+| **I4.11** | DLQ owner assign + owner/status/unassigned filters |
+| **I3.15** | Allowlist expiry + CSV/JSON audit export |
+
 ### Recommended next increments
 
-1. I4.11 — DLQ owner assignment dashboard filters
-2. I3.15 — allowlist expiry / audit export
-3. PG.15 — rate calendar conflict detection
+1. PG.15 — rate calendar conflict detection
+2. I4.12 — DLQ bulk owner assign
+3. I3.16 — allowlist SES sync notes
 
 ### Issues resolved
 

@@ -48,6 +48,7 @@ import {
   registerEventType,
   replayEventsToConsumer,
   requestReplay,
+  assignDeadLetterOwner,
   updateDeadLetterRemediation,
   traceEventCorrelation,
 } from "./app.js";
@@ -76,7 +77,7 @@ import {
   type Logger,
 } from "./observability.js";
 
-const VERSION = "0.50.0-pg14-i3.14";
+const VERSION = "0.51.0-i4.11-i3.15";
 
 export type ServerOptions = {
   store?: Store;
@@ -694,9 +695,14 @@ export function buildServer(options: ServerOptions | Store = {}) {
   app.get("/v1/events/dlq", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const result = listDeadLetters(store, principal);
+    const query = req.query as { owner?: string; status?: string; unassigned?: string };
+    const result = listDeadLetters(store, principal, {
+      ...(query.owner !== undefined ? { owner: query.owner } : {}),
+      ...(query.status !== undefined ? { status: query.status } : {}),
+      ...(query.unassigned === "1" || query.unassigned === "true" ? { unassigned: true } : {}),
+    });
     if (!result.ok) return reply.code(403).send({ error: "forbidden", reason: result.reason });
-    return { items: result.items, increment: "I4.10" };
+    return { items: result.items, owners: result.owners, increment: result.increment };
   });
 
   app.patch("/v1/events/dlq/:id", async (req, reply) => {
@@ -707,17 +713,33 @@ export function buildServer(options: ServerOptions | Store = {}) {
       owner?: string | null;
       remediation?: string | null;
     };
+    const id = (req.params as { id: string }).id;
+    const correlationId = getCorrelationId(req);
+
+    // I4.11 — owner-only assignment (no status transition required)
+    if (!body.status && body.owner !== undefined) {
+      const result = assignDeadLetterOwner(store, principal, id, { owner: body.owner }, correlationId);
+      if (!result.ok) {
+        const code = result.reason === "not_found" ? 404 : 403;
+        return reply.code(code).send({
+          error: result.reason === "not_found" ? "not_found" : "forbidden",
+          reason: result.reason,
+        });
+      }
+      return result;
+    }
+
     if (!body.status) return reply.code(400).send({ error: "invalid_request", reason: "status_required" });
     const result = updateDeadLetterRemediation(
       store,
       principal,
-      (req.params as { id: string }).id,
+      id,
       {
         status: body.status as Parameters<typeof updateDeadLetterRemediation>[3]["status"],
         ...(body.owner !== undefined ? { owner: body.owner } : {}),
         ...(body.remediation !== undefined ? { remediation: body.remediation } : {}),
       },
-      getCorrelationId(req),
+      correlationId,
     );
     if (!result.ok) {
       const code = result.reason === "not_found" ? 404 : result.reason === "invalid_transition" ? 400 : 403;
@@ -746,7 +768,7 @@ export function buildServer(options: ServerOptions | Store = {}) {
       correlationId: getCorrelationId(req),
     });
     if (!result.ok) return reply.code(403).send({ error: "forbidden", reason: result.reason });
-    return { ...result.request, increment: "I4.10" };
+    return { ...result.request, increment: "I4.11" };
   });
 
   app.post("/v1/events/replay/:id/execute", async (req, reply) => {
@@ -755,7 +777,7 @@ export function buildServer(options: ServerOptions | Store = {}) {
     const { id } = req.params as { id: string };
     const result = executeReplayRequest(store, principal, id, getCorrelationId(req));
     if (!result.ok) return reply.code(403).send({ error: "forbidden", reason: result.reason });
-    return { ...result, increment: "I4.10" };
+    return { ...result, increment: "I4.11" };
   });
 
   app.get("/v1/events/consumers/processed", async (req, reply) => {

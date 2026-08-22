@@ -61,7 +61,7 @@ export type NotifEmailSuppression = {
   liftedAt?: string;
 };
 
-/** I3.14 — transactional override: allowlisted addresses bypass active suppressions. */
+/** I3.14/I3.15 — transactional override: allowlisted addresses bypass active suppressions. */
 export type NotifEmailAllowlistEntry = {
   id: string;
   tenantId: string;
@@ -69,6 +69,8 @@ export type NotifEmailAllowlistEntry = {
   note?: string;
   createdAt: string;
   createdByPrincipalId?: string;
+  /** ISO timestamp; when set and past, entry is inactive (I3.15). */
+  expiresAt?: string;
   revokedAt?: string;
 };
 

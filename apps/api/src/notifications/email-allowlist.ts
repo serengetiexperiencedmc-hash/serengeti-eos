@@ -7,6 +7,12 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
+function isAllowlistActive(entry: NotifEmailAllowlistEntry, now = Date.now()): boolean {
+  if (entry.revokedAt) return false;
+  if (entry.expiresAt && new Date(entry.expiresAt).getTime() <= now) return false;
+  return true;
+}
+
 export function findActiveAllowlistEntry(
   store: Store,
   tenantId: string,
@@ -15,7 +21,7 @@ export function findActiveAllowlistEntry(
   ensureNotificationCollections(store);
   const normalized = normalizeEmail(email);
   return (store.notifEmailAllowlist ?? []).find(
-    (e) => e.tenantId === tenantId && !e.revokedAt && normalizeEmail(e.email) === normalized,
+    (e) => e.tenantId === tenantId && isAllowlistActive(e) && normalizeEmail(e.email) === normalized,
   );
 }
 
@@ -23,7 +29,22 @@ export function isEmailAllowlisted(store: Store, tenantId: string, email: string
   return Boolean(findActiveAllowlistEntry(store, tenantId, email));
 }
 
-export function listEmailAllowlist(store: Store, principal: Principal) {
+function sanitizeAllowlistEntry(e: NotifEmailAllowlistEntry) {
+  return {
+    id: e.id,
+    email: e.email,
+    note: e.note,
+    createdAt: e.createdAt,
+    ...(e.expiresAt ? { expiresAt: e.expiresAt } : {}),
+    ...(e.revokedAt ? { revokedAt: e.revokedAt } : {}),
+  };
+}
+
+export function listEmailAllowlist(
+  store: Store,
+  principal: Principal,
+  options: { includeExpired?: boolean; includeRevoked?: boolean } = {},
+) {
   const decision = authorize({
     principal,
     permission: "notification:dispatch:email",
@@ -32,23 +53,83 @@ export function listEmailAllowlist(store: Store, principal: Principal) {
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
 
   ensureNotificationCollections(store);
+  const now = Date.now();
   const items = (store.notifEmailAllowlist ?? [])
-    .filter((e) => e.tenantId === principal.tenantId && !e.revokedAt)
+    .filter((e) => {
+      if (e.tenantId !== principal.tenantId) return false;
+      if (e.revokedAt) return options.includeRevoked === true;
+      if (e.expiresAt && new Date(e.expiresAt).getTime() <= now) return options.includeExpired === true;
+      return true;
+    })
+    .map(sanitizeAllowlistEntry)
+    .sort((a, b) => a.email.localeCompare(b.email));
+
+  return { items, increment: "I3.15" as const };
+}
+
+export function exportEmailAllowlist(
+  store: Store,
+  principal: Principal,
+  options: { format?: "json" | "csv"; includeExpired?: boolean; includeRevoked?: boolean } = {},
+) {
+  const decision = authorize({
+    principal,
+    permission: "notification:read:email_outbox",
+    action: "export:email_allowlist",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+
+  ensureNotificationCollections(store);
+  const now = Date.now();
+  const items = (store.notifEmailAllowlist ?? [])
+    .filter((e) => {
+      if (e.tenantId !== principal.tenantId) return false;
+      if (e.revokedAt) return options.includeRevoked === true;
+      if (e.expiresAt && new Date(e.expiresAt).getTime() <= now) return options.includeExpired === true;
+      return true;
+    })
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .map((e) => ({
       id: e.id,
       email: e.email,
-      note: e.note,
+      note: e.note ?? "",
       createdAt: e.createdAt,
-    }))
-    .sort((a, b) => a.email.localeCompare(b.email));
+      expiresAt: e.expiresAt ?? "",
+      revokedAt: e.revokedAt ?? "",
+      createdByPrincipalId: e.createdByPrincipalId ?? "",
+    }));
 
-  return { items, increment: "I3.14" as const };
+  const generatedAt = new Date().toISOString();
+  const format = options.format === "csv" ? "csv" : "json";
+  if (format === "csv") {
+    const header = "id,email,note,createdAt,expiresAt,revokedAt,createdByPrincipalId";
+    const rows = items.map((row) =>
+      [row.id, row.email, row.note, row.createdAt, row.expiresAt, row.revokedAt, row.createdByPrincipalId]
+        .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
+        .join(","),
+    );
+    return {
+      format: "csv" as const,
+      csv: [header, ...rows].join("\n"),
+      count: items.length,
+      generatedAt,
+      increment: "I3.15" as const,
+    };
+  }
+
+  return {
+    format: "json" as const,
+    items,
+    count: items.length,
+    generatedAt,
+    increment: "I3.15" as const,
+  };
 }
 
 export async function addEmailAllowlistEntry(
   store: Store,
   principal: Principal,
-  input: { email: string; note?: string },
+  input: { email: string; note?: string; expiresAt?: string | null },
 ) {
   const decision = authorize({
     principal,
@@ -61,6 +142,10 @@ export async function addEmailAllowlistEntry(
   if (!email || !email.includes("@")) {
     return { error: "invalid_request" as const, reason: "invalid_email" };
   }
+  if (input.expiresAt) {
+    const exp = new Date(input.expiresAt).getTime();
+    if (Number.isNaN(exp)) return { error: "invalid_request" as const, reason: "invalid_expires_at" };
+  }
 
   ensureNotificationCollections(store);
   const existing = findActiveAllowlistEntry(store, principal.tenantId, email);
@@ -68,9 +153,13 @@ export async function addEmailAllowlistEntry(
     if (input.note !== undefined) {
       if (!input.note.trim()) delete existing.note;
       else existing.note = input.note.trim();
-      void persistNotifEmailAllowlist(store.dbPool, existing);
     }
-    return { entry: existing, updated: true, increment: "I3.14" as const };
+    if (input.expiresAt !== undefined) {
+      if (input.expiresAt === null || input.expiresAt.trim() === "") delete existing.expiresAt;
+      else existing.expiresAt = new Date(input.expiresAt).toISOString();
+    }
+    void persistNotifEmailAllowlist(store.dbPool, existing);
+    return { entry: sanitizeAllowlistEntry(existing), updated: true, increment: "I3.15" as const };
   }
 
   const entry: NotifEmailAllowlistEntry = {
@@ -78,12 +167,13 @@ export async function addEmailAllowlistEntry(
     tenantId: principal.tenantId,
     email,
     ...(input.note?.trim() ? { note: input.note.trim() } : {}),
+    ...(input.expiresAt?.trim() ? { expiresAt: new Date(input.expiresAt).toISOString() } : {}),
     createdAt: new Date().toISOString(),
     createdByPrincipalId: principal.id,
   };
   store.notifEmailAllowlist.push(entry);
   void persistNotifEmailAllowlist(store.dbPool, entry);
-  return { entry, updated: false, increment: "I3.14" as const };
+  return { entry: sanitizeAllowlistEntry(entry), updated: false, increment: "I3.15" as const };
 }
 
 export async function revokeEmailAllowlistEntry(store: Store, principal: Principal, id: string) {
@@ -102,5 +192,5 @@ export async function revokeEmailAllowlistEntry(store: Store, principal: Princip
 
   entry.revokedAt = new Date().toISOString();
   void persistNotifEmailAllowlist(store.dbPool, entry);
-  return { entry, increment: "I3.14" as const };
+  return { entry: sanitizeAllowlistEntry(entry), increment: "I3.15" as const };
 }

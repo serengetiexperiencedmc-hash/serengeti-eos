@@ -6,6 +6,7 @@ import { handleSesDeliveryWebhook, listEmailDeliveryEvents } from "./ses-webhook
 import { liftEmailSuppression, listEmailSuppressions, syncEmailSuppressionsFromSes, exportEmailSuppressions, bulkLiftEmailSuppressions, importEmailSuppressions } from "./email-suppression.js";
 import {
   addEmailAllowlistEntry,
+  exportEmailAllowlist,
   listEmailAllowlist,
   revokeEmailAllowlistEntry,
 } from "./email-allowlist.js";
@@ -171,10 +172,27 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     return result;
   });
 
+  app.get("/v1/notifications/email/allowlist/export", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const query = req.query as { format?: string; includeExpired?: string; includeRevoked?: string };
+    const result = exportEmailAllowlist(store, principal, {
+      format: query.format === "csv" ? "csv" : "json",
+      includeExpired: query.includeExpired === "1" || query.includeExpired === "true",
+      includeRevoked: query.includeRevoked === "1" || query.includeRevoked === "true",
+    });
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
   app.get("/v1/notifications/email/allowlist", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const result = listEmailAllowlist(store, principal);
+    const query = req.query as { includeExpired?: string; includeRevoked?: string };
+    const result = listEmailAllowlist(store, principal, {
+      includeExpired: query.includeExpired === "1" || query.includeExpired === "true",
+      includeRevoked: query.includeRevoked === "1" || query.includeRevoked === "true",
+    });
     if ("error" in result) return sendError(reply, result);
     return result;
   });
@@ -182,11 +200,12 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
   app.post("/v1/notifications/email/allowlist", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const body = (req.body ?? {}) as { email?: string; note?: string };
+    const body = (req.body ?? {}) as { email?: string; note?: string; expiresAt?: string | null };
     if (!body.email) return reply.code(400).send({ error: "invalid_request", reason: "email_required" });
     const result = await addEmailAllowlistEntry(store, principal, {
       email: body.email,
       ...(body.note !== undefined ? { note: body.note } : {}),
+      ...(body.expiresAt !== undefined ? { expiresAt: body.expiresAt } : {}),
     });
     if ("error" in result) return sendError(reply, result);
     return reply.code(result.updated ? 200 : 201).send(result);

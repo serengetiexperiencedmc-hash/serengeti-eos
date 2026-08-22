@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useEosSession } from "@/components/commercial/EosSessionProvider";
 import { Btn, Card, PageHeader } from "@/components/commercial/ui";
 import {
+  assignDeadLetterOwner,
   executeEventReplay,
   getNatsConsumerLag,
   listDeadLetters,
@@ -38,6 +39,10 @@ export default function EventsInfrastructurePage() {
   const { token, ready } = useEosSession();
   const [metrics, setMetrics] = useState<NatsLagMetrics | null>(null);
   const [dlq, setDlq] = useState<DeadLetterItem[]>([]);
+  const [owners, setOwners] = useState<string[]>([]);
+  const [ownerFilter, setOwnerFilter] = useState<"all" | "unassigned" | string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [assignDraft, setAssignDraft] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -45,10 +50,19 @@ export default function EventsInfrastructurePage() {
 
   const reload = useCallback(async () => {
     if (!token) return;
-    const [lag, letters] = await Promise.all([getNatsConsumerLag(token), listDeadLetters(token)]);
+    const query =
+      ownerFilter === "unassigned"
+        ? { unassigned: true as const, ...(statusFilter ? { status: statusFilter } : {}) }
+        : ownerFilter !== "all"
+          ? { owner: ownerFilter, ...(statusFilter ? { status: statusFilter } : {}) }
+          : statusFilter
+            ? { status: statusFilter }
+            : {};
+    const [lag, letters] = await Promise.all([getNatsConsumerLag(token), listDeadLetters(token, query)]);
     setMetrics(lag);
     setDlq(letters.items);
-  }, [token]);
+    setOwners(letters.owners ?? []);
+  }, [token, ownerFilter, statusFilter]);
 
   useEffect(() => {
     if (!token) return;
@@ -70,7 +84,7 @@ export default function EventsInfrastructurePage() {
     setMsg(null);
     try {
       const req = await requestEventReplay(token, {
-        reason: "Commercial UI replay (I4.10)",
+        reason: "Commercial UI replay (I4.11)",
         intent: "reexecute",
         deadLetterIds: [...selected],
       });
@@ -100,6 +114,22 @@ export default function EventsInfrastructurePage() {
     }
   }
 
+  async function handleAssign(id: string) {
+    if (!token) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const raw = assignDraft[id]?.trim() ?? "";
+      await assignDeadLetterOwner(token, id, raw === "" ? null : raw);
+      setMsg(raw ? `Assigned to ${raw}` : "Cleared owner");
+      await reload();
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : "Assign failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!ready) return null;
 
   const openDlq = dlq.filter((d) => d.status === "failed" || d.status === "investigating" || d.status === "corrected");
@@ -108,9 +138,9 @@ export default function EventsInfrastructurePage() {
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <PageHeader
-        eyebrow="I4 · I4.10 · Events"
+        eyebrow="I4 · I4.11 · Events"
         title="Event Infrastructure"
-        subtitle="NATS lag, DLQ remediation, and controlled replay"
+        subtitle="NATS lag, DLQ owner filters, remediation, and controlled replay"
         actions={
           token && selected.size > 0 ? (
             <Btn disabled={busy} onClick={() => void handleReplay()}>
@@ -128,19 +158,60 @@ export default function EventsInfrastructurePage() {
       <div className="mt-6">
         <Card title={`Dead letter queue (${openDlq.length} open / ${dlq.length} total)`}>
           <p className="mb-3 text-sm text-muted">
-            Advance remediation statuses, then replay failed/corrected entries (I4.10).
+            Filter by owner/status, assign owners, remediate, then replay (I4.11).
           </p>
+          <div className="mb-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              className={`rounded-full border px-3 py-1 text-xs ${ownerFilter === "all" ? "border-ink bg-ink text-paper" : "border-line"}`}
+              onClick={() => setOwnerFilter("all")}
+            >
+              All owners
+            </button>
+            <button
+              type="button"
+              className={`rounded-full border px-3 py-1 text-xs ${ownerFilter === "unassigned" ? "border-ink bg-ink text-paper" : "border-line"}`}
+              onClick={() => setOwnerFilter("unassigned")}
+            >
+              Unassigned
+            </button>
+            {owners.map((o) => (
+              <button
+                key={o}
+                type="button"
+                className={`rounded-full border px-3 py-1 text-xs ${ownerFilter === o ? "border-ink bg-ink text-paper" : "border-line"}`}
+                onClick={() => setOwnerFilter(o)}
+              >
+                {o}
+              </button>
+            ))}
+            <select
+              className="rounded border border-line bg-paper px-2 py-1 text-xs"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="">All statuses</option>
+              {["failed", "investigating", "corrected", "replay_approved", "replayed", "resolved", "permanently_rejected", "closed"].map(
+                (s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ),
+              )}
+            </select>
+          </div>
           {dlq.length === 0 ? (
             <p className="text-sm text-muted">No dead letters.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px] text-left text-sm">
+              <table className="w-full min-w-[820px] text-left text-sm">
                 <thead>
                   <tr className="border-b border-line text-muted">
                     <th className="py-2 pr-3" />
                     <th className="py-2 pr-3">Event</th>
                     <th className="py-2 pr-3">Consumer</th>
                     <th className="py-2 pr-3">Status</th>
+                    <th className="py-2 pr-3">Owner</th>
                     <th className="py-2 pr-3">Attempts</th>
                     <th className="py-2 pr-3">Failure</th>
                     <th className="py-2">Actions</th>
@@ -164,6 +235,29 @@ export default function EventsInfrastructurePage() {
                       </td>
                       <td className="py-2 pr-3">{d.consumer}</td>
                       <td className="py-2 pr-3 capitalize">{d.status.replace(/_/g, " ")}</td>
+                      <td className="py-2 pr-3">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs text-muted">{d.owner ?? "—"}</span>
+                          <div className="flex gap-1">
+                            <input
+                              className="w-24 rounded border border-line px-1 py-0.5 text-xs"
+                              placeholder="owner"
+                              value={assignDraft[d.id] ?? d.owner ?? ""}
+                              onChange={(e) =>
+                                setAssignDraft((prev) => ({ ...prev, [d.id]: e.target.value }))
+                              }
+                            />
+                            <button
+                              type="button"
+                              disabled={busy}
+                              className="rounded border border-line px-1.5 py-0.5 text-xs hover:bg-sand disabled:opacity-50"
+                              onClick={() => void handleAssign(d.id)}
+                            >
+                              Set
+                            </button>
+                          </div>
+                        </div>
+                      </td>
                       <td className="py-2 pr-3">{d.attempts}</td>
                       <td className="py-2 pr-3 text-muted">{d.failureReason}</td>
                       <td className="py-2">

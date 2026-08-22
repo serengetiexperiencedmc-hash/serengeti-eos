@@ -25,6 +25,7 @@ import {
   listEmailAllowlist,
   addEmailAllowlist,
   revokeEmailAllowlist,
+  exportEmailAllowlist,
   type EmailDeliveryAnalytics,
   type EmailDeliveryEventItem,
   type EmailOutboxItem,
@@ -42,6 +43,7 @@ export default function NotificationsPage() {
   const [allowlist, setAllowlist] = useState<EmailAllowlistItem[]>([]);
   const [allowlistEmail, setAllowlistEmail] = useState("");
   const [allowlistNote, setAllowlistNote] = useState("");
+  const [allowlistExpires, setAllowlistExpires] = useState("");
   const [selectedSuppressions, setSelectedSuppressions] = useState<Set<string>>(new Set());
   const [importCsv, setImportCsv] = useState("");
   const [deliveryEvents, setDeliveryEvents] = useState<EmailDeliveryEventItem[]>([]);
@@ -206,7 +208,7 @@ export default function NotificationsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="I3 · I3.14 · Notifications"
+        eyebrow="I3 · I3.15 · Notifications"
         title="Action Inbox"
         subtitle={`Live alerts + email digest · adapter: ${adapter}`}
         actions={
@@ -390,8 +392,32 @@ export default function NotificationsPage() {
       <div className="mt-4">
         <Card title={`Transactional allowlist (${allowlist.length})`}>
           <p className="mb-3 text-sm text-muted">
-            Allowlisted addresses bypass active suppressions for critical transactional mail (I3.14).
+            Allowlisted addresses bypass suppressions until expiry or revoke (I3.15).
           </p>
+          {token && (
+            <div className="mb-3 flex flex-wrap gap-2">
+              <Btn
+                variant="secondary"
+                size="sm"
+                onClick={() =>
+                  void exportEmailAllowlist(token, { format: "csv", includeExpired: true, includeRevoked: true })
+                    .then((res) => {
+                      const blob = new Blob([res.csv ?? ""], { type: "text/csv" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `allowlist-${res.generatedAt.slice(0, 10)}.csv`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                      setSyncMsg(`Exported ${res.count} allowlist row(s)`);
+                    })
+                    .catch((err) => setError(err instanceof Error ? err.message : "Export failed"))
+                }
+              >
+                Export audit CSV
+              </Btn>
+            </div>
+          )}
           {token && (
             <form
               className="mb-3 flex flex-wrap gap-2"
@@ -401,10 +427,14 @@ export default function NotificationsPage() {
                 void addEmailAllowlist(token, {
                   email: allowlistEmail.trim(),
                   ...(allowlistNote.trim() ? { note: allowlistNote.trim() } : {}),
+                  ...(allowlistExpires.trim()
+                    ? { expiresAt: new Date(allowlistExpires).toISOString() }
+                    : {}),
                 })
                   .then(() => {
                     setAllowlistEmail("");
                     setAllowlistNote("");
+                    setAllowlistExpires("");
                     return reload();
                   })
                   .catch((err) => setError(err instanceof Error ? err.message : "Allowlist failed"));
@@ -424,6 +454,13 @@ export default function NotificationsPage() {
                 onChange={(e) => setAllowlistNote(e.target.value)}
                 className="min-w-[8rem] flex-1 rounded border border-line bg-paper px-2 py-1.5 text-sm"
               />
+              <input
+                type="datetime-local"
+                value={allowlistExpires}
+                onChange={(e) => setAllowlistExpires(e.target.value)}
+                className="rounded border border-line bg-paper px-2 py-1.5 text-sm"
+                title="Optional expiry"
+              />
               <Btn type="submit" size="sm" variant="secondary">
                 Add
               </Btn>
@@ -436,6 +473,7 @@ export default function NotificationsPage() {
                   <div className="font-medium text-ink">{a.email}</div>
                   <div className="text-xs text-muted">
                     {a.note ? `${a.note} · ` : ""}
+                    {a.expiresAt ? `expires ${new Date(a.expiresAt).toLocaleString()} · ` : ""}
                     {new Date(a.createdAt).toLocaleString()}
                   </div>
                 </div>

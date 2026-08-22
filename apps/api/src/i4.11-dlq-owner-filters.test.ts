@@ -15,15 +15,15 @@ async function loginCarol(app: ReturnType<typeof buildServer>) {
   return res.json().accessToken as string;
 }
 
-describe("I4.10 DLQ remediation statuses", () => {
-  it("advances DLQ lifecycle via PATCH and banners I4.10", async () => {
-    const store = seedStore("i410-dlq", TEST_BOOTSTRAP_SECRETS);
+describe("I4.11 DLQ owner assignment and filters", () => {
+  it("assigns owner and filters DLQ list", async () => {
+    const store = seedStore("i411-dlq", TEST_BOOTSTRAP_SECRETS);
     const carol = allPrincipals(store).find((p) => p.email === "carol.admin@sedmc.local")!;
     commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",
-      correlationId: "i410-1",
+      correlationId: "i411-1",
       mutate: () => undefined,
     });
     const eventId = store.outboxEvents[0]!.envelope.eventId;
@@ -35,38 +35,40 @@ describe("I4.10 DLQ remediation statuses", () => {
     const app = buildServer({ store });
     const token = await loginCarol(app);
 
-    const listed = await app.inject({
+    const assigned = await app.inject({
+      method: "PATCH",
+      url: `/v1/events/dlq/${dlqId}`,
+      headers: { authorization: `Bearer ${token}` },
+      payload: { owner: "ops-oncall" },
+    });
+    expect(assigned.statusCode).toBe(200);
+    expect(assigned.json().increment).toBe("I4.11");
+    expect(assigned.json().deadLetter.owner).toBe("ops-oncall");
+
+    const byOwner = await app.inject({
       method: "GET",
-      url: "/v1/events/dlq",
+      url: "/v1/events/dlq?owner=ops-oncall",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(listed.json().increment).toBe("I4.11");
+    expect(byOwner.statusCode).toBe(200);
+    expect(byOwner.json().increment).toBe("I4.11");
+    expect(byOwner.json().items).toHaveLength(1);
+    expect(byOwner.json().owners).toContain("ops-oncall");
 
-    const investigating = await app.inject({
+    const unassigned = await app.inject({
+      method: "GET",
+      url: "/v1/events/dlq?unassigned=1",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(unassigned.json().items).toHaveLength(0);
+
+    const cleared = await app.inject({
       method: "PATCH",
       url: `/v1/events/dlq/${dlqId}`,
       headers: { authorization: `Bearer ${token}` },
-      payload: { status: "investigating", remediation: "Checking transport" },
+      payload: { owner: null },
     });
-    expect(investigating.statusCode).toBe(200);
-    expect(investigating.json().increment).toBe("I4.11");
-    expect(investigating.json().deadLetter.status).toBe("investigating");
-
-    const bad = await app.inject({
-      method: "PATCH",
-      url: `/v1/events/dlq/${dlqId}`,
-      headers: { authorization: `Bearer ${token}` },
-      payload: { status: "resolved" },
-    });
-    expect(bad.statusCode).toBe(400);
-
-    const corrected = await app.inject({
-      method: "PATCH",
-      url: `/v1/events/dlq/${dlqId}`,
-      headers: { authorization: `Bearer ${token}` },
-      payload: { status: "corrected" },
-    });
-    expect(corrected.statusCode).toBe(200);
-    expect(store.deadLetters.find((d) => d.id === dlqId)?.status).toBe("corrected");
+    expect(cleared.statusCode).toBe(200);
+    expect(cleared.json().deadLetter.owner).toBeUndefined();
   });
 });

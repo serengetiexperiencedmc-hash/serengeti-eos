@@ -155,16 +155,24 @@ export type EmailAllowlistItem = {
   email: string;
   note?: string;
   createdAt: string;
+  expiresAt?: string;
+  revokedAt?: string;
 };
 
-export async function listEmailAllowlist(token: string) {
+export async function listEmailAllowlist(token: string, options: { includeExpired?: boolean } = {}) {
+  const params = new URLSearchParams();
+  if (options.includeExpired) params.set("includeExpired", "1");
+  const qs = params.toString();
   return eosFetch<{ items: EmailAllowlistItem[]; increment: string }>(
-    "/v1/notifications/email/allowlist",
+    `/v1/notifications/email/allowlist${qs ? `?${qs}` : ""}`,
     { token },
   );
 }
 
-export async function addEmailAllowlist(token: string, input: { email: string; note?: string }) {
+export async function addEmailAllowlist(
+  token: string,
+  input: { email: string; note?: string; expiresAt?: string | null },
+) {
   return eosFetch<{ entry: EmailAllowlistItem; updated: boolean; increment: string }>(
     "/v1/notifications/email/allowlist",
     { token, method: "POST", body: JSON.stringify(input) },
@@ -176,6 +184,24 @@ export async function revokeEmailAllowlist(token: string, id: string) {
     `/v1/notifications/email/allowlist/${id}/revoke`,
     { token, method: "POST", body: "{}" },
   );
+}
+
+export async function exportEmailAllowlist(
+  token: string,
+  options: { format?: "json" | "csv"; includeExpired?: boolean; includeRevoked?: boolean } = {},
+) {
+  const params = new URLSearchParams();
+  params.set("format", options.format ?? "csv");
+  if (options.includeExpired) params.set("includeExpired", "1");
+  if (options.includeRevoked) params.set("includeRevoked", "1");
+  return eosFetch<{
+    format: "json" | "csv";
+    items?: EmailAllowlistItem[];
+    csv?: string;
+    count: number;
+    generatedAt: string;
+    increment: string;
+  }>(`/v1/notifications/email/allowlist/export?${params.toString()}`, { token });
 }
 
 export type EmailDeliveryAnalytics = {

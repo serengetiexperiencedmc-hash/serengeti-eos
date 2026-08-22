@@ -34,7 +34,7 @@ describe("I3.12 suppression export and delivery audit", () => {
 
     const json = exportEmailSuppressions(store, carol, { format: "json" });
     expect("items" in json && json.count).toBe(1);
-    expect("increment" in json && json.increment).toBe("I3.14");
+    expect("increment" in json && json.increment).toBe("I3.15");
 
     const withLifted = exportEmailSuppressions(store, carol, { format: "csv", includeLifted: true });
     expect("csv" in withLifted && withLifted.count).toBe(2);
@@ -102,7 +102,7 @@ describe("I3.12 suppression export and delivery audit", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(exported.statusCode).toBe(200);
-    expect(exported.json().increment).toBe("I3.14");
+    expect(exported.json().increment).toBe("I3.15");
     expect(exported.json().count).toBe(1);
 
     const health = await app.inject({
@@ -110,6 +110,6 @@ describe("I3.12 suppression export and delivery audit", () => {
       url: "/v1/notifications/email/health",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(health.json().increment).toBe("I3.14");
+    expect(health.json().increment).toBe("I3.15");
   });
 });

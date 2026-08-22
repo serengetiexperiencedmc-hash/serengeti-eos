@@ -27,7 +27,7 @@ describe("I3.14 email allowlist transactional override", () => {
       email: "vip@example.com",
       note: "Transactional override",
     });
-    expect("entry" in added && added.increment).toBe("I3.14");
+    expect("entry" in added && added.increment).toBe("I3.15");
     expect(isEmailSuppressed(store, carol.tenantId, "vip@example.com")).toBe(false);
   });
 
@@ -48,7 +48,7 @@ describe("I3.14 email allowlist transactional override", () => {
       payload: { email: "ops@example.com", note: "Ops digests" },
     });
     expect(created.statusCode).toBe(201);
-    expect(created.json().increment).toBe("I3.14");
+    expect(created.json().increment).toBe("I3.15");
     const id = created.json().entry.id as string;
 
     const listed = await app.inject({
@@ -71,7 +71,7 @@ describe("I3.14 email allowlist transactional override", () => {
       url: "/v1/notifications/email/health",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(health.json().increment).toBe("I3.14");
+    expect(health.json().increment).toBe("I3.15");
     expect(health.json().allowlistCount).toBe(0);
   });
 });

@@ -692,7 +692,13 @@ export function replayDeadLetter(
 export function listDeadLetters(
   store: Store,
   principal: Principal,
-): { ok: true; items: DeadLetterRecord[] } | { ok: false; reason: string } {
+  query: { owner?: string; status?: string; unassigned?: boolean } = {},
+): {
+  ok: true;
+  items: DeadLetterRecord[];
+  owners: string[];
+  increment: "I4.11";
+} | { ok: false; reason: string } {
   ensureOutboxCollections(store);
   const decision = authorize({
     principal,
@@ -703,10 +709,23 @@ export function listDeadLetters(
     bumpMetric(store, "authorizationFailures");
     return { ok: false, reason: decision.reason };
   }
-  return {
-    ok: true,
-    items: store.deadLetters.filter((d) => d.tenantId === principal.tenantId),
-  };
+
+  let items = store.deadLetters.filter((d) => d.tenantId === principal.tenantId);
+  const owners = [
+    ...new Set(items.map((d) => d.owner).filter((o): o is string => Boolean(o?.trim()))),
+  ].sort((a, b) => a.localeCompare(b));
+
+  if (query.unassigned) {
+    items = items.filter((d) => !d.owner?.trim());
+  } else if (query.owner?.trim()) {
+    const owner = query.owner.trim().toLowerCase();
+    items = items.filter((d) => (d.owner ?? "").toLowerCase() === owner);
+  }
+  if (query.status?.trim()) {
+    items = items.filter((d) => d.status === query.status);
+  }
+
+  return { ok: true, items, owners, increment: "I4.11" as const };
 }
 
 const DLQ_TRANSITIONS: Record<DlqLifecycleStatus, DlqLifecycleStatus[]> = {
@@ -720,13 +739,56 @@ const DLQ_TRANSITIONS: Record<DlqLifecycleStatus, DlqLifecycleStatus[]> = {
   closed: [],
 };
 
+/** I4.11 — assign/clear owner without requiring a status transition. */
+export function assignDeadLetterOwner(
+  store: Store,
+  principal: Principal,
+  id: string,
+  input: { owner: string | null },
+  correlationId: string,
+): { ok: true; deadLetter: DeadLetterRecord; increment: "I4.11" } | { ok: false; reason: string } {
+  ensureOutboxCollections(store);
+  const decision = authorize({
+    principal,
+    permission: "events:replay:outbox",
+    action: "assign:dlq_owner",
+  });
+  if (decision.result === "deny") {
+    bumpMetric(store, "authorizationFailures");
+    return { ok: false, reason: decision.reason };
+  }
+
+  const dlq = store.deadLetters.find((d) => d.id === id && d.tenantId === principal.tenantId);
+  if (!dlq) return { ok: false, reason: "not_found" };
+
+  const previous = { owner: dlq.owner };
+  if (input.owner === null || input.owner.trim() === "") delete dlq.owner;
+  else dlq.owner = input.owner.trim();
+
+  recordAudit(store, {
+    tenantId: principal.tenantId,
+    occurredAt: new Date().toISOString(),
+    actorType: principal.actorType,
+    actorPrincipalId: principal.id,
+    action: "events:dlq:assign_owner",
+    resourceType: "dead_letter",
+    resourceId: dlq.id,
+    correlationId,
+    authorization: "allow",
+    previousState: previous,
+    newState: { owner: dlq.owner },
+  });
+
+  return { ok: true, deadLetter: dlq, increment: "I4.11" as const };
+}
+
 export function updateDeadLetterRemediation(
   store: Store,
   principal: Principal,
   id: string,
   input: { status: DlqLifecycleStatus; owner?: string | null; remediation?: string | null },
   correlationId: string,
-): { ok: true; deadLetter: DeadLetterRecord; increment: "I4.10" } | { ok: false; reason: string } {
+): { ok: true; deadLetter: DeadLetterRecord; increment: "I4.11" } | { ok: false; reason: string } {
   ensureOutboxCollections(store);
   const decision = authorize({
     principal,
@@ -771,7 +833,7 @@ export function updateDeadLetterRemediation(
     newState: { status: dlq.status, owner: dlq.owner, remediation: dlq.remediation },
   });
 
-  return { ok: true, deadLetter: dlq, increment: "I4.10" as const };
+  return { ok: true, deadLetter: dlq, increment: "I4.11" as const };
 }
 
 export function getOrderedPublishedEvents(
