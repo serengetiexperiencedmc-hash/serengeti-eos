@@ -1,3 +1,4 @@
+import type { DbPool } from "@sedmc/db";
 import {
   chainAudit,
   hashPassword,
@@ -76,6 +77,7 @@ import {
   type OpsVoucher,
   type NotifDismissal,
   type NotifEmailOutboxEntry,
+  type EmailTemplate,
 } from "@sedmc/kernel";
 import { seedCrmCatalogues } from "./crm/collections.js";
 
@@ -190,6 +192,9 @@ export type Store = {
   opsVouchers: OpsVoucher[];
   notifDismissals: NotifDismissal[];
   notifEmailOutbox: NotifEmailOutboxEntry[];
+  notifEmailTemplates: Array<EmailTemplate & { tenantId: string }>;
+  /** Optional PostgreSQL pool for dual-write persistence (PG.1+) */
+  dbPool?: DbPool;
 };
 
 const CRM_PERMS = [
@@ -776,6 +781,7 @@ export function seedStore(
     opsVouchers: [],
     notifDismissals: [],
     notifEmailOutbox: [],
+    notifEmailTemplates: [],
   };
   seedCrmCatalogues(store, tenantId);
   return store;

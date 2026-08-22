@@ -24,6 +24,7 @@ Status values: `proposed` (needs human approval), `accepted` (approved), `supers
 | [ADR-0014](ADR-0014-defensive-security-only.md) | Defensive security only | accepted for Development |
 | [ADR-0015](ADR-0015-identity-secrets-abstraction.md) | Identity & secrets abstraction | accepted for Development |
 | [ADR-0016](ADR-0016-workflow-rules-kernel.md) | Embedded Workflow + Rules kernel (I2) | accepted for Development |
+| [ADR-0017](ADR-0017-persistence-increment-boundary.md) | Persistence increment boundary (PG.1) | accepted for Development |
 
 ## Open assumptions (not silently decided)
 

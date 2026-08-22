@@ -301,3 +301,65 @@ export async function assertTenantIsolation(
   );
   return { ok: (cross.rows[0]?.c ?? 0) === 0 };
 }
+
+export async function insertNotifDismissal(
+  pool: DbPool,
+  entry: { id: string; tenantId: string; principalId: string; notificationKey: string; dismissedAt: string },
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO notif_dismissals (id, tenant_id, principal_id, notification_key, dismissed_at)
+     VALUES ($1, $2, $3, $4, $5)
+     ON CONFLICT (tenant_id, principal_id, notification_key) DO NOTHING`,
+    [entry.id, entry.tenantId, entry.principalId, entry.notificationKey, entry.dismissedAt],
+  );
+}
+
+export async function insertNotifEmailOutbox(
+  pool: DbPool,
+  entry: {
+    id: string;
+    tenantId: string;
+    principalId: string;
+    notificationKey: string;
+    to: string;
+    subject: string;
+    bodyText: string;
+    templateKey: string;
+    status: string;
+    adapter: string;
+    sentAt?: string;
+    createdAt: string;
+  },
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO notif_email_outbox (
+      id, tenant_id, principal_id, notification_key, recipient_email,
+      subject, body_text, template_key, status, adapter, sent_at, created_at
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+     ON CONFLICT (tenant_id, principal_id, notification_key) DO NOTHING`,
+    [
+      entry.id,
+      entry.tenantId,
+      entry.principalId,
+      entry.notificationKey,
+      entry.to,
+      entry.subject,
+      entry.bodyText,
+      entry.templateKey,
+      entry.status,
+      entry.adapter,
+      entry.sentAt ?? null,
+      entry.createdAt,
+    ],
+  );
+}
+
+export async function countNotifEmailOutbox(pool: DbPool, tenantId: string): Promise<number> {
+  const result = await pool.query(`SELECT COUNT(*)::int AS c FROM notif_email_outbox WHERE tenant_id = $1`, [tenantId]);
+  return result.rows[0]?.c ?? 0;
+}
+
+export async function countNotifDismissals(pool: DbPool, tenantId: string): Promise<number> {
+  const result = await pool.query(`SELECT COUNT(*)::int AS c FROM notif_dismissals WHERE tenant_id = $1`, [tenantId]);
+  return result.rows[0]?.c ?? 0;
+}

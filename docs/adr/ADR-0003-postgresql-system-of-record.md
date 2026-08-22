@@ -1,6 +1,6 @@
 # ADR-0003 — PostgreSQL as system of record
 
-- Status: **proposed**
+- Status: **accepted for Development**
 - Date: 2026-08-21
 
 ## Decision

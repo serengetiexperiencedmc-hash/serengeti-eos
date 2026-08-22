@@ -29,7 +29,8 @@ if (databaseUrl) {
   const migrated = await migrate(pool);
   logger.info("database_migrated", { applied: migrated.applied });
   await syncStoreToPostgres(pool, store);
-  logger.info("database_seed_synced", { mode: "development_bootstrap" });
+  store.dbPool = pool;
+  logger.info("database_seed_synced", { mode: "development_bootstrap", pgDualWrite: "I3-PG.1" });
   dbHealth = () => checkDatabaseHealth(pool);
 } else {
   logger.warn("database_url_missing", {
