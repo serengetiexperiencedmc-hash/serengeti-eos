@@ -689,15 +689,26 @@ export function replayDeadLetter(
   return { ok: true, deadLetter: dlq };
 }
 
+export const DLQ_SLA_THRESHOLD_HOURS = 24;
+
 export function listDeadLetters(
   store: Store,
   principal: Principal,
-  query: { owner?: string; status?: string; unassigned?: boolean } = {},
+  query: {
+    owner?: string;
+    status?: string;
+    unassigned?: boolean;
+    minAgeHours?: number;
+    maxAgeHours?: number;
+    slaBreached?: boolean;
+    slaHours?: number;
+  } = {},
 ): {
   ok: true;
-  items: DeadLetterRecord[];
+  items: Array<DeadLetterRecord & { ageHours: number; slaBreached: boolean }>;
   owners: string[];
-  increment: "I4.12";
+  sla: { thresholdHours: number; breachedCount: number; openCount: number };
+  increment: "I4.13";
 } | { ok: false; reason: string } {
   ensureOutboxCollections(store);
   const decision = authorize({
@@ -709,6 +720,10 @@ export function listDeadLetters(
     bumpMetric(store, "authorizationFailures");
     return { ok: false, reason: decision.reason };
   }
+
+  const thresholdHours =
+    typeof query.slaHours === "number" && query.slaHours > 0 ? query.slaHours : DLQ_SLA_THRESHOLD_HOURS;
+  const now = Date.now();
 
   let items = store.deadLetters.filter((d) => d.tenantId === principal.tenantId);
   const owners = [
@@ -725,7 +740,42 @@ export function listDeadLetters(
     items = items.filter((d) => d.status === query.status);
   }
 
-  return { ok: true, items, owners, increment: "I4.12" as const };
+  const enriched = items.map((d) => {
+    const ageMs = Math.max(0, now - new Date(d.firstFailureAt).getTime());
+    const ageHours = ageMs / 3_600_000;
+    const open = d.status !== "closed" && d.status !== "resolved";
+    return {
+      ...d,
+      ageHours: Math.round(ageHours * 10) / 10,
+      slaBreached: open && ageHours >= thresholdHours,
+    };
+  });
+
+  let filtered = enriched;
+  if (typeof query.minAgeHours === "number" && query.minAgeHours >= 0) {
+    filtered = filtered.filter((d) => d.ageHours >= query.minAgeHours!);
+  }
+  if (typeof query.maxAgeHours === "number" && query.maxAgeHours >= 0) {
+    filtered = filtered.filter((d) => d.ageHours <= query.maxAgeHours!);
+  }
+  if (query.slaBreached) {
+    filtered = filtered.filter((d) => d.slaBreached);
+  }
+
+  const openAll = enriched.filter((d) => d.status !== "closed" && d.status !== "resolved");
+  const breachedCount = openAll.filter((d) => d.slaBreached).length;
+
+  return {
+    ok: true,
+    items: filtered,
+    owners,
+    sla: {
+      thresholdHours,
+      breachedCount,
+      openCount: openAll.length,
+    },
+    increment: "I4.13" as const,
+  };
 }
 
 const DLQ_TRANSITIONS: Record<DlqLifecycleStatus, DlqLifecycleStatus[]> = {
@@ -746,7 +796,7 @@ export function assignDeadLetterOwner(
   id: string,
   input: { owner: string | null },
   correlationId: string,
-): { ok: true; deadLetter: DeadLetterRecord; increment: "I4.12" } | { ok: false; reason: string } {
+): { ok: true; deadLetter: DeadLetterRecord; increment: "I4.13" } | { ok: false; reason: string } {
   ensureOutboxCollections(store);
   const decision = authorize({
     principal,
@@ -779,7 +829,7 @@ export function assignDeadLetterOwner(
     newState: { owner: dlq.owner },
   });
 
-  return { ok: true, deadLetter: dlq, increment: "I4.12" as const };
+  return { ok: true, deadLetter: dlq, increment: "I4.13" as const };
 }
 
 /** I4.12 — assign/clear owner on many DLQ rows in one call. */
@@ -788,7 +838,7 @@ export function bulkAssignDeadLetterOwners(
   principal: Principal,
   input: { ids: string[]; owner: string | null },
   correlationId: string,
-): { ok: true; updated: number; notFound: string[]; increment: "I4.12" } | { ok: false; reason: string } {
+): { ok: true; updated: number; notFound: string[]; increment: "I4.13" } | { ok: false; reason: string } {
   ensureOutboxCollections(store);
   const decision = authorize({
     principal,
@@ -815,7 +865,7 @@ export function bulkAssignDeadLetterOwners(
     updated += 1;
   }
 
-  return { ok: true, updated, notFound, increment: "I4.12" as const };
+  return { ok: true, updated, notFound, increment: "I4.13" as const };
 }
 
 export function updateDeadLetterRemediation(
@@ -824,7 +874,7 @@ export function updateDeadLetterRemediation(
   id: string,
   input: { status: DlqLifecycleStatus; owner?: string | null; remediation?: string | null },
   correlationId: string,
-): { ok: true; deadLetter: DeadLetterRecord; increment: "I4.12" } | { ok: false; reason: string } {
+): { ok: true; deadLetter: DeadLetterRecord; increment: "I4.13" } | { ok: false; reason: string } {
   ensureOutboxCollections(store);
   const decision = authorize({
     principal,
@@ -869,7 +919,7 @@ export function updateDeadLetterRemediation(
     newState: { status: dlq.status, owner: dlq.owner, remediation: dlq.remediation },
   });
 
-  return { ok: true, deadLetter: dlq, increment: "I4.12" as const };
+  return { ok: true, deadLetter: dlq, increment: "I4.13" as const };
 }
 
 export function getOrderedPublishedEvents(

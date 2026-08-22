@@ -43,6 +43,12 @@ export default function EventsInfrastructurePage() {
   const [owners, setOwners] = useState<string[]>([]);
   const [ownerFilter, setOwnerFilter] = useState<"all" | "unassigned" | string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("");
+  const [slaOnly, setSlaOnly] = useState(false);
+  const [slaSummary, setSlaSummary] = useState<{
+    thresholdHours: number;
+    breachedCount: number;
+    openCount: number;
+  } | null>(null);
   const [assignDraft, setAssignDraft] = useState<Record<string, string>>({});
   const [bulkOwner, setBulkOwner] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -52,19 +58,21 @@ export default function EventsInfrastructurePage() {
 
   const reload = useCallback(async () => {
     if (!token) return;
-    const query =
-      ownerFilter === "unassigned"
-        ? { unassigned: true as const, ...(statusFilter ? { status: statusFilter } : {}) }
+    const query = {
+      ...(ownerFilter === "unassigned"
+        ? { unassigned: true as const }
         : ownerFilter !== "all"
-          ? { owner: ownerFilter, ...(statusFilter ? { status: statusFilter } : {}) }
-          : statusFilter
-            ? { status: statusFilter }
-            : {};
+          ? { owner: ownerFilter }
+          : {}),
+      ...(statusFilter ? { status: statusFilter } : {}),
+      ...(slaOnly ? { slaBreached: true as const } : {}),
+    };
     const [lag, letters] = await Promise.all([getNatsConsumerLag(token), listDeadLetters(token, query)]);
     setMetrics(lag);
     setDlq(letters.items);
     setOwners(letters.owners ?? []);
-  }, [token, ownerFilter, statusFilter]);
+    setSlaSummary(letters.sla ?? null);
+  }, [token, ownerFilter, statusFilter, slaOnly]);
 
   useEffect(() => {
     if (!token) return;
@@ -86,7 +94,7 @@ export default function EventsInfrastructurePage() {
     setMsg(null);
     try {
       const req = await requestEventReplay(token, {
-        reason: "Commercial UI replay (I4.12)",
+        reason: "Commercial UI replay (I4.13)",
         intent: "reexecute",
         deadLetterIds: [...selected],
       });
@@ -163,9 +171,9 @@ export default function EventsInfrastructurePage() {
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <PageHeader
-        eyebrow="I4 · I4.12 · Events"
+        eyebrow="I4 · I4.13 · Events"
         title="Event Infrastructure"
-        subtitle="NATS lag, DLQ bulk owner assign, remediation, and controlled replay"
+        subtitle="NATS lag, DLQ SLA age filters, bulk owner assign, and controlled replay"
         actions={
           token && selected.size > 0 ? (
             <div className="flex flex-wrap items-center gap-2">
@@ -194,7 +202,10 @@ export default function EventsInfrastructurePage() {
       <div className="mt-6">
         <Card title={`Dead letter queue (${openDlq.length} open / ${dlq.length} total)`}>
           <p className="mb-3 text-sm text-muted">
-            Filter by owner/status, bulk-assign owners, remediate, then replay (I4.12).
+            Filter by owner/status/SLA age, bulk-assign owners, remediate, then replay (I4.13).
+            {slaSummary
+              ? ` · SLA ${slaSummary.thresholdHours}h: ${slaSummary.breachedCount}/${slaSummary.openCount} open breached`
+              : ""}
           </p>
           <div className="mb-3 flex flex-wrap gap-2">
             <button
@@ -221,6 +232,13 @@ export default function EventsInfrastructurePage() {
                 {o}
               </button>
             ))}
+            <button
+              type="button"
+              className={`rounded-full border px-3 py-1 text-xs ${slaOnly ? "border-rose-700 bg-rose-700 text-white" : "border-line"}`}
+              onClick={() => setSlaOnly((v) => !v)}
+            >
+              SLA breached
+            </button>
             <select
               className="rounded border border-line bg-paper px-2 py-1 text-xs"
               value={statusFilter}
@@ -247,6 +265,7 @@ export default function EventsInfrastructurePage() {
                     <th className="py-2 pr-3">Event</th>
                     <th className="py-2 pr-3">Consumer</th>
                     <th className="py-2 pr-3">Status</th>
+                    <th className="py-2 pr-3">Age</th>
                     <th className="py-2 pr-3">Owner</th>
                     <th className="py-2 pr-3">Attempts</th>
                     <th className="py-2 pr-3">Failure</th>
@@ -269,6 +288,10 @@ export default function EventsInfrastructurePage() {
                       </td>
                       <td className="py-2 pr-3">{d.consumer}</td>
                       <td className="py-2 pr-3 capitalize">{d.status.replace(/_/g, " ")}</td>
+                      <td className={`py-2 pr-3 ${d.slaBreached ? "font-medium text-rose-700" : "text-muted"}`}>
+                        {d.ageHours !== undefined ? `${d.ageHours}h` : "—"}
+                        {d.slaBreached ? " · SLA" : ""}
+                      </td>
                       <td className="py-2 pr-3">
                         <div className="flex flex-col gap-1">
                           <span className="text-xs text-muted">{d.owner ?? "—"}</span>

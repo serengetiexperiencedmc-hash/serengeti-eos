@@ -61,7 +61,7 @@ export type NotifEmailSuppression = {
   liftedAt?: string;
 };
 
-/** I3.14/I3.15 — transactional override: allowlisted addresses bypass active suppressions. */
+/** I3.14–I3.16 — transactional override: allowlisted addresses bypass active suppressions. */
 export type NotifEmailAllowlistEntry = {
   id: string;
   tenantId: string;
@@ -72,6 +72,10 @@ export type NotifEmailAllowlistEntry = {
   /** ISO timestamp; when set and past, entry is inactive (I3.15). */
   expiresAt?: string;
   revokedAt?: string;
+  /** Last time SES sync saw this address on the account suppression list (I3.16). */
+  sesNotedAt?: string;
+  /** SES reason captured during sync when allowlisted (I3.16). */
+  sesSyncNote?: string;
 };
 
 export type NotifEmailDeliveryAnalytics = {

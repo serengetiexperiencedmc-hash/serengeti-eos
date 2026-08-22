@@ -74,24 +74,39 @@ export type DeadLetterItem = {
   attempts: number;
   status: string;
   lastFailureAt: string;
+  firstFailureAt?: string;
   replayStatus?: string;
   owner?: string;
   remediation?: string;
+  ageHours?: number;
+  slaBreached?: boolean;
 };
 
 export async function listDeadLetters(
   token: string,
-  query: { owner?: string; status?: string; unassigned?: boolean } = {},
+  query: {
+    owner?: string;
+    status?: string;
+    unassigned?: boolean;
+    minAgeHours?: number;
+    slaBreached?: boolean;
+    slaHours?: number;
+  } = {},
 ) {
   const params = new URLSearchParams();
   if (query.owner) params.set("owner", query.owner);
   if (query.status) params.set("status", query.status);
   if (query.unassigned) params.set("unassigned", "1");
+  if (query.minAgeHours !== undefined) params.set("minAgeHours", String(query.minAgeHours));
+  if (query.slaBreached) params.set("slaBreached", "1");
+  if (query.slaHours !== undefined) params.set("slaHours", String(query.slaHours));
   const qs = params.toString();
-  return eosFetch<{ items: DeadLetterItem[]; owners: string[]; increment: string }>(
-    `/v1/events/dlq${qs ? `?${qs}` : ""}`,
-    { token },
-  );
+  return eosFetch<{
+    items: DeadLetterItem[];
+    owners: string[];
+    sla: { thresholdHours: number; breachedCount: number; openCount: number };
+    increment: string;
+  }>(`/v1/events/dlq${qs ? `?${qs}` : ""}`, { token });
 }
 
 export async function assignDeadLetterOwner(token: string, id: string, owner: string | null) {

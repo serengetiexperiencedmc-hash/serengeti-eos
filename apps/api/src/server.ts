@@ -78,7 +78,7 @@ import {
   type Logger,
 } from "./observability.js";
 
-const VERSION = "0.52.0-pg15-i4.12";
+const VERSION = "0.53.0-i3.16-i4.13";
 
 export type ServerOptions = {
   store?: Store;
@@ -696,14 +696,35 @@ export function buildServer(options: ServerOptions | Store = {}) {
   app.get("/v1/events/dlq", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const query = req.query as { owner?: string; status?: string; unassigned?: string };
+    const query = req.query as {
+      owner?: string;
+      status?: string;
+      unassigned?: string;
+      minAgeHours?: string;
+      maxAgeHours?: string;
+      slaBreached?: string;
+      slaHours?: string;
+    };
     const result = listDeadLetters(store, principal, {
       ...(query.owner !== undefined ? { owner: query.owner } : {}),
       ...(query.status !== undefined ? { status: query.status } : {}),
       ...(query.unassigned === "1" || query.unassigned === "true" ? { unassigned: true } : {}),
+      ...(query.minAgeHours && Number.isFinite(Number(query.minAgeHours))
+        ? { minAgeHours: Number(query.minAgeHours) }
+        : {}),
+      ...(query.maxAgeHours && Number.isFinite(Number(query.maxAgeHours))
+        ? { maxAgeHours: Number(query.maxAgeHours) }
+        : {}),
+      ...(query.slaBreached === "1" || query.slaBreached === "true" ? { slaBreached: true } : {}),
+      ...(query.slaHours && Number.isFinite(Number(query.slaHours)) ? { slaHours: Number(query.slaHours) } : {}),
     });
     if (!result.ok) return reply.code(403).send({ error: "forbidden", reason: result.reason });
-    return { items: result.items, owners: result.owners, increment: result.increment };
+    return {
+      items: result.items,
+      owners: result.owners,
+      sla: result.sla,
+      increment: result.increment,
+    };
   });
 
   app.post("/v1/events/dlq/assign", async (req, reply) => {
@@ -790,7 +811,7 @@ export function buildServer(options: ServerOptions | Store = {}) {
       correlationId: getCorrelationId(req),
     });
     if (!result.ok) return reply.code(403).send({ error: "forbidden", reason: result.reason });
-    return { ...result.request, increment: "I4.12" };
+    return { ...result.request, increment: "I4.13" };
   });
 
   app.post("/v1/events/replay/:id/execute", async (req, reply) => {
@@ -799,7 +820,7 @@ export function buildServer(options: ServerOptions | Store = {}) {
     const { id } = req.params as { id: string };
     const result = executeReplayRequest(store, principal, id, getCorrelationId(req));
     if (!result.ok) return reply.code(403).send({ error: "forbidden", reason: result.reason });
-    return { ...result, increment: "I4.12" };
+    return { ...result, increment: "I4.13" };
   });
 
   app.get("/v1/events/consumers/processed", async (req, reply) => {

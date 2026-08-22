@@ -73,7 +73,7 @@ describe("I3.9 SES email suppression / bounce hygiene", () => {
     expect("items" in listed).toBe(true);
     if (!("items" in listed)) return;
     expect(listed.items).toHaveLength(1);
-    expect(listed.increment).toBe("I3.15");
+    expect(listed.increment).toBe("I3.16");
 
     const app = buildServer({ store });
     const login = await app.inject({
@@ -102,3 +102,4 @@ describe("I3.9 SES email suppression / bounce hygiene", () => {
     expect(isEmailSuppressed(store, carol.tenantId, "blocked@example.com")).toBe(false);
   });
 });
+

@@ -37,7 +37,30 @@ function sanitizeAllowlistEntry(e: NotifEmailAllowlistEntry) {
     createdAt: e.createdAt,
     ...(e.expiresAt ? { expiresAt: e.expiresAt } : {}),
     ...(e.revokedAt ? { revokedAt: e.revokedAt } : {}),
+    ...(e.sesNotedAt ? { sesNotedAt: e.sesNotedAt } : {}),
+    ...(e.sesSyncNote ? { sesSyncNote: e.sesSyncNote } : {}),
   };
+}
+
+/** I3.16 — stamp allowlist entries that also appear on the SES account suppression list. */
+export function noteAllowlistSesOverlap(
+  store: Store,
+  tenantId: string,
+  remote: Array<{ email: string; reason: string }>,
+): Array<{ email: string; sesSyncNote: string }> {
+  ensureNotificationCollections(store);
+  const noted: Array<{ email: string; sesSyncNote: string }> = [];
+  const now = new Date().toISOString();
+  for (const row of remote) {
+    const entry = findActiveAllowlistEntry(store, tenantId, row.email);
+    if (!entry) continue;
+    const sesSyncNote = `SES account suppression (${row.reason}) observed at sync`;
+    entry.sesNotedAt = now;
+    entry.sesSyncNote = sesSyncNote;
+    void persistNotifEmailAllowlist(store.dbPool, entry);
+    noted.push({ email: entry.email, sesSyncNote });
+  }
+  return noted;
 }
 
 export function listEmailAllowlist(
@@ -64,7 +87,7 @@ export function listEmailAllowlist(
     .map(sanitizeAllowlistEntry)
     .sort((a, b) => a.email.localeCompare(b.email));
 
-  return { items, increment: "I3.15" as const };
+  return { items, increment: "I3.16" as const };
 }
 
 export function exportEmailAllowlist(
@@ -97,14 +120,26 @@ export function exportEmailAllowlist(
       expiresAt: e.expiresAt ?? "",
       revokedAt: e.revokedAt ?? "",
       createdByPrincipalId: e.createdByPrincipalId ?? "",
+      sesNotedAt: e.sesNotedAt ?? "",
+      sesSyncNote: e.sesSyncNote ?? "",
     }));
 
   const generatedAt = new Date().toISOString();
   const format = options.format === "csv" ? "csv" : "json";
   if (format === "csv") {
-    const header = "id,email,note,createdAt,expiresAt,revokedAt,createdByPrincipalId";
+    const header = "id,email,note,createdAt,expiresAt,revokedAt,createdByPrincipalId,sesNotedAt,sesSyncNote";
     const rows = items.map((row) =>
-      [row.id, row.email, row.note, row.createdAt, row.expiresAt, row.revokedAt, row.createdByPrincipalId]
+      [
+        row.id,
+        row.email,
+        row.note,
+        row.createdAt,
+        row.expiresAt,
+        row.revokedAt,
+        row.createdByPrincipalId,
+        row.sesNotedAt,
+        row.sesSyncNote,
+      ]
         .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
         .join(","),
     );
@@ -113,7 +148,7 @@ export function exportEmailAllowlist(
       csv: [header, ...rows].join("\n"),
       count: items.length,
       generatedAt,
-      increment: "I3.15" as const,
+      increment: "I3.16" as const,
     };
   }
 
@@ -122,7 +157,7 @@ export function exportEmailAllowlist(
     items,
     count: items.length,
     generatedAt,
-    increment: "I3.15" as const,
+    increment: "I3.16" as const,
   };
 }
 
@@ -159,7 +194,7 @@ export async function addEmailAllowlistEntry(
       else existing.expiresAt = new Date(input.expiresAt).toISOString();
     }
     void persistNotifEmailAllowlist(store.dbPool, existing);
-    return { entry: sanitizeAllowlistEntry(existing), updated: true, increment: "I3.15" as const };
+    return { entry: sanitizeAllowlistEntry(existing), updated: true, increment: "I3.16" as const };
   }
 
   const entry: NotifEmailAllowlistEntry = {
@@ -173,7 +208,7 @@ export async function addEmailAllowlistEntry(
   };
   store.notifEmailAllowlist.push(entry);
   void persistNotifEmailAllowlist(store.dbPool, entry);
-  return { entry: sanitizeAllowlistEntry(entry), updated: false, increment: "I3.15" as const };
+  return { entry: sanitizeAllowlistEntry(entry), updated: false, increment: "I3.16" as const };
 }
 
 export async function revokeEmailAllowlistEntry(store: Store, principal: Principal, id: string) {
@@ -192,5 +227,5 @@ export async function revokeEmailAllowlistEntry(store: Store, principal: Princip
 
   entry.revokedAt = new Date().toISOString();
   void persistNotifEmailAllowlist(store.dbPool, entry);
-  return { entry: sanitizeAllowlistEntry(entry), increment: "I3.15" as const };
+  return { entry: sanitizeAllowlistEntry(entry), increment: "I3.16" as const };
 }

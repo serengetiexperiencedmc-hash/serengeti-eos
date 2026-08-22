@@ -120,7 +120,11 @@ export default function NotificationsPage() {
     setSyncMsg(null);
     try {
       const res = await syncEmailSuppressions(token);
-      setSyncMsg(`Synced SES suppressions · imported ${res.imported}, updated ${res.updated}`);
+      const noted = res.allowlistSesNoted ?? 0;
+      setSyncMsg(
+        `Synced SES suppressions · imported ${res.imported}, updated ${res.updated}` +
+          (noted > 0 ? `, allowlist SES notes ${noted}` : ""),
+      );
       await reload();
     } catch (err) {
       setSyncMsg(err instanceof Error ? err.message : "SES sync unavailable");
@@ -208,7 +212,7 @@ export default function NotificationsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="I3 · I3.15 · Notifications"
+        eyebrow="I3 · I3.16 · Notifications"
         title="Action Inbox"
         subtitle={`Live alerts + email digest · adapter: ${adapter}`}
         actions={
@@ -392,7 +396,7 @@ export default function NotificationsPage() {
       <div className="mt-4">
         <Card title={`Transactional allowlist (${allowlist.length})`}>
           <p className="mb-3 text-sm text-muted">
-            Allowlisted addresses bypass suppressions until expiry or revoke (I3.15).
+            Allowlisted addresses bypass suppressions until expiry or revoke; SES sync stamps overlap notes (I3.16).
           </p>
           {token && (
             <div className="mb-3 flex flex-wrap gap-2">
@@ -474,6 +478,7 @@ export default function NotificationsPage() {
                   <div className="text-xs text-muted">
                     {a.note ? `${a.note} · ` : ""}
                     {a.expiresAt ? `expires ${new Date(a.expiresAt).toLocaleString()} · ` : ""}
+                    {a.sesSyncNote ? `${a.sesSyncNote} · ` : ""}
                     {new Date(a.createdAt).toLocaleString()}
                   </div>
                 </div>

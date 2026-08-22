@@ -29,7 +29,7 @@ describe("I3.10 SES account suppression sync", () => {
     expect(result.imported).toBe(2);
     expect(result.updated).toBe(0);
     expect(result.activeCount).toBe(2);
-    expect(result.increment).toBe("I3.15");
+    expect(result.increment).toBe("I3.16");
 
     const listed = listEmailSuppressions(store, carol);
     expect("items" in listed && listed.items.map((i) => i.email).sort()).toEqual([
@@ -78,7 +78,7 @@ describe("I3.10 SES account suppression sync", () => {
       url: "/v1/notifications/email/health",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(health.json().increment).toBe("I3.15");
+    expect(health.json().increment).toBe("I3.16");
 
     const sync = await app.inject({
       method: "POST",
@@ -109,3 +109,4 @@ describe("I3.10 SES account suppression sync", () => {
     expect(store.notifEmailSuppressions[0]?.reason).toBe("complaint");
   });
 });
+

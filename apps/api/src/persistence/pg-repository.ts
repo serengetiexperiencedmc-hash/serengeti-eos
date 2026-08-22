@@ -451,12 +451,14 @@ export async function upsertNotifEmailAllowlist(
 ): Promise<void> {
   await pool.query(
     `INSERT INTO notif_email_allowlist (
-      id, tenant_id, email, note, created_at, created_by_principal_id, revoked_at, expires_at
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+      id, tenant_id, email, note, created_at, created_by_principal_id, revoked_at, expires_at, ses_noted_at, ses_sync_note
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
      ON CONFLICT (id) DO UPDATE SET
        note = EXCLUDED.note,
        revoked_at = EXCLUDED.revoked_at,
-       expires_at = EXCLUDED.expires_at`,
+       expires_at = EXCLUDED.expires_at,
+       ses_noted_at = EXCLUDED.ses_noted_at,
+       ses_sync_note = EXCLUDED.ses_sync_note`,
     [
       entry.id,
       entry.tenantId,
@@ -466,6 +468,8 @@ export async function upsertNotifEmailAllowlist(
       entry.createdByPrincipalId ?? null,
       entry.revokedAt ?? null,
       entry.expiresAt ?? null,
+      entry.sesNotedAt ?? null,
+      entry.sesSyncNote ?? null,
     ],
   );
 }
@@ -474,7 +478,7 @@ export async function loadNotifEmailAllowlist(
   pool: DbPool,
 ): Promise<import("@sedmc/kernel").NotifEmailAllowlistEntry[]> {
   const result = await pool.query(
-    `SELECT id, tenant_id, email, note, created_at, created_by_principal_id, revoked_at, expires_at
+    `SELECT id, tenant_id, email, note, created_at, created_by_principal_id, revoked_at, expires_at, ses_noted_at, ses_sync_note
      FROM notif_email_allowlist`,
   );
   return result.rows.map((row) => ({
@@ -486,6 +490,8 @@ export async function loadNotifEmailAllowlist(
     ...(row.created_by_principal_id ? { createdByPrincipalId: row.created_by_principal_id as string } : {}),
     ...(row.revoked_at ? { revokedAt: (row.revoked_at as Date).toISOString() } : {}),
     ...(row.expires_at ? { expiresAt: (row.expires_at as Date).toISOString() } : {}),
+    ...(row.ses_noted_at ? { sesNotedAt: (row.ses_noted_at as Date).toISOString() } : {}),
+    ...(row.ses_sync_note ? { sesSyncNote: row.ses_sync_note as string } : {}),
   }));
 }
 

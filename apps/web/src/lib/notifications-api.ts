@@ -88,10 +88,14 @@ export async function liftEmailSuppression(token: string, id: string) {
 }
 
 export async function syncEmailSuppressions(token: string) {
-  return eosFetch<{ imported: number; updated: number; activeCount: number; increment: string }>(
-    "/v1/notifications/email/suppressions/sync",
-    { token, method: "POST", body: "{}" },
-  );
+  return eosFetch<{
+    imported: number;
+    updated: number;
+    activeCount: number;
+    allowlistSesNoted?: number;
+    allowlistSesNotes?: Array<{ email: string; sesSyncNote: string }>;
+    increment: string;
+  }>("/v1/notifications/email/suppressions/sync", { token, method: "POST", body: "{}" });
 }
 
 export type EmailDeliveryEventItem = {
@@ -157,6 +161,8 @@ export type EmailAllowlistItem = {
   createdAt: string;
   expiresAt?: string;
   revokedAt?: string;
+  sesNotedAt?: string;
+  sesSyncNote?: string;
 };
 
 export async function listEmailAllowlist(token: string, options: { includeExpired?: boolean } = {}) {

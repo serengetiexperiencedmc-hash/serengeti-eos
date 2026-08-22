@@ -1,7 +1,7 @@
 import { authorize, newId, type NotifEmailSuppression, type NotifEmailSuppressionReason, type Principal } from "@sedmc/kernel";
 import type { Store } from "../store.js";
 import { ensureNotificationCollections } from "./collections.js";
-import { isEmailAllowlisted } from "./email-allowlist.js";
+import { isEmailAllowlisted, noteAllowlistSesOverlap } from "./email-allowlist.js";
 import { persistNotifEmailSuppression } from "../persistence/notifications.js";
 import {
   createSesSuppressionClientFromEnv,
@@ -94,7 +94,7 @@ export function listEmailSuppressions(store: Store, principal: Principal) {
   const items = (store.notifEmailSuppressions ?? [])
     .filter((s) => s.tenantId === principal.tenantId && !s.liftedAt)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  return { items, increment: "I3.15" as const };
+  return { items, increment: "I3.16" as const };
 }
 
 export function exportEmailSuppressions(
@@ -137,7 +137,7 @@ export function exportEmailSuppressions(
       csv: [header, ...rows].join("\n"),
       count: items.length,
       generatedAt,
-      increment: "I3.15" as const,
+      increment: "I3.16" as const,
     };
   }
 
@@ -146,7 +146,7 @@ export function exportEmailSuppressions(
     items,
     count: items.length,
     generatedAt,
-    increment: "I3.15" as const,
+    increment: "I3.16" as const,
   };
 }
 
@@ -181,7 +181,7 @@ export async function liftEmailSuppression(
     }
   }
 
-  return { suppression: entry, increment: "I3.15" as const };
+  return { suppression: entry, increment: "I3.16" as const };
 }
 
 export async function bulkLiftEmailSuppressions(
@@ -230,7 +230,7 @@ export async function bulkLiftEmailSuppressions(
   return {
     lifted,
     notFound: Math.max(0, requested - lifted),
-    increment: "I3.15" as const,
+    increment: "I3.16" as const,
   };
 }
 
@@ -314,7 +314,7 @@ export async function importEmailSuppressions(
     updated,
     skipped,
     errors,
-    increment: "I3.15" as const,
+    increment: "I3.16" as const,
   };
 }
 
@@ -337,6 +337,7 @@ export async function syncEmailSuppressionsFromSes(
   ensureNotificationCollections(store);
   let imported = 0;
   let updated = 0;
+  let allowlistSesNotes: Array<{ email: string; sesSyncNote: string }> = [];
   try {
     const remote = await client.list();
     for (const row of remote) {
@@ -360,6 +361,7 @@ export async function syncEmailSuppressionsFromSes(
       );
       imported += 1;
     }
+    allowlistSesNotes = noteAllowlistSesOverlap(store, principal.tenantId, remote);
   } catch (err) {
     return {
       error: "invalid_request" as const,
@@ -373,6 +375,8 @@ export async function syncEmailSuppressionsFromSes(
     activeCount: (store.notifEmailSuppressions ?? []).filter(
       (s) => s.tenantId === principal.tenantId && !s.liftedAt,
     ).length,
-    increment: "I3.15" as const,
+    allowlistSesNotes,
+    allowlistSesNoted: allowlistSesNotes.length,
+    increment: "I3.16" as const,
   };
 }

@@ -15,22 +15,26 @@ async function loginCarol(app: ReturnType<typeof buildServer>) {
   return res.json().accessToken as string;
 }
 
-describe("I4.9 DLQ and replay Commercial API", () => {
-  it("lists DLQ and executes replay via HTTP", async () => {
-    const store = seedStore("i49-dlq", TEST_BOOTSTRAP_SECRETS);
+describe("I4.13 DLQ SLA age filters", () => {
+  it("reports ageHours, sla summary, and slaBreached filter", async () => {
+    const store = seedStore("i413-sla", TEST_BOOTSTRAP_SECRETS);
     const carol = allPrincipals(store).find((p) => p.email === "carol.admin@sedmc.local")!;
     commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",
-      correlationId: "i49-1",
+      correlationId: "i413-1",
       mutate: () => undefined,
     });
     const eventId = store.outboxEvents[0]!.envelope.eventId;
-    publishPendingOutbox(store, { maxAttempts: 1, failEventIds: new Set([eventId]) });
-    publishPendingOutbox(store, { maxAttempts: 1, failEventIds: new Set([eventId]) });
-    publishPendingOutbox(store, { maxAttempts: 1, failEventIds: new Set([eventId]) });
-    expect(store.deadLetters.length).toBeGreaterThan(0);
+    const fail = new Set([eventId]);
+    publishPendingOutbox(store, { maxAttempts: 1, failEventIds: fail });
+    publishPendingOutbox(store, { maxAttempts: 1, failEventIds: fail });
+    publishPendingOutbox(store, { maxAttempts: 1, failEventIds: fail });
+
+    const dlq = store.deadLetters[0]!;
+    dlq.firstFailureAt = new Date(Date.now() - 30 * 3_600_000).toISOString();
+    dlq.lastFailureAt = dlq.firstFailureAt;
 
     const app = buildServer({ store });
     const token = await loginCarol(app);
@@ -42,33 +46,23 @@ describe("I4.9 DLQ and replay Commercial API", () => {
     });
     expect(listed.statusCode).toBe(200);
     expect(listed.json().increment).toBe("I4.13");
-    expect(listed.json().items.length).toBeGreaterThan(0);
-    const dlqId = listed.json().items[0].id as string;
+    expect(listed.json().sla.thresholdHours).toBe(24);
+    expect(listed.json().sla.breachedCount).toBeGreaterThanOrEqual(1);
+    expect(listed.json().items[0].ageHours).toBeGreaterThanOrEqual(24);
+    expect(listed.json().items[0].slaBreached).toBe(true);
 
-    const requested = await app.inject({
-      method: "POST",
-      url: "/v1/events/replay/request",
-      headers: { authorization: `Bearer ${token}` },
-      payload: {
-        reason: "I4.9 test replay",
-        intent: "reexecute",
-        deadLetterIds: [dlqId],
-      },
-    });
-    expect(requested.statusCode).toBe(200);
-    expect(requested.json().increment).toBe("I4.13");
-    const requestId = requested.json().id as string;
-
-    const executed = await app.inject({
-      method: "POST",
-      url: `/v1/events/replay/${requestId}/execute`,
+    const breached = await app.inject({
+      method: "GET",
+      url: "/v1/events/dlq?slaBreached=1&slaHours=24",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(executed.statusCode).toBe(200);
-    expect(executed.json().replayed).toBe(1);
-    expect(executed.json().increment).toBe("I4.13");
-    expect(store.outboxEvents.find((o) => o.envelope.eventId === eventId)?.status).toBe("pending");
+    expect(breached.json().items.every((d: { slaBreached: boolean }) => d.slaBreached)).toBe(true);
+
+    const young = await app.inject({
+      method: "GET",
+      url: "/v1/events/dlq?minAgeHours=1000",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(young.json().items).toHaveLength(0);
   });
 });
-
-

@@ -40,7 +40,7 @@ describe("I4.10 DLQ remediation statuses", () => {
       url: "/v1/events/dlq",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(listed.json().increment).toBe("I4.12");
+    expect(listed.json().increment).toBe("I4.13");
 
     const investigating = await app.inject({
       method: "PATCH",
@@ -49,7 +49,7 @@ describe("I4.10 DLQ remediation statuses", () => {
       payload: { status: "investigating", remediation: "Checking transport" },
     });
     expect(investigating.statusCode).toBe(200);
-    expect(investigating.json().increment).toBe("I4.12");
+    expect(investigating.json().increment).toBe("I4.13");
     expect(investigating.json().deadLetter.status).toBe("investigating");
 
     const bad = await app.inject({
@@ -70,4 +70,5 @@ describe("I4.10 DLQ remediation statuses", () => {
     expect(store.deadLetters.find((d) => d.id === dlqId)?.status).toBe("corrected");
   });
 });
+
 

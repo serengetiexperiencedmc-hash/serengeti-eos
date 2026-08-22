@@ -189,8 +189,8 @@
 
 ### Current project status
 
-- **Server version:** `0.52.0-pg15-i4.12`
-- **Increments live:** C1–C10, O1–O4, I3.6.1–I3.15, I4.3–I4.12, I8.3, I9.2, J1–J2, PG.1–PG.15
+- **Server version:** `0.53.0-i3.16-i4.13`
+- **Increments live:** C1–C10, O1–O4, I3.6.1–I3.16, I4.3–I4.13, I8.3, I9.2, J1–J2, PG.1–PG.15
 - **All targeted tests passing**
 
 ### 19:xx — Commercial preview fix ✅
@@ -328,11 +328,20 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **PG.15** | Rate calendar conflict detection (same supplier + rateType) |
 | **I4.12** | DLQ bulk owner assign API + Events UI |
 
+### 20:xx — I3.16 + I4.13 ✅
+
+**Shipped:** server `0.53.0-i3.16-i4.13`
+
+| Increment | Change |
+| --- | --- |
+| **I3.16** | Allowlist SES sync overlap notes |
+| **I4.13** | DLQ ageHours + SLA breach filters/summary |
+
 ### Recommended next increments
 
-1. I3.16 — allowlist SES sync notes
-2. PG.16 — rate conflict resolve / prefer flag
-3. I4.13 — DLQ SLA timers / age filters
+1. PG.16 — rate conflict resolve / prefer flag
+2. I4.14 — DLQ SLA escalation notifications
+3. I3.17 — allowlist require dual-control for SES-noted VIPs
 
 ### Issues resolved
 
