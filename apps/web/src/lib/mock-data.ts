@@ -23,6 +23,7 @@ export const navItems = [
   {
     section: "Operations",
     items: [
+      { href: "/commercial/events", label: "Event Infrastructure", icon: "events" },
       { href: "/commercial/analytics", label: "Analytics", icon: "analytics" },
       { href: "/field", label: "Field App", icon: "field" },
       { href: "/commercial/sync", label: "Sync Conflicts", icon: "sync", badgeKey: "fieldSyncConflicts" as NavBadgeKey },

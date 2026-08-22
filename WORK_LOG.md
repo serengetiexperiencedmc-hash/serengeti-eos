@@ -189,27 +189,27 @@
 
 ### Current project status
 
-- **Server version:** `0.37.0-i3.6-i4.4-pg5`
-- **Increments live:** C1–C10, O1–O4, I3.6, I4.3, I4.4, I8.3, I9.2, J1–J2, PG.1–PG.5
+- **Server version:** `0.38.0-i3.6.1-i4.5-pg6`
+- **Increments live:** C1–C10, O1–O4, I3.6.1, I4.3–I4.5, I8.3, I9.2, J1–J2, PG.1–PG.6
 - **All targeted tests passing**
 
-### 18:xx — I3.6 + I4.4 + PG.5 ✅
+### 19:xx — I3.6.1 + I4.5 + PG.6 ✅
 
-**Shipped:** server `0.37.0-i3.6-i4.4-pg5`
+**Shipped:** server `0.38.0-i3.6.1-i4.5-pg6`
 
 | Increment | Change |
 | --- | --- |
-| **I3.6** | SES bounce/complaint webhook, delivery events table, outbox status `bounced`/`complained` |
-| **I4.4** | NATS consumer offset PG persistence, list/replay API, startup hydrate |
-| **PG.5** | Supplier import batch dual-write + hydrate on execute/validate/create |
+| **I3.6.1** | SNS RSA signature verification on SES webhook; cert URL allowlist + cache |
+| **I4.5** | `GET /v1/events/consumers/nats/lag` + `/commercial/events` dashboard |
+| **PG.6** | Supplier/contact/rate/content-block dual-write + startup hydrate |
 
-**Tests:** i3.6-ses-webhook, i4.4-nats-offsets, pg-supplier integration (PG-gated)
+**Tests:** 242 API passed; web tsc clean
 
 ### Recommended next increments
 
-1. SES SNS signature verification (production hardening)
-2. PG.6 — full supplier entity dual-write (suppliers, contacts, rates)
-3. I4.5 — consumer lag metrics / offset dashboard
+1. PG.7 — supplier execute idempotency PG persistence
+2. I4.6 — per-tenant stream filtering or seq index for true tenant lag
+3. I3.7 — SES subscription confirmation auto-confirm (SubscribeURL fetch)
 
 ### Issues resolved
 

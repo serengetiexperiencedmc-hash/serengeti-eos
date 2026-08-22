@@ -7,6 +7,7 @@ import {
   updateNotifEmailOutboxStatus,
 } from "../persistence/pg-repository.js";
 import { persistNotifEmailDeliveryEvent } from "../persistence/notifications.js";
+import { isSnsSignatureVerificationEnabled, verifySnsMessage } from "./sns-signature.js";
 
 function webhookSecretOk(provided?: string): boolean {
   const expected = process.env.EOS_SES_WEBHOOK_SECRET;
@@ -95,6 +96,9 @@ export async function handleSesDeliveryWebhook(
   if (!webhookSecretOk(input.secret)) return { ok: false, reason: "webhook_unauthorized" };
 
   const body = input.body as Record<string, unknown>;
+  const snsVerified = await verifySnsMessage(body);
+  if (!snsVerified.ok) return { ok: false, reason: snsVerified.reason };
+
   if (body.Type === "SubscriptionConfirmation") {
     return { ok: true, result: "subscription_acknowledged" };
   }

@@ -6,8 +6,8 @@ import {
   executeSupplierImportBatch,
   validateSupplierImportBatch,
 } from "./supplier/import.js";
-import { countSupImportBatches } from "./persistence/pg-repository.js";
-import { hydrateSupImportBatchesFromPostgres } from "./persistence/supplier.js";
+import { countSupImportBatches, countSupSuppliers } from "./persistence/pg-repository.js";
+import { hydrateSupFromPostgres, hydrateSupImportBatchesFromPostgres } from "./persistence/supplier.js";
 import { syncStoreToPostgres } from "./persistence/sync.js";
 import { allPrincipals } from "./store.js";
 
@@ -73,6 +73,7 @@ describePg("PG.5 supplier import batch dual-write", () => {
     );
     expect(row.rows[0]?.status).toBe("committed");
     expect(Number(row.rows[0]?.committed_count)).toBe(1);
+    expect(await countSupSuppliers(pool, tenantId)).toBeGreaterThan(0);
   });
 
   it("hydrates import batches from Postgres on startup", async () => {
@@ -97,5 +98,41 @@ describePg("PG.5 supplier import batch dual-write", () => {
     const merged = await hydrateSupImportBatchesFromPostgres(pool, fresh);
     expect(merged).toBeGreaterThan(0);
     expect(fresh.supImportBatches.some((b) => b.id === created.batch.id)).toBe(true);
+  });
+});
+
+describePg("PG.6 supplier entity dual-write", () => {
+  const pool = createPool(url!);
+  const tenantId = "11111111-1111-4111-8111-111111111111";
+  const carolId = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+
+  afterAll(async () => {
+    await pool.end();
+  });
+
+  it("hydrates supplier entities from Postgres", async () => {
+    await migrate(pool);
+    const store = seedStore("pg6-hydrate", TEST_BOOTSTRAP_SECRETS);
+    store.dbPool = pool;
+    await syncStoreToPostgres(pool, store);
+
+    const principal = allPrincipals(store).find((p) => p.id === carolId)!;
+    const created = createSupplierImportBatch(
+      store,
+      principal,
+      { sourceSystem: "pg6-test", entityType: "supplier", csv: SUPPLIER_CSV.replace("PG5", "PG6") },
+      "pg6-create",
+    );
+    expect("batch" in created).toBe(true);
+    if (!("batch" in created)) return;
+    validateSupplierImportBatch(store, principal, created.batch.id, "pg6-validate");
+    executeSupplierImportBatch(store, principal, created.batch.id, "pg6-exec", "pg6-execute");
+    await new Promise((r) => setTimeout(r, 100));
+
+    const fresh = seedStore("pg6-fresh", TEST_BOOTSTRAP_SECRETS);
+    fresh.dbPool = pool;
+    const merged = await hydrateSupFromPostgres(pool, fresh);
+    expect(merged.suppliers).toBeGreaterThan(0);
+    expect(fresh.supSuppliers.some((s) => s.supplierCode.includes("PG6"))).toBe(true);
   });
 });

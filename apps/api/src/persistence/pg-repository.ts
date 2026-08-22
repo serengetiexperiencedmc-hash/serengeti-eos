@@ -846,6 +846,317 @@ export async function countSupImportBatches(pool: DbPool, tenantId: string): Pro
   return result.rows[0]?.c ?? 0;
 }
 
+// --- PG.6 supplier entities ---
+
+export async function upsertSupSupplier(pool: DbPool, s: import("@sedmc/kernel").SupSupplier): Promise<void> {
+  await pool.query(
+    `INSERT INTO sup_suppliers (
+      id, tenant_id, supplier_code, legal_name, trading_name, category, subcategory, country, region, city,
+      address, latitude, longitude, telephone, email, website, status, preferred_partner, payment_terms_days,
+      default_currency, tax_registration_number, contract_ref, contract_valid_from, contract_valid_to, notes,
+      data_quality_status, classification, source_system, source_record_id, import_batch_id, version,
+      archived_at, created_at, updated_at, created_by_principal_id, updated_by_principal_id
+    ) VALUES (
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      legal_name = EXCLUDED.legal_name,
+      trading_name = EXCLUDED.trading_name,
+      category = EXCLUDED.category,
+      subcategory = EXCLUDED.subcategory,
+      country = EXCLUDED.country,
+      region = EXCLUDED.region,
+      city = EXCLUDED.city,
+      address = EXCLUDED.address,
+      latitude = EXCLUDED.latitude,
+      longitude = EXCLUDED.longitude,
+      telephone = EXCLUDED.telephone,
+      email = EXCLUDED.email,
+      website = EXCLUDED.website,
+      status = EXCLUDED.status,
+      preferred_partner = EXCLUDED.preferred_partner,
+      payment_terms_days = EXCLUDED.payment_terms_days,
+      default_currency = EXCLUDED.default_currency,
+      tax_registration_number = EXCLUDED.tax_registration_number,
+      contract_ref = EXCLUDED.contract_ref,
+      contract_valid_from = EXCLUDED.contract_valid_from,
+      contract_valid_to = EXCLUDED.contract_valid_to,
+      notes = EXCLUDED.notes,
+      data_quality_status = EXCLUDED.data_quality_status,
+      classification = EXCLUDED.classification,
+      source_system = EXCLUDED.source_system,
+      source_record_id = EXCLUDED.source_record_id,
+      import_batch_id = EXCLUDED.import_batch_id,
+      version = EXCLUDED.version,
+      archived_at = EXCLUDED.archived_at,
+      updated_at = EXCLUDED.updated_at,
+      updated_by_principal_id = EXCLUDED.updated_by_principal_id`,
+    [
+      s.id, s.tenantId, s.supplierCode, s.legalName, s.tradingName ?? null, s.category, s.subcategory ?? null,
+      s.country, s.region ?? null, s.city ?? null, s.address ?? null, s.latitude ?? null, s.longitude ?? null,
+      s.telephone ?? null, s.email ?? null, s.website ?? null, s.status, s.preferredPartner,
+      s.paymentTermsDays ?? null, s.defaultCurrency ?? null, s.taxRegistrationNumber ?? null,
+      s.contractRef ?? null, s.contractValidFrom ?? null, s.contractValidTo ?? null, s.notes ?? null,
+      s.dataQualityStatus, s.classification, s.sourceSystem ?? null, s.sourceRecordId ?? null,
+      s.importBatchId ?? null, s.version, s.archivedAt ?? null, s.createdAt, s.updatedAt,
+      s.createdByPrincipalId, s.updatedByPrincipalId,
+    ],
+  );
+}
+
+function mapSupSupplierRow(row: Record<string, unknown>): import("@sedmc/kernel").SupSupplier {
+  return {
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    supplierCode: row.supplier_code as string,
+    legalName: row.legal_name as string,
+    ...(row.trading_name ? { tradingName: row.trading_name as string } : {}),
+    category: row.category as import("@sedmc/kernel").SupSupplier["category"],
+    ...(row.subcategory ? { subcategory: row.subcategory as string } : {}),
+    country: row.country as string,
+    ...(row.region ? { region: row.region as string } : {}),
+    ...(row.city ? { city: row.city as string } : {}),
+    ...(row.address ? { address: row.address as string } : {}),
+    ...(row.latitude != null ? { latitude: Number(row.latitude) } : {}),
+    ...(row.longitude != null ? { longitude: Number(row.longitude) } : {}),
+    ...(row.telephone ? { telephone: row.telephone as string } : {}),
+    ...(row.email ? { email: row.email as string } : {}),
+    ...(row.website ? { website: row.website as string } : {}),
+    status: row.status as import("@sedmc/kernel").SupSupplier["status"],
+    preferredPartner: row.preferred_partner as boolean,
+    ...(row.payment_terms_days != null ? { paymentTermsDays: row.payment_terms_days as number } : {}),
+    ...(row.default_currency ? { defaultCurrency: row.default_currency as string } : {}),
+    ...(row.tax_registration_number ? { taxRegistrationNumber: row.tax_registration_number as string } : {}),
+    ...(row.contract_ref ? { contractRef: row.contract_ref as string } : {}),
+    ...(row.contract_valid_from ? { contractValidFrom: String(row.contract_valid_from).slice(0, 10) } : {}),
+    ...(row.contract_valid_to ? { contractValidTo: String(row.contract_valid_to).slice(0, 10) } : {}),
+    ...(row.notes ? { notes: row.notes as string } : {}),
+    dataQualityStatus: row.data_quality_status as import("@sedmc/kernel").SupSupplier["dataQualityStatus"],
+    classification: row.classification as import("@sedmc/kernel").SupSupplier["classification"],
+    ...(row.source_system ? { sourceSystem: row.source_system as string } : {}),
+    ...(row.source_record_id ? { sourceRecordId: row.source_record_id as string } : {}),
+    ...(row.import_batch_id ? { importBatchId: row.import_batch_id as string } : {}),
+    version: row.version as number,
+    ...(row.archived_at ? { archivedAt: new Date(row.archived_at as string).toISOString() } : {}),
+    createdAt: new Date(row.created_at as string).toISOString(),
+    updatedAt: new Date(row.updated_at as string).toISOString(),
+    createdByPrincipalId: row.created_by_principal_id as string,
+    updatedByPrincipalId: row.updated_by_principal_id as string,
+  };
+}
+
+export async function loadSupSuppliers(pool: DbPool): Promise<import("@sedmc/kernel").SupSupplier[]> {
+  const result = await pool.query(`SELECT * FROM sup_suppliers ORDER BY created_at ASC`);
+  return result.rows.map(mapSupSupplierRow);
+}
+
+export async function countSupSuppliers(pool: DbPool, tenantId: string): Promise<number> {
+  const result = await pool.query(`SELECT COUNT(*)::int AS c FROM sup_suppliers WHERE tenant_id = $1`, [tenantId]);
+  return result.rows[0]?.c ?? 0;
+}
+
+export async function upsertSupContact(pool: DbPool, c: import("@sedmc/kernel").SupContact): Promise<void> {
+  await pool.query(
+    `INSERT INTO sup_contacts (
+      id, tenant_id, supplier_id, contact_role, given_name, family_name, email, telephone, whatsapp,
+      is_primary, notes, import_batch_id, version, archived_at, created_at, updated_at,
+      created_by_principal_id, updated_by_principal_id
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+    ON CONFLICT (id) DO UPDATE SET
+      contact_role = EXCLUDED.contact_role,
+      given_name = EXCLUDED.given_name,
+      family_name = EXCLUDED.family_name,
+      email = EXCLUDED.email,
+      telephone = EXCLUDED.telephone,
+      whatsapp = EXCLUDED.whatsapp,
+      is_primary = EXCLUDED.is_primary,
+      notes = EXCLUDED.notes,
+      import_batch_id = EXCLUDED.import_batch_id,
+      version = EXCLUDED.version,
+      archived_at = EXCLUDED.archived_at,
+      updated_at = EXCLUDED.updated_at,
+      updated_by_principal_id = EXCLUDED.updated_by_principal_id`,
+    [
+      c.id, c.tenantId, c.supplierId, c.contactRole, c.givenName, c.familyName, c.email ?? null,
+      c.telephone ?? null, c.whatsapp ?? null, c.isPrimary, c.notes ?? null, c.importBatchId ?? null,
+      c.version, c.archivedAt ?? null, c.createdAt, c.updatedAt, c.createdByPrincipalId, c.updatedByPrincipalId,
+    ],
+  );
+}
+
+export async function loadSupContacts(pool: DbPool): Promise<import("@sedmc/kernel").SupContact[]> {
+  const result = await pool.query(`SELECT * FROM sup_contacts ORDER BY created_at ASC`);
+  return result.rows.map((row) => ({
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    supplierId: row.supplier_id as string,
+    contactRole: row.contact_role as string,
+    givenName: row.given_name as string,
+    familyName: row.family_name as string,
+    ...(row.email ? { email: row.email as string } : {}),
+    ...(row.telephone ? { telephone: row.telephone as string } : {}),
+    ...(row.whatsapp ? { whatsapp: row.whatsapp as string } : {}),
+    isPrimary: row.is_primary as boolean,
+    ...(row.notes ? { notes: row.notes as string } : {}),
+    ...(row.import_batch_id ? { importBatchId: row.import_batch_id as string } : {}),
+    version: row.version as number,
+    ...(row.archived_at ? { archivedAt: new Date(row.archived_at as string).toISOString() } : {}),
+    createdAt: new Date(row.created_at as string).toISOString(),
+    updatedAt: new Date(row.updated_at as string).toISOString(),
+    createdByPrincipalId: row.created_by_principal_id as string,
+    updatedByPrincipalId: row.updated_by_principal_id as string,
+  }));
+}
+
+export async function countSupContacts(pool: DbPool, tenantId: string): Promise<number> {
+  const result = await pool.query(`SELECT COUNT(*)::int AS c FROM sup_contacts WHERE tenant_id = $1`, [tenantId]);
+  return result.rows[0]?.c ?? 0;
+}
+
+export async function upsertSupRate(pool: DbPool, r: import("@sedmc/kernel").SupRate): Promise<void> {
+  await pool.query(
+    `INSERT INTO sup_rates (
+      id, tenant_id, supplier_id, rate_code, rate_name, rate_type, unit_description, amount, currency,
+      valid_from, valid_to, season_label, min_pax, max_pax, min_nights, commission_percent, includes_tax,
+      tax_percent, cancellation_policy_ref, notes, status, import_batch_id, version, archived_at,
+      created_at, updated_at, created_by_principal_id, updated_by_principal_id
+    ) VALUES (
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      rate_name = EXCLUDED.rate_name,
+      rate_type = EXCLUDED.rate_type,
+      unit_description = EXCLUDED.unit_description,
+      amount = EXCLUDED.amount,
+      currency = EXCLUDED.currency,
+      valid_from = EXCLUDED.valid_from,
+      valid_to = EXCLUDED.valid_to,
+      season_label = EXCLUDED.season_label,
+      min_pax = EXCLUDED.min_pax,
+      max_pax = EXCLUDED.max_pax,
+      min_nights = EXCLUDED.min_nights,
+      commission_percent = EXCLUDED.commission_percent,
+      includes_tax = EXCLUDED.includes_tax,
+      tax_percent = EXCLUDED.tax_percent,
+      cancellation_policy_ref = EXCLUDED.cancellation_policy_ref,
+      notes = EXCLUDED.notes,
+      status = EXCLUDED.status,
+      import_batch_id = EXCLUDED.import_batch_id,
+      version = EXCLUDED.version,
+      archived_at = EXCLUDED.archived_at,
+      updated_at = EXCLUDED.updated_at,
+      updated_by_principal_id = EXCLUDED.updated_by_principal_id`,
+    [
+      r.id, r.tenantId, r.supplierId, r.rateCode, r.rateName, r.rateType, r.unitDescription ?? null, r.amount,
+      r.currency, r.validFrom, r.validTo, r.seasonLabel ?? null, r.minPax ?? null, r.maxPax ?? null,
+      r.minNights ?? null, r.commissionPercent ?? null, r.includesTax, r.taxPercent ?? null,
+      r.cancellationPolicyRef ?? null, r.notes ?? null, r.status, r.importBatchId ?? null, r.version,
+      r.archivedAt ?? null, r.createdAt, r.updatedAt, r.createdByPrincipalId, r.updatedByPrincipalId,
+    ],
+  );
+}
+
+export async function loadSupRates(pool: DbPool): Promise<import("@sedmc/kernel").SupRate[]> {
+  const result = await pool.query(`SELECT * FROM sup_rates ORDER BY created_at ASC`);
+  return result.rows.map((row) => ({
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    supplierId: row.supplier_id as string,
+    rateCode: row.rate_code as string,
+    rateName: row.rate_name as string,
+    rateType: row.rate_type as string,
+    ...(row.unit_description ? { unitDescription: row.unit_description as string } : {}),
+    amount: Number(row.amount),
+    currency: row.currency as string,
+    validFrom: String(row.valid_from).slice(0, 10),
+    validTo: String(row.valid_to).slice(0, 10),
+    ...(row.season_label ? { seasonLabel: row.season_label as string } : {}),
+    ...(row.min_pax != null ? { minPax: row.min_pax as number } : {}),
+    ...(row.max_pax != null ? { maxPax: row.max_pax as number } : {}),
+    ...(row.min_nights != null ? { minNights: row.min_nights as number } : {}),
+    ...(row.commission_percent != null ? { commissionPercent: Number(row.commission_percent) } : {}),
+    includesTax: row.includes_tax as boolean,
+    ...(row.tax_percent != null ? { taxPercent: Number(row.tax_percent) } : {}),
+    ...(row.cancellation_policy_ref ? { cancellationPolicyRef: row.cancellation_policy_ref as string } : {}),
+    ...(row.notes ? { notes: row.notes as string } : {}),
+    status: row.status as string,
+    ...(row.import_batch_id ? { importBatchId: row.import_batch_id as string } : {}),
+    version: row.version as number,
+    ...(row.archived_at ? { archivedAt: new Date(row.archived_at as string).toISOString() } : {}),
+    createdAt: new Date(row.created_at as string).toISOString(),
+    updatedAt: new Date(row.updated_at as string).toISOString(),
+    createdByPrincipalId: row.created_by_principal_id as string,
+    updatedByPrincipalId: row.updated_by_principal_id as string,
+  }));
+}
+
+export async function countSupRates(pool: DbPool, tenantId: string): Promise<number> {
+  const result = await pool.query(`SELECT COUNT(*)::int AS c FROM sup_rates WHERE tenant_id = $1`, [tenantId]);
+  return result.rows[0]?.c ?? 0;
+}
+
+export async function upsertSupContentBlock(pool: DbPool, b: import("@sedmc/kernel").SupContentBlock): Promise<void> {
+  await pool.query(
+    `INSERT INTO sup_content_blocks (
+      id, tenant_id, supplier_id, block_code, block_type, title, body, language, asset_filename,
+      asset_alt_text, tags, is_default, status, import_batch_id, version, archived_at,
+      created_at, updated_at, created_by_principal_id, updated_by_principal_id
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
+    ON CONFLICT (id) DO UPDATE SET
+      block_type = EXCLUDED.block_type,
+      title = EXCLUDED.title,
+      body = EXCLUDED.body,
+      language = EXCLUDED.language,
+      asset_filename = EXCLUDED.asset_filename,
+      asset_alt_text = EXCLUDED.asset_alt_text,
+      tags = EXCLUDED.tags,
+      is_default = EXCLUDED.is_default,
+      status = EXCLUDED.status,
+      import_batch_id = EXCLUDED.import_batch_id,
+      version = EXCLUDED.version,
+      archived_at = EXCLUDED.archived_at,
+      updated_at = EXCLUDED.updated_at,
+      updated_by_principal_id = EXCLUDED.updated_by_principal_id`,
+    [
+      b.id, b.tenantId, b.supplierId, b.blockCode, b.blockType, b.title ?? null, b.body, b.language,
+      b.assetFilename ?? null, b.assetAltText ?? null, b.tags ?? null, b.isDefault, b.status,
+      b.importBatchId ?? null, b.version, b.archivedAt ?? null, b.createdAt, b.updatedAt,
+      b.createdByPrincipalId, b.updatedByPrincipalId,
+    ],
+  );
+}
+
+export async function loadSupContentBlocks(pool: DbPool): Promise<import("@sedmc/kernel").SupContentBlock[]> {
+  const result = await pool.query(`SELECT * FROM sup_content_blocks ORDER BY created_at ASC`);
+  return result.rows.map((row) => ({
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    supplierId: row.supplier_id as string,
+    blockCode: row.block_code as string,
+    blockType: row.block_type as string,
+    ...(row.title ? { title: row.title as string } : {}),
+    body: row.body as string,
+    language: row.language as string,
+    ...(row.asset_filename ? { assetFilename: row.asset_filename as string } : {}),
+    ...(row.asset_alt_text ? { assetAltText: row.asset_alt_text as string } : {}),
+    ...(row.tags ? { tags: row.tags as string[] } : {}),
+    isDefault: row.is_default as boolean,
+    status: row.status as string,
+    ...(row.import_batch_id ? { importBatchId: row.import_batch_id as string } : {}),
+    version: row.version as number,
+    ...(row.archived_at ? { archivedAt: new Date(row.archived_at as string).toISOString() } : {}),
+    createdAt: new Date(row.created_at as string).toISOString(),
+    updatedAt: new Date(row.updated_at as string).toISOString(),
+    createdByPrincipalId: row.created_by_principal_id as string,
+    updatedByPrincipalId: row.updated_by_principal_id as string,
+  }));
+}
+
+export async function countSupContentBlocks(pool: DbPool, tenantId: string): Promise<number> {
+  const result = await pool.query(`SELECT COUNT(*)::int AS c FROM sup_content_blocks WHERE tenant_id = $1`, [tenantId]);
+  return result.rows[0]?.c ?? 0;
+}
+
 // --- PG.3 CRM persistence ---
 
 export async function upsertCrmOrganizationType(

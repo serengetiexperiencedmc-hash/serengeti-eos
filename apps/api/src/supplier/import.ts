@@ -17,7 +17,7 @@ import type { Store } from "../store.js";
 import { allowSupplierAudit, denySupplierAudit } from "./audit.js";
 import { ensureSupplierCollections } from "./collections.js";
 import { findSupplierByCode } from "./supplier.js";
-import { persistSupImportBatchAfterCommit } from "../persistence/supplier.js";
+import { persistSupImportBatchAfterCommit, persistSupEntityAfterCommit } from "../persistence/supplier.js";
 
 function importExecuteKey(tenantId: string, batchId: string, key: string): string {
   return `${tenantId}:${batchId}:${key}`;
@@ -438,6 +438,7 @@ function commitImportRow(
       updatedByPrincipalId: principal.id,
     };
     store.supSuppliers.push(supplier);
+    void persistSupEntityAfterCommit(store.dbPool, store, "supplier", supplier.id);
     return supplier.id;
   }
 
@@ -467,6 +468,7 @@ function commitImportRow(
       updatedByPrincipalId: principal.id,
     };
     store.supContacts.push(contact);
+    void persistSupEntityAfterCommit(store.dbPool, store, "supplier_contact", contact.id);
     return contact.id;
   }
 
@@ -502,6 +504,7 @@ function commitImportRow(
       updatedByPrincipalId: principal.id,
     };
     store.supRates.push(rate);
+    void persistSupEntityAfterCommit(store.dbPool, store, "supplier_rate", rate.id);
     return rate.id;
   }
 
@@ -528,6 +531,7 @@ function commitImportRow(
     updatedByPrincipalId: principal.id,
   };
   store.supContentBlocks.push(block);
+  void persistSupEntityAfterCommit(store.dbPool, store, "supplier_content_block", block.id);
   return block.id;
 }
 

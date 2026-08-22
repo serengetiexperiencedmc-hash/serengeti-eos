@@ -23,6 +23,7 @@ import { buildLiveNotifications } from "./notifications.js";
 import { resolveEmailAdapterName } from "./email-config.js";
 import { sendViaSmtp } from "./smtp-transport.js";
 import { sendViaSes } from "./ses-transport.js";
+import { isSnsSignatureVerificationEnabled } from "./sns-signature.js";
 
 function templateOverrides(store: Store, tenantId: string): EmailTemplate[] {
   return (store.notifEmailTemplates ?? []).filter((t) => t.tenantId === tenantId);
@@ -307,7 +308,7 @@ export function getEmailAdapterHealth(store: Store) {
   const adapter = resolveEmailAdapterName();
   return {
     module: "notification-email",
-    increment: "I3.6",
+    increment: "I3.6.1",
     adapter,
     status: "ok" as const,
     outboxCount: (store.notifEmailOutbox ?? []).length,
@@ -318,6 +319,7 @@ export function getEmailAdapterHealth(store: Store) {
     sesConfigured: isSesConfigured(),
     sesRegion: process.env.EOS_SES_REGION ?? null,
     webhookSecretConfigured: Boolean(process.env.EOS_SES_WEBHOOK_SECRET),
+    snsSignatureVerification: isSnsSignatureVerificationEnabled(),
   };
 }
 

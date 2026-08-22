@@ -9,7 +9,7 @@ import { hydrateNotifEmailTemplates } from "./persistence/notifications.js";
 import { hydratePendingOutbox } from "./persistence/outbox.js";
 import { hydrateProcessedEvents } from "./persistence/processed-events.js";
 import { hydrateNatsConsumerOffsets } from "./persistence/nats-offsets.js";
-import { hydrateSupImportBatchesFromPostgres } from "./persistence/supplier.js";
+import { hydrateSupImportBatchesFromPostgres, hydrateSupFromPostgres } from "./persistence/supplier.js";
 import { initEventTransport } from "./events/transport-init.js";
 import { initEventConsumers } from "./events/consumer-init.js";
 import { publishPendingOutbox } from "./outbox.js";
@@ -48,12 +48,14 @@ if (databaseUrl) {
   const processedMerged = await hydrateProcessedEvents(pool, store);
   const natsOffsetsMerged = await hydrateNatsConsumerOffsets(pool, store);
   const supImportsMerged = await hydrateSupImportBatchesFromPostgres(pool, store);
+  const supEntitiesMerged = await hydrateSupFromPostgres(pool, store);
   const drain = publishPendingOutbox(store);
   logger.info("outbox_startup_drain", {
     mergedFromPg: merged,
     processedMerged,
     natsOffsetsMerged,
     supImportsMerged,
+    supEntitiesMerged,
     ...drain,
   });
   dbHealth = () => checkDatabaseHealth(pool);

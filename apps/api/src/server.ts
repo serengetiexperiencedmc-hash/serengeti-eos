@@ -51,6 +51,7 @@ import {
   traceEventCorrelation,
 } from "./app.js";
 import { listNatsConsumerOffsets, replayNatsStreamFromSeq } from "./events/nats-replay.js";
+import { getNatsConsumerLagMetrics } from "./events/nats-lag.js";
 import { registerCrmRoutes } from "./crm/routes.js";
 import { registerPipelineRoutes } from "./pipeline/routes.js";
 import { registerAnalyticsRoutes } from "./analytics/routes.js";
@@ -74,7 +75,7 @@ import {
   type Logger,
 } from "./observability.js";
 
-const VERSION = "0.37.0-i3.6-i4.4-pg5";
+const VERSION = "0.38.0-i3.6.1-i4.5-pg6";
 
 export type ServerOptions = {
   store?: Store;
@@ -795,6 +796,17 @@ export function buildServer(options: ServerOptions | Store = {}) {
       return reply.code(code).send({ error: code === 503 ? "service_unavailable" : "forbidden", reason: result.reason });
     }
     return { ...result, increment: "I4.4" };
+  });
+
+  app.get("/v1/events/consumers/nats/lag", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const query = req.query as { stream?: string };
+    const result = await getNatsConsumerLagMetrics(store, principal, {
+      ...(query.stream !== undefined ? { stream: query.stream } : {}),
+    });
+    if (!result.ok) return reply.code(403).send({ error: "forbidden", reason: result.reason });
+    return result.metrics;
   });
 
   app.post("/v1/events/catalogue", async (req, reply) => {
