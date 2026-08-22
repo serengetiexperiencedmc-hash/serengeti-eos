@@ -8,9 +8,12 @@ import {
   dismissAllNotifications,
   dismissNotification,
   dispatchEmailDigest,
+  getEmailAdapterHealth,
   listEmailOutbox,
+  listEmailTemplates,
   listNotifications,
   type EmailOutboxItem,
+  type EmailTemplateItem,
   type NotificationItem,
 } from "@/lib/notifications-api";
 
@@ -18,14 +21,23 @@ export default function NotificationsPage() {
   const { token, ready } = useEosSession();
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [outbox, setOutbox] = useState<EmailOutboxItem[]>([]);
+  const [templates, setTemplates] = useState<EmailTemplateItem[]>([]);
+  const [adapter, setAdapter] = useState("dev-outbox");
   const [error, setError] = useState<string | null>(null);
   const [dispatchMsg, setDispatchMsg] = useState<string | null>(null);
 
   async function reload() {
     if (!token) return;
-    const [inbox, emailOutbox] = await Promise.all([listNotifications(token), listEmailOutbox(token)]);
+    const [inbox, emailOutbox, tmpl, health] = await Promise.all([
+      listNotifications(token),
+      listEmailOutbox(token),
+      listEmailTemplates(token),
+      getEmailAdapterHealth(token),
+    ]);
     setItems(inbox.items);
     setOutbox(emailOutbox.items);
+    setTemplates(tmpl.items);
+    setAdapter(health.adapter);
   }
 
   useEffect(() => {
@@ -46,9 +58,9 @@ export default function NotificationsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="I3 · I3.1 · Notifications"
+        eyebrow="I3 · I3.2 · Notifications"
         title="Action Inbox"
-        subtitle="Live alerts from RFP SLA, finance, field sync, approvals & handover — with email digest outbox"
+        subtitle={`Live alerts + email digest · adapter: ${adapter}`}
         actions={
           token ? (
             <div className="flex gap-2">
@@ -106,6 +118,19 @@ export default function NotificationsPage() {
           {outbox.length === 0 && <p className="text-sm text-muted">No emails dispatched yet.</p>}
         </div>
       </Card>
+      </div>
+      <div className="mt-4">
+        <Card title={`Email templates (${templates.length})`}>
+          <p className="mb-3 text-sm text-muted">Kernel defaults with optional tenant overrides. Variables: title, body, href, severity.</p>
+          <div className="space-y-2">
+            {templates.slice(0, 8).map((t) => (
+              <div key={t.key} className="rounded border border-line px-3 py-2 text-sm">
+                <div className="font-medium">{t.key}</div>
+                <div className="text-xs text-muted">{t.source} · {t.subject}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
       </div>
     </>
   );

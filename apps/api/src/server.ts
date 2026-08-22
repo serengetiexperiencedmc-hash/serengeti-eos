@@ -71,7 +71,7 @@ import {
   type Logger,
 } from "./observability.js";
 
-const VERSION = "0.30.0-i8.3";
+const VERSION = "0.32.0-i3.2-pg.1";
 
 export type ServerOptions = {
   store?: Store;
@@ -173,6 +173,7 @@ export function buildServer(options: ServerOptions | Store = {}) {
     });
     return {
       accessToken: result.token,
+      expiresIn: 3600,
       expiresInSeconds: 3600,
       principal: {
         id: result.principal.id,

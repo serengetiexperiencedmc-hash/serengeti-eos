@@ -54,8 +54,26 @@ export async function dispatchEmailDigest(token: string) {
 }
 
 export async function getEmailAdapterHealth(token: string) {
-  return eosFetch<{ module: string; increment: string; adapter: string; status: string; outboxCount: number }>(
+  return eosFetch<{ module: string; increment: string; adapter: string; status: string; outboxCount: number; templateCount?: number; smtpConfigured?: boolean }>(
     "/v1/notifications/email/health",
+    { token },
+  );
+}
+
+export type EmailTemplateItem = {
+  key: string;
+  subject: string;
+  bodyText: string;
+  source: "default" | "tenant";
+};
+
+export async function listEmailTemplates(token: string) {
+  return eosFetch<{ items: EmailTemplateItem[]; adapter: string }>("/v1/notifications/email/templates", { token });
+}
+
+export async function previewEmailTemplate(token: string, templateKey: string) {
+  return eosFetch<{ preview: { subject: string; bodyText: string; templateKey: string } }>(
+    `/v1/notifications/email/templates/${encodeURIComponent(templateKey)}/preview`,
     { token },
   );
 }

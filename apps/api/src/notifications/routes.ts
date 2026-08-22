@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { principalFromAuthHeader } from "../app.js";
 import type { Store } from "../store.js";
-import { dispatchEmailDigest, getEmailAdapterHealth, listEmailOutbox } from "./email.js";
+import { dispatchEmailDigest, getEmailAdapterHealth, listEmailOutbox, listEmailTemplates, previewEmailTemplate } from "./email.js";
 import { dismissAllNotifications, dismissNotification, getNotificationHealth, listNotifications } from "./notifications.js";
 
 function sendError(
@@ -45,7 +45,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const key = decodeURIComponent((req.params as { key: string }).key);
-    const result = dismissNotification(store, principal, key);
+    const result = await dismissNotification(store, principal, key);
     if ("error" in result) return sendError(reply, result);
     return result;
   });
@@ -74,6 +74,23 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = await dispatchEmailDigest(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.get("/v1/notifications/email/templates", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = listEmailTemplates(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.get("/v1/notifications/email/templates/:key/preview", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const templateKey = decodeURIComponent((req.params as { key: string }).key);
+    const result = previewEmailTemplate(store, principal, templateKey);
     if ("error" in result) return sendError(reply, result);
     return result;
   });

@@ -6,6 +6,7 @@ import {
   type Principal,
 } from "@sedmc/kernel";
 import type { Store } from "../store.js";
+import { persistNotifDismissal } from "../persistence/notifications.js";
 import { ensureNotificationCollections } from "./collections.js";
 
 function isDismissed(store: Store, principalId: string, key: string): boolean {
@@ -117,27 +118,29 @@ export function listNotifications(store: Store, principal: Principal) {
   return { items, unreadCount: items.length };
 }
 
-export function dismissNotification(store: Store, principal: Principal, key: string) {
+export async function dismissNotification(store: Store, principal: Principal, key: string) {
   ensureNotificationCollections(store);
   const decision = authorize({ principal, permission: "notification:write:inbox", action: "dismiss:notification" });
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
 
   if (!store.notifDismissals.some((d) => d.principalId === principal.id && d.notificationKey === key)) {
-    store.notifDismissals.push({
+    const entry = {
       id: newId(),
       tenantId: principal.tenantId,
       principalId: principal.id,
       notificationKey: key,
       dismissedAt: new Date().toISOString(),
-    });
+    };
+    store.notifDismissals.push(entry);
+    await persistNotifDismissal(store.dbPool, entry);
   }
   return { dismissed: key };
 }
 
-export function dismissAllNotifications(store: Store, principal: Principal) {
+export async function dismissAllNotifications(store: Store, principal: Principal) {
   const live = buildLiveNotifications(store, principal);
   for (const item of live) {
-    dismissNotification(store, principal, item.key);
+    await dismissNotification(store, principal, item.key);
   }
   return { dismissed: live.length };
 }
@@ -146,10 +149,11 @@ export function getNotificationHealth(store: Store) {
   ensureNotificationCollections(store);
   return {
     module: "notifications",
-    increment: "I3-I3.1",
+    increment: "I3-I3.2",
     status: "ok" as const,
     dismissals: store.notifDismissals.length,
     emailOutbox: (store.notifEmailOutbox ?? []).length,
-    emailAdapter: "dev-outbox",
+    emailAdapter: process.env.EOS_EMAIL_ADAPTER === "smtp-stub" ? "smtp-stub" : "dev-outbox",
+    emailTemplates: (store.notifEmailTemplates ?? []).length,
   };
 }

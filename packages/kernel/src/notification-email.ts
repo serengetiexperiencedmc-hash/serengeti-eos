@@ -1,4 +1,5 @@
 import type { NotifItem } from "./notification.js";
+import { resolveEmailTemplate } from "./notification-template.js";
 
 export type EmailNotificationMessage = {
   to: string;
@@ -34,13 +35,24 @@ export type NotifEmailOutboxEntry = {
   createdAt: string;
 };
 
-export function buildEmailFromNotification(item: NotifItem, recipientEmail: string): EmailNotificationMessage {
+export function buildEmailFromNotification(
+  item: NotifItem,
+  recipientEmail: string,
+  templateOverrides: Parameters<typeof resolveEmailTemplate>[2] = [],
+): EmailNotificationMessage {
+  const templateKey = `notif.${item.category}.${item.severity}`;
+  const resolved = resolveEmailTemplate(
+    templateKey,
+    { severity: item.severity, title: item.title, body: item.body, href: item.href },
+    templateOverrides,
+  );
   return {
     to: recipientEmail,
-    subject: `[EOS ${item.severity.toUpperCase()}] ${item.title}`,
-    bodyText: `${item.title}\n\n${item.body}\n\nView in EOS: ${item.href}`,
+    subject: resolved.subject,
+    bodyText: resolved.bodyText,
+    bodyHtml: resolved.bodyHtml,
     notificationKey: item.key,
-    templateKey: `notif.${item.category}.${item.severity}`,
+    templateKey: resolved.templateKey,
   };
 }
 

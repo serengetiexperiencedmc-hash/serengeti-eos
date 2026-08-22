@@ -1,17 +1,8 @@
 import type { NextConfig } from "next";
 
-const apiOrigin = process.env.EOS_API_URL ?? "http://127.0.0.1:8080";
-
+/** API proxy is handled by App Router route at src/app/eos-api/[...path]/route.ts (reliable POST). */
 const nextConfig: NextConfig = {
   transpilePackages: [],
-  async rewrites() {
-    return [
-      {
-        source: "/eos-api/:path*",
-        destination: `${apiOrigin}/:path*`,
-      },
-    ];
-  },
 };
 
 export default nextConfig;

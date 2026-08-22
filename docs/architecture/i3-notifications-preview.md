@@ -42,4 +42,8 @@ Dismissals are per-principal; underlying issues remain until resolved in source 
 
 ## I3.1 — Email adapter (Dev/Test)
 
+See **`i3.2-email-templates-preview.md`** for template registry and SMTP stub adapter.
+
+## I3.1 — Email adapter (Dev/Test)
+
 See **`i3-email-preview.md`** for outbox schema, dispatch digest API, and UI outbox panel.

@@ -66,6 +66,18 @@
 
 **Tests:** kernel 52/52, API i8.3 3/3, web tsc clean.
 
+### 17:43 — I3.2 + PG.1 + Login Proxy ✅
+
+**Shipped:** server `0.32.0-i3.2-pg.1`
+
+| Increment | Change |
+| --- | --- |
+| **I3.2** | Template registry, SMTP stub adapter, `/email/templates` API + UI |
+| **PG.1** | ADR-0017, dual-write dismissals + outbox when `EOS_DATABASE_URL` set |
+| **Proxy** | Single App Router proxy, hop-by-hop header fix, 502 on upstream down, `expiresIn` alias |
+
+**Tests:** kernel 55/55, API i3+i3.2+proxy 10/10, web tsc clean.
+
 ---
 
 ## Session summary (for user return)
@@ -75,18 +87,21 @@
 1. **I9.2 Encrypted Field Cache**
 2. **I3.1 Email Notification Adapter**
 3. **I8.3 Finance Automation**
+4. **I3.2 Template registry + SMTP stub**
+5. **PG.1 Notification dual-write + ADR-0017**
+6. **Login proxy fix**
 
 ### Current project status
 
-- **Server version:** `0.30.0-i8.3`
-- **Increments live:** C1–C10, O1–O4, I3.1, I8.3, I9.2, J1–J2
+- **Server version:** `0.32.0-i3.2-pg.1`
+- **Increments live:** C1–C10, O1–O4, I3.2, I8.3, I9.2, J1–J2
 - **All targeted tests passing**
 
 ### Recommended next increments
 
-1. I3.2 Template registry + SMTP adapter stub
-2. PostgreSQL persistence increment (larger — needs ADR/gate)
-3. Login proxy fix (`/eos-api/*` route)
+1. PG.2 — I4 outbox insert/drain on startup
+2. I3.3 — Real SMTP transport (when provider known)
+3. PG.3 — CRM persistence (separate gate)
 
 ### Issues resolved
 

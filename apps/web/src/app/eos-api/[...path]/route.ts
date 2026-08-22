@@ -1,19 +1,11 @@
 import type { NextRequest } from "next/server";
+import { buildUpstreamUrl, filterProxyRequestHeaders, filterProxyResponseHeaders } from "@/lib/eos-proxy";
 
 const API_ORIGIN = process.env.EOS_API_URL ?? "http://127.0.0.1:8080";
 
 async function proxyRequest(req: NextRequest, pathSegments: string[]) {
-  const path = pathSegments.join("/");
-  const url = new URL(`${API_ORIGIN}/${path}`);
-  req.nextUrl.searchParams.forEach((value, key) => {
-    url.searchParams.set(key, value);
-  });
-
-  const headers = new Headers();
-  req.headers.forEach((value, key) => {
-    if (key === "host" || key === "connection") return;
-    headers.set(key, value);
-  });
+  const url = buildUpstreamUrl(API_ORIGIN, pathSegments, req.nextUrl.searchParams);
+  const headers = filterProxyRequestHeaders(req.headers);
 
   const init: RequestInit = {
     method: req.method,
@@ -25,17 +17,20 @@ async function proxyRequest(req: NextRequest, pathSegments: string[]) {
     init.body = await req.arrayBuffer();
   }
 
-  const upstream = await fetch(url, init);
-  const responseHeaders = new Headers();
-  upstream.headers.forEach((value, key) => {
-    if (key === "transfer-encoding") return;
-    responseHeaders.set(key, value);
-  });
+  let upstream: Response;
+  try {
+    upstream = await fetch(url, init);
+  } catch {
+    return Response.json(
+      { error: "upstream_unavailable", reason: "EOS API not reachable — start apps/api on port 8080" },
+      { status: 502 },
+    );
+  }
 
   return new Response(upstream.body, {
     status: upstream.status,
     statusText: upstream.statusText,
-    headers: responseHeaders,
+    headers: filterProxyResponseHeaders(upstream.headers),
   });
 }
 

@@ -1,51 +1,99 @@
 import {
   authorize,
   buildEmailFromNotification,
+  DEFAULT_EMAIL_TEMPLATES,
+  listEmailTemplateKeys,
   newId,
+  resolveEmailTemplate,
   shouldEmailNotification,
   type EmailNotificationAdapter,
   type EmailNotificationMessage,
+  type EmailTemplate,
   type NotifEmailOutboxEntry,
   type Principal,
 } from "@sedmc/kernel";
 import type { Store } from "../store.js";
+import { persistNotifEmailOutbox } from "../persistence/notifications.js";
 import { ensureNotificationCollections } from "./collections.js";
 import { buildLiveNotifications } from "./notifications.js";
+
+function templateOverrides(store: Store, tenantId: string): EmailTemplate[] {
+  return (store.notifEmailTemplates ?? []).filter((t) => t.tenantId === tenantId);
+}
+
+async function recordOutboxEntry(
+  store: Store,
+  principal: Principal,
+  message: EmailNotificationMessage,
+  adapter: string,
+  status: NotifEmailOutboxEntry["status"] = "sent",
+) {
+  ensureNotificationCollections(store);
+  if (!store.notifEmailOutbox) store.notifEmailOutbox = [];
+
+  const now = new Date().toISOString();
+  const entry: NotifEmailOutboxEntry = {
+    id: newId(),
+    tenantId: principal.tenantId,
+    principalId: principal.id,
+    notificationKey: message.notificationKey,
+    to: message.to,
+    subject: message.subject,
+    bodyText: message.bodyText,
+    templateKey: message.templateKey,
+    status,
+    adapter,
+    sentAt: status === "sent" ? now : undefined,
+    createdAt: now,
+  };
+  store.notifEmailOutbox.push(entry);
+  await persistNotifEmailOutbox(store.dbPool, entry);
+  return entry;
+}
+
+function isDuplicate(store: Store, principal: Principal, notificationKey: string) {
+  return store.notifEmailOutbox.some(
+    (e) =>
+      e.tenantId === principal.tenantId &&
+      e.principalId === principal.id &&
+      e.notificationKey === notificationKey,
+  );
+}
 
 export function createDevOutboxEmailAdapter(store: Store, principal: Principal): EmailNotificationAdapter {
   return {
     name: "dev-outbox",
     async send(message: EmailNotificationMessage) {
-      ensureNotificationCollections(store);
-      if (!store.notifEmailOutbox) store.notifEmailOutbox = [];
-
-      const existing = store.notifEmailOutbox.find(
-        (e) =>
-          e.tenantId === principal.tenantId &&
-          e.principalId === principal.id &&
-          e.notificationKey === message.notificationKey,
-      );
-      if (existing) return { status: "skipped", reason: "already_dispatched" };
-
-      const now = new Date().toISOString();
-      const entry: NotifEmailOutboxEntry = {
-        id: newId(),
-        tenantId: principal.tenantId,
-        principalId: principal.id,
-        notificationKey: message.notificationKey,
-        to: message.to,
-        subject: message.subject,
-        bodyText: message.bodyText,
-        templateKey: message.templateKey,
-        status: "sent",
-        adapter: "dev-outbox",
-        sentAt: now,
-        createdAt: now,
-      };
-      store.notifEmailOutbox.push(entry);
+      if (isDuplicate(store, principal, message.notificationKey)) {
+        return { status: "skipped", reason: "already_dispatched" };
+      }
+      await recordOutboxEntry(store, principal, message, "dev-outbox", "sent");
       return { status: "sent" };
     },
   };
+}
+
+export function createSmtpStubEmailAdapter(store: Store, principal: Principal): EmailNotificationAdapter {
+  return {
+    name: "smtp-stub",
+    async send(message: EmailNotificationMessage) {
+      if (isDuplicate(store, principal, message.notificationKey)) {
+        return { status: "skipped", reason: "already_dispatched" };
+      }
+      await recordOutboxEntry(store, principal, message, "smtp-stub", "sent");
+      return { status: "sent", reason: "smtp_stub_noop" };
+    },
+  };
+}
+
+export function resolveEmailAdapterName(): string {
+  return process.env.EOS_EMAIL_ADAPTER === "smtp-stub" ? "smtp-stub" : "dev-outbox";
+}
+
+export function createEmailAdapter(store: Store, principal: Principal): EmailNotificationAdapter {
+  return resolveEmailAdapterName() === "smtp-stub"
+    ? createSmtpStubEmailAdapter(store, principal)
+    : createDevOutboxEmailAdapter(store, principal);
 }
 
 export async function dispatchEmailDigest(store: Store, principal: Principal) {
@@ -55,14 +103,15 @@ export async function dispatchEmailDigest(store: Store, principal: Principal) {
   ensureNotificationCollections(store);
   if (!principal.email) return { error: "invalid_request" as const, reason: "principal_has_no_email" };
 
-  const adapter = createDevOutboxEmailAdapter(store, principal);
+  const adapter = createEmailAdapter(store, principal);
+  const overrides = templateOverrides(store, principal.tenantId);
   const items = buildLiveNotifications(store, principal).filter(shouldEmailNotification);
 
   const dispatched: string[] = [];
   const skipped: { key: string; reason?: string }[] = [];
 
   for (const item of items) {
-    const message = buildEmailFromNotification(item, principal.email);
+    const message = buildEmailFromNotification(item, principal.email, overrides);
     const result = await adapter.send(message);
     if (result.status === "sent") dispatched.push(item.key);
     else skipped.push({ key: item.key, reason: result.reason });
@@ -93,13 +142,58 @@ export function listEmailOutbox(store: Store, principal: Principal) {
   return { items };
 }
 
+export function listEmailTemplates(store: Store, principal: Principal) {
+  const decision = authorize({ principal, permission: "notification:read:email_outbox", action: "read:email_templates" });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+
+  const overrides = templateOverrides(store, principal.tenantId);
+  const keys = listEmailTemplateKeys(overrides);
+  const items = keys.map((key) => {
+    const override = overrides.find((t) => t.key === key);
+    const defaults = DEFAULT_EMAIL_TEMPLATES.find((t) => t.key === key);
+    const source = override ?? defaults;
+    return {
+      key,
+      subject: source?.subject ?? key,
+      bodyText: source?.bodyText ?? "",
+      source: override ? ("tenant" as const) : ("default" as const),
+    };
+  });
+  return { items, adapter: resolveEmailAdapterName() };
+}
+
+export function previewEmailTemplate(
+  store: Store,
+  principal: Principal,
+  templateKey: string,
+  sample?: { title?: string; body?: string; href?: string },
+) {
+  const decision = authorize({ principal, permission: "notification:read:email_outbox", action: "preview:email_template" });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+
+  const resolved = resolveEmailTemplate(
+    templateKey,
+    {
+      severity: "warning",
+      title: sample?.title ?? "Sample notification title",
+      body: sample?.body ?? "Sample notification body text",
+      href: sample?.href ?? "/commercial/notifications",
+    },
+    templateOverrides(store, principal.tenantId),
+  );
+  return { preview: resolved };
+}
+
 export function getEmailAdapterHealth(store: Store) {
   ensureNotificationCollections(store);
+  const adapter = resolveEmailAdapterName();
   return {
     module: "notification-email",
-    increment: "I3.1",
-    adapter: "dev-outbox",
+    increment: "I3.2",
+    adapter,
     status: "ok" as const,
     outboxCount: (store.notifEmailOutbox ?? []).length,
+    templateCount: listEmailTemplateKeys(store.notifEmailTemplates?.map(({ tenantId: _, ...t }) => t) ?? []).length,
+    smtpConfigured: Boolean(process.env.EOS_SMTP_HOST),
   };
 }
