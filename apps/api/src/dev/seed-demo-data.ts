@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { FastifyInstance } from "fastify";
-import { TEST_BOOTSTRAP_SECRETS, type Store } from "../app.js";
+import { TEST_BOOTSTRAP_SECRETS, type BootstrapSecrets, type Store } from "../app.js";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 
@@ -26,13 +26,13 @@ export type DemoSeedSummary = {
   bookings: number;
 };
 
-async function loginBob(app: FastifyInstance): Promise<string> {
+async function loginBob(app: FastifyInstance, bootstrap: BootstrapSecrets): Promise<string> {
   const res = await app.inject({
     method: "POST",
     url: "/v1/auth/login",
     payload: {
       email: "bob.approver@sedmc.local",
-      password: TEST_BOOTSTRAP_SECRETS.bobPassword,
+      password: bootstrap.bobPassword,
       tenantSlug: "sedmc",
     },
   });
@@ -42,13 +42,13 @@ async function loginBob(app: FastifyInstance): Promise<string> {
   return res.json().accessToken as string;
 }
 
-async function loginCarol(app: FastifyInstance): Promise<string> {
+async function loginCarol(app: FastifyInstance, bootstrap: BootstrapSecrets): Promise<string> {
   const res = await app.inject({
     method: "POST",
     url: "/v1/auth/login",
     payload: {
       email: "carol.admin@sedmc.local",
-      password: TEST_BOOTSTRAP_SECRETS.carolPassword,
+      password: bootstrap.carolPassword,
       tenantSlug: "sedmc",
     },
   });
@@ -109,6 +109,7 @@ function readCsv(relativePath: string): string {
 export async function seedDemoCommercialData(
   app: FastifyInstance,
   store: Store,
+  bootstrap: BootstrapSecrets = TEST_BOOTSTRAP_SECRETS,
 ): Promise<DemoSeedSummary> {
   const empty =
     store.supSuppliers.length === 0 &&
@@ -138,7 +139,7 @@ export async function seedDemoCommercialData(
     };
   }
 
-  const token = await loginCarol(app);
+  const token = await loginCarol(app, bootstrap);
 
   await runImportBatch(
     app,
@@ -539,7 +540,7 @@ export async function seedDemoCommercialData(
     }
     const approvalId = approvalRequested.json().request.id as string;
 
-    const bobToken = await loginBob(app);
+    const bobToken = await loginBob(app, bootstrap);
     const approved = await app.inject({
       method: "POST",
       url: `/v1/commercial-approvals/${approvalId}/decision`,

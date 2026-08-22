@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { EosApiError, eosFetch, onSessionExpired } from "@/lib/eos-client";
 import { clearSession, getStoredEmail, getStoredToken, login, storeSession } from "@/lib/eos-session";
 
@@ -27,21 +27,35 @@ export function EosSessionProvider({ children }: { children: React.ReactNode }) 
     loggingIn: false,
     error: null,
   });
+  const loggingInRef = useRef(false);
+  const sessionGenRef = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
-    const token = getStoredToken();
+    const hydrateToken = getStoredToken();
     const email = getStoredEmail();
+    const hydrateGen = sessionGenRef.current;
 
     async function hydrate() {
-      if (!token) {
+      if (!hydrateToken) {
         if (!cancelled) setState((s) => ({ ...s, token: null, email: null, ready: true }));
         return;
       }
       try {
-        await eosFetch("/v1/me", { token });
-        if (!cancelled) setState((s) => ({ ...s, token, email, ready: true, error: null }));
+        await eosFetch("/v1/me", { token: hydrateToken, suppressSessionExpired: true });
+        if (cancelled || sessionGenRef.current !== hydrateGen) return;
+        // A concurrent login may have replaced storage — keep the newer session.
+        if (getStoredToken() !== hydrateToken) {
+          if (!cancelled) setState((s) => ({ ...s, ready: true }));
+          return;
+        }
+        if (!cancelled) setState((s) => ({ ...s, token: hydrateToken, email, ready: true, error: null }));
       } catch (err) {
+        if (cancelled || sessionGenRef.current !== hydrateGen) return;
+        if (getStoredToken() !== hydrateToken) {
+          if (!cancelled) setState((s) => ({ ...s, ready: true }));
+          return;
+        }
         clearSession();
         if (!cancelled) {
           setState((s) => ({
@@ -65,7 +79,10 @@ export function EosSessionProvider({ children }: { children: React.ReactNode }) 
   }, []);
 
   useEffect(() => {
-    return onSessionExpired(() => {
+    return onSessionExpired(({ token: expiredToken }) => {
+      if (loggingInRef.current) return;
+      const current = getStoredToken();
+      if (expiredToken && current && expiredToken !== current) return;
       clearSession();
       setState((s) => ({
         ...s,
@@ -77,31 +94,44 @@ export function EosSessionProvider({ children }: { children: React.ReactNode }) 
   }, []);
 
   const doLogin = useCallback(async (email: string, password: string) => {
+    loggingInRef.current = true;
+    sessionGenRef.current += 1;
+    const loginGen = sessionGenRef.current;
     setState((s) => ({ ...s, loggingIn: true, error: null }));
     try {
       const result = await login(email, password);
       storeSession(result.accessToken, email);
+      if (sessionGenRef.current !== loginGen) return;
       setState((s) => ({
         ...s,
         token: result.accessToken,
         email,
+        ready: true,
         loggingIn: false,
         error: null,
       }));
     } catch (err) {
+      if (sessionGenRef.current !== loginGen) return;
+      const apiError =
+        err instanceof EosApiError && typeof (err.body as { error?: unknown } | undefined)?.error === "string"
+          ? (err.body as { error: string }).error
+          : undefined;
       const message =
         err instanceof EosApiError
-          ? err.status === 401
+          ? err.status === 401 || apiError === "invalid_credentials"
             ? "Invalid credentials — check email/password"
             : err.message
           : err instanceof Error
             ? err.message
             : "Login failed";
       setState((s) => ({ ...s, loggingIn: false, error: message }));
+    } finally {
+      loggingInRef.current = false;
     }
   }, []);
 
   const logout = useCallback(() => {
+    sessionGenRef.current += 1;
     clearSession();
     setState((s) => ({ ...s, token: null, email: null, error: null }));
   }, []);

@@ -1,5 +1,5 @@
 import { checkDatabaseHealth, createPool, migrate } from "@sedmc/db";
-import { bootstrapSecretsFromEnv, seedStore } from "./app.js";
+import { bootstrapSecretsFromEnv, seedStore, TEST_BOOTSTRAP_SECRETS } from "./app.js";
 import { seedDemoCommercialData } from "./dev/seed-demo-data.js";
 import { createLogger } from "./observability.js";
 import { createEnvSecretsProvider } from "./ports/secrets.js";
@@ -18,15 +18,28 @@ import { buildServer } from "./server.js";
 const logger = createLogger((process.env.EOS_LOG_LEVEL as "info") ?? "info");
 const secrets = createEnvSecretsProvider();
 const tokenSecret = secrets.get("EOS_TOKEN_SECRET") ?? "dev-only-change-me";
+const isProduction =
+  process.env.EOS_ENV === "production" ||
+  process.env.EOS_ENV === "uat" ||
+  process.env.NODE_ENV === "production";
 
 let bootstrap;
 try {
   bootstrap = bootstrapSecretsFromEnv((ref) => secrets.get(ref));
 } catch (error) {
-  logger.error("bootstrap_secrets_missing", {
+  if (isProduction) {
+    logger.error("bootstrap_secrets_missing", {
+      err: error instanceof Error ? error.message : "unknown",
+    });
+    process.exit(1);
+  }
+  // Local `npm run dev -w @sedmc/api` without env: use documented test passwords
+  // (carol.admin@sedmc.local / test-carol-not-for-prod). Never used in UAT/Prod.
+  logger.warn("bootstrap_secrets_missing_using_dev_defaults", {
     err: error instanceof Error ? error.message : "unknown",
+    carolEmail: "carol.admin@sedmc.local",
   });
-  process.exit(1);
+  bootstrap = TEST_BOOTSTRAP_SECRETS;
 }
 
 const store = seedStore(tokenSecret, bootstrap);
@@ -84,7 +97,7 @@ const app = buildServer({
 
 if (process.env.EOS_SEED_DEMO === "true") {
   try {
-    const summary = await seedDemoCommercialData(app, store);
+    const summary = await seedDemoCommercialData(app, store, bootstrap);
     logger.info("demo_seed_complete", summary);
   } catch (error) {
     logger.error("demo_seed_failed", {

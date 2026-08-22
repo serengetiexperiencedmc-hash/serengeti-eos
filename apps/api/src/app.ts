@@ -19,7 +19,14 @@ import {
   type Store,
 } from "./store.js";
 
-export { seedStore, TEST_BOOTSTRAP_SECRETS, bootstrapSecretsFromEnv, type Store, type Payment } from "./store.js";
+export {
+  seedStore,
+  TEST_BOOTSTRAP_SECRETS,
+  bootstrapSecretsFromEnv,
+  type BootstrapSecrets,
+  type Store,
+  type Payment,
+} from "./store.js";
 export * from "./admin.js";
 export * from "./workflow.js";
 export * from "./outbox.js";
