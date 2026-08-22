@@ -45,6 +45,8 @@ export type NotifEmailDeliveryEvent = {
   snsMessageId?: string;
   recipientEmail?: string;
   receivedAt: string;
+  /** Optional SES/SNS payload retained for Dev/Test audit (I3.12). */
+  payload?: Record<string, unknown>;
 };
 
 export type NotifEmailSuppressionReason = "bounce" | "complaint" | "reject" | "manual" | "ses_account";

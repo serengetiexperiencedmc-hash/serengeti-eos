@@ -91,7 +91,60 @@ export function listEmailSuppressions(store: Store, principal: Principal) {
   const items = (store.notifEmailSuppressions ?? [])
     .filter((s) => s.tenantId === principal.tenantId && !s.liftedAt)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  return { items, increment: "I3.10" as const };
+  return { items, increment: "I3.12" as const };
+}
+
+export function exportEmailSuppressions(
+  store: Store,
+  principal: Principal,
+  options: { format?: "json" | "csv"; includeLifted?: boolean } = {},
+) {
+  const decision = authorize({
+    principal,
+    permission: "notification:read:email_outbox",
+    action: "export:email_suppressions",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+
+  ensureNotificationCollections(store);
+  const includeLifted = options.includeLifted === true;
+  const items = (store.notifEmailSuppressions ?? [])
+    .filter((s) => s.tenantId === principal.tenantId && (includeLifted || !s.liftedAt))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .map((s) => ({
+      id: s.id,
+      email: s.email,
+      reason: s.reason,
+      createdAt: s.createdAt,
+      ...(s.liftedAt ? { liftedAt: s.liftedAt } : {}),
+      ...(s.sourceEventId ? { sourceEventId: s.sourceEventId } : {}),
+    }));
+
+  const generatedAt = new Date().toISOString();
+  const format = options.format === "csv" ? "csv" : "json";
+  if (format === "csv") {
+    const header = "id,email,reason,createdAt,liftedAt,sourceEventId";
+    const rows = items.map((row) =>
+      [row.id, row.email, row.reason, row.createdAt, row.liftedAt ?? "", row.sourceEventId ?? ""]
+        .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
+        .join(","),
+    );
+    return {
+      format: "csv" as const,
+      csv: [header, ...rows].join("\n"),
+      count: items.length,
+      generatedAt,
+      increment: "I3.12" as const,
+    };
+  }
+
+  return {
+    format: "json" as const,
+    items,
+    count: items.length,
+    generatedAt,
+    increment: "I3.12" as const,
+  };
 }
 
 export async function liftEmailSuppression(
@@ -125,7 +178,7 @@ export async function liftEmailSuppression(
     }
   }
 
-  return { suppression: entry, increment: "I3.10" as const };
+  return { suppression: entry, increment: "I3.12" as const };
 }
 
 /** I3.10 — pull SES account suppressions into the tenant list. */
@@ -183,6 +236,6 @@ export async function syncEmailSuppressionsFromSes(
     activeCount: (store.notifEmailSuppressions ?? []).filter(
       (s) => s.tenantId === principal.tenantId && !s.liftedAt,
     ).length,
-    increment: "I3.10" as const,
+    increment: "I3.12" as const,
   };
 }

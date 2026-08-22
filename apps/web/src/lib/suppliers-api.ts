@@ -99,15 +99,62 @@ export function formatCategoryLabel(category: string): string {
 
 export async function listSuppliers(
   token: string,
-  query: { category?: string; status?: string; q?: string; archived?: boolean } = {},
-): Promise<{ items: SupplierSummary[] }> {
+  query: {
+    category?: string;
+    status?: string;
+    country?: string;
+    preferredPartner?: boolean;
+    q?: string;
+    archived?: boolean;
+    limit?: number;
+    offset?: number;
+  } = {},
+): Promise<{ items: SupplierSummary[]; total?: number; increment?: string }> {
   const params = new URLSearchParams();
   if (query.category) params.set("category", query.category);
   if (query.status) params.set("status", query.status);
+  if (query.country) params.set("country", query.country);
+  if (query.preferredPartner === true) params.set("preferredPartner", "1");
+  if (query.preferredPartner === false) params.set("preferredPartner", "0");
+  if (query.q) params.set("q", query.q);
+  if (query.archived) params.set("archived", "1");
+  if (query.limit !== undefined) params.set("limit", String(query.limit));
+  if (query.offset !== undefined) params.set("offset", String(query.offset));
+  const qs = params.toString();
+  return eosFetch(`/v1/suppliers${qs ? `?${qs}` : ""}`, { token });
+}
+
+export type SupplierFacets = {
+  category: Array<{ value: string; count: number }>;
+  status: Array<{ value: string; count: number }>;
+  country: Array<{ value: string; count: number }>;
+  preferredPartner: Array<{ value: string; count: number }>;
+};
+
+export async function getSupplierFacets(
+  token: string,
+  query: {
+    category?: string;
+    status?: string;
+    country?: string;
+    preferredPartner?: boolean;
+    q?: string;
+    archived?: boolean;
+  } = {},
+) {
+  const params = new URLSearchParams();
+  if (query.category) params.set("category", query.category);
+  if (query.status) params.set("status", query.status);
+  if (query.country) params.set("country", query.country);
+  if (query.preferredPartner === true) params.set("preferredPartner", "1");
+  if (query.preferredPartner === false) params.set("preferredPartner", "0");
   if (query.q) params.set("q", query.q);
   if (query.archived) params.set("archived", "1");
   const qs = params.toString();
-  return eosFetch(`/v1/suppliers${qs ? `?${qs}` : ""}`, { token });
+  return eosFetch<{ facets: SupplierFacets; total: number; increment: string }>(
+    `/v1/suppliers/facets${qs ? `?${qs}` : ""}`,
+    { token },
+  );
 }
 
 export async function getSupplier(token: string, id: string): Promise<SupplierDetail> {

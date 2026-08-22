@@ -100,6 +100,7 @@ async function applyDeliveryEvent(
     ...(input.snsMessageId ? { snsMessageId: input.snsMessageId } : {}),
     ...(input.recipient ? { recipientEmail: input.recipient } : {}),
     receivedAt: new Date().toISOString(),
+    payload: input.payload,
   };
   store.notifEmailDeliveryEvents.push(delivery);
   await persistNotifEmailDeliveryEvent(store.dbPool, delivery, input.payload);
@@ -171,10 +172,35 @@ export async function handleSesDeliveryWebhook(
   };
 }
 
-export function listEmailDeliveryEvents(store: Store, tenantId: string, limit = 50) {
+export function listEmailDeliveryEvents(
+  store: Store,
+  tenantId: string,
+  options: {
+    limit?: number;
+    eventType?: string;
+    from?: string;
+    to?: string;
+    includePayload?: boolean;
+  } = {},
+) {
   ensureNotificationCollections(store);
-  const items = store.notifEmailDeliveryEvents
-    .filter((e) => !e.tenantId || e.tenantId === tenantId)
-    .slice(-limit);
-  return { items };
+  const limit = options.limit && options.limit > 0 ? Math.min(options.limit, 500) : 50;
+  let items = store.notifEmailDeliveryEvents.filter((e) => !e.tenantId || e.tenantId === tenantId);
+  if (options.eventType) {
+    items = items.filter((e) => e.eventType === options.eventType);
+  }
+  if (options.from) {
+    items = items.filter((e) => e.receivedAt >= options.from!);
+  }
+  if (options.to) {
+    items = items.filter((e) => e.receivedAt <= options.to!);
+  }
+  items = items.slice(-limit);
+  return {
+    items: items.map((e) => {
+      const { payload, ...rest } = e;
+      return options.includePayload ? e : rest;
+    }),
+    increment: "I3.12" as const,
+  };
 }

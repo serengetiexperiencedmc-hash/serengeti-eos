@@ -109,6 +109,23 @@ export async function listEmailDeliveryEvents(token: string, limit = 20) {
   );
 }
 
+export async function exportEmailSuppressions(
+  token: string,
+  options: { format?: "json" | "csv"; includeLifted?: boolean } = {},
+) {
+  const params = new URLSearchParams();
+  params.set("format", options.format ?? "json");
+  if (options.includeLifted) params.set("includeLifted", "1");
+  return eosFetch<{
+    format: "json" | "csv";
+    items?: EmailSuppressionItem[];
+    csv?: string;
+    count: number;
+    generatedAt: string;
+    increment: string;
+  }>(`/v1/notifications/email/suppressions/export?${params.toString()}`, { token });
+}
+
 export type EmailDeliveryAnalytics = {
   deliveryEventsByType: Record<string, number>;
   suppressionsByReason: Record<string, number>;

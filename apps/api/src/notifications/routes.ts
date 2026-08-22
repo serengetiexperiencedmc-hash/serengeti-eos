@@ -3,7 +3,7 @@ import { principalFromAuthHeader } from "../app.js";
 import type { Store } from "../store.js";
 import { dispatchEmailDigest, getEmailAdapterHealth, listEmailOutbox, listEmailTemplates, previewEmailTemplate, upsertEmailTemplate } from "./email.js";
 import { handleSesDeliveryWebhook, listEmailDeliveryEvents } from "./ses-webhook.js";
-import { liftEmailSuppression, listEmailSuppressions, syncEmailSuppressionsFromSes } from "./email-suppression.js";
+import { liftEmailSuppression, listEmailSuppressions, syncEmailSuppressionsFromSes, exportEmailSuppressions } from "./email-suppression.js";
 import { getEmailDeliveryAnalytics } from "./email-analytics.js";
 import { dismissAllNotifications, dismissNotification, getNotificationHealth, listNotifications } from "./notifications.js";
 
@@ -126,9 +126,20 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
   app.get("/v1/notifications/email/delivery-events", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const query = req.query as { limit?: string };
-    const limit = query.limit ? Number(query.limit) : 50;
-    return { ...listEmailDeliveryEvents(store, principal.tenantId, limit), increment: "I3.11" };
+    const query = req.query as {
+      limit?: string;
+      eventType?: string;
+      from?: string;
+      to?: string;
+      includePayload?: string;
+    };
+    return listEmailDeliveryEvents(store, principal.tenantId, {
+      ...(query.limit ? { limit: Number(query.limit) } : {}),
+      ...(query.eventType ? { eventType: query.eventType } : {}),
+      ...(query.from ? { from: query.from } : {}),
+      ...(query.to ? { to: query.to } : {}),
+      ...(query.includePayload === "1" || query.includePayload === "true" ? { includePayload: true } : {}),
+    });
   });
 
   app.get("/v1/notifications/email/analytics", async (req, reply) => {
@@ -138,6 +149,18 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const windowHours = query.windowHours ? Number(query.windowHours) : 168;
     const result = getEmailDeliveryAnalytics(store, principal, {
       windowHours: Number.isFinite(windowHours) && windowHours > 0 ? windowHours : 168,
+    });
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.get("/v1/notifications/email/suppressions/export", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const query = req.query as { format?: string; includeLifted?: string };
+    const result = exportEmailSuppressions(store, principal, {
+      format: query.format === "csv" ? "csv" : "json",
+      includeLifted: query.includeLifted === "1" || query.includeLifted === "true",
     });
     if ("error" in result) return sendError(reply, result);
     return result;

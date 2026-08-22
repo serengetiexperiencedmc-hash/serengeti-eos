@@ -14,6 +14,7 @@ import {
   getSupplierModuleHealth,
   listSupplierCategories,
   listSuppliers,
+  getSupplierFacets,
   updateSupplier,
   archiveSupplier,
   restoreSupplier,
@@ -54,6 +55,33 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     return listSupplierCategories();
+  });
+
+  app.get("/v1/suppliers/facets", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const query = req.query as {
+      category?: string;
+      status?: string;
+      country?: string;
+      preferredPartner?: string;
+      q?: string;
+      archived?: string;
+    };
+    const result = getSupplierFacets(store, principal, {
+      ...(query.category !== undefined ? { category: query.category } : {}),
+      ...(query.status !== undefined ? { status: query.status } : {}),
+      ...(query.country !== undefined ? { country: query.country } : {}),
+      ...(query.preferredPartner === "1" || query.preferredPartner === "true"
+        ? { preferredPartner: true }
+        : query.preferredPartner === "0" || query.preferredPartner === "false"
+          ? { preferredPartner: false }
+          : {}),
+      ...(query.q !== undefined ? { q: query.q } : {}),
+      ...(query.archived === "1" || query.archived === "true" ? { archived: true } : {}),
+    });
+    if ("error" in result) return sendSupplierError(reply, result);
+    return result;
   });
 
   app.post("/v1/suppliers/imports", async (req, reply) => {
@@ -106,12 +134,29 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
   app.get("/v1/suppliers", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const query = req.query as { category?: string; status?: string; q?: string; archived?: string };
+    const query = req.query as {
+      category?: string;
+      status?: string;
+      country?: string;
+      preferredPartner?: string;
+      q?: string;
+      archived?: string;
+      limit?: string;
+      offset?: string;
+    };
     const result = listSuppliers(store, principal, {
       ...(query.category !== undefined ? { category: query.category } : {}),
       ...(query.status !== undefined ? { status: query.status } : {}),
+      ...(query.country !== undefined ? { country: query.country } : {}),
+      ...(query.preferredPartner === "1" || query.preferredPartner === "true"
+        ? { preferredPartner: true }
+        : query.preferredPartner === "0" || query.preferredPartner === "false"
+          ? { preferredPartner: false }
+          : {}),
       ...(query.q !== undefined ? { q: query.q } : {}),
       ...(query.archived === "1" || query.archived === "true" ? { archived: true } : {}),
+      ...(query.limit ? { limit: Number(query.limit) } : {}),
+      ...(query.offset ? { offset: Number(query.offset) } : {}),
     });
     if ("error" in result) return sendSupplierError(reply, result);
     return result;

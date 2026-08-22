@@ -19,6 +19,7 @@ import {
   previewEmailTemplate,
   saveEmailTemplate,
   syncEmailSuppressions,
+  exportEmailSuppressions,
   type EmailDeliveryAnalytics,
   type EmailDeliveryEventItem,
   type EmailOutboxItem,
@@ -111,6 +112,24 @@ export default function NotificationsPage() {
     }
   }
 
+  async function handleExportSuppressions() {
+    if (!token) return;
+    setSyncMsg(null);
+    try {
+      const res = await exportEmailSuppressions(token, { format: "csv" });
+      const blob = new Blob([res.csv ?? ""], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `email-suppressions-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setSyncMsg(`Exported ${res.count} suppression(s)`);
+    } catch (err) {
+      setSyncMsg(err instanceof Error ? err.message : "Export failed");
+    }
+  }
+
   async function handleSaveTemplate() {
     if (!token || !selectedKey) return;
     setEditorBusy(true);
@@ -148,7 +167,7 @@ export default function NotificationsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="I3 · I3.11 · Notifications"
+        eyebrow="I3 · I3.12 · Notifications"
         title="Action Inbox"
         subtitle={`Live alerts + email digest · adapter: ${adapter}`}
         actions={
@@ -242,7 +261,7 @@ export default function NotificationsPage() {
       </div>
       <div className="mt-4">
         <Card title={`Delivery events (${deliveryEvents.length})`}>
-          <p className="mb-3 text-sm text-muted">Recent SES delivery lifecycle events (I3.11).</p>
+          <p className="mb-3 text-sm text-muted">SES webhook audit trail — recent delivery lifecycle events (I3.12).</p>
           <div className="space-y-2">
             {deliveryEvents.map((e) => (
               <div key={e.id} className="rounded border border-line px-3 py-3">
@@ -258,12 +277,15 @@ export default function NotificationsPage() {
       <div className="mt-4">
         <Card title={`Email suppressions (${suppressions.length})`}>
           <p className="mb-3 text-sm text-muted">
-            Bounce, complaint, reject, and SES account suppressions block further sends until lifted (I3.11).
+            Bounce, complaint, reject, and SES account suppressions block further sends until lifted (I3.12).
           </p>
           {token && (
-            <div className="mb-3">
+            <div className="mb-3 flex flex-wrap gap-2">
               <Btn variant="secondary" size="sm" onClick={() => void handleSyncSuppressions()}>
                 Sync from SES
+              </Btn>
+              <Btn variant="secondary" size="sm" onClick={() => void handleExportSuppressions()}>
+                Export CSV
               </Btn>
             </div>
           )}

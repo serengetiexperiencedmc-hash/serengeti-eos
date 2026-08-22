@@ -13,6 +13,7 @@ export {
   getSupplierModuleHealth,
   listSupplierCategories,
   listSuppliers,
+  getSupplierFacets,
   restoreSupplier,
   updateSupplier,
 } from "./supplier.js";

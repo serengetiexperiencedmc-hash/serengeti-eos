@@ -189,8 +189,8 @@
 
 ### Current project status
 
-- **Server version:** `0.47.0-i4.9-pg12`
-- **Increments live:** C1–C10, O1–O4, I3.6.1–I3.11, I4.3–I4.9, I8.3, I9.2, J1–J2, PG.1–PG.12
+- **Server version:** `0.48.0-i3.12-pg13`
+- **Increments live:** C1–C10, O1–O4, I3.6.1–I3.12, I4.3–I4.9, I8.3, I9.2, J1–J2, PG.1–PG.13
 - **All targeted tests passing**
 
 ### 19:xx — Commercial preview fix ✅
@@ -283,11 +283,20 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **I4.9** | DLQ list + request/execute replay on Commercial Events page |
 | **PG.12** | Supplier restore + `?archived=1` list; restore cascaded children |
 
+### 20:xx — I3.12 + PG.13 ✅
+
+**Shipped:** server `0.48.0-i3.12-pg13`
+
+| Increment | Change |
+| --- | --- |
+| **I3.12** | Suppression CSV/JSON export; delivery-events audit filters + payload |
+| **PG.13** | Supplier facets API + country/preferredPartner search filters |
+
 ### Recommended next increments
 
-1. I3.12 — suppression export / webhook audit trail
-2. PG.13 — supplier search / facets for large libraries
-3. I4.10 — DLQ remediation workflow statuses in UI
+1. I4.10 — DLQ remediation workflow statuses in UI
+2. PG.14 — supplier rate calendar / season views
+3. I3.13 — suppression bulk lift / import
 
 ### Issues resolved
 

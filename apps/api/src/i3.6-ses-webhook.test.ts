@@ -139,7 +139,7 @@ describe("I3.6 SES bounce/complaint webhooks", () => {
         headers: { authorization: `Bearer ${token}` },
       });
       expect(listed.statusCode).toBe(200);
-      expect(listed.json().increment).toBe("I3.11");
+      expect(listed.json().increment).toBe("I3.12");
       expect(listed.json().items.length).toBeGreaterThan(0);
     } finally {
       if (prevSecret === undefined) delete process.env.EOS_SES_WEBHOOK_SECRET;

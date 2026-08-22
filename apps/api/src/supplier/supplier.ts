@@ -58,31 +58,28 @@ function sanitizeSupplier(s: SupSupplier) {
   };
 }
 
-export function listSuppliers(
-  store: Store,
-  principal: Principal,
-  query: { category?: string; status?: string; q?: string; archived?: boolean },
-) {
-  ensureSupplierCollections(store);
-  const decision = authorize({
-    principal,
-    permission: "supplier:read:supplier",
-    action: "read:sup_supplier",
-  });
-  if (decision.result === "deny") {
-    return { error: "forbidden" as const, reason: decision.reason };
-  }
+export type SupplierListQuery = {
+  category?: string;
+  status?: string;
+  country?: string;
+  preferredPartner?: boolean;
+  q?: string;
+  archived?: boolean;
+  limit?: number;
+  offset?: number;
+};
 
+function filterSupplierRecords(store: Store, tenantId: string, query: SupplierListQuery): SupSupplier[] {
   let items = store.supSuppliers.filter((s) => {
-    if (s.tenantId !== principal.tenantId) return false;
+    if (s.tenantId !== tenantId) return false;
     return query.archived ? Boolean(s.archivedAt) : !s.archivedAt;
   });
 
-  if (query.category) {
-    items = items.filter((s) => s.category === query.category);
-  }
-  if (query.status) {
-    items = items.filter((s) => s.status === query.status);
+  if (query.category) items = items.filter((s) => s.category === query.category);
+  if (query.status) items = items.filter((s) => s.status === query.status);
+  if (query.country) items = items.filter((s) => s.country.toUpperCase() === query.country!.toUpperCase());
+  if (query.preferredPartner !== undefined) {
+    items = items.filter((s) => s.preferredPartner === query.preferredPartner);
   }
   if (query.q?.trim()) {
     const q = query.q.trim().toLowerCase();
@@ -93,8 +90,71 @@ export function listSuppliers(
         (s.tradingName?.toLowerCase().includes(q) ?? false),
     );
   }
+  return items;
+}
 
-  return { items: items.map(sanitizeSupplier) };
+function facetCounts(values: string[]): Array<{ value: string; count: number }> {
+  const map = new Map<string, number>();
+  for (const value of values) map.set(value, (map.get(value) ?? 0) + 1);
+  return [...map.entries()]
+    .map(([value, count]) => ({ value, count }))
+    .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value));
+}
+
+export function listSuppliers(store: Store, principal: Principal, query: SupplierListQuery = {}) {
+  ensureSupplierCollections(store);
+  const decision = authorize({
+    principal,
+    permission: "supplier:read:supplier",
+    action: "read:sup_supplier",
+  });
+  if (decision.result === "deny") {
+    return { error: "forbidden" as const, reason: decision.reason };
+  }
+
+  const filtered = filterSupplierRecords(store, principal.tenantId, query);
+  const offset = query.offset && query.offset > 0 ? query.offset : 0;
+  const limit = query.limit && query.limit > 0 ? Math.min(query.limit, 500) : undefined;
+  const page = limit === undefined ? filtered : filtered.slice(offset, offset + limit);
+
+  return {
+    items: page.map(sanitizeSupplier),
+    total: filtered.length,
+    increment: "PG.13" as const,
+  };
+}
+
+export function getSupplierFacets(store: Store, principal: Principal, query: SupplierListQuery = {}) {
+  ensureSupplierCollections(store);
+  const decision = authorize({
+    principal,
+    permission: "supplier:read:supplier",
+    action: "read:sup_supplier_facets",
+  });
+  if (decision.result === "deny") {
+    return { error: "forbidden" as const, reason: decision.reason };
+  }
+
+  const base = { ...query };
+  const forCategory = filterSupplierRecords(store, principal.tenantId, { ...base, category: undefined });
+  const forStatus = filterSupplierRecords(store, principal.tenantId, { ...base, status: undefined });
+  const forCountry = filterSupplierRecords(store, principal.tenantId, { ...base, country: undefined });
+  const forPreferred = filterSupplierRecords(store, principal.tenantId, {
+    ...base,
+    preferredPartner: undefined,
+  });
+  const total = filterSupplierRecords(store, principal.tenantId, base).length;
+
+  return {
+    facets: {
+      category: facetCounts(forCategory.map((s) => s.category)),
+      status: facetCounts(forStatus.map((s) => s.status)),
+      country: facetCounts(forCountry.map((s) => s.country)),
+      preferredPartner: facetCounts(forPreferred.map((s) => (s.preferredPartner ? "true" : "false"))),
+    },
+    total,
+    increment: "PG.13" as const,
+  };
 }
 
 export function getSupplier(store: Store, principal: Principal, id: string) {
@@ -647,7 +707,7 @@ export function getSupplierModuleHealth(store: Store) {
   return {
     module: "supplier",
     status: "ok" as const,
-    increment: "PG.12",
+    increment: "PG.13",
     suppliers: store.supSuppliers.filter((s) => !s.archivedAt).length,
     archivedSuppliers: store.supSuppliers.filter((s) => Boolean(s.archivedAt)).length,
     importBatches: store.supImportBatches.length,

@@ -17,9 +17,11 @@ import {
   createSupplierRate,
   formatCategoryLabel,
   getSupplier,
+  getSupplierFacets,
   listSuppliers,
   restoreSupplier,
   type SupplierDetail,
+  type SupplierFacets,
   type SupplierSummary,
 } from "@/lib/suppliers-api";
 
@@ -594,6 +596,9 @@ export default function SuppliersPage() {
   const [detail, setDetail] = useState<SupplierDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [countryFilter, setCountryFilter] = useState<string | undefined>();
+  const [facets, setFacets] = useState<SupplierFacets | null>(null);
+  const [total, setTotal] = useState(0);
 
   const filterConfig = FILTERS.find((f) => f.label === activeFilter) ?? FILTERS[0];
 
@@ -602,23 +607,29 @@ export default function SuppliersPage() {
     setLoading(true);
     setError(null);
     try {
-      const result = await listSuppliers(token, {
+      const query = {
         category: filterConfig.category,
         q: search.trim() || undefined,
         archived: filterConfig.archived,
-      });
-      let items = result.items;
-      if (filterConfig.preferredOnly) {
-        items = items.filter((s) => s.preferredPartner);
-      }
-      setSuppliers(items);
+        preferredPartner: filterConfig.preferredOnly ? true : undefined,
+        country: countryFilter,
+      };
+      const [result, facetResult] = await Promise.all([
+        listSuppliers(token, query),
+        getSupplierFacets(token, query),
+      ]);
+      setSuppliers(result.items);
+      setTotal(result.total ?? result.items.length);
+      setFacets(facetResult.facets);
     } catch (err) {
       setError(err instanceof EosApiError ? err.message : "Failed to load suppliers");
       setSuppliers([]);
+      setFacets(null);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
-  }, [token, filterConfig, search]);
+  }, [token, filterConfig, search, countryFilter]);
 
   useEffect(() => {
     if (ready && token) void loadSuppliers();
@@ -639,8 +650,8 @@ export default function SuppliersPage() {
   const subtitle = useMemo(() => {
     if (!token) return "Sign in to load suppliers from EOS API";
     if (loading) return "Loading suppliers…";
-    return `${suppliers.length} supplier${suppliers.length === 1 ? "" : "s"} · Live API`;
-  }, [token, loading, suppliers.length]);
+    return `${total} supplier${total === 1 ? "" : "s"} · Live API · PG.13 facets`;
+  }, [token, loading, total]);
 
   return (
     <>
@@ -684,7 +695,10 @@ export default function SuppliersPage() {
           <button
             key={filter.label}
             type="button"
-            onClick={() => setActiveFilter(filter.label)}
+            onClick={() => {
+              setActiveFilter(filter.label);
+              setCountryFilter(undefined);
+            }}
             disabled={!token}
             className={`rounded-full border px-3.5 py-1.5 text-xs transition-colors disabled:opacity-50 ${
               activeFilter === filter.label
@@ -696,6 +710,33 @@ export default function SuppliersPage() {
           </button>
         ))}
       </div>
+
+      {facets && facets.country.length > 0 && !filterConfig.archived && (
+        <div className="mb-5 flex flex-wrap gap-2">
+          <span className="self-center text-xs uppercase tracking-wide text-muted">Country</span>
+          <button
+            type="button"
+            onClick={() => setCountryFilter(undefined)}
+            className={`rounded-full border px-3 py-1 text-xs ${
+              !countryFilter ? "border-ink bg-ink text-paper" : "border-line bg-paper text-ink"
+            }`}
+          >
+            All
+          </button>
+          {facets.country.map((c) => (
+            <button
+              key={c.value}
+              type="button"
+              onClick={() => setCountryFilter(c.value)}
+              className={`rounded-full border px-3 py-1 text-xs ${
+                countryFilter === c.value ? "border-ink bg-ink text-paper" : "border-line bg-paper text-ink"
+              }`}
+            >
+              {c.value} ({c.count})
+            </button>
+          ))}
+        </div>
+      )}
 
       {error && (
         <div className="mb-4 rounded-md border border-danger/30 bg-danger-bg px-4 py-3 text-sm text-danger">
