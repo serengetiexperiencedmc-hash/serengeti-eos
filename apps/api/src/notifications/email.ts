@@ -331,7 +331,7 @@ export function getEmailAdapterHealth(store: Store) {
   const adapter = resolveEmailAdapterName();
   return {
     module: "notification-email",
-    increment: "I3.10",
+    increment: "I3.11",
     adapter,
     status: "ok" as const,
     outboxCount: (store.notifEmailOutbox ?? []).length,

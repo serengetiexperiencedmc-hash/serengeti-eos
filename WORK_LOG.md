@@ -189,8 +189,8 @@
 
 ### Current project status
 
-- **Server version:** `0.45.0-i3.10-pg10`
-- **Increments live:** C1–C10, O1–O4, I3.6.1–I3.10, I4.3–I4.8, I8.3, I9.2, J1–J2, PG.1–PG.10
+- **Server version:** `0.46.0-pg11-i3.11`
+- **Increments live:** C1–C10, O1–O4, I3.6.1–I3.11, I4.3–I4.8, I8.3, I9.2, J1–J2, PG.1–PG.11
 - **All targeted tests passing**
 
 ### 19:xx — Commercial preview fix ✅
@@ -264,11 +264,21 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **PG.10** | Supplier content-block create/update/archive REST with dual-write |
 | **C4/I3 UI** | Content-block drawer CRUD; suppressions Sync from SES |
 
+### 20:xx — PG.11 + I3.11 ✅
+
+**Shipped:** server `0.46.0-pg11-i3.11`
+
+| Increment | Change |
+| --- | --- |
+| **PG.11** | Supplier soft-archive cascade + partial unique / archive indexes |
+| **I3.11** | Email delivery analytics API + Notifications dashboard cards |
+| **C4 UI** | Archive supplier in detail drawer |
+
 ### Recommended next increments
 
-1. PG.11 — soft-delete cascade / archive indexes
-2. I3.11 — suppression analytics / delivery dashboards
-3. I4.9 — NATS consumer DLQ / replay UI
+1. I4.9 — NATS consumer DLQ / replay Commercial UI
+2. PG.12 — supplier restore / unarchive
+3. I3.12 — suppression export / webhook audit trail
 
 ### Issues resolved
 

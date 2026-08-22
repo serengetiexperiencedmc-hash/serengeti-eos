@@ -6,6 +6,7 @@ export {
   validateSupplierImportBatch,
 } from "./import.js";
 export {
+  archiveSupplier,
   createSupplier,
   findSupplierByCode,
   getSupplier,

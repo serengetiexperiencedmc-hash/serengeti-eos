@@ -8,6 +8,7 @@ import { SupplierFormModal } from "@/components/commercial/SupplierFormModal";
 import { Btn, PageHeader } from "@/components/commercial/ui";
 import { EosApiError } from "@/lib/eos-client";
 import {
+  archiveSupplier,
   archiveSupplierContact,
   archiveSupplierContentBlock,
   archiveSupplierRate,
@@ -85,6 +86,7 @@ function SupplierDetailDrawer({
   onClose,
   onEdit,
   onRefresh,
+  onArchived,
 }: {
   token: string;
   detail: SupplierDetail | null;
@@ -92,6 +94,7 @@ function SupplierDetailDrawer({
   onClose: () => void;
   onEdit: () => void;
   onRefresh: () => void;
+  onArchived: () => void;
 }) {
   const [contactBusy, setContactBusy] = useState(false);
   const [rateBusy, setRateBusy] = useState(false);
@@ -240,6 +243,20 @@ function SupplierDetailDrawer({
     }
   }
 
+  async function handleArchiveSupplier() {
+    if (!supplier) return;
+    if (!window.confirm(`Archive ${supplier.tradingName ?? supplier.legalName}? Contacts, rates, and content blocks will also be archived.`)) {
+      return;
+    }
+    setFormError(null);
+    try {
+      await archiveSupplier(token, supplier.id);
+      onArchived();
+    } catch (err) {
+      setFormError(err instanceof EosApiError ? err.message : "Failed to archive supplier");
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-[90] flex justify-end bg-ink/30">
       <div className="h-full w-full max-w-md overflow-y-auto border-l border-line bg-paper shadow-xl">
@@ -249,9 +266,14 @@ function SupplierDetailDrawer({
           </h2>
           <div className="flex items-center gap-2">
             {supplier && (
-              <Btn variant="secondary" onClick={onEdit}>
-                Edit
-              </Btn>
+              <>
+                <Btn variant="secondary" onClick={onEdit}>
+                  Edit
+                </Btn>
+                <Btn variant="secondary" onClick={() => void handleArchiveSupplier()}>
+                  Archive
+                </Btn>
+              </>
             )}
             <button type="button" onClick={onClose} className="text-muted hover:text-ink">
               ✕
@@ -730,6 +752,11 @@ export default function SuppliersPage() {
           onRefresh={() => {
             if (!selectedId) return;
             void getSupplier(token, selectedId).then(setDetail).catch(() => setDetail(null));
+            void loadSuppliers();
+          }}
+          onArchived={() => {
+            setSelectedId(null);
+            setDetail(null);
             void loadSuppliers();
           }}
         />

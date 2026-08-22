@@ -94,6 +94,38 @@ export async function syncEmailSuppressions(token: string) {
   );
 }
 
+export type EmailDeliveryEventItem = {
+  id: string;
+  eventType: string;
+  recipientEmail?: string;
+  receivedAt: string;
+  sesMessageId?: string;
+};
+
+export async function listEmailDeliveryEvents(token: string, limit = 20) {
+  return eosFetch<{ items: EmailDeliveryEventItem[]; increment: string }>(
+    `/v1/notifications/email/delivery-events?limit=${limit}`,
+    { token },
+  );
+}
+
+export type EmailDeliveryAnalytics = {
+  deliveryEventsByType: Record<string, number>;
+  suppressionsByReason: Record<string, number>;
+  activeSuppressions: number;
+  liftedSuppressions: number;
+  outboxByStatus: Record<string, number>;
+  recentDeliveryEvents: number;
+  windowHours: number;
+};
+
+export async function getEmailDeliveryAnalytics(token: string, windowHours = 168) {
+  return eosFetch<{ analytics: EmailDeliveryAnalytics; increment: string }>(
+    `/v1/notifications/email/analytics?windowHours=${windowHours}`,
+    { token },
+  );
+}
+
 export type EmailTemplateItem = {
   key: string;
   subject: string;

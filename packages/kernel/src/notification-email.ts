@@ -59,6 +59,16 @@ export type NotifEmailSuppression = {
   liftedAt?: string;
 };
 
+export type NotifEmailDeliveryAnalytics = {
+  deliveryEventsByType: Record<string, number>;
+  suppressionsByReason: Record<string, number>;
+  activeSuppressions: number;
+  liftedSuppressions: number;
+  outboxByStatus: Record<string, number>;
+  recentDeliveryEvents: number;
+  windowHours: number;
+};
+
 export function buildEmailFromNotification(
   item: NotifItem,
   recipientEmail: string,

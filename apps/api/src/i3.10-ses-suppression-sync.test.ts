@@ -78,7 +78,7 @@ describe("I3.10 SES account suppression sync", () => {
       url: "/v1/notifications/email/health",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(health.json().increment).toBe("I3.10");
+    expect(health.json().increment).toBe("I3.11");
 
     const sync = await app.inject({
       method: "POST",

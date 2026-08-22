@@ -15,6 +15,7 @@ import {
   listSupplierCategories,
   listSuppliers,
   updateSupplier,
+  archiveSupplier,
 } from "./supplier.js";
 import { archiveSupplierContact, createSupplierContact, updateSupplierContact } from "./contacts.js";
 import { archiveSupplierRate, createSupplierRate, updateSupplierRate } from "./rates.js";
@@ -143,6 +144,15 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       req.body as Parameters<typeof updateSupplier>[3],
       correlationId,
     );
+    if ("error" in result) return sendSupplierError(reply, result);
+    return result;
+  });
+
+  app.delete("/v1/suppliers/:id", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const correlationId = getCorrelationId(req);
+    const result = archiveSupplier(store, principal, (req.params as { id: string }).id, correlationId);
     if ("error" in result) return sendSupplierError(reply, result);
     return result;
   });

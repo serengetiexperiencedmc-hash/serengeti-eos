@@ -9,6 +9,8 @@ import {
   dismissNotification,
   dispatchEmailDigest,
   getEmailAdapterHealth,
+  getEmailDeliveryAnalytics,
+  listEmailDeliveryEvents,
   listEmailOutbox,
   listEmailSuppressions,
   listEmailTemplates,
@@ -17,6 +19,8 @@ import {
   previewEmailTemplate,
   saveEmailTemplate,
   syncEmailSuppressions,
+  type EmailDeliveryAnalytics,
+  type EmailDeliveryEventItem,
   type EmailOutboxItem,
   type EmailSuppressionItem,
   type EmailTemplateItem,
@@ -28,6 +32,8 @@ export default function NotificationsPage() {
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [outbox, setOutbox] = useState<EmailOutboxItem[]>([]);
   const [suppressions, setSuppressions] = useState<EmailSuppressionItem[]>([]);
+  const [deliveryEvents, setDeliveryEvents] = useState<EmailDeliveryEventItem[]>([]);
+  const [analytics, setAnalytics] = useState<EmailDeliveryAnalytics | null>(null);
   const [templates, setTemplates] = useState<EmailTemplateItem[]>([]);
   const [adapter, setAdapter] = useState("dev-outbox");
   const [error, setError] = useState<string | null>(null);
@@ -48,18 +54,22 @@ export default function NotificationsPage() {
 
   async function reload() {
     if (!token) return;
-    const [inbox, emailOutbox, tmpl, health, suppressed] = await Promise.all([
+    const [inbox, emailOutbox, tmpl, health, suppressed, events, stats] = await Promise.all([
       listNotifications(token),
       listEmailOutbox(token),
       listEmailTemplates(token),
       getEmailAdapterHealth(token),
       listEmailSuppressions(token),
+      listEmailDeliveryEvents(token, 15),
+      getEmailDeliveryAnalytics(token),
     ]);
     setItems(inbox.items);
     setOutbox(emailOutbox.items);
     setTemplates(tmpl.items);
     setAdapter(health.adapter);
     setSuppressions(suppressed.items);
+    setDeliveryEvents(events.items);
+    setAnalytics(stats.analytics);
     if (tmpl.items.length > 0 && !selectedKey) {
       const first = tmpl.items[0];
       setSelectedKey(first.key);
@@ -138,7 +148,7 @@ export default function NotificationsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="I3 · I3.10 · Notifications"
+        eyebrow="I3 · I3.11 · Notifications"
         title="Action Inbox"
         subtitle={`Live alerts + email digest · adapter: ${adapter}`}
         actions={
@@ -159,6 +169,36 @@ export default function NotificationsPage() {
       {error && <p className="mb-4 text-sm text-danger">{error}</p>}
       {dispatchMsg && <p className="mb-4 text-sm text-gold-deep">{dispatchMsg}</p>}
       {syncMsg && <p className="mb-4 text-sm text-gold-deep">{syncMsg}</p>}
+      {analytics && (
+        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Card title="Active suppressions">
+            <p className="text-2xl font-semibold text-ink">{analytics.activeSuppressions}</p>
+            <p className="text-xs text-muted">{analytics.liftedSuppressions} lifted</p>
+          </Card>
+          <Card title={`Events (${analytics.windowHours}h)`}>
+            <p className="text-2xl font-semibold text-ink">{analytics.recentDeliveryEvents}</p>
+            <p className="text-xs text-muted">
+              {Object.entries(analytics.deliveryEventsByType)
+                .map(([k, v]) => `${k}: ${v}`)
+                .join(" · ") || "No events yet"}
+            </p>
+          </Card>
+          <Card title="Suppression reasons">
+            <p className="text-sm text-muted">
+              {Object.entries(analytics.suppressionsByReason)
+                .map(([k, v]) => `${k}: ${v}`)
+                .join(" · ") || "None active"}
+            </p>
+          </Card>
+          <Card title="Outbox status">
+            <p className="text-sm text-muted">
+              {Object.entries(analytics.outboxByStatus)
+                .map(([k, v]) => `${k}: ${v}`)
+                .join(" · ") || "Empty"}
+            </p>
+          </Card>
+        </div>
+      )}
       <Card title={`${items.length} notification(s)`}>
         <div className="space-y-2">
           {items.map((item) => (
@@ -201,9 +241,24 @@ export default function NotificationsPage() {
         </Card>
       </div>
       <div className="mt-4">
+        <Card title={`Delivery events (${deliveryEvents.length})`}>
+          <p className="mb-3 text-sm text-muted">Recent SES delivery lifecycle events (I3.11).</p>
+          <div className="space-y-2">
+            {deliveryEvents.map((e) => (
+              <div key={e.id} className="rounded border border-line px-3 py-3">
+                <div className="text-xs uppercase tracking-wide text-muted">{e.eventType}</div>
+                <div className="font-medium text-ink">{e.recipientEmail ?? "—"}</div>
+                <div className="text-xs text-muted">{new Date(e.receivedAt).toLocaleString()}</div>
+              </div>
+            ))}
+            {deliveryEvents.length === 0 && <p className="text-sm text-muted">No delivery events yet.</p>}
+          </div>
+        </Card>
+      </div>
+      <div className="mt-4">
         <Card title={`Email suppressions (${suppressions.length})`}>
           <p className="mb-3 text-sm text-muted">
-            Bounce, complaint, reject, and SES account suppressions block further sends until lifted (I3.10).
+            Bounce, complaint, reject, and SES account suppressions block further sends until lifted (I3.11).
           </p>
           {token && (
             <div className="mb-3">

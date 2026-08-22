@@ -4,6 +4,7 @@ import type { Store } from "../store.js";
 import { dispatchEmailDigest, getEmailAdapterHealth, listEmailOutbox, listEmailTemplates, previewEmailTemplate, upsertEmailTemplate } from "./email.js";
 import { handleSesDeliveryWebhook, listEmailDeliveryEvents } from "./ses-webhook.js";
 import { liftEmailSuppression, listEmailSuppressions, syncEmailSuppressionsFromSes } from "./email-suppression.js";
+import { getEmailDeliveryAnalytics } from "./email-analytics.js";
 import { dismissAllNotifications, dismissNotification, getNotificationHealth, listNotifications } from "./notifications.js";
 
 function sendError(
@@ -127,7 +128,19 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const query = req.query as { limit?: string };
     const limit = query.limit ? Number(query.limit) : 50;
-    return { ...listEmailDeliveryEvents(store, principal.tenantId, limit), increment: "I3.6" };
+    return { ...listEmailDeliveryEvents(store, principal.tenantId, limit), increment: "I3.11" };
+  });
+
+  app.get("/v1/notifications/email/analytics", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const query = req.query as { windowHours?: string };
+    const windowHours = query.windowHours ? Number(query.windowHours) : 168;
+    const result = getEmailDeliveryAnalytics(store, principal, {
+      windowHours: Number.isFinite(windowHours) && windowHours > 0 ? windowHours : 168,
+    });
+    if ("error" in result) return sendError(reply, result);
+    return result;
   });
 
   app.get("/v1/notifications/email/suppressions", async (req, reply) => {

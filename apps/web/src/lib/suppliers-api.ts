@@ -191,6 +191,16 @@ export async function updateSupplier(
   });
 }
 
+export async function archiveSupplier(token: string, id: string) {
+  return eosFetch<{
+    supplier: SupplierSummary;
+    cascaded: { contacts: number; rates: number; contentBlocks: number };
+  }>(`/v1/suppliers/${id}`, {
+    method: "DELETE",
+    token,
+  });
+}
+
 export async function createSupplierContact(
   token: string,
   supplierId: string,

@@ -454,13 +454,102 @@ export function updateSupplier(
   return { supplier: sanitizeSupplier(supplier) };
 }
 
+export function archiveSupplier(store: Store, principal: Principal, id: string, correlationId: string) {
+  ensureSupplierCollections(store);
+  const supplier = store.supSuppliers.find((s) => s.id === id && s.tenantId === principal.tenantId && !s.archivedAt);
+  if (!supplier) return { error: "not_found" as const };
+
+  const decision = authorize({
+    principal,
+    permission: "supplier:write:supplier",
+    action: "archive:sup_supplier",
+    resource: {
+      tenantId: supplier.tenantId,
+      type: "supplier",
+      id: supplier.id,
+      classification: supplier.classification,
+    },
+  });
+  if (decision.result === "deny") {
+    denySupplierAudit(
+      store,
+      principal,
+      "supplier:write:supplier",
+      "sup_supplier",
+      correlationId,
+      decision.reason,
+      id,
+    );
+    return { error: "forbidden" as const, reason: decision.reason };
+  }
+
+  const now = new Date().toISOString();
+  supplier.archivedAt = now;
+  supplier.status = "inactive";
+  supplier.dataQualityStatus = "Archived";
+  supplier.version += 1;
+  supplier.updatedAt = now;
+  supplier.updatedByPrincipalId = principal.id;
+
+  let cascadedContacts = 0;
+  let cascadedRates = 0;
+  let cascadedContentBlocks = 0;
+
+  for (const contact of store.supContacts) {
+    if (contact.supplierId !== supplier.id || contact.tenantId !== principal.tenantId || contact.archivedAt) continue;
+    contact.archivedAt = now;
+    contact.version += 1;
+    contact.updatedAt = now;
+    contact.updatedByPrincipalId = principal.id;
+    cascadedContacts += 1;
+    void persistSupEntityAfterCommit(store.dbPool, store, "supplier_contact", contact.id);
+  }
+  for (const rate of store.supRates) {
+    if (rate.supplierId !== supplier.id || rate.tenantId !== principal.tenantId || rate.archivedAt) continue;
+    rate.archivedAt = now;
+    rate.version += 1;
+    rate.updatedAt = now;
+    rate.updatedByPrincipalId = principal.id;
+    cascadedRates += 1;
+    void persistSupEntityAfterCommit(store.dbPool, store, "supplier_rate", rate.id);
+  }
+  for (const block of store.supContentBlocks) {
+    if (block.supplierId !== supplier.id || block.tenantId !== principal.tenantId || block.archivedAt) continue;
+    block.archivedAt = now;
+    block.version += 1;
+    block.updatedAt = now;
+    block.updatedByPrincipalId = principal.id;
+    cascadedContentBlocks += 1;
+    void persistSupEntityAfterCommit(store.dbPool, store, "supplier_content_block", block.id);
+  }
+
+  allowSupplierAudit(store, principal, "supplier:write:supplier", "sup_supplier", supplier.id, correlationId, {
+    supplierCode: supplier.supplierCode,
+    eventType: SUPPLIER_EVENT_TYPES.SUPPLIER_ARCHIVED,
+    cascadedContacts,
+    cascadedRates,
+    cascadedContentBlocks,
+  });
+  void persistSupEntityAfterCommit(store.dbPool, store, "supplier", supplier.id);
+
+  return {
+    supplier: sanitizeSupplier(supplier),
+    cascaded: {
+      contacts: cascadedContacts,
+      rates: cascadedRates,
+      contentBlocks: cascadedContentBlocks,
+    },
+  };
+}
+
 export function getSupplierModuleHealth(store: Store) {
   ensureSupplierCollections(store);
   return {
     module: "supplier",
     status: "ok" as const,
-    increment: "PG.10",
-    suppliers: store.supSuppliers.length,
+    increment: "PG.11",
+    suppliers: store.supSuppliers.filter((s) => !s.archivedAt).length,
+    archivedSuppliers: store.supSuppliers.filter((s) => Boolean(s.archivedAt)).length,
     importBatches: store.supImportBatches.length,
     contacts: store.supContacts.filter((c) => !c.archivedAt).length,
     rates: store.supRates.filter((r) => !r.archivedAt).length,
