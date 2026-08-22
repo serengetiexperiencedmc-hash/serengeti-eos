@@ -6,7 +6,7 @@ import { ensureNotificationCollections } from "./collections.js";
 import { resolveDlqSlaDigestRecipientEmails } from "./dlq-sla-digest-recipients.js";
 
 /**
- * I4.16/I4.17 — on-demand batched email summarizing open DLQ SLA breaches.
+ * I4.16–I4.18 — on-demand batched email summarizing open DLQ SLA breaches.
  * Fans out to caller + store/env ops aliases; dedupes per recipient per UTC day.
  */
 export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
@@ -50,7 +50,7 @@ export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
       breachedCount: 0,
       thresholdHours: listed.sla.thresholdHours,
       recipientCount: recipients.length,
-      increment: "I4.17" as const,
+      increment: "I4.18" as const,
     };
   }
 
@@ -90,6 +90,6 @@ export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
     breachedCount: listed.sla.breachedCount,
     thresholdHours: listed.sla.thresholdHours,
     recipientCount: recipients.length,
-    increment: "I4.17" as const,
+    increment: "I4.18" as const,
   };
 }

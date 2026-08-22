@@ -96,7 +96,7 @@ describe("PG.10 supplier content-block CRUD", () => {
       url: "/v1/suppliers/health",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(health.json().increment).toBe("PG.19");
+    expect(health.json().increment).toBe("PG.20");
     expect(health.json()).toHaveProperty("contentBlocks");
   });
 });

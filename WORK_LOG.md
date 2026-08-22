@@ -378,11 +378,21 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **I3.19** | Inbox reminders for pending SES allowlist dual-control |
 | **I4.17** | DLQ SLA digest ops aliases (store + env fan-out) |
 
+### 25:xx — PG.20 + I3.20 + I4.18 ✅
+
+**Shipped:** server `0.58.0-pg20-i3.20-i4.18`
+
+| Increment | Change |
+| --- | --- |
+| **PG.20** | Season shrink impact preview + warn-only PATCH impact report |
+| **I3.20** | Dual-control reminder snooze / dismiss-with-reason / clear |
+| **I4.18** | External cron hook docs for DLQ SLA digest |
+
 ### Recommended next increments
 
-1. PG.20 — season shrink impact report on linked rates
-2. I3.20 — dual-control reminder snooze / dismiss reason
-3. I4.18 — scheduled DLQ SLA digest via external cron hook docs
+1. PG.21 — bulk reassign rates after season shrink
+2. I3.21 — dual-control reminder digest email
+3. I4.19 — digest delivery analytics / last-run stamp
 
 ### Issues resolved
 

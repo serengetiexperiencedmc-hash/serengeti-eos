@@ -1,4 +1,4 @@
-import type { SupSeason } from "@sedmc/kernel";
+import type { SupRate, SupSeason } from "@sedmc/kernel";
 
 export type SeasonBoundsError = "rate_outside_season_dates" | "rate_outside_season_months";
 
@@ -51,4 +51,61 @@ export function assertRateWithinSeason(
   }
 
   return { ok: true };
+}
+
+export type LinkedRateOutsideBounds = {
+  id: string;
+  supplierId: string;
+  rateCode: string;
+  validFrom: string;
+  validTo: string;
+  reason: SeasonBoundsError;
+};
+
+/** PG.20 — list non-archived rates linked to a season that fall outside proposed bounds. */
+export function findLinkedRatesOutsideSeasonBounds(
+  rates: readonly SupRate[],
+  season: Pick<SupSeason, "validFrom" | "validTo" | "monthFrom" | "monthTo">,
+  opts: { tenantId: string; seasonId: string },
+): LinkedRateOutsideBounds[] {
+  const outside: LinkedRateOutsideBounds[] = [];
+  for (const rate of rates) {
+    if (rate.tenantId !== opts.tenantId || rate.archivedAt) continue;
+    if (rate.seasonId !== opts.seasonId) continue;
+    const check = assertRateWithinSeason(
+      { validFrom: rate.validFrom, validTo: rate.validTo },
+      season,
+    );
+    if (!check.ok) {
+      outside.push({
+        id: rate.id,
+        supplierId: rate.supplierId,
+        rateCode: rate.rateCode,
+        validFrom: rate.validFrom,
+        validTo: rate.validTo,
+        reason: check.error,
+      });
+    }
+  }
+  return outside;
+}
+
+export function buildSeasonShrinkImpact(
+  rates: readonly SupRate[],
+  season: Pick<SupSeason, "id" | "validFrom" | "validTo" | "monthFrom" | "monthTo">,
+  tenantId: string,
+) {
+  const linkedRateCount = rates.filter(
+    (r) => r.tenantId === tenantId && !r.archivedAt && r.seasonId === season.id,
+  ).length;
+  const ratesOutsideBounds = findLinkedRatesOutsideSeasonBounds(rates, season, {
+    tenantId,
+    seasonId: season.id,
+  });
+  return {
+    linkedRateCount,
+    outsideCount: ratesOutsideBounds.length,
+    ratesOutsideBounds,
+    warning: ratesOutsideBounds.length > 0 ? ("season_shrink_affects_rates" as const) : null,
+  };
 }

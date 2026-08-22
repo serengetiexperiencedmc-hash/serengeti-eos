@@ -36,7 +36,7 @@ describe("I3.18 allowlist dual-control audit export", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(listed.statusCode).toBe(200);
-    expect(listed.json().increment).toBe("I3.19");
+    expect(listed.json().increment).toBe("I3.20");
     expect(listed.json().pendingCount).toBe(1);
     expect(listed.json().items).toHaveLength(1);
     expect(listed.json().items[0].email).toBe("vip@example.com");
@@ -47,7 +47,7 @@ describe("I3.18 allowlist dual-control audit export", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(exported.statusCode).toBe(200);
-    expect(exported.json().increment).toBe("I3.19");
+    expect(exported.json().increment).toBe("I3.20");
     expect(exported.json().pendingCount).toBe(1);
     expect(exported.json().approvedCount).toBe(0);
     expect(exported.json().csv).toContain("sesApprovalRequestedByPrincipalId");

@@ -81,6 +81,13 @@ export type NotifEmailAllowlistEntry = {
   sesApprovedAt?: string;
   sesApprovedByPrincipalId?: string;
   sesApprovalRequestedByPrincipalId?: string;
+  /** I3.20 — suppress dual-control inbox reminder until this time. */
+  dualReminderSnoozeUntil?: string;
+  dualReminderSnoozedByPrincipalId?: string;
+  /** I3.20 — dismiss dual-control inbox reminder (until cleared). */
+  dualReminderDismissedAt?: string;
+  dualReminderDismissReason?: string;
+  dualReminderDismissedByPrincipalId?: string;
 };
 
 /** I4.17 — ops aliases that also receive DLQ SLA digest emails. */

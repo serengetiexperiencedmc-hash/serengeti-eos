@@ -33,7 +33,7 @@ describe("PG.19 rate season bounds", () => {
       },
     });
     expect(season.statusCode).toBe(201);
-    expect(season.json().increment).toBe("PG.19");
+    expect(season.json().increment).toBe("PG.20");
     const seasonId = season.json().season.id as string;
 
     const supplier = await app.inject({
@@ -144,7 +144,7 @@ describe("PG.19 rate season bounds", () => {
       headers: { authorization: `Bearer ${token}` },
       payload: { sourceSystem: "pg19", entityType: "supplier_rate", csv },
     });
-    expect(created.json().batch.increment).toBe("PG.19");
+    expect(created.json().batch.increment).toBe("PG.20");
     const batchId = created.json().batch.id as string;
     const validated = await app.inject({
       method: "POST",

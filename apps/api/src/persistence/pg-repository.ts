@@ -452,8 +452,10 @@ export async function upsertNotifEmailAllowlist(
   await pool.query(
     `INSERT INTO notif_email_allowlist (
       id, tenant_id, email, note, created_at, created_by_principal_id, revoked_at, expires_at, ses_noted_at, ses_sync_note,
-      ses_dual_control_status, ses_approved_at, ses_approved_by_principal_id, ses_approval_requested_by_principal_id
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+      ses_dual_control_status, ses_approved_at, ses_approved_by_principal_id, ses_approval_requested_by_principal_id,
+      dual_reminder_snooze_until, dual_reminder_snoozed_by_principal_id, dual_reminder_dismissed_at,
+      dual_reminder_dismiss_reason, dual_reminder_dismissed_by_principal_id
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
      ON CONFLICT (id) DO UPDATE SET
        note = EXCLUDED.note,
        revoked_at = EXCLUDED.revoked_at,
@@ -463,7 +465,12 @@ export async function upsertNotifEmailAllowlist(
        ses_dual_control_status = EXCLUDED.ses_dual_control_status,
        ses_approved_at = EXCLUDED.ses_approved_at,
        ses_approved_by_principal_id = EXCLUDED.ses_approved_by_principal_id,
-       ses_approval_requested_by_principal_id = EXCLUDED.ses_approval_requested_by_principal_id`,
+       ses_approval_requested_by_principal_id = EXCLUDED.ses_approval_requested_by_principal_id,
+       dual_reminder_snooze_until = EXCLUDED.dual_reminder_snooze_until,
+       dual_reminder_snoozed_by_principal_id = EXCLUDED.dual_reminder_snoozed_by_principal_id,
+       dual_reminder_dismissed_at = EXCLUDED.dual_reminder_dismissed_at,
+       dual_reminder_dismiss_reason = EXCLUDED.dual_reminder_dismiss_reason,
+       dual_reminder_dismissed_by_principal_id = EXCLUDED.dual_reminder_dismissed_by_principal_id`,
     [
       entry.id,
       entry.tenantId,
@@ -479,6 +486,11 @@ export async function upsertNotifEmailAllowlist(
       entry.sesApprovedAt ?? null,
       entry.sesApprovedByPrincipalId ?? null,
       entry.sesApprovalRequestedByPrincipalId ?? null,
+      entry.dualReminderSnoozeUntil ?? null,
+      entry.dualReminderSnoozedByPrincipalId ?? null,
+      entry.dualReminderDismissedAt ?? null,
+      entry.dualReminderDismissReason ?? null,
+      entry.dualReminderDismissedByPrincipalId ?? null,
     ],
   );
 }
@@ -488,7 +500,9 @@ export async function loadNotifEmailAllowlist(
 ): Promise<import("@sedmc/kernel").NotifEmailAllowlistEntry[]> {
   const result = await pool.query(
     `SELECT id, tenant_id, email, note, created_at, created_by_principal_id, revoked_at, expires_at, ses_noted_at, ses_sync_note,
-            ses_dual_control_status, ses_approved_at, ses_approved_by_principal_id, ses_approval_requested_by_principal_id
+            ses_dual_control_status, ses_approved_at, ses_approved_by_principal_id, ses_approval_requested_by_principal_id,
+            dual_reminder_snooze_until, dual_reminder_snoozed_by_principal_id, dual_reminder_dismissed_at,
+            dual_reminder_dismiss_reason, dual_reminder_dismissed_by_principal_id
      FROM notif_email_allowlist`,
   );
   return result.rows.map((row) => ({
@@ -511,6 +525,21 @@ export async function loadNotifEmailAllowlist(
       : {}),
     ...(row.ses_approval_requested_by_principal_id
       ? { sesApprovalRequestedByPrincipalId: row.ses_approval_requested_by_principal_id as string }
+      : {}),
+    ...(row.dual_reminder_snooze_until
+      ? { dualReminderSnoozeUntil: (row.dual_reminder_snooze_until as Date).toISOString() }
+      : {}),
+    ...(row.dual_reminder_snoozed_by_principal_id
+      ? { dualReminderSnoozedByPrincipalId: row.dual_reminder_snoozed_by_principal_id as string }
+      : {}),
+    ...(row.dual_reminder_dismissed_at
+      ? { dualReminderDismissedAt: (row.dual_reminder_dismissed_at as Date).toISOString() }
+      : {}),
+    ...(row.dual_reminder_dismiss_reason
+      ? { dualReminderDismissReason: row.dual_reminder_dismiss_reason as string }
+      : {}),
+    ...(row.dual_reminder_dismissed_by_principal_id
+      ? { dualReminderDismissedByPrincipalId: row.dual_reminder_dismissed_by_principal_id as string }
       : {}),
   }));
 }

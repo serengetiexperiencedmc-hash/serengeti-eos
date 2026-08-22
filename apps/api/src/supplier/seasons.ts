@@ -2,9 +2,18 @@ import { authorize, newId, type Principal, type SupSeason } from "@sedmc/kernel"
 import type { Store } from "../store.js";
 import { allowSupplierAudit, denySupplierAudit } from "./audit.js";
 import { ensureSupplierCollections } from "./collections.js";
+import { buildSeasonShrinkImpact } from "./season-bounds.js";
 
 const SEASON_CODE_PATTERN = /^[A-Z0-9_-]{2,32}$/;
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+type SeasonPatchInput = {
+  label?: string;
+  validFrom?: string | null;
+  validTo?: string | null;
+  monthFrom?: number | null;
+  monthTo?: number | null;
+};
 
 function sanitizeSeason(s: SupSeason) {
   return {
@@ -20,6 +29,54 @@ function sanitizeSeason(s: SupSeason) {
     createdAt: s.createdAt,
     updatedAt: s.updatedAt,
   };
+}
+
+function validateSeasonPatch(
+  current: Pick<SupSeason, "label" | "validFrom" | "validTo" | "monthFrom" | "monthTo">,
+  input: SeasonPatchInput,
+):
+  | { ok: true; next: Pick<SupSeason, "label" | "validFrom" | "validTo" | "monthFrom" | "monthTo"> }
+  | { ok: false; reason: string } {
+  const next: Pick<SupSeason, "label" | "validFrom" | "validTo" | "monthFrom" | "monthTo"> = {
+    label: current.label,
+    ...(current.validFrom ? { validFrom: current.validFrom } : {}),
+    ...(current.validTo ? { validTo: current.validTo } : {}),
+    ...(current.monthFrom !== undefined ? { monthFrom: current.monthFrom } : {}),
+    ...(current.monthTo !== undefined ? { monthTo: current.monthTo } : {}),
+  };
+  if (input.label !== undefined) {
+    const label = input.label.trim();
+    if (!label) return { ok: false, reason: "label_required" };
+    next.label = label;
+  }
+  if (input.validFrom !== undefined) {
+    if (input.validFrom === null || input.validFrom === "") delete next.validFrom;
+    else if (!ISO_DATE_PATTERN.test(input.validFrom)) {
+      return { ok: false, reason: "invalid_valid_from" };
+    } else next.validFrom = input.validFrom;
+  }
+  if (input.validTo !== undefined) {
+    if (input.validTo === null || input.validTo === "") delete next.validTo;
+    else if (!ISO_DATE_PATTERN.test(input.validTo)) {
+      return { ok: false, reason: "invalid_valid_to" };
+    } else next.validTo = input.validTo;
+  }
+  if (next.validFrom && next.validTo && next.validFrom > next.validTo) {
+    return { ok: false, reason: "from_after_to" };
+  }
+  if (input.monthFrom !== undefined) {
+    if (input.monthFrom === null) delete next.monthFrom;
+    else if (input.monthFrom < 1 || input.monthFrom > 12) {
+      return { ok: false, reason: "invalid_month_from" };
+    } else next.monthFrom = input.monthFrom;
+  }
+  if (input.monthTo !== undefined) {
+    if (input.monthTo === null) delete next.monthTo;
+    else if (input.monthTo < 1 || input.monthTo > 12) {
+      return { ok: false, reason: "invalid_month_to" };
+    } else next.monthTo = input.monthTo;
+  }
+  return { ok: true, next };
 }
 
 export function listSupplierSeasons(
@@ -44,7 +101,7 @@ export function listSupplierSeasons(
     .map(sanitizeSeason)
     .sort((a, b) => a.seasonCode.localeCompare(b.seasonCode));
 
-  return { items, count: items.length, increment: "PG.19" as const };
+  return { items, count: items.length, increment: "PG.20" as const };
 }
 
 export function createSupplierSeason(
@@ -122,20 +179,55 @@ export function createSupplierSeason(
     seasonCode,
     eventType: "supplier.season.created.v1",
   });
-  return { season: sanitizeSeason(season), increment: "PG.19" as const };
+  return { season: sanitizeSeason(season), increment: "PG.20" as const };
+}
+
+/** PG.20 — dry-run season shrink impact without mutating. */
+export function previewSeasonShrinkImpact(
+  store: Store,
+  principal: Principal,
+  id: string,
+  input: SeasonPatchInput,
+) {
+  ensureSupplierCollections(store);
+  const season = (store.supSeasons ?? []).find(
+    (s) => s.id === id && s.tenantId === principal.tenantId && !s.archivedAt,
+  );
+  if (!season) return { error: "not_found" as const };
+
+  const decision = authorize({
+    principal,
+    permission: "supplier:write:supplier",
+    action: "update:sup_season",
+  });
+  if (decision.result === "deny") {
+    return { error: "forbidden" as const, reason: decision.reason };
+  }
+
+  const validated = validateSeasonPatch(season, input);
+  if (!validated.ok) return { error: "invalid_request" as const, reason: validated.reason };
+
+  const proposed = {
+    ...sanitizeSeason(season),
+    ...validated.next,
+  };
+  const impact = buildSeasonShrinkImpact(
+    store.supRates ?? [],
+    { id: season.id, ...validated.next },
+    principal.tenantId,
+  );
+  return {
+    proposedSeason: proposed,
+    impact,
+    increment: "PG.20" as const,
+  };
 }
 
 export function updateSupplierSeason(
   store: Store,
   principal: Principal,
   id: string,
-  input: {
-    label?: string;
-    validFrom?: string | null;
-    validTo?: string | null;
-    monthFrom?: number | null;
-    monthTo?: number | null;
-  },
+  input: SeasonPatchInput,
   correlationId: string,
 ) {
   ensureSupplierCollections(store);
@@ -154,46 +246,29 @@ export function updateSupplierSeason(
     return { error: "forbidden" as const, reason: decision.reason };
   }
 
-  if (input.label !== undefined) {
-    const label = input.label.trim();
-    if (!label) return { error: "invalid_request" as const, reason: "label_required" };
-    season.label = label;
-  }
-  if (input.validFrom !== undefined) {
-    if (input.validFrom === null || input.validFrom === "") delete season.validFrom;
-    else if (!ISO_DATE_PATTERN.test(input.validFrom)) {
-      return { error: "invalid_request" as const, reason: "invalid_valid_from" };
-    } else season.validFrom = input.validFrom;
-  }
-  if (input.validTo !== undefined) {
-    if (input.validTo === null || input.validTo === "") delete season.validTo;
-    else if (!ISO_DATE_PATTERN.test(input.validTo)) {
-      return { error: "invalid_request" as const, reason: "invalid_valid_to" };
-    } else season.validTo = input.validTo;
-  }
-  if (season.validFrom && season.validTo && season.validFrom > season.validTo) {
-    return { error: "invalid_request" as const, reason: "from_after_to" };
-  }
-  if (input.monthFrom !== undefined) {
-    if (input.monthFrom === null) delete season.monthFrom;
-    else if (input.monthFrom < 1 || input.monthFrom > 12) {
-      return { error: "invalid_request" as const, reason: "invalid_month_from" };
-    } else season.monthFrom = input.monthFrom;
-  }
-  if (input.monthTo !== undefined) {
-    if (input.monthTo === null) delete season.monthTo;
-    else if (input.monthTo < 1 || input.monthTo > 12) {
-      return { error: "invalid_request" as const, reason: "invalid_month_to" };
-    } else season.monthTo = input.monthTo;
-  }
+  const validated = validateSeasonPatch(season, input);
+  if (!validated.ok) return { error: "invalid_request" as const, reason: validated.reason };
+
+  season.label = validated.next.label;
+  if (validated.next.validFrom) season.validFrom = validated.next.validFrom;
+  else delete season.validFrom;
+  if (validated.next.validTo) season.validTo = validated.next.validTo;
+  else delete season.validTo;
+  if (validated.next.monthFrom !== undefined) season.monthFrom = validated.next.monthFrom;
+  else delete season.monthFrom;
+  if (validated.next.monthTo !== undefined) season.monthTo = validated.next.monthTo;
+  else delete season.monthTo;
 
   season.version += 1;
   season.updatedAt = new Date().toISOString();
   season.updatedByPrincipalId = principal.id;
+  // PG.20 — warn-only: shrink never blocks; report rates that fall outside new bounds.
+  const impact = buildSeasonShrinkImpact(store.supRates ?? [], season, principal.tenantId);
   allowSupplierAudit(store, principal, "supplier:write:supplier", "sup_season", season.id, correlationId, {
     eventType: "supplier.season.updated.v1",
+    outsideCount: impact.outsideCount,
   });
-  return { season: sanitizeSeason(season), increment: "PG.19" as const };
+  return { season: sanitizeSeason(season), impact, increment: "PG.20" as const };
 }
 
 export function archiveSupplierSeason(
@@ -225,7 +300,7 @@ export function archiveSupplierSeason(
   allowSupplierAudit(store, principal, "supplier:write:supplier", "sup_season", season.id, correlationId, {
     eventType: "supplier.season.archived.v1",
   });
-  return { season: sanitizeSeason(season), increment: "PG.19" as const };
+  return { season: sanitizeSeason(season), increment: "PG.20" as const };
 }
 
 export function findSeasonLabel(store: Store, tenantId: string, seasonId: string): string | undefined {

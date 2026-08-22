@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { listMigrationFiles } from "@sedmc/db";
 import { seedStore, TEST_BOOTSTRAP_SECRETS } from "./app.js";
 import { buildServer } from "./server.js";
 
@@ -14,17 +13,13 @@ async function loginCarol(app: ReturnType<typeof buildServer>) {
   return res.json().accessToken as string;
 }
 
-describe("PG.17 rate seasons catalogue", () => {
-  it("lists PG.17 migration", () => {
-    expect(listMigrationFiles().some((f) => f.includes("055_pg17_rate_seasons"))).toBe(true);
-  });
-
-  it("creates seasons, rejects duplicates, and applies seasonId to rates", async () => {
-    const store = seedStore("pg17-seasons", TEST_BOOTSTRAP_SECRETS);
+describe("PG.20 season shrink impact", () => {
+  it("previews and reports linked rates outside shrunk season bounds without blocking", async () => {
+    const store = seedStore("pg20-impact", TEST_BOOTSTRAP_SECRETS);
     const app = buildServer({ store });
     const token = await loginCarol(app);
 
-    const created = await app.inject({
+    const season = await app.inject({
       method: "POST",
       url: "/v1/suppliers/seasons",
       headers: { authorization: `Bearer ${token}` },
@@ -35,25 +30,17 @@ describe("PG.17 rate seasons catalogue", () => {
         validTo: "2026-08-31",
       },
     });
-    expect(created.statusCode).toBe(201);
-    expect(created.json().increment).toBe("PG.20");
-    const seasonId = created.json().season.id as string;
-
-    const dup = await app.inject({
-      method: "POST",
-      url: "/v1/suppliers/seasons",
-      headers: { authorization: `Bearer ${token}` },
-      payload: { seasonCode: "high-2026", label: "Dup" },
-    });
-    expect(dup.statusCode).toBe(409);
+    expect(season.statusCode).toBe(201);
+    expect(season.json().increment).toBe("PG.20");
+    const seasonId = season.json().season.id as string;
 
     const supplier = await app.inject({
       method: "POST",
       url: "/v1/suppliers",
       headers: { authorization: `Bearer ${token}` },
       payload: {
-        supplierCode: "PG17-LODGE",
-        legalName: "Season Lodge",
+        supplierCode: "PG20-LODGE",
+        legalName: "PG20 Lodge",
         category: "accommodation",
         country: "TZ",
       },
@@ -65,10 +52,10 @@ describe("PG.17 rate seasons catalogue", () => {
       url: `/v1/suppliers/${supplierId}/rates`,
       headers: { authorization: `Bearer ${token}` },
       payload: {
-        rateCode: "HIGH-ROOM",
-        rateName: "High room",
+        rateCode: "WIDE",
+        rateName: "Wide window",
         rateType: "per_room_per_night",
-        amount: 400,
+        amount: 120,
         currency: "USD",
         validFrom: "2026-06-01",
         validTo: "2026-08-31",
@@ -77,29 +64,30 @@ describe("PG.17 rate seasons catalogue", () => {
       },
     });
     expect(rate.statusCode).toBe(201);
-    expect(rate.json().rate.seasonLabel).toBe("High Season 2026");
-    expect(rate.json().rate.seasonId).toBe(seasonId);
 
-    const archived = await app.inject({
-      method: "DELETE",
+    const preview = await app.inject({
+      method: "POST",
+      url: `/v1/suppliers/seasons/${seasonId}/impact-preview`,
+      headers: { authorization: `Bearer ${token}` },
+      payload: { validFrom: "2026-07-01", validTo: "2026-07-31" },
+    });
+    expect(preview.statusCode).toBe(200);
+    expect(preview.json().increment).toBe("PG.20");
+    expect(preview.json().impact.linkedRateCount).toBe(1);
+    expect(preview.json().impact.outsideCount).toBe(1);
+    expect(preview.json().impact.warning).toBe("season_shrink_affects_rates");
+    expect(preview.json().impact.ratesOutsideBounds[0].rateCode).toBe("WIDE");
+
+    const patched = await app.inject({
+      method: "PATCH",
       url: `/v1/suppliers/seasons/${seasonId}`,
       headers: { authorization: `Bearer ${token}` },
+      payload: { validFrom: "2026-07-01", validTo: "2026-07-31" },
     });
-    expect(archived.statusCode).toBe(200);
-
-    const listed = await app.inject({
-      method: "GET",
-      url: "/v1/suppliers/seasons",
-      headers: { authorization: `Bearer ${token}` },
-    });
-    expect(listed.json().count).toBe(0);
-
-    const archivedList = await app.inject({
-      method: "GET",
-      url: "/v1/suppliers/seasons?archived=1",
-      headers: { authorization: `Bearer ${token}` },
-    });
-    expect(archivedList.json().count).toBe(1);
+    expect(patched.statusCode).toBe(200);
+    expect(patched.json().season.validFrom).toBe("2026-07-01");
+    expect(patched.json().impact.outsideCount).toBe(1);
+    expect(patched.json().impact.warning).toBe("season_shrink_affects_rates");
 
     const health = await app.inject({
       method: "GET",

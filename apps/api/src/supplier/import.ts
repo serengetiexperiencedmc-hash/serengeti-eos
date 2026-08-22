@@ -111,7 +111,7 @@ function sanitizeBatch(batch: SupImportBatch) {
     committedAt: batch.committedAt,
     createdByPrincipalId: batch.createdByPrincipalId,
     committedByPrincipalId: batch.committedByPrincipalId,
-    increment: "PG.19" as const,
+    increment: "PG.20" as const,
   };
 }
 

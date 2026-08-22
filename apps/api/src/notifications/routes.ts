@@ -8,9 +8,12 @@ import { liftEmailSuppression, listEmailSuppressions, syncEmailSuppressionsFromS
 import {
   addEmailAllowlistEntry,
   approveSesNotedAllowlistEntry,
+  clearDualControlReminderSuppression,
+  dismissDualControlReminder,
   exportEmailAllowlist,
   listEmailAllowlist,
   revokeEmailAllowlistEntry,
+  snoozeDualControlReminder,
 } from "./email-allowlist.js";
 import {
   addDlqSlaDigestRecipient,
@@ -293,6 +296,36 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = await approveSesNotedAllowlistEntry(store, principal, (req.params as { id: string }).id);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/notifications/email/allowlist/:id/reminder-snooze", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const body = (req.body ?? {}) as { until?: string; hours?: number };
+    const result = await snoozeDualControlReminder(store, principal, (req.params as { id: string }).id, body);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/notifications/email/allowlist/:id/reminder-dismiss", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const body = (req.body ?? {}) as { reason?: string };
+    const result = await dismissDualControlReminder(store, principal, (req.params as { id: string }).id, body);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/notifications/email/allowlist/:id/reminder-clear", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = await clearDualControlReminderSuppression(
+      store,
+      principal,
+      (req.params as { id: string }).id,
+    );
     if ("error" in result) return sendError(reply, result);
     return result;
   });

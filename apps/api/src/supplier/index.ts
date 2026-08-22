@@ -23,6 +23,7 @@ export {
   archiveSupplierSeason,
   createSupplierSeason,
   listSupplierSeasons,
+  previewSeasonShrinkImpact,
   updateSupplierSeason,
 } from "./seasons.js";
 export {

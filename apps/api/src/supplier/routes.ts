@@ -26,6 +26,7 @@ import {
   createSupplierSeason,
   listSupplierSeasons,
   updateSupplierSeason,
+  previewSeasonShrinkImpact,
 } from "./seasons.js";
 import {
   archiveSupplierContentBlock,
@@ -97,6 +98,19 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
     );
     if ("error" in result) return sendSupplierError(reply, result);
     return reply.code(201).send(result);
+  });
+
+  app.post("/v1/suppliers/seasons/:id/impact-preview", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = previewSeasonShrinkImpact(
+      store,
+      principal,
+      (req.params as { id: string }).id,
+      (req.body ?? {}) as Parameters<typeof previewSeasonShrinkImpact>[3],
+    );
+    if ("error" in result) return sendSupplierError(reply, result);
+    return result;
   });
 
   app.patch("/v1/suppliers/seasons/:id", async (req, reply) => {

@@ -53,6 +53,15 @@ function sanitizeAllowlistEntry(e: NotifEmailAllowlistEntry) {
     ...(e.sesApprovalRequestedByPrincipalId
       ? { sesApprovalRequestedByPrincipalId: e.sesApprovalRequestedByPrincipalId }
       : {}),
+    ...(e.dualReminderSnoozeUntil ? { dualReminderSnoozeUntil: e.dualReminderSnoozeUntil } : {}),
+    ...(e.dualReminderSnoozedByPrincipalId
+      ? { dualReminderSnoozedByPrincipalId: e.dualReminderSnoozedByPrincipalId }
+      : {}),
+    ...(e.dualReminderDismissedAt ? { dualReminderDismissedAt: e.dualReminderDismissedAt } : {}),
+    ...(e.dualReminderDismissReason ? { dualReminderDismissReason: e.dualReminderDismissReason } : {}),
+    ...(e.dualReminderDismissedByPrincipalId
+      ? { dualReminderDismissedByPrincipalId: e.dualReminderDismissedByPrincipalId }
+      : {}),
   };
 }
 
@@ -123,7 +132,7 @@ export function listEmailAllowlist(
       e.sesDualControlStatus === "pending",
   ).length;
 
-  return { items, pendingCount, increment: "I3.19" as const };
+  return { items, pendingCount, increment: "I3.20" as const };
 }
 
 export function exportEmailAllowlist(
@@ -219,7 +228,7 @@ export function exportEmailAllowlist(
       approvedCount,
       notRequiredCount,
       generatedAt,
-      increment: "I3.19" as const,
+      increment: "I3.20" as const,
     };
   }
 
@@ -231,7 +240,7 @@ export function exportEmailAllowlist(
     approvedCount,
     notRequiredCount,
     generatedAt,
-    increment: "I3.19" as const,
+    increment: "I3.20" as const,
   };
 }
 
@@ -268,7 +277,7 @@ export async function addEmailAllowlistEntry(
       else existing.expiresAt = new Date(input.expiresAt).toISOString();
     }
     void persistNotifEmailAllowlist(store.dbPool, existing);
-    return { entry: sanitizeAllowlistEntry(existing), updated: true, increment: "I3.19" as const };
+    return { entry: sanitizeAllowlistEntry(existing), updated: true, increment: "I3.20" as const };
   }
 
   const entry: NotifEmailAllowlistEntry = {
@@ -283,7 +292,7 @@ export async function addEmailAllowlistEntry(
   };
   store.notifEmailAllowlist.push(entry);
   void persistNotifEmailAllowlist(store.dbPool, entry);
-  return { entry: sanitizeAllowlistEntry(entry), updated: false, increment: "I3.19" as const };
+  return { entry: sanitizeAllowlistEntry(entry), updated: false, increment: "I3.20" as const };
 }
 
 export async function revokeEmailAllowlistEntry(store: Store, principal: Principal, id: string) {
@@ -302,7 +311,7 @@ export async function revokeEmailAllowlistEntry(store: Store, principal: Princip
 
   entry.revokedAt = new Date().toISOString();
   void persistNotifEmailAllowlist(store.dbPool, entry);
-  return { entry: sanitizeAllowlistEntry(entry), increment: "I3.19" as const };
+  return { entry: sanitizeAllowlistEntry(entry), increment: "I3.20" as const };
 }
 
 /** I3.17 — second principal approves SES-noted VIP allowlist override. */
@@ -326,7 +335,7 @@ export async function approveSesNotedAllowlistEntry(store: Store, principal: Pri
     return { error: "invalid_request" as const, reason: "ses_note_required" };
   }
   if (entry.sesDualControlStatus === "approved") {
-    return { entry: sanitizeAllowlistEntry(entry), increment: "I3.19" as const };
+    return { entry: sanitizeAllowlistEntry(entry), increment: "I3.20" as const };
   }
 
   const requesterId = entry.sesApprovalRequestedByPrincipalId ?? entry.createdByPrincipalId;
@@ -337,6 +346,114 @@ export async function approveSesNotedAllowlistEntry(store: Store, principal: Pri
   entry.sesDualControlStatus = "approved";
   entry.sesApprovedAt = new Date().toISOString();
   entry.sesApprovedByPrincipalId = principal.id;
+  delete entry.dualReminderSnoozeUntil;
+  delete entry.dualReminderSnoozedByPrincipalId;
+  delete entry.dualReminderDismissedAt;
+  delete entry.dualReminderDismissReason;
+  delete entry.dualReminderDismissedByPrincipalId;
   void persistNotifEmailAllowlist(store.dbPool, entry);
-  return { entry: sanitizeAllowlistEntry(entry), increment: "I3.19" as const };
+  return { entry: sanitizeAllowlistEntry(entry), increment: "I3.20" as const };
+}
+
+/** I3.20 — snooze dual-control inbox reminder. */
+export async function snoozeDualControlReminder(
+  store: Store,
+  principal: Principal,
+  id: string,
+  input: { until?: string; hours?: number } = {},
+) {
+  const decision = authorize({
+    principal,
+    permission: "notification:dispatch:email",
+    action: "snooze:email_allowlist_dual_reminder",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+
+  ensureNotificationCollections(store);
+  const entry = (store.notifEmailAllowlist ?? []).find(
+    (e) => e.id === id && e.tenantId === principal.tenantId && !e.revokedAt,
+  );
+  if (!entry) return { error: "not_found" as const };
+  if (entry.sesDualControlStatus !== "pending") {
+    return { error: "invalid_request" as const, reason: "dual_control_not_pending" };
+  }
+
+  let until: string;
+  if (input.until) {
+    const t = new Date(input.until).getTime();
+    if (Number.isNaN(t)) return { error: "invalid_request" as const, reason: "invalid_until" };
+    until = new Date(t).toISOString();
+  } else if (typeof input.hours === "number" && input.hours > 0) {
+    until = new Date(Date.now() + input.hours * 3_600_000).toISOString();
+  } else {
+    return { error: "invalid_request" as const, reason: "until_or_hours_required" };
+  }
+
+  entry.dualReminderSnoozeUntil = until;
+  entry.dualReminderSnoozedByPrincipalId = principal.id;
+  // Snooze replaces dismiss so reminder can return after snooze expires.
+  delete entry.dualReminderDismissedAt;
+  delete entry.dualReminderDismissReason;
+  delete entry.dualReminderDismissedByPrincipalId;
+  void persistNotifEmailAllowlist(store.dbPool, entry);
+  return { entry: sanitizeAllowlistEntry(entry), increment: "I3.20" as const };
+}
+
+/** I3.20 — dismiss dual-control inbox reminder with a required reason. */
+export async function dismissDualControlReminder(
+  store: Store,
+  principal: Principal,
+  id: string,
+  input: { reason?: string },
+) {
+  const decision = authorize({
+    principal,
+    permission: "notification:dispatch:email",
+    action: "dismiss:email_allowlist_dual_reminder",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+
+  const reason = (input.reason ?? "").trim();
+  if (!reason) return { error: "invalid_request" as const, reason: "reason_required" };
+
+  ensureNotificationCollections(store);
+  const entry = (store.notifEmailAllowlist ?? []).find(
+    (e) => e.id === id && e.tenantId === principal.tenantId && !e.revokedAt,
+  );
+  if (!entry) return { error: "not_found" as const };
+  if (entry.sesDualControlStatus !== "pending") {
+    return { error: "invalid_request" as const, reason: "dual_control_not_pending" };
+  }
+
+  entry.dualReminderDismissedAt = new Date().toISOString();
+  entry.dualReminderDismissReason = reason;
+  entry.dualReminderDismissedByPrincipalId = principal.id;
+  delete entry.dualReminderSnoozeUntil;
+  delete entry.dualReminderSnoozedByPrincipalId;
+  void persistNotifEmailAllowlist(store.dbPool, entry);
+  return { entry: sanitizeAllowlistEntry(entry), increment: "I3.20" as const };
+}
+
+/** I3.20 — clear snooze/dismiss so dual-control reminder can fire again. */
+export async function clearDualControlReminderSuppression(store: Store, principal: Principal, id: string) {
+  const decision = authorize({
+    principal,
+    permission: "notification:dispatch:email",
+    action: "clear:email_allowlist_dual_reminder",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+
+  ensureNotificationCollections(store);
+  const entry = (store.notifEmailAllowlist ?? []).find(
+    (e) => e.id === id && e.tenantId === principal.tenantId && !e.revokedAt,
+  );
+  if (!entry) return { error: "not_found" as const };
+
+  delete entry.dualReminderSnoozeUntil;
+  delete entry.dualReminderSnoozedByPrincipalId;
+  delete entry.dualReminderDismissedAt;
+  delete entry.dualReminderDismissReason;
+  delete entry.dualReminderDismissedByPrincipalId;
+  void persistNotifEmailAllowlist(store.dbPool, entry);
+  return { entry: sanitizeAllowlistEntry(entry), increment: "I3.20" as const };
 }

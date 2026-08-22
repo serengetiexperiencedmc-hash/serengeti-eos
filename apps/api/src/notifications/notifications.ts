@@ -135,7 +135,7 @@ export function buildLiveNotifications(store: Store, principal: Principal): Noti
     }
   }
 
-  // I3.19 — remind when SES-noted VIP allowlist awaits dual-control approval
+  // I3.19/I3.20 — remind when SES-noted VIP allowlist awaits dual-control approval
   const canManageAllowlist =
     authorize({
       principal,
@@ -149,6 +149,10 @@ export function buildLiveNotifications(store: Store, principal: Principal): Noti
       if (entry.revokedAt) continue;
       if (entry.expiresAt && new Date(entry.expiresAt).getTime() <= nowMs) continue;
       if (entry.sesDualControlStatus !== "pending") continue;
+      if (entry.dualReminderDismissedAt) continue;
+      if (entry.dualReminderSnoozeUntil && new Date(entry.dualReminderSnoozeUntil).getTime() > nowMs) {
+        continue;
+      }
       items.push({
         key: `allowlist-ses-dual:${entry.id}`,
         category: "approval",
