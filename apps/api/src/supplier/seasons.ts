@@ -3,7 +3,7 @@ import type { Store } from "../store.js";
 import { allowSupplierAudit, denySupplierAudit } from "./audit.js";
 import { ensureSupplierCollections } from "./collections.js";
 import { persistSupEntityAfterCommit } from "../persistence/supplier.js";
-import { assertRateWithinSeason, buildSeasonShrinkImpact, findLinkedRatesOutsideSeasonBounds } from "./season-bounds.js";
+import { assertRateWithinSeason, buildSeasonExpandBackfill, buildSeasonShrinkImpact, findLinkedRatesOutsideSeasonBounds } from "./season-bounds.js";
 
 const SEASON_CODE_PATTERN = /^[A-Z0-9_-]{2,32}$/;
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -217,10 +217,16 @@ export function previewSeasonShrinkImpact(
     { id: season.id, ...validated.next },
     principal.tenantId,
   );
+  const expandBackfill = buildSeasonExpandBackfill(
+    store.supRates ?? [],
+    { id: season.id, ...validated.next },
+    principal.tenantId,
+  );
   return {
     proposedSeason: proposed,
     impact,
-    increment: "PG.21" as const,
+    expandBackfill,
+    increment: "PG.22" as const,
   };
 }
 
@@ -263,13 +269,15 @@ export function updateSupplierSeason(
   season.version += 1;
   season.updatedAt = new Date().toISOString();
   season.updatedByPrincipalId = principal.id;
-  // PG.20 — warn-only: shrink never blocks; report rates that fall outside new bounds.
+  // PG.20/PG.22 — warn-only shrink impact + expand backfill suggestions.
   const impact = buildSeasonShrinkImpact(store.supRates ?? [], season, principal.tenantId);
+  const expandBackfill = buildSeasonExpandBackfill(store.supRates ?? [], season, principal.tenantId);
   allowSupplierAudit(store, principal, "supplier:write:supplier", "sup_season", season.id, correlationId, {
     eventType: "supplier.season.updated.v1",
     outsideCount: impact.outsideCount,
+    suggestionCount: expandBackfill.suggestionCount,
   });
-  return { season: sanitizeSeason(season), impact, increment: "PG.21" as const };
+  return { season: sanitizeSeason(season), impact, expandBackfill, increment: "PG.22" as const };
 }
 
 export function archiveSupplierSeason(
@@ -413,7 +421,111 @@ export function reassignOutsideSeasonRates(
     updatedCount: updated.length,
     skippedCount: skipped.length,
     remainingImpact,
-    increment: "PG.21" as const,
+    increment: "PG.22" as const,
+  };
+}
+
+/** PG.22 — dry-run: unlinked rates that fit proposed (or current) season bounds. */
+export function previewSeasonExpandBackfill(
+  store: Store,
+  principal: Principal,
+  id: string,
+  input: SeasonPatchInput = {},
+) {
+  ensureSupplierCollections(store);
+  const season = (store.supSeasons ?? []).find(
+    (s) => s.id === id && s.tenantId === principal.tenantId && !s.archivedAt,
+  );
+  if (!season) return { error: "not_found" as const };
+
+  const decision = authorize({
+    principal,
+    permission: "supplier:write:supplier",
+    action: "update:sup_season",
+  });
+  if (decision.result === "deny") {
+    return { error: "forbidden" as const, reason: decision.reason };
+  }
+
+  const validated = validateSeasonPatch(season, input);
+  if (!validated.ok) return { error: "invalid_request" as const, reason: validated.reason };
+
+  const proposed = {
+    ...sanitizeSeason(season),
+    ...validated.next,
+  };
+  const expandBackfill = buildSeasonExpandBackfill(
+    store.supRates ?? [],
+    { id: season.id, ...validated.next },
+    principal.tenantId,
+  );
+  return {
+    proposedSeason: proposed,
+    expandBackfill,
+    increment: "PG.22" as const,
+  };
+}
+
+/** PG.22 — link unlinked rates that fit this season (optional rateIds subset). */
+export function backfillSeasonRates(
+  store: Store,
+  principal: Principal,
+  seasonId: string,
+  input: { rateIds?: string[] } = {},
+  correlationId: string,
+) {
+  ensureSupplierCollections(store);
+  const season = (store.supSeasons ?? []).find(
+    (s) => s.id === seasonId && s.tenantId === principal.tenantId && !s.archivedAt,
+  );
+  if (!season) return { error: "not_found" as const };
+
+  const decision = authorize({
+    principal,
+    permission: "supplier:write:supplier",
+    action: "backfill:sup_season_rates",
+  });
+  if (decision.result === "deny") {
+    denySupplierAudit(store, principal, "supplier:write:supplier", "sup_season", correlationId, decision.reason);
+    return { error: "forbidden" as const, reason: decision.reason };
+  }
+
+  const suggestions = buildSeasonExpandBackfill(store.supRates ?? [], season, principal.tenantId).suggestions;
+  const wanted = input.rateIds?.length ? new Set(input.rateIds) : null;
+  const candidates = wanted ? suggestions.filter((s) => wanted.has(s.id)) : suggestions;
+  if (wanted) {
+    for (const id of wanted) {
+      if (!suggestions.some((s) => s.id === id)) {
+        return { error: "invalid_request" as const, reason: "rate_not_backfill_candidate", rateId: id };
+      }
+    }
+  }
+
+  const now = new Date().toISOString();
+  const linked: Array<{ id: string; rateCode: string; supplierId: string }> = [];
+  for (const row of candidates) {
+    const rate = (store.supRates ?? []).find((r) => r.id === row.id);
+    if (!rate || rate.archivedAt || rate.seasonId) continue;
+    rate.seasonId = season.id;
+    rate.seasonLabel = season.label;
+    rate.version += 1;
+    rate.updatedAt = now;
+    rate.updatedByPrincipalId = principal.id;
+    void persistSupEntityAfterCommit(store.dbPool, store, "supplier_rate", rate.id);
+    linked.push({ id: rate.id, rateCode: rate.rateCode, supplierId: rate.supplierId });
+  }
+
+  allowSupplierAudit(store, principal, "supplier:write:supplier", "sup_season", season.id, correlationId, {
+    eventType: SUPPLIER_EVENT_TYPES.RATE_UPDATED,
+    backfilledCount: linked.length,
+  });
+
+  const expandBackfill = buildSeasonExpandBackfill(store.supRates ?? [], season, principal.tenantId);
+  return {
+    linked,
+    linkedCount: linked.length,
+    expandBackfill,
+    increment: "PG.22" as const,
   };
 }
 

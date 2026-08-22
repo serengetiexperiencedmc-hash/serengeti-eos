@@ -102,13 +102,37 @@ export type NotifDlqSlaDigestRecipient = {
   revokedAt?: string;
 };
 
-/** I4.19 — last DLQ SLA digest dispatch stamp (per tenant, in-memory / dual-write later). */
+/** I4.19/I4.20 — last DLQ SLA digest dispatch stamp (per tenant). */
 export type NotifDlqSlaDigestLastRun = {
   tenantId: string;
   day: string;
   lastRunAt: string;
   lastRunByPrincipalId: string;
   breachedCount: number;
+  dispatchedCount: number;
+  skippedCount: number;
+  recipientCount: number;
+};
+
+/** I3.22 — ops aliases that also receive allowlist dual-control digest emails. */
+export type NotifAllowlistDualDigestRecipient = {
+  id: string;
+  tenantId: string;
+  email: string;
+  note?: string;
+  source: "store" | "env";
+  createdAt: string;
+  createdByPrincipalId?: string;
+  revokedAt?: string;
+};
+
+/** I3.23 — last allowlist dual-control digest dispatch stamp (per tenant). */
+export type NotifAllowlistDualDigestLastRun = {
+  tenantId: string;
+  day: string;
+  lastRunAt: string;
+  lastRunByPrincipalId: string;
+  pendingCount: number;
   dispatchedCount: number;
   skippedCount: number;
   recipientCount: number;

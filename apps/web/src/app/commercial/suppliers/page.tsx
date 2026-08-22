@@ -141,6 +141,8 @@ function SupplierDetailDrawer({
   const [calendar, setCalendar] = useState<{
     seasons: Array<{ label: string; count: number }>;
     months: Array<{ month: string; count: number }>;
+    heatmapMonths: Array<{ month: string; conflictCount: number; unresolvedCount: number }>;
+    heatmapMax: number;
     conflicts: Array<{
       rateType: string;
       overlapFrom: string;
@@ -175,6 +177,8 @@ function SupplierDetailDrawer({
       setCalendar({
         seasons: res.seasons.map((s) => ({ label: s.label, count: s.count })),
         months: res.months.map((m) => ({ month: m.month, count: m.count })),
+        heatmapMonths: res.heatmap?.months ?? [],
+        heatmapMax: res.heatmap?.maxConflictCount ?? 0,
         conflicts: (res.conflicts ?? []).map((c) => ({
           rateType: c.rateType,
           overlapFrom: c.overlapFrom,
@@ -539,7 +543,7 @@ function SupplierDetailDrawer({
               )}
               {calendar && (
                 <div className="mb-3 rounded-md border border-line bg-ivory p-3">
-                  <div className="mb-2 text-xs uppercase tracking-wide text-muted">Rate calendar (PG.16)</div>
+                  <div className="mb-2 text-xs uppercase tracking-wide text-muted">Rate calendar (PG.23)</div>
                   <div className="mb-2 grid grid-cols-2 gap-2">
                     <input
                       type="date"
@@ -571,6 +575,31 @@ function SupplierDetailDrawer({
                       </span>
                     ))}
                   </div>
+                  {calendar.heatmapMonths.length > 0 && (
+                    <div className="mb-2">
+                      <div className="mb-1 text-[10px] uppercase tracking-wide text-muted">Conflict heatmap</div>
+                      <div className="flex flex-wrap gap-1">
+                        {calendar.heatmapMonths.map((m) => {
+                          const intensity =
+                            calendar.heatmapMax > 0 ? m.conflictCount / calendar.heatmapMax : 0;
+                          const bg =
+                            m.unresolvedCount > 0
+                              ? `rgba(190, 18, 60, ${0.18 + intensity * 0.55})`
+                              : `rgba(180, 140, 60, ${0.12 + intensity * 0.4})`;
+                          return (
+                            <span
+                              key={`heat-${m.month}`}
+                              title={`${m.month}: ${m.conflictCount} conflict(s), ${m.unresolvedCount} unresolved`}
+                              className="rounded px-1.5 py-0.5 font-mono text-[10px] text-ink"
+                              style={{ backgroundColor: bg }}
+                            >
+                              {m.month.slice(5)}:{m.conflictCount}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                   {calendar.conflicts.length > 0 && (
                     <div className="rounded border border-rose-200 bg-rose-50/60 p-2 text-xs text-rose-800">
                       <div className="mb-1 font-medium">

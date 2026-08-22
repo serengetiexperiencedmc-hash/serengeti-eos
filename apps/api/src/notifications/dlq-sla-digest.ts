@@ -4,6 +4,7 @@ import { listDeadLetters } from "../outbox.js";
 import { createEmailAdapter } from "./email.js";
 import { ensureNotificationCollections } from "./collections.js";
 import { resolveDlqSlaDigestRecipientEmails } from "./dlq-sla-digest-recipients.js";
+import { persistNotifDlqSlaDigestLastRun } from "../persistence/notifications.js";
 
 function stampLastRun(
   store: Store,
@@ -30,13 +31,14 @@ function stampLastRun(
   const idx = (store.notifDlqSlaDigestLastRuns ?? []).findIndex((r) => r.tenantId === principal.tenantId);
   if (idx >= 0) store.notifDlqSlaDigestLastRuns[idx] = run;
   else store.notifDlqSlaDigestLastRuns.push(run);
+  void persistNotifDlqSlaDigestLastRun(store.dbPool, run);
   return run;
 }
 
 /**
- * I4.16–I4.19 — on-demand batched email summarizing open DLQ SLA breaches.
+ * I4.16–I4.20 — on-demand batched email summarizing open DLQ SLA breaches.
  * Fans out to caller + store/env ops aliases; dedupes per recipient per UTC day.
- * I4.19 stamps last-run metadata for ops visibility.
+ * I4.19/I4.20 stamps last-run metadata (Postgres dual-write when pool set).
  */
 export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
   const dispatchAuth = authorize({
@@ -86,7 +88,7 @@ export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
       thresholdHours: listed.sla.thresholdHours,
       recipientCount: recipients.length,
       lastRun,
-      increment: "I4.19" as const,
+      increment: "I4.21" as const,
     };
   }
 
@@ -134,7 +136,7 @@ export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
     thresholdHours: listed.sla.thresholdHours,
     recipientCount: recipients.length,
     lastRun,
-    increment: "I4.19" as const,
+    increment: "I4.21" as const,
   };
 }
 
@@ -168,6 +170,80 @@ export function getDlqSlaDigestStatus(store: Store, principal: Principal) {
       outboxDigestCount,
       outboxByStatus: byStatus,
     },
-    increment: "I4.19" as const,
+    increment: "I4.21" as const,
+  };
+}
+
+function csvEscape(value: string): string {
+  if (/[",\n]/.test(value)) return `"${value.replaceAll("\"", "\"\"")}"`;
+  return value;
+}
+
+/** I4.21 — CSV/JSON export of last-run + outbox analytics for ops dashboards. */
+export function exportDlqSlaDigestLastRun(
+  store: Store,
+  principal: Principal,
+  options: { format?: "json" | "csv" } = {},
+) {
+  const status = getDlqSlaDigestStatus(store, principal);
+  if ("error" in status) return status;
+
+  const generatedAt = new Date().toISOString();
+  const format = options.format === "csv" ? "csv" : "json";
+  const lastRun = status.lastRun;
+  const row = {
+    tenantId: lastRun?.tenantId ?? principal.tenantId,
+    day: lastRun?.day ?? "",
+    lastRunAt: lastRun?.lastRunAt ?? "",
+    lastRunByPrincipalId: lastRun?.lastRunByPrincipalId ?? "",
+    breachedCount: lastRun?.breachedCount ?? 0,
+    dispatchedCount: lastRun?.dispatchedCount ?? 0,
+    skippedCount: lastRun?.skippedCount ?? 0,
+    recipientCount: lastRun?.recipientCount ?? 0,
+    outboxDigestCount: status.analytics.outboxDigestCount,
+    outboxSent: status.analytics.outboxByStatus.sent ?? 0,
+    outboxQueued: status.analytics.outboxByStatus.queued ?? 0,
+    outboxFailed: status.analytics.outboxByStatus.failed ?? 0,
+  };
+
+  if (format === "csv") {
+    const header =
+      "tenantId,day,lastRunAt,lastRunByPrincipalId,breachedCount,dispatchedCount,skippedCount,recipientCount,outboxDigestCount,outboxSent,outboxQueued,outboxFailed";
+    const csv = [
+      header,
+      [
+        row.tenantId,
+        row.day,
+        row.lastRunAt,
+        row.lastRunByPrincipalId,
+        String(row.breachedCount),
+        String(row.dispatchedCount),
+        String(row.skippedCount),
+        String(row.recipientCount),
+        String(row.outboxDigestCount),
+        String(row.outboxSent),
+        String(row.outboxQueued),
+        String(row.outboxFailed),
+      ]
+        .map(csvEscape)
+        .join(","),
+    ].join("\n");
+    return {
+      format,
+      csv,
+      lastRun,
+      analytics: status.analytics,
+      generatedAt,
+      increment: "I4.21" as const,
+    };
+  }
+
+  return {
+    format,
+    lastRun,
+    analytics: status.analytics,
+    row,
+    generatedAt,
+    increment: "I4.21" as const,
   };
 }

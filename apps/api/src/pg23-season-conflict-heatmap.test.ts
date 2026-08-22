@@ -13,9 +13,9 @@ async function loginCarol(app: ReturnType<typeof buildServer>) {
   return res.json().accessToken as string;
 }
 
-describe("PG.17 supplier rate conflicts", () => {
-  it("detects overlapping same-type rates and banners PG.17", async () => {
-    const store = seedStore("pg15-conf", TEST_BOOTSTRAP_SECRETS);
+describe("PG.23 season calendar conflict heatmap", () => {
+  it("aggregates overlapping conflicts by month and season", async () => {
+    const store = seedStore("pg23-heat", TEST_BOOTSTRAP_SECRETS);
     const app = buildServer({ store });
     const token = await loginCarol(app);
 
@@ -24,8 +24,8 @@ describe("PG.17 supplier rate conflicts", () => {
       url: "/v1/suppliers",
       headers: { authorization: `Bearer ${token}` },
       payload: {
-        supplierCode: "PG15-LODGE",
-        legalName: "Conflict Lodge",
+        supplierCode: "PG23-LODGE",
+        legalName: "Heatmap Lodge",
         category: "accommodation",
         country: "TZ",
       },
@@ -65,24 +65,34 @@ describe("PG.17 supplier rate conflicts", () => {
       },
     });
 
-    const conflicts = await app.inject({
-      method: "GET",
-      url: `/v1/suppliers/rates/conflicts?supplierId=${supplierId}`,
-      headers: { authorization: `Bearer ${token}` },
-    });
-    expect(conflicts.statusCode).toBe(200);
-    expect(conflicts.json().increment).toBe("PG.23");
-    expect(conflicts.json().count).toBe(1);
-    expect(conflicts.json().conflicts[0].overlapFrom).toBe("2026-07-01");
-    expect(conflicts.json().conflicts[0].overlapTo).toBe("2026-08-31");
-
     const calendar = await app.inject({
       method: "GET",
       url: `/v1/suppliers/rates/calendar?from=2026-01-01&to=2026-12-31&supplierId=${supplierId}`,
       headers: { authorization: `Bearer ${token}` },
     });
+    expect(calendar.statusCode).toBe(200);
     expect(calendar.json().increment).toBe("PG.23");
-    expect(calendar.json().conflicts).toHaveLength(1);
+    expect(calendar.json().heatmap.maxConflictCount).toBeGreaterThanOrEqual(1);
+    expect(calendar.json().heatmap.months.some((m: { month: string }) => m.month === "2026-07")).toBe(true);
+    expect(calendar.json().heatmap.seasons.map((s: { label: string }) => s.label).sort()).toEqual([
+      "High A",
+      "High B",
+    ]);
+    expect(
+      calendar.json().heatmap.cells.some(
+        (c: { month: string; seasonLabel: string }) => c.month === "2026-07" && c.seasonLabel === "High A",
+      ),
+    ).toBe(true);
+
+    const heatmap = await app.inject({
+      method: "GET",
+      url: `/v1/suppliers/rates/conflicts/heatmap?supplierId=${supplierId}&from=2026-01-01&to=2026-12-31`,
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(heatmap.statusCode).toBe(200);
+    expect(heatmap.json().increment).toBe("PG.23");
+    expect(heatmap.json().conflictCount).toBe(1);
+    expect(heatmap.json().heatmap.months.find((m: { month: string }) => m.month === "2026-07").conflictCount).toBe(1);
 
     const health = await app.inject({
       method: "GET",

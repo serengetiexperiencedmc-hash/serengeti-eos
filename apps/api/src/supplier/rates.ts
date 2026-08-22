@@ -364,6 +364,7 @@ export function getSupplierRateCalendar(
     .sort((a, b) => a.month.localeCompare(b.month));
 
   const conflicts = mapConflictViews(detectRateConflictsAmong(overlapping));
+  const heatmap = buildConflictHeatmap(conflicts, query.from, query.to);
   return {
     from: query.from,
     to: query.to,
@@ -371,8 +372,9 @@ export function getSupplierRateCalendar(
     seasons,
     months,
     conflicts,
+    heatmap,
     unresolvedConflictCount: conflicts.filter((c) => !c.resolved).length,
-    increment: "PG.21" as const,
+    increment: "PG.23" as const,
   };
 }
 
@@ -474,11 +476,130 @@ export function getSupplierRateConflicts(
   let conflicts = mapConflictViews(detectRateConflictsAmong(candidates));
   if (query.unresolvedOnly) conflicts = conflicts.filter((c) => !c.resolved);
 
+  const windowFrom = query.from ?? (conflicts.length ? minDate(conflicts.map((c) => c.overlapFrom)) : undefined);
+  const windowTo = query.to ?? (conflicts.length ? maxDate(conflicts.map((c) => c.overlapTo)) : undefined);
+  const heatmap =
+    windowFrom && windowTo ? buildConflictHeatmap(conflicts, windowFrom, windowTo) : emptyHeatmap();
+
   return {
     conflicts,
     count: conflicts.length,
     unresolvedCount: conflicts.filter((c) => !c.resolved).length,
-    increment: "PG.21" as const,
+    heatmap,
+    increment: "PG.23" as const,
+  };
+}
+
+function minDate(values: string[]): string {
+  return values.reduce((min, v) => (v < min ? v : min));
+}
+
+function maxDate(values: string[]): string {
+  return values.reduce((max, v) => (v > max ? v : max));
+}
+
+function emptyHeatmap() {
+  return {
+    months: [] as Array<{ month: string; conflictCount: number; unresolvedCount: number }>,
+    seasons: [] as Array<{ label: string; conflictCount: number; unresolvedCount: number }>,
+    cells: [] as Array<{
+      month: string;
+      seasonLabel: string;
+      conflictCount: number;
+      unresolvedCount: number;
+    }>,
+    maxConflictCount: 0,
+  };
+}
+
+function eachMonth(from: string, to: string): string[] {
+  const months: string[] = [];
+  let cursor = from.slice(0, 7);
+  const endMonth = to.slice(0, 7);
+  while (cursor <= endMonth) {
+    months.push(cursor);
+    const [y, m] = cursor.split("-").map(Number);
+    cursor = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
+  }
+  return months;
+}
+
+/** PG.23 — conflict counts by month and season label for calendar heatmap. */
+function buildConflictHeatmap(
+  conflicts: Array<{
+    overlapFrom: string;
+    overlapTo: string;
+    resolved: boolean;
+    a: { seasonLabel?: string };
+    b: { seasonLabel?: string };
+  }>,
+  from: string,
+  to: string,
+) {
+  const monthMap = new Map<string, { conflictCount: number; unresolvedCount: number }>();
+  const seasonMap = new Map<string, { conflictCount: number; unresolvedCount: number }>();
+  const cellMap = new Map<string, { month: string; seasonLabel: string; conflictCount: number; unresolvedCount: number }>();
+
+  const windowMonths = new Set(eachMonth(from, to));
+
+  for (const conflict of conflicts) {
+    const labels = new Set([
+      conflict.a.seasonLabel?.trim() || "Unlabeled",
+      conflict.b.seasonLabel?.trim() || "Unlabeled",
+    ]);
+    const months = eachMonth(conflict.overlapFrom, conflict.overlapTo).filter((m) => windowMonths.has(m));
+    const unresolvedInc = conflict.resolved ? 0 : 1;
+
+    for (const month of months) {
+      const bucket = monthMap.get(month) ?? { conflictCount: 0, unresolvedCount: 0 };
+      bucket.conflictCount += 1;
+      bucket.unresolvedCount += unresolvedInc;
+      monthMap.set(month, bucket);
+
+      for (const label of labels) {
+        const season = seasonMap.get(label) ?? { conflictCount: 0, unresolvedCount: 0 };
+        season.conflictCount += 1;
+        season.unresolvedCount += unresolvedInc;
+        seasonMap.set(label, season);
+
+        const key = `${month}|${label}`;
+        const cell = cellMap.get(key) ?? { month, seasonLabel: label, conflictCount: 0, unresolvedCount: 0 };
+        cell.conflictCount += 1;
+        cell.unresolvedCount += unresolvedInc;
+        cellMap.set(key, cell);
+      }
+    }
+  }
+
+  const months = [...monthMap.entries()]
+    .map(([month, counts]) => ({ month, ...counts }))
+    .sort((a, b) => a.month.localeCompare(b.month));
+  const seasons = [...seasonMap.entries()]
+    .map(([label, counts]) => ({ label, ...counts }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+  const cells = [...cellMap.values()].sort(
+    (a, b) => a.month.localeCompare(b.month) || a.seasonLabel.localeCompare(b.seasonLabel),
+  );
+  const maxConflictCount = months.reduce((max, m) => Math.max(max, m.conflictCount), 0);
+
+  return { months, seasons, cells, maxConflictCount };
+}
+
+/** PG.23 — dedicated heatmap endpoint (same filters as conflicts). */
+export function getSupplierRateConflictHeatmap(
+  store: Store,
+  principal: Principal,
+  query: { supplierId?: string; from?: string; to?: string; unresolvedOnly?: boolean } = {},
+) {
+  const listed = getSupplierRateConflicts(store, principal, query);
+  if ("error" in listed) return listed;
+  return {
+    from: query.from ?? null,
+    to: query.to ?? null,
+    heatmap: listed.heatmap,
+    conflictCount: listed.count,
+    unresolvedCount: listed.unresolvedCount,
+    increment: "PG.23" as const,
   };
 }
 

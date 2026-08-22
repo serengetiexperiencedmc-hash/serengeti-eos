@@ -16,9 +16,9 @@ async function loginCarol(app: ReturnType<typeof buildServer>) {
   return res.json().accessToken as string;
 }
 
-describe("I3.21 allowlist dual-control digest email", () => {
-  it("dispatches a daily digest for pending dual-control and skips redispatch", async () => {
-    const store = seedStore("i321-dual-digest", TEST_BOOTSTRAP_SECRETS);
+describe("I3.23 allowlist dual digest last-run status", () => {
+  it("stamps lastRun on dispatch and exposes status analytics", async () => {
+    const store = seedStore("i323-status", TEST_BOOTSTRAP_SECRETS);
     ensureNotificationCollections(store);
     const carol = allPrincipals(store).find((p) => p.email === "carol.admin@sedmc.local")!;
     await addEmailAllowlistEntry(store, carol, { email: "vip@example.com", note: "VIP" });
@@ -27,35 +27,43 @@ describe("I3.21 allowlist dual-control digest email", () => {
     const app = buildServer({ store });
     const token = await loginCarol(app);
 
-    const first = await app.inject({
-      method: "POST",
-      url: "/v1/notifications/email/dispatch-allowlist-dual-digest",
+    const before = await app.inject({
+      method: "GET",
+      url: "/v1/notifications/email/allowlist-dual-digest-status",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(first.statusCode).toBe(200);
-    expect(first.json().increment).toBe("I3.23");
-    expect(first.json().pendingCount).toBe(1);
-    expect(first.json().dispatched[0]).toMatch(/^allowlist-dual-digest:\d{4}-\d{2}-\d{2}:/);
+    expect(before.statusCode).toBe(200);
+    expect(before.json().increment).toBe("I3.23");
+    expect(before.json().lastRun).toBeNull();
 
-    const second = await app.inject({
+    const dispatched = await app.inject({
       method: "POST",
       url: "/v1/notifications/email/dispatch-allowlist-dual-digest",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(second.statusCode).toBe(200);
-    expect(second.json().dispatched).toHaveLength(0);
-    expect(second.json().skipped[0].reason).toBe("already_dispatched");
+    expect(dispatched.statusCode).toBe(200);
+    expect(dispatched.json().increment).toBe("I3.23");
+    expect(dispatched.json().lastRun.pendingCount).toBe(1);
+    expect(dispatched.json().lastRun.dispatchedCount).toBeGreaterThanOrEqual(1);
+
+    const status = await app.inject({
+      method: "GET",
+      url: "/v1/notifications/email/allowlist-dual-digest-status",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(status.json().lastRun.pendingCount).toBe(1);
+    expect(status.json().analytics.outboxDigestCount).toBeGreaterThanOrEqual(1);
 
     const health = await app.inject({
       method: "GET",
       url: "/v1/notifications/email/health",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(health.json().increment).toBe("I3.21");
+    expect(health.json().allowlistDualDigestLastRun.pendingCount).toBe(1);
   });
 
-  it("skips when no pending dual-control", async () => {
-    const store = seedStore("i321-none", TEST_BOOTSTRAP_SECRETS);
+  it("stamps lastRun when none pending", async () => {
+    const store = seedStore("i323-none", TEST_BOOTSTRAP_SECRETS);
     const app = buildServer({ store });
     const token = await loginCarol(app);
     const res = await app.inject({
@@ -65,5 +73,7 @@ describe("I3.21 allowlist dual-control digest email", () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.json().skipped[0].reason).toBe("none_pending");
+    expect(res.json().lastRun.pendingCount).toBe(0);
+    expect(res.json().lastRun.skippedCount).toBe(1);
   });
 });

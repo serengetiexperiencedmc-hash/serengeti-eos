@@ -27,6 +27,9 @@ import {
   revokeEmailAllowlist,
   approveSesNotedAllowlist,
   exportEmailAllowlist,
+  dispatchAllowlistDualDigest,
+  getAllowlistDualDigestStatus,
+  type DigestLastRun,
   type EmailDeliveryAnalytics,
   type EmailDeliveryEventItem,
   type EmailOutboxItem,
@@ -61,6 +64,10 @@ export default function NotificationsPage() {
   const [editorMsg, setEditorMsg] = useState<string | null>(null);
   const [editorBusy, setEditorBusy] = useState(false);
   const [preview, setPreview] = useState<{ subject: string; bodyText: string } | null>(null);
+  const [allowlistDigest, setAllowlistDigest] = useState<{
+    lastRun: DigestLastRun | null;
+    outboxDigestCount: number;
+  } | null>(null);
 
   const selectedTemplate = useMemo(
     () => templates.find((t) => t.key === selectedKey),
@@ -69,7 +76,7 @@ export default function NotificationsPage() {
 
   async function reload() {
     if (!token) return;
-    const [inbox, emailOutbox, tmpl, health, suppressed, events, stats, allowed] = await Promise.all([
+    const [inbox, emailOutbox, tmpl, health, suppressed, events, stats, allowed, dualStatus] = await Promise.all([
       listNotifications(token),
       listEmailOutbox(token),
       listEmailTemplates(token),
@@ -78,6 +85,7 @@ export default function NotificationsPage() {
       listEmailDeliveryEvents(token, 15),
       getEmailDeliveryAnalytics(token),
       listEmailAllowlist(token),
+      getAllowlistDualDigestStatus(token).catch(() => null),
     ]);
     setItems(inbox.items);
     setOutbox(emailOutbox.items);
@@ -87,6 +95,13 @@ export default function NotificationsPage() {
     setAllowlist(allowed.items);
     setDeliveryEvents(events.items);
     setAnalytics(stats.analytics);
+    setAllowlistDigest(
+      dualStatus
+        ? { lastRun: dualStatus.lastRun, outboxDigestCount: dualStatus.analytics.outboxDigestCount }
+        : health.allowlistDualDigestLastRun
+          ? { lastRun: health.allowlistDualDigestLastRun, outboxDigestCount: 0 }
+          : null,
+    );
     if (tmpl.items.length > 0 && !selectedKey) {
       const first = tmpl.items[0];
       setSelectedKey(first.key);
@@ -113,6 +128,18 @@ export default function NotificationsPage() {
     setDispatchMsg(null);
     const res = await dispatchEmailDigest(token);
     setDispatchMsg(`Dispatched ${res.dispatched.length} email(s) via ${res.adapter}`);
+    await reload();
+  }
+
+  async function handleAllowlistDualDigest() {
+    if (!token) return;
+    setDispatchMsg(null);
+    const res = await dispatchAllowlistDualDigest(token);
+    setDispatchMsg(
+      `Allowlist dual digest: ${res.dispatched.length} sent · pending ${res.pendingCount}${
+        res.lastRun ? ` · last run ${res.lastRun.day}` : ""
+      }`,
+    );
     await reload();
   }
 
@@ -221,6 +248,9 @@ export default function NotificationsPage() {
             <div className="flex gap-2">
               <Btn variant="secondary" onClick={() => void handleDispatch()}>
                 Dispatch email digest
+              </Btn>
+              <Btn variant="secondary" onClick={() => void handleAllowlistDualDigest()}>
+                Dispatch allowlist digest
               </Btn>
               {items.length > 0 && (
                 <Btn variant="secondary" onClick={() => void dismissAllNotifications(token).then(reload)}>
@@ -399,6 +429,14 @@ export default function NotificationsPage() {
           <p className="mb-3 text-sm text-muted">
             Allowlisted addresses bypass suppressions until expiry or revoke; SES sync stamps overlap notes (I3.16).
           </p>
+          {allowlistDigest && (
+            <p className="mb-3 text-xs text-muted">
+              Dual-control digest last run:{" "}
+              {allowlistDigest.lastRun
+                ? `${allowlistDigest.lastRun.day} · pending ${allowlistDigest.lastRun.pendingCount ?? 0} · sent ${allowlistDigest.lastRun.dispatchedCount} · outbox ${allowlistDigest.outboxDigestCount}`
+                : "never"}
+            </p>
+          )}
           {token && (
             <div className="mb-3 flex flex-wrap gap-2">
               <Btn

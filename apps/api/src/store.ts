@@ -83,6 +83,8 @@ import {
   type NotifEmailAllowlistEntry,
   type NotifDlqSlaDigestRecipient,
   type NotifDlqSlaDigestLastRun,
+  type NotifAllowlistDualDigestRecipient,
+  type NotifAllowlistDualDigestLastRun,
   type EmailTemplate,
   type NatsConsumerOffset,
 } from "@sedmc/kernel";
@@ -209,6 +211,10 @@ export type Store = {
   notifDlqSlaDigestRecipients: NotifDlqSlaDigestRecipient[];
   /** I4.19 — last DLQ SLA digest run per tenant. */
   notifDlqSlaDigestLastRuns: NotifDlqSlaDigestLastRun[];
+  /** I3.22 — allowlist dual-control digest ops aliases. */
+  notifAllowlistDualDigestRecipients: NotifAllowlistDualDigestRecipient[];
+  /** I3.23 — last allowlist dual-control digest run per tenant. */
+  notifAllowlistDualDigestLastRuns: NotifAllowlistDualDigestLastRun[];
   natsConsumerOffsets: NatsConsumerOffset[];
   /** Optional PostgreSQL pool for dual-write persistence (PG.1+) */
   dbPool?: DbPool;
@@ -825,6 +831,8 @@ export function seedStore(
     notifEmailAllowlist: [],
     notifDlqSlaDigestRecipients: [],
     notifDlqSlaDigestLastRuns: [],
+    notifAllowlistDualDigestRecipients: [],
+    notifAllowlistDualDigestLastRuns: [],
     natsConsumerOffsets: [],
   };
   seedCrmCatalogues(store, tenantId);

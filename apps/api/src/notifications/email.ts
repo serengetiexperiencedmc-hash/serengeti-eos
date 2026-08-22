@@ -326,15 +326,24 @@ export async function upsertEmailTemplate(
   return { template: { ...template, source: "tenant" as const } };
 }
 
-export function getEmailAdapterHealth(store: Store) {
+export function getEmailAdapterHealth(store: Store, principal?: Principal) {
   ensureNotificationCollections(store);
   const adapter = resolveEmailAdapterName();
+  const tenantId = principal?.tenantId;
+  const allowlistDualDigestLastRun = tenantId
+    ? (store.notifAllowlistDualDigestLastRuns ?? []).find((r) => r.tenantId === tenantId) ?? null
+    : (store.notifAllowlistDualDigestLastRuns ?? [])[0] ?? null;
+  const dlqSlaDigestLastRun = tenantId
+    ? (store.notifDlqSlaDigestLastRuns ?? []).find((r) => r.tenantId === tenantId) ?? null
+    : (store.notifDlqSlaDigestLastRuns ?? [])[0] ?? null;
   return {
     module: "notification-email",
     increment: "I3.21",
     adapter,
     status: "ok" as const,
     outboxCount: (store.notifEmailOutbox ?? []).length,
+    allowlistDualDigestLastRun,
+    dlqSlaDigestLastRun,
     deliveryEventCount: (store.notifEmailDeliveryEvents ?? []).length,
     suppressionCount: (store.notifEmailSuppressions ?? []).filter((s) => !s.liftedAt).length,
     allowlistCount: (store.notifEmailAllowlist ?? []).filter((e) => !e.revokedAt && (!e.expiresAt || new Date(e.expiresAt).getTime() > Date.now())).length,

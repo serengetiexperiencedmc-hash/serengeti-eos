@@ -53,6 +53,18 @@ export async function dispatchEmailDigest(token: string) {
   );
 }
 
+export type DigestLastRun = {
+  tenantId: string;
+  day: string;
+  lastRunAt: string;
+  lastRunByPrincipalId: string;
+  dispatchedCount: number;
+  skippedCount: number;
+  recipientCount: number;
+  pendingCount?: number;
+  breachedCount?: number;
+};
+
 export async function getEmailAdapterHealth(token: string) {
   return eosFetch<{
     module: string;
@@ -63,7 +75,27 @@ export async function getEmailAdapterHealth(token: string) {
     suppressionCount?: number;
     templateCount?: number;
     smtpConfigured?: boolean;
+    allowlistDualDigestLastRun?: DigestLastRun | null;
+    dlqSlaDigestLastRun?: DigestLastRun | null;
   }>("/v1/notifications/email/health", { token });
+}
+
+export async function dispatchAllowlistDualDigest(token: string) {
+  return eosFetch<{
+    dispatched: string[];
+    skipped: { key: string; reason?: string }[];
+    pendingCount: number;
+    lastRun?: DigestLastRun;
+    increment: string;
+  }>("/v1/notifications/email/dispatch-allowlist-dual-digest", { token, method: "POST", body: "{}" });
+}
+
+export async function getAllowlistDualDigestStatus(token: string) {
+  return eosFetch<{
+    lastRun: DigestLastRun | null;
+    analytics: { outboxDigestCount: number; outboxByStatus: Record<string, number> };
+    increment: string;
+  }>("/v1/notifications/email/allowlist-dual-digest-status", { token });
 }
 
 export type EmailSuppressionItem = {

@@ -1,4 +1,4 @@
-import { authorize, newId, type NotifDlqSlaDigestRecipient, type Principal } from "@sedmc/kernel";
+import { authorize, newId, type NotifAllowlistDualDigestRecipient, type Principal } from "@sedmc/kernel";
 import type { Store } from "../store.js";
 import { ensureNotificationCollections } from "./collections.js";
 
@@ -6,14 +6,14 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
-export function parseEnvDlqSlaDigestRecipients(env: NodeJS.ProcessEnv = process.env): string[] {
-  return (env.EOS_DLQ_SLA_DIGEST_RECIPIENTS ?? "")
+export function parseEnvAllowlistDualDigestRecipients(env: NodeJS.ProcessEnv = process.env): string[] {
+  return (env.EOS_ALLOWLIST_DUAL_DIGEST_RECIPIENTS ?? "")
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter((e) => e.includes("@"));
 }
 
-function sanitize(r: NotifDlqSlaDigestRecipient) {
+function sanitize(r: NotifAllowlistDualDigestRecipient) {
   return {
     id: r.id,
     email: r.email,
@@ -26,7 +26,7 @@ function sanitize(r: NotifDlqSlaDigestRecipient) {
 }
 
 /** Resolve unique digest emails: caller + active store aliases + env. */
-export function resolveDlqSlaDigestRecipientEmails(
+export function resolveAllowlistDualDigestRecipientEmails(
   store: Store,
   principal: Principal,
   env: NodeJS.ProcessEnv = process.env,
@@ -34,29 +34,29 @@ export function resolveDlqSlaDigestRecipientEmails(
   ensureNotificationCollections(store);
   const emails = new Set<string>();
   if (principal.email) emails.add(normalizeEmail(principal.email));
-  for (const row of store.notifDlqSlaDigestRecipients ?? []) {
+  for (const row of store.notifAllowlistDualDigestRecipients ?? []) {
     if (row.tenantId !== principal.tenantId || row.revokedAt) continue;
     emails.add(normalizeEmail(row.email));
   }
-  for (const email of parseEnvDlqSlaDigestRecipients(env)) {
+  for (const email of parseEnvAllowlistDualDigestRecipients(env)) {
     emails.add(email);
   }
   return [...emails];
 }
 
-export function listDlqSlaDigestRecipients(store: Store, principal: Principal) {
+export function listAllowlistDualDigestRecipients(store: Store, principal: Principal) {
   const decision = authorize({
     principal,
     permission: "notification:dispatch:email",
-    action: "read:dlq_sla_digest_recipients",
+    action: "read:allowlist_dual_digest_recipients",
   });
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
 
   ensureNotificationCollections(store);
-  const storeItems = (store.notifDlqSlaDigestRecipients ?? [])
+  const storeItems = (store.notifAllowlistDualDigestRecipients ?? [])
     .filter((r) => r.tenantId === principal.tenantId && !r.revokedAt)
     .map(sanitize);
-  const envItems = parseEnvDlqSlaDigestRecipients().map((email) => ({
+  const envItems = parseEnvAllowlistDualDigestRecipients().map((email) => ({
     id: `env:${email}`,
     email,
     source: "env" as const,
@@ -65,11 +65,11 @@ export function listDlqSlaDigestRecipients(store: Store, principal: Principal) {
   return {
     items: [...storeItems, ...envItems],
     count: storeItems.length + envItems.length,
-    increment: "I4.20" as const,
+    increment: "I3.22" as const,
   };
 }
 
-export function addDlqSlaDigestRecipient(
+export function addAllowlistDualDigestRecipient(
   store: Store,
   principal: Principal,
   input: { email: string; note?: string },
@@ -77,7 +77,7 @@ export function addDlqSlaDigestRecipient(
   const decision = authorize({
     principal,
     permission: "notification:dispatch:email",
-    action: "write:dlq_sla_digest_recipients",
+    action: "write:allowlist_dual_digest_recipients",
   });
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
 
@@ -85,7 +85,7 @@ export function addDlqSlaDigestRecipient(
   if (!email.includes("@")) return { error: "invalid_request" as const, reason: "invalid_email" };
 
   ensureNotificationCollections(store);
-  const existing = (store.notifDlqSlaDigestRecipients ?? []).find(
+  const existing = (store.notifAllowlistDualDigestRecipients ?? []).find(
     (r) => r.tenantId === principal.tenantId && !r.revokedAt && normalizeEmail(r.email) === email,
   );
   if (existing) {
@@ -93,10 +93,10 @@ export function addDlqSlaDigestRecipient(
       if (!input.note.trim()) delete existing.note;
       else existing.note = input.note.trim();
     }
-    return { recipient: sanitize(existing), updated: true, increment: "I4.20" as const };
+    return { recipient: sanitize(existing), updated: true, increment: "I3.22" as const };
   }
 
-  const recipient: NotifDlqSlaDigestRecipient = {
+  const recipient: NotifAllowlistDualDigestRecipient = {
     id: newId(),
     tenantId: principal.tenantId,
     email,
@@ -105,23 +105,23 @@ export function addDlqSlaDigestRecipient(
     createdByPrincipalId: principal.id,
     ...(input.note?.trim() ? { note: input.note.trim() } : {}),
   };
-  store.notifDlqSlaDigestRecipients.push(recipient);
-  return { recipient: sanitize(recipient), updated: false, increment: "I4.20" as const };
+  store.notifAllowlistDualDigestRecipients.push(recipient);
+  return { recipient: sanitize(recipient), updated: false, increment: "I3.22" as const };
 }
 
-export function revokeDlqSlaDigestRecipient(store: Store, principal: Principal, id: string) {
+export function revokeAllowlistDualDigestRecipient(store: Store, principal: Principal, id: string) {
   const decision = authorize({
     principal,
     permission: "notification:dispatch:email",
-    action: "revoke:dlq_sla_digest_recipients",
+    action: "revoke:allowlist_dual_digest_recipients",
   });
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
 
   ensureNotificationCollections(store);
-  const entry = (store.notifDlqSlaDigestRecipients ?? []).find(
+  const entry = (store.notifAllowlistDualDigestRecipients ?? []).find(
     (r) => r.id === id && r.tenantId === principal.tenantId && !r.revokedAt,
   );
   if (!entry) return { error: "not_found" as const };
   entry.revokedAt = new Date().toISOString();
-  return { recipient: sanitize(entry), increment: "I4.20" as const };
+  return { recipient: sanitize(entry), increment: "I3.22" as const };
 }

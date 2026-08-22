@@ -2,8 +2,13 @@ import type { FastifyInstance } from "fastify";
 import { principalFromAuthHeader } from "../app.js";
 import type { Store } from "../store.js";
 import { dispatchEmailDigest, getEmailAdapterHealth, listEmailOutbox, listEmailTemplates, previewEmailTemplate, upsertEmailTemplate } from "./email.js";
-import { dispatchDlqSlaDigest, getDlqSlaDigestStatus } from "./dlq-sla-digest.js";
-import { dispatchAllowlistDualDigest } from "./allowlist-dual-digest.js";
+import { dispatchDlqSlaDigest, exportDlqSlaDigestLastRun, getDlqSlaDigestStatus } from "./dlq-sla-digest.js";
+import { dispatchAllowlistDualDigest, getAllowlistDualDigestStatus } from "./allowlist-dual-digest.js";
+import {
+  addAllowlistDualDigestRecipient,
+  listAllowlistDualDigestRecipients,
+  revokeAllowlistDualDigestRecipient,
+} from "./allowlist-dual-digest-recipients.js";
 import { handleSesDeliveryWebhook, listEmailDeliveryEvents } from "./ses-webhook.js";
 import { liftEmailSuppression, listEmailSuppressions, syncEmailSuppressionsFromSes, exportEmailSuppressions, bulkLiftEmailSuppressions, importEmailSuppressions } from "./email-suppression.js";
 import {
@@ -79,7 +84,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
   app.get("/v1/notifications/email/health", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    return getEmailAdapterHealth(store);
+    return getEmailAdapterHealth(store, principal);
   });
 
   app.get("/v1/notifications/email/outbox", async (req, reply) => {
@@ -114,10 +119,58 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     return result;
   });
 
+  app.get("/v1/notifications/email/dlq-sla-digest-status/export", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const query = req.query as { format?: string };
+    const result = exportDlqSlaDigestLastRun(store, principal, {
+      format: query.format === "csv" ? "csv" : "json",
+    });
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
   app.post("/v1/notifications/email/dispatch-allowlist-dual-digest", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = await dispatchAllowlistDualDigest(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.get("/v1/notifications/email/allowlist-dual-digest-status", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = getAllowlistDualDigestStatus(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.get("/v1/notifications/email/allowlist-dual-digest-recipients", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = listAllowlistDualDigestRecipients(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/notifications/email/allowlist-dual-digest-recipients", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const body = (req.body ?? {}) as { email?: string; note?: string };
+    if (!body.email) return reply.code(400).send({ error: "invalid_request", reason: "email_required" });
+    const result = addAllowlistDualDigestRecipient(store, principal, {
+      email: body.email,
+      ...(body.note !== undefined ? { note: body.note } : {}),
+    });
+    if ("error" in result) return sendError(reply, result);
+    return reply.code(result.updated ? 200 : 201).send(result);
+  });
+
+  app.post("/v1/notifications/email/allowlist-dual-digest-recipients/:id/revoke", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = revokeAllowlistDualDigestRecipient(store, principal, (req.params as { id: string }).id);
     if ("error" in result) return sendError(reply, result);
     return result;
   });

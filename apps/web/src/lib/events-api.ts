@@ -184,3 +184,42 @@ export async function executeEventReplay(token: string, requestId: string) {
     { token, method: "POST", body: "{}" },
   );
 }
+
+export type DlqSlaDigestLastRun = {
+  tenantId: string;
+  day: string;
+  lastRunAt: string;
+  lastRunByPrincipalId: string;
+  breachedCount: number;
+  dispatchedCount: number;
+  skippedCount: number;
+  recipientCount: number;
+};
+
+export async function getDlqSlaDigestStatus(token: string) {
+  return eosFetch<{
+    lastRun: DlqSlaDigestLastRun | null;
+    analytics: { outboxDigestCount: number; outboxByStatus: Record<string, number> };
+    increment: string;
+  }>("/v1/notifications/email/dlq-sla-digest-status", { token });
+}
+
+export async function exportDlqSlaDigestLastRun(token: string, format: "json" | "csv" = "json") {
+  return eosFetch<{
+    format: "json" | "csv";
+    lastRun: DlqSlaDigestLastRun | null;
+    analytics: { outboxDigestCount: number; outboxByStatus: Record<string, number> };
+    csv?: string;
+    generatedAt: string;
+    increment: string;
+  }>(`/v1/notifications/email/dlq-sla-digest-status/export?format=${format}`, { token });
+}
+
+export async function dispatchDlqSlaDigest(token: string) {
+  return eosFetch<{
+    dispatched: string[];
+    skipped: { key: string; reason?: string }[];
+    lastRun?: DlqSlaDigestLastRun;
+    increment: string;
+  }>("/v1/notifications/email/dispatch-dlq-sla-digest", { token, method: "POST", body: "{}" });
+}

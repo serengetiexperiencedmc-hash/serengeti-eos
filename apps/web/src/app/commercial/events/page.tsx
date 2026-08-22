@@ -13,7 +13,11 @@ import {
   listDeadLetters,
   requestEventReplay,
   updateDeadLetterRemediation,
+  getDlqSlaDigestStatus,
+  exportDlqSlaDigestLastRun,
+  dispatchDlqSlaDigest,
   type DeadLetterItem,
+  type DlqSlaDigestLastRun,
   type NatsLagMetrics,
 } from "@/lib/events-api";
 
@@ -57,6 +61,8 @@ export default function EventsInfrastructurePage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
+  const [digestLastRun, setDigestLastRun] = useState<DlqSlaDigestLastRun | null>(null);
+  const [digestOutboxCount, setDigestOutboxCount] = useState(0);
 
   const reload = useCallback(async () => {
     if (!token) return;
@@ -69,11 +75,17 @@ export default function EventsInfrastructurePage() {
       ...(statusFilter ? { status: statusFilter } : {}),
       ...(slaOnly ? { slaBreached: true as const } : {}),
     };
-    const [lag, letters] = await Promise.all([getNatsConsumerLag(token), listDeadLetters(token, query)]);
+    const [lag, letters, digest] = await Promise.all([
+      getNatsConsumerLag(token),
+      listDeadLetters(token, query),
+      getDlqSlaDigestStatus(token).catch(() => null),
+    ]);
     setMetrics(lag);
     setDlq(letters.items);
     setOwners(letters.owners ?? []);
     setSlaSummary(letters.sla ?? null);
+    setDigestLastRun(digest?.lastRun ?? null);
+    setDigestOutboxCount(digest?.analytics.outboxDigestCount ?? 0);
   }, [token, ownerFilter, statusFilter, slaOnly]);
 
   useEffect(() => {
@@ -238,7 +250,57 @@ export default function EventsInfrastructurePage() {
             {slaSummary
               ? ` · SLA ${slaSummary.thresholdHours}h: ${slaSummary.breachedCount}/${slaSummary.openCount} open breached`
               : ""}
+            {digestLastRun
+              ? ` · digest last run ${digestLastRun.day} (${digestLastRun.breachedCount} breached, ${digestLastRun.dispatchedCount} sent)`
+              : " · digest never run"}
+            {digestOutboxCount > 0 ? ` · outbox ${digestOutboxCount}` : ""}
           </p>
+          {token && (
+            <div className="mb-3 flex flex-wrap gap-2">
+              <Btn
+                variant="secondary"
+                disabled={busy}
+                onClick={() => {
+                  void (async () => {
+                    setBusy(true);
+                    try {
+                      const res = await dispatchDlqSlaDigest(token);
+                      setMsg(
+                        `DLQ digest: ${res.dispatched.length} sent${
+                          res.lastRun ? ` · last run ${res.lastRun.day}` : ""
+                        }`,
+                      );
+                      await reload();
+                    } catch (err) {
+                      setMsg(err instanceof Error ? err.message : "Digest failed");
+                    } finally {
+                      setBusy(false);
+                    }
+                  })();
+                }}
+              >
+                Dispatch SLA digest
+              </Btn>
+              <Btn
+                variant="secondary"
+                disabled={busy}
+                onClick={() => {
+                  void exportDlqSlaDigestLastRun(token, "csv").then((res) => {
+                    const blob = new Blob([res.csv ?? ""], { type: "text/csv" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `dlq-sla-digest-${res.generatedAt.slice(0, 10)}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    setMsg("Exported DLQ digest last-run CSV");
+                  });
+                }}
+              >
+                Export last-run
+              </Btn>
+            </div>
+          )}
           <div className="mb-3 flex flex-wrap gap-2">
             <button
               type="button"

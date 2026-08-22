@@ -372,9 +372,17 @@ export async function getSupplierRateCalendar(
       resolved: boolean;
     }>;
     unresolvedConflictCount?: number;
+    heatmap?: RateConflictHeatmap;
     increment: string;
   }>(`/v1/suppliers/rates/calendar?${params.toString()}`, { token });
 }
+
+export type RateConflictHeatmap = {
+  months: Array<{ month: string; conflictCount: number; unresolvedCount: number }>;
+  seasons: Array<{ label: string; conflictCount: number; unresolvedCount: number }>;
+  cells: Array<{ month: string; seasonLabel: string; conflictCount: number; unresolvedCount: number }>;
+  maxConflictCount: number;
+};
 
 export async function getSupplierRateConflicts(
   token: string,

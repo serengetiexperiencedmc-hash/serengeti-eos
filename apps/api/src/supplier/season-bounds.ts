@@ -109,3 +109,61 @@ export function buildSeasonShrinkImpact(
     warning: ratesOutsideBounds.length > 0 ? ("season_shrink_affects_rates" as const) : null,
   };
 }
+
+export type ExpandBackfillCandidate = {
+  id: string;
+  supplierId: string;
+  rateCode: string;
+  validFrom: string;
+  validTo: string;
+  seasonLabel?: string;
+};
+
+/**
+ * PG.22 — unlinked (no seasonId) rates that fit proposed/expanded season bounds.
+ * Suggests candidates for backfill after a season expand.
+ */
+export function findUnlinkedRatesFittingSeason(
+  rates: readonly SupRate[],
+  season: Pick<SupSeason, "validFrom" | "validTo" | "monthFrom" | "monthTo">,
+  opts: { tenantId: string },
+): ExpandBackfillCandidate[] {
+  const hasBounds =
+    Boolean(season.validFrom || season.validTo) ||
+    season.monthFrom !== undefined ||
+    season.monthTo !== undefined;
+  if (!hasBounds) return [];
+
+  const candidates: ExpandBackfillCandidate[] = [];
+  for (const rate of rates) {
+    if (rate.tenantId !== opts.tenantId || rate.archivedAt) continue;
+    if (rate.seasonId) continue;
+    const check = assertRateWithinSeason(
+      { validFrom: rate.validFrom, validTo: rate.validTo },
+      season,
+    );
+    if (!check.ok) continue;
+    candidates.push({
+      id: rate.id,
+      supplierId: rate.supplierId,
+      rateCode: rate.rateCode,
+      validFrom: rate.validFrom,
+      validTo: rate.validTo,
+      ...(rate.seasonLabel ? { seasonLabel: rate.seasonLabel } : {}),
+    });
+  }
+  return candidates;
+}
+
+export function buildSeasonExpandBackfill(
+  rates: readonly SupRate[],
+  season: Pick<SupSeason, "id" | "validFrom" | "validTo" | "monthFrom" | "monthTo">,
+  tenantId: string,
+) {
+  const suggestions = findUnlinkedRatesFittingSeason(rates, season, { tenantId });
+  return {
+    suggestionCount: suggestions.length,
+    suggestions,
+    hint: suggestions.length > 0 ? ("season_expand_backfill_available" as const) : null,
+  };
+}

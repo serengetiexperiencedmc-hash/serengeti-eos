@@ -398,11 +398,31 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **I3.21** | Allowlist dual-control pending digest email |
 | **I4.19** | DLQ SLA digest last-run stamp + status analytics |
 
+### 27:xx — PG.22 + I3.22 + I4.20 ✅
+
+**Shipped:** server `0.60.0-pg22-i3.22-i4.20`
+
+| Increment | Change |
+| --- | --- |
+| **PG.22** | Season expand backfill preview + link unlinked fitting rates |
+| **I3.22** | Allowlist dual-control digest ops aliases (store + env) |
+| **I4.20** | Persist DLQ SLA digest last-run to Postgres + hydrate |
+
+### 28:xx — PG.23 + I3.23 + I4.21 ✅
+
+**Shipped:** server `0.61.0-pg23-i3.23-i4.21`
+
+| Increment | Change |
+| --- | --- |
+| **PG.23** | Season calendar conflict heatmap (month/season cells) |
+| **I3.23** | Allowlist dual-control digest last-run stamp + status |
+| **I4.21** | DLQ SLA digest last-run CSV/JSON export + health fields |
+
 ### Recommended next increments
 
-1. PG.22 — season expand backfill suggestions
-2. I3.22 — dual-control digest recipient aliases
-3. I4.20 — persist digest last-run to Postgres
+1. PG.24 — heatmap filter by unresolved / season catalogue
+2. I3.24 — persist allowlist dual digest last-run to Postgres
+3. I4.22 — digest last-run freshness SLA / stale-run alert
 
 ### Issues resolved
 

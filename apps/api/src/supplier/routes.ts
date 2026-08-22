@@ -20,11 +20,13 @@ import {
   restoreSupplier,
 } from "./supplier.js";
 import { archiveSupplierContact, createSupplierContact, updateSupplierContact } from "./contacts.js";
-import { archiveSupplierRate, createSupplierRate, getSupplierRateCalendar, getSupplierRateConflicts, preferSupplierRate, updateSupplierRate } from "./rates.js";
+import { archiveSupplierRate, createSupplierRate, getSupplierRateCalendar, getSupplierRateConflicts, getSupplierRateConflictHeatmap, preferSupplierRate, updateSupplierRate } from "./rates.js";
 import {
   archiveSupplierSeason,
+  backfillSeasonRates,
   createSupplierSeason,
   listSupplierSeasons,
+  previewSeasonExpandBackfill,
   previewSeasonShrinkImpact,
   reassignOutsideSeasonRates,
   updateSupplierSeason,
@@ -140,6 +142,34 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
     return result;
   });
 
+  app.post("/v1/suppliers/seasons/:id/expand-backfill-preview", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = previewSeasonExpandBackfill(
+      store,
+      principal,
+      (req.params as { id: string }).id,
+      (req.body ?? {}) as Parameters<typeof previewSeasonExpandBackfill>[3],
+    );
+    if ("error" in result) return sendSupplierError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/suppliers/seasons/:id/backfill-rates", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const body = (req.body ?? {}) as { rateIds?: string[] };
+    const result = backfillSeasonRates(
+      store,
+      principal,
+      (req.params as { id: string }).id,
+      body,
+      getCorrelationId(req),
+    );
+    if ("error" in result) return sendSupplierError(reply, result);
+    return result;
+  });
+
   app.patch("/v1/suppliers/seasons/:id", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
@@ -217,6 +247,25 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       to: query.to,
       ...(query.supplierId ? { supplierId: query.supplierId } : {}),
       ...(query.seasonLabel ? { seasonLabel: query.seasonLabel } : {}),
+    });
+    if ("error" in result) return sendSupplierError(reply, result);
+    return result;
+  });
+
+  app.get("/v1/suppliers/rates/conflicts/heatmap", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const query = req.query as {
+      supplierId?: string;
+      from?: string;
+      to?: string;
+      unresolvedOnly?: string;
+    };
+    const result = getSupplierRateConflictHeatmap(store, principal, {
+      ...(query.supplierId ? { supplierId: query.supplierId } : {}),
+      ...(query.from ? { from: query.from } : {}),
+      ...(query.to ? { to: query.to } : {}),
+      ...(query.unresolvedOnly === "1" || query.unresolvedOnly === "true" ? { unresolvedOnly: true } : {}),
     });
     if ("error" in result) return sendSupplierError(reply, result);
     return result;
