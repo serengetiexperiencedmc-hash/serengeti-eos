@@ -23,6 +23,7 @@ export async function sendViaSes(
     new SendEmailCommand({
       FromEmailAddress: config.from,
       Destination: { ToAddresses: [message.to] },
+      ...(config.configurationSet ? { ConfigurationSetName: config.configurationSet } : {}),
       ...(metadata
         ? {
             EmailTags: [

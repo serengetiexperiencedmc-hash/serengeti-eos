@@ -152,4 +152,5 @@ export const SUPPLIER_EVENT_TYPES = {
   IMPORT_COMMITTED: "supplier.import.committed.v1",
   IMPORT_FAILED: "supplier.import.failed.v1",
   SUPPLIER_CREATED: "supplier.supplier.created.v1",
+  SUPPLIER_UPDATED: "supplier.supplier.updated.v1",
 } as const;

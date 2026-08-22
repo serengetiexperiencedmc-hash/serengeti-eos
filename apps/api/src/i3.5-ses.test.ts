@@ -39,8 +39,9 @@ describe("I3.5 SES email adapter", () => {
         headers: { authorization: `Bearer ${token}` },
       });
       expect(health.json().sesConfigured).toBe(true);
-      expect(health.json().increment).toBe("I3.7");
+      expect(health.json().increment).toBe("I3.8");
       expect(health.json().snsAutoConfirmSubscription).toBe(true);
+      expect(health.json()).toHaveProperty("sesConfigurationSet");
       expect(health.json().adapter).toBe("ses");
     } finally {
       if (prevAdapter === undefined) delete process.env.EOS_EMAIL_ADAPTER;

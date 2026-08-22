@@ -10,6 +10,9 @@ import { persistNotifEmailDeliveryEvent } from "../persistence/notifications.js"
 import { isSnsSignatureVerificationEnabled, verifySnsMessage } from "./sns-signature.js";
 import { confirmSnsSubscription } from "./sns-subscription.js";
 
+type DeliveryEventType = NotifEmailDeliveryEvent["eventType"];
+type OutboxStatus = NotifEmailOutboxEntry["status"];
+
 function webhookSecretOk(provided?: string): boolean {
   const expected = process.env.EOS_SES_WEBHOOK_SECRET;
   if (!expected) return true;
@@ -28,12 +31,24 @@ function parseRecipient(payload: Record<string, unknown>): string | undefined {
   return typeof payload.recipientEmail === "string" ? payload.recipientEmail : undefined;
 }
 
-function parseEventType(payload: Record<string, unknown>, snsType?: string): "bounce" | "complaint" | undefined {
+function parseEventType(payload: Record<string, unknown>, snsType?: string): DeliveryEventType | undefined {
   const notificationType = typeof payload.notificationType === "string" ? payload.notificationType : snsType;
-  if (notificationType === "Bounce") return "bounce";
-  if (notificationType === "Complaint") return "complaint";
-  if (payload.eventType === "bounce") return "bounce";
-  if (payload.eventType === "complaint") return "complaint";
+  const eventType = typeof payload.eventType === "string" ? payload.eventType : undefined;
+
+  if (notificationType === "Bounce" || eventType === "bounce") return "bounce";
+  if (notificationType === "Complaint" || eventType === "complaint") return "complaint";
+  if (notificationType === "Delivery" || eventType === "delivery") return "delivery";
+  if (notificationType === "Reject" || eventType === "reject") return "reject";
+  if (notificationType === "Open" || eventType === "open") return "open";
+  if (notificationType === "Click" || eventType === "click") return "click";
+  return undefined;
+}
+
+function outboxStatusForEvent(eventType: DeliveryEventType): OutboxStatus | undefined {
+  if (eventType === "bounce") return "bounced";
+  if (eventType === "complaint") return "complained";
+  if (eventType === "delivery") return "delivered";
+  if (eventType === "reject") return "rejected";
   return undefined;
 }
 
@@ -44,7 +59,7 @@ function findOutboxEntry(store: Store, sesMessageId?: string, recipient?: string
   }
   if (recipient) {
     return [...store.notifEmailOutbox]
-      .filter((e) => e.to.toLowerCase() === recipient.toLowerCase() && e.status === "sent")
+      .filter((e) => e.to.toLowerCase() === recipient.toLowerCase() && (e.status === "sent" || e.status === "delivered"))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
   }
   return undefined;
@@ -53,7 +68,7 @@ function findOutboxEntry(store: Store, sesMessageId?: string, recipient?: string
 async function applyDeliveryEvent(
   store: Store,
   input: {
-    eventType: "bounce" | "complaint";
+    eventType: DeliveryEventType;
     sesMessageId?: string;
     recipient?: string;
     snsMessageId?: string;
@@ -62,15 +77,18 @@ async function applyDeliveryEvent(
 ): Promise<{ status: "updated" | "recorded_only"; outboxId?: string }> {
   ensureNotificationCollections(store);
   const outbox = findOutboxEntry(store, input.sesMessageId, input.recipient);
-  const status = input.eventType === "bounce" ? "bounced" : "complained";
+  const nextStatus = outboxStatusForEvent(input.eventType);
 
-  if (outbox) {
-    outbox.status = status;
-    await updateNotifEmailOutboxStatus(store.dbPool, outbox.id, status);
+  if (outbox && nextStatus) {
+    outbox.status = nextStatus;
+    await updateNotifEmailOutboxStatus(store.dbPool, outbox.id, nextStatus);
     if (input.sesMessageId && !outbox.sesMessageId) {
       outbox.sesMessageId = input.sesMessageId;
       await updateNotifEmailOutboxBySesMessageId(store.dbPool, outbox.id, input.sesMessageId);
     }
+  } else if (outbox && input.sesMessageId && !outbox.sesMessageId) {
+    outbox.sesMessageId = input.sesMessageId;
+    await updateNotifEmailOutboxBySesMessageId(store.dbPool, outbox.id, input.sesMessageId);
   }
 
   const delivery: NotifEmailDeliveryEvent = {
@@ -85,7 +103,7 @@ async function applyDeliveryEvent(
   store.notifEmailDeliveryEvents.push(delivery);
   await persistNotifEmailDeliveryEvent(store.dbPool, delivery, input.payload);
 
-  return outbox ? { status: "updated", outboxId: outbox.id } : { status: "recorded_only" };
+  return outbox && nextStatus ? { status: "updated", outboxId: outbox.id } : { status: "recorded_only", ...(outbox ? { outboxId: outbox.id } : {}) };
 }
 
 export async function handleSesDeliveryWebhook(

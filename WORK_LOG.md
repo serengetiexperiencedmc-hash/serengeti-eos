@@ -189,8 +189,8 @@
 
 ### Current project status
 
-- **Server version:** `0.40.0-i4.6-i3.7`
-- **Increments live:** C1–C10, O1–O4, I3.6.1–I3.7, I4.3–I4.6, I8.3, I9.2, J1–J2, PG.1–PG.7
+- **Server version:** `0.41.0-pg8-i3.8`
+- **Increments live:** C1–C10, O1–O4, I3.6.1–I3.8, I4.3–I4.6, I8.3, I9.2, J1–J2, PG.1–PG.8
 - **All targeted tests passing**
 
 ### 19:xx — Commercial preview fix ✅
@@ -217,11 +217,20 @@
 
 Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 200 probe).
 
+### 20:xx — PG.8 + I3.8 ✅
+
+**Shipped:** server `0.41.0-pg8-i3.8`
+
+| Increment | Change |
+| --- | --- |
+| **PG.8** | Supplier create/update REST (`POST`/`PATCH /v1/suppliers`) with dual-write |
+| **I3.8** | SES configuration set on send; Delivery/Reject/Open/Click webhook routing |
+
 ### Recommended next increments
 
-1. PG.8 — supplier CRUD API dual-write (when REST create/update lands)
-2. I4.7 — durable consumer per-tenant filter subjects (true isolated lag)
-3. I3.8 — SES configuration set event routing
+1. I4.7 — durable consumer per-tenant filter subjects (true isolated lag)
+2. Supplier create/update Commercial UI
+3. I3.9 — SES suppression list / bounce hygiene
 
 ### Issues resolved
 

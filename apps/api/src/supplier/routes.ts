@@ -8,7 +8,14 @@ import {
   getSupplierImportBatch,
   validateSupplierImportBatch,
 } from "./import.js";
-import { getSupplier, getSupplierModuleHealth, listSupplierCategories, listSuppliers } from "./supplier.js";
+import {
+  createSupplier,
+  getSupplier,
+  getSupplierModuleHealth,
+  listSupplierCategories,
+  listSuppliers,
+  updateSupplier,
+} from "./supplier.js";
 
 function sendSupplierError(
   reply: { code: (n: number) => { send: (b: unknown) => unknown } },
@@ -96,10 +103,39 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
     return result;
   });
 
+  app.post("/v1/suppliers", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const correlationId = getCorrelationId(req);
+    const result = createSupplier(
+      store,
+      principal,
+      req.body as Parameters<typeof createSupplier>[2],
+      correlationId,
+    );
+    if ("error" in result) return sendSupplierError(reply, result);
+    return reply.code(201).send(result);
+  });
+
   app.get("/v1/suppliers/:id", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getSupplier(store, principal, (req.params as { id: string }).id);
+    if ("error" in result) return sendSupplierError(reply, result);
+    return result;
+  });
+
+  app.patch("/v1/suppliers/:id", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const correlationId = getCorrelationId(req);
+    const result = updateSupplier(
+      store,
+      principal,
+      (req.params as { id: string }).id,
+      req.body as Parameters<typeof updateSupplier>[3],
+      correlationId,
+    );
     if ("error" in result) return sendSupplierError(reply, result);
     return result;
   });

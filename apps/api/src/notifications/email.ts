@@ -309,7 +309,7 @@ export function getEmailAdapterHealth(store: Store) {
   const adapter = resolveEmailAdapterName();
   return {
     module: "notification-email",
-    increment: "I3.7",
+    increment: "I3.8",
     adapter,
     status: "ok" as const,
     outboxCount: (store.notifEmailOutbox ?? []).length,
@@ -319,6 +319,7 @@ export function getEmailAdapterHealth(store: Store) {
     smtpHost: process.env.EOS_SMTP_HOST ?? null,
     sesConfigured: isSesConfigured(),
     sesRegion: process.env.EOS_SES_REGION ?? null,
+    sesConfigurationSet: process.env.EOS_SES_CONFIGURATION_SET ?? null,
     webhookSecretConfigured: Boolean(process.env.EOS_SES_WEBHOOK_SECRET),
     snsSignatureVerification: isSnsSignatureVerificationEnabled(),
     snsAutoConfirmSubscription: isSnsAutoConfirmEnabled(),

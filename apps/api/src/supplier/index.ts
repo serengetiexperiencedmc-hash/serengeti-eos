@@ -5,5 +5,13 @@ export {
   getSupplierImportBatch,
   validateSupplierImportBatch,
 } from "./import.js";
-export { findSupplierByCode, getSupplier, getSupplierModuleHealth, listSupplierCategories, listSuppliers } from "./supplier.js";
+export {
+  createSupplier,
+  findSupplierByCode,
+  getSupplier,
+  getSupplierModuleHealth,
+  listSupplierCategories,
+  listSuppliers,
+  updateSupplier,
+} from "./supplier.js";
 export { registerSupplierRoutes } from "./routes.js";

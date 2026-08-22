@@ -29,7 +29,7 @@ export type NotifEmailOutboxEntry = {
   subject: string;
   bodyText: string;
   templateKey: string;
-  status: "queued" | "sent" | "failed" | "bounced" | "complained";
+  status: "queued" | "sent" | "failed" | "bounced" | "complained" | "delivered" | "rejected";
   adapter: string;
   sesMessageId?: string;
   sentAt?: string;
@@ -40,7 +40,7 @@ export type NotifEmailDeliveryEvent = {
   id: string;
   tenantId?: string;
   outboxId?: string;
-  eventType: "bounce" | "complaint" | "delivery";
+  eventType: "bounce" | "complaint" | "delivery" | "reject" | "open" | "click";
   sesMessageId?: string;
   snsMessageId?: string;
   recipientEmail?: string;

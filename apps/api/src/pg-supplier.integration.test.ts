@@ -184,3 +184,57 @@ describePg("PG.7 supplier import execute idempotency", () => {
     expect(Object.keys(fresh.supImportExecuteIdempotency).length).toBeGreaterThan(0);
   });
 });
+
+describePg("PG.8 supplier CRUD dual-write", () => {
+  const pool = createPool(url!);
+  const tenantId = "11111111-1111-4111-8111-111111111111";
+  const carolId = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+
+  afterAll(async () => {
+    await pool.end();
+  });
+
+  it("persists create and update via REST dual-write", async () => {
+    await migrate(pool);
+    const store = seedStore("pg8-dw", TEST_BOOTSTRAP_SECRETS);
+    store.dbPool = pool;
+    await syncStoreToPostgres(pool, store);
+
+    const { createSupplier, updateSupplier } = await import("./supplier/supplier.js");
+    const principal = allPrincipals(store).find((p) => p.id === carolId)!;
+    const before = await countSupSuppliers(pool, tenantId);
+
+    const created = createSupplier(
+      store,
+      principal,
+      {
+        supplierCode: "PG8-CRUD-001",
+        legalName: "PG8 Dual Write Lodge",
+        category: "accommodation",
+        country: "TZ",
+      },
+      "pg8-create",
+    );
+    expect("supplier" in created).toBe(true);
+    if (!("supplier" in created)) return;
+    await new Promise((r) => setTimeout(r, 80));
+    expect(await countSupSuppliers(pool, tenantId)).toBeGreaterThan(before);
+
+    const updated = updateSupplier(
+      store,
+      principal,
+      created.supplier.id,
+      { legalName: "PG8 Dual Write Lodge Updated", status: "active" },
+      "pg8-update",
+    );
+    expect("supplier" in updated).toBe(true);
+    await new Promise((r) => setTimeout(r, 80));
+
+    const row = await pool.query(`SELECT legal_name, status, version FROM sup_suppliers WHERE id = $1`, [
+      created.supplier.id,
+    ]);
+    expect(row.rows[0]?.legal_name).toBe("PG8 Dual Write Lodge Updated");
+    expect(row.rows[0]?.status).toBe("active");
+    expect(Number(row.rows[0]?.version)).toBe(2);
+  });
+});

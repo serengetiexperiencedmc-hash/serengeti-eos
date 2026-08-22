@@ -76,6 +76,8 @@ Auth: Bearer token (local dev IdP)
 | GET | `/categories` | authenticated |
 | GET | `/` | `supplier:read:supplier` |
 | GET | `/:id` | `supplier:read:supplier` |
+| POST | `/` | `supplier:write:supplier` |
+| PATCH | `/:id` | `supplier:write:supplier` |
 | POST | `/imports` | `supplier:import:bulk` |
 | POST | `/imports/:id/validate` | `supplier:import:bulk` |
 | GET | `/imports/:id` | `supplier:import:bulk` |
