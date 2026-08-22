@@ -1,5 +1,7 @@
-import CommercialLayoutRoot from "@/components/commercial/CommercialLayoutRoot";
+"use client";
+
+import CommercialLayoutClient from "@/components/commercial/CommercialLayoutClient";
 
 export default function CommercialLayout({ children }: { children: React.ReactNode }) {
-  return <CommercialLayoutRoot>{children}</CommercialLayoutRoot>;
+  return <CommercialLayoutClient>{children}</CommercialLayoutClient>;
 }

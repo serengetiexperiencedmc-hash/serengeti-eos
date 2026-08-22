@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, useSyncExternalStore } from "react";import { useEosSession } from "@/components/commercial/EosSessionProvider";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEosSession } from "@/components/commercial/EosSessionProvider";
 import { navItems, type NavBadgeKey } from "@/lib/mock-data";
 import { fetchNavBadges, type NavBadgeCounts } from "@/lib/nav-badges";
 import { NotificationBell } from "@/components/commercial/NotificationBell";
