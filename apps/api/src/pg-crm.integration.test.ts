@@ -3,13 +3,20 @@ import { afterAll, describe, expect, it } from "vitest";
 import { seedStore, TEST_BOOTSTRAP_SECRETS } from "../src/app.js";
 import { buildServer } from "../src/server.js";
 import { createAccount } from "../src/crm/account.js";
+import { createContact } from "../src/crm/contact.js";
 import { createNote } from "../src/crm/note.js";
 import { createOrganization } from "../src/crm/organization.js";
+import { createRelationship } from "../src/crm/relationship.js";
+import { createTag } from "../src/crm/tag.js";
+import { createTask } from "../src/crm/task.js";
 import {
   countCrmAccounts,
   countCrmMergeRecords,
   countCrmNotes,
   countCrmOrganizations,
+  countCrmRelationships,
+  countCrmTags,
+  countCrmTasks,
 } from "../src/persistence/pg-repository.js";
 import { syncStoreToPostgres } from "../src/persistence/sync.js";
 import { allPrincipals } from "../src/store.js";
@@ -216,5 +223,76 @@ describePg("PG.3.2 CRM merge dual-write", () => {
 
     const dupRow = await pool.query(`SELECT merged_into_id FROM crm_organizations WHERE id = $1`, [duplicateId]);
     expect(dupRow.rows[0]?.merged_into_id).toBe(survivorId);
+  });
+});
+
+describePg("PG.3+ CRM relationships, tasks, tags dual-write", () => {
+  const pool = createPool(url!);
+  const tenantId = "11111111-1111-4111-8111-111111111111";
+  const carolId = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+
+  afterAll(async () => {
+    await pool.end();
+  });
+
+  it("persists relationships, tasks, and tags when dbPool is set", async () => {
+    await migrate(pool);
+    const store = seedStore("pg-crm3plus-secret", TEST_BOOTSTRAP_SECRETS);
+    store.dbPool = pool;
+    await syncStoreToPostgres(pool, store);
+
+    const principal = allPrincipals(store).find((p) => p.id === carolId)!;
+    const typeId = store.crmOrganizationTypes.find((t) => t.tenantId === tenantId)!.id;
+    const relTypeId = store.crmRelationshipTypes.find((t) => t.tenantId === tenantId)!.id;
+
+    const org = createOrganization(
+      store,
+      principal,
+      { legalName: "PG.3+ Rel Org", organizationTypeId: typeId },
+      "pg3plus-org",
+    );
+    expect("organization" in org).toBe(true);
+    await new Promise((r) => setTimeout(r, 50));
+
+    const contact = createContact(
+      store,
+      principal,
+      { givenName: "PG", familyName: "RelContact" },
+      "pg3plus-contact",
+    );
+    expect("contact" in contact).toBe(true);
+    await new Promise((r) => setTimeout(r, 50));
+
+    const relBefore = await countCrmRelationships(pool, tenantId);
+    const relationship = createRelationship(
+      store,
+      principal,
+      {
+        relationshipTypeId: relTypeId,
+        contactId: contact.contact.id,
+        organizationId: org.organization.id,
+      },
+      "pg3plus-rel",
+    );
+    expect("relationship" in relationship).toBe(true);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(await countCrmRelationships(pool, tenantId)).toBeGreaterThan(relBefore);
+
+    const taskBefore = await countCrmTasks(pool, tenantId);
+    const task = createTask(
+      store,
+      principal,
+      { title: "PG.3+ follow-up", relatedOrganizationId: org.organization.id },
+      "pg3plus-task",
+    );
+    expect("task" in task).toBe(true);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(await countCrmTasks(pool, tenantId)).toBeGreaterThan(taskBefore);
+
+    const tagBefore = await countCrmTags(pool, tenantId);
+    const tag = createTag(store, principal, { key: "pg3plus", label: "PG.3+ Tag" }, "pg3plus-tag");
+    expect("tag" in tag).toBe(true);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(await countCrmTags(pool, tenantId)).toBeGreaterThan(tagBefore);
   });
 });

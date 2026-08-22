@@ -926,6 +926,209 @@ export async function countCrmMergeRecords(pool: DbPool, tenantId: string): Prom
   return result.rows[0]?.c ?? 0;
 }
 
+export async function upsertCrmRelationshipType(
+  pool: DbPool,
+  row: { id: string; tenantId: string; key: string; label: string; active: boolean },
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO crm_relationship_types (id, tenant_id, key, label, active)
+     VALUES ($1,$2,$3,$4,$5)
+     ON CONFLICT (tenant_id, key) DO UPDATE SET label = EXCLUDED.label, active = EXCLUDED.active`,
+    [row.id, row.tenantId, row.key, row.label, row.active],
+  );
+}
+
+export async function upsertCrmRelationship(pool: DbPool, rel: import("@sedmc/kernel").CrmRelationship): Promise<void> {
+  await pool.query(
+    `INSERT INTO crm_relationships (
+      id, tenant_id, relationship_type_id, status, from_organization_id, to_organization_id,
+      from_contact_id, to_contact_id, organization_unit_id, notes, version,
+      created_at, updated_at, created_by_principal_id, updated_by_principal_id
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+    ON CONFLICT (id) DO UPDATE SET
+      relationship_type_id = EXCLUDED.relationship_type_id,
+      status = EXCLUDED.status,
+      from_organization_id = EXCLUDED.from_organization_id,
+      to_organization_id = EXCLUDED.to_organization_id,
+      from_contact_id = EXCLUDED.from_contact_id,
+      to_contact_id = EXCLUDED.to_contact_id,
+      organization_unit_id = EXCLUDED.organization_unit_id,
+      notes = EXCLUDED.notes,
+      version = EXCLUDED.version,
+      updated_at = EXCLUDED.updated_at,
+      updated_by_principal_id = EXCLUDED.updated_by_principal_id`,
+    [
+      rel.id, rel.tenantId, rel.relationshipTypeId, rel.status,
+      rel.fromOrganizationId ?? null, rel.toOrganizationId ?? null,
+      rel.fromContactId ?? null, rel.toContactId ?? null,
+      rel.organizationUnitId ?? null, rel.notes ?? null, rel.version,
+      rel.createdAt, rel.updatedAt, rel.createdByPrincipalId, rel.updatedByPrincipalId,
+    ],
+  );
+}
+
+export async function loadCrmRelationships(pool: DbPool): Promise<import("@sedmc/kernel").CrmRelationship[]> {
+  const result = await pool.query(`SELECT * FROM crm_relationships ORDER BY created_at ASC`);
+  return result.rows.map((row) => ({
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    relationshipTypeId: row.relationship_type_id as string,
+    status: row.status as import("@sedmc/kernel").CrmRelationship["status"],
+    ...(row.from_organization_id ? { fromOrganizationId: row.from_organization_id as string } : {}),
+    ...(row.to_organization_id ? { toOrganizationId: row.to_organization_id as string } : {}),
+    ...(row.from_contact_id ? { fromContactId: row.from_contact_id as string } : {}),
+    ...(row.to_contact_id ? { toContactId: row.to_contact_id as string } : {}),
+    ...(row.organization_unit_id ? { organizationUnitId: row.organization_unit_id as string } : {}),
+    ...(row.notes ? { notes: row.notes as string } : {}),
+    version: row.version as number,
+    createdAt: pgTimestamp(row, "created_at"),
+    updatedAt: pgTimestamp(row, "updated_at"),
+    createdByPrincipalId: row.created_by_principal_id as string,
+    updatedByPrincipalId: row.updated_by_principal_id as string,
+  }));
+}
+
+export async function countCrmRelationships(pool: DbPool, tenantId: string): Promise<number> {
+  const result = await pool.query(`SELECT COUNT(*)::int AS c FROM crm_relationships WHERE tenant_id = $1`, [tenantId]);
+  return result.rows[0]?.c ?? 0;
+}
+
+export async function upsertCrmTask(pool: DbPool, task: import("@sedmc/kernel").CrmTask): Promise<void> {
+  await pool.query(
+    `INSERT INTO crm_tasks (
+      id, tenant_id, title, description, assignee_principal_id, priority, due_at, status,
+      related_organization_id, related_contact_id, related_account_id, related_activity_id,
+      classification, version, completed_at, created_at, updated_at, created_by_principal_id, updated_by_principal_id
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+    ON CONFLICT (id) DO UPDATE SET
+      title = EXCLUDED.title,
+      description = EXCLUDED.description,
+      assignee_principal_id = EXCLUDED.assignee_principal_id,
+      priority = EXCLUDED.priority,
+      due_at = EXCLUDED.due_at,
+      status = EXCLUDED.status,
+      related_organization_id = EXCLUDED.related_organization_id,
+      related_contact_id = EXCLUDED.related_contact_id,
+      related_account_id = EXCLUDED.related_account_id,
+      related_activity_id = EXCLUDED.related_activity_id,
+      classification = EXCLUDED.classification,
+      version = EXCLUDED.version,
+      completed_at = EXCLUDED.completed_at,
+      updated_at = EXCLUDED.updated_at,
+      updated_by_principal_id = EXCLUDED.updated_by_principal_id`,
+    [
+      task.id, task.tenantId, task.title, task.description ?? null, task.assigneePrincipalId,
+      task.priority ?? null, task.dueAt ?? null, task.status,
+      task.relatedOrganizationId ?? null, task.relatedContactId ?? null,
+      task.relatedAccountId ?? null, task.relatedActivityId ?? null,
+      task.classification, task.version, task.completedAt ?? null,
+      task.createdAt, task.updatedAt, task.createdByPrincipalId, task.updatedByPrincipalId,
+    ],
+  );
+}
+
+export async function loadCrmTasks(pool: DbPool): Promise<import("@sedmc/kernel").CrmTask[]> {
+  const result = await pool.query(`SELECT * FROM crm_tasks ORDER BY created_at ASC`);
+  return result.rows.map((row) => ({
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    title: row.title as string,
+    ...(row.description ? { description: row.description as string } : {}),
+    assigneePrincipalId: row.assignee_principal_id as string,
+    ...(row.priority ? { priority: row.priority as string } : {}),
+    ...(row.due_at ? { dueAt: pgTimestamp(row, "due_at") } : {}),
+    status: row.status as import("@sedmc/kernel").CrmTask["status"],
+    ...(row.related_organization_id ? { relatedOrganizationId: row.related_organization_id as string } : {}),
+    ...(row.related_contact_id ? { relatedContactId: row.related_contact_id as string } : {}),
+    ...(row.related_account_id ? { relatedAccountId: row.related_account_id as string } : {}),
+    ...(row.related_activity_id ? { relatedActivityId: row.related_activity_id as string } : {}),
+    classification: row.classification as import("@sedmc/kernel").Classification,
+    version: row.version as number,
+    ...(row.completed_at ? { completedAt: pgTimestamp(row, "completed_at") } : {}),
+    createdAt: pgTimestamp(row, "created_at"),
+    updatedAt: pgTimestamp(row, "updated_at"),
+    createdByPrincipalId: row.created_by_principal_id as string,
+    updatedByPrincipalId: row.updated_by_principal_id as string,
+  }));
+}
+
+export async function countCrmTasks(pool: DbPool, tenantId: string): Promise<number> {
+  const result = await pool.query(`SELECT COUNT(*)::int AS c FROM crm_tasks WHERE tenant_id = $1`, [tenantId]);
+  return result.rows[0]?.c ?? 0;
+}
+
+export async function upsertCrmTag(pool: DbPool, tag: import("@sedmc/kernel").CrmTag): Promise<void> {
+  await pool.query(
+    `INSERT INTO crm_tags (
+      id, tenant_id, key, label, active, archived_at, version,
+      created_at, updated_at, created_by_principal_id, updated_by_principal_id
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+    ON CONFLICT (id) DO UPDATE SET
+      label = EXCLUDED.label,
+      active = EXCLUDED.active,
+      archived_at = EXCLUDED.archived_at,
+      version = EXCLUDED.version,
+      updated_at = EXCLUDED.updated_at,
+      updated_by_principal_id = EXCLUDED.updated_by_principal_id`,
+    [
+      tag.id, tag.tenantId, tag.key, tag.label, tag.active,
+      tag.archivedAt ?? null, tag.version, tag.createdAt, tag.updatedAt,
+      tag.createdByPrincipalId, tag.updatedByPrincipalId,
+    ],
+  );
+}
+
+export async function upsertCrmEntityTag(pool: DbPool, row: import("@sedmc/kernel").CrmEntityTag): Promise<void> {
+  await pool.query(
+    `INSERT INTO crm_entity_tags (id, tenant_id, tag_id, entity_type, entity_id, created_at, created_by_principal_id)
+     VALUES ($1,$2,$3,$4,$5,$6,$7)
+     ON CONFLICT (tenant_id, tag_id, entity_type, entity_id) DO UPDATE SET
+       id = EXCLUDED.id,
+       created_at = EXCLUDED.created_at,
+       created_by_principal_id = EXCLUDED.created_by_principal_id`,
+    [row.id, row.tenantId, row.tagId, row.entityType, row.entityId, row.createdAt, row.createdByPrincipalId],
+  );
+}
+
+export async function deleteCrmEntityTag(pool: DbPool, id: string): Promise<void> {
+  await pool.query(`DELETE FROM crm_entity_tags WHERE id = $1`, [id]);
+}
+
+export async function loadCrmTags(pool: DbPool): Promise<import("@sedmc/kernel").CrmTag[]> {
+  const result = await pool.query(`SELECT * FROM crm_tags ORDER BY created_at ASC`);
+  return result.rows.map((row) => ({
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    key: row.key as string,
+    label: row.label as string,
+    active: row.active as boolean,
+    ...(row.archived_at ? { archivedAt: pgTimestamp(row, "archived_at") } : {}),
+    version: row.version as number,
+    createdAt: pgTimestamp(row, "created_at"),
+    updatedAt: pgTimestamp(row, "updated_at"),
+    createdByPrincipalId: row.created_by_principal_id as string,
+    updatedByPrincipalId: row.updated_by_principal_id as string,
+  }));
+}
+
+export async function loadCrmEntityTags(pool: DbPool): Promise<import("@sedmc/kernel").CrmEntityTag[]> {
+  const result = await pool.query(`SELECT * FROM crm_entity_tags ORDER BY created_at ASC`);
+  return result.rows.map((row) => ({
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    tagId: row.tag_id as string,
+    entityType: row.entity_type as string,
+    entityId: row.entity_id as string,
+    createdAt: pgTimestamp(row, "created_at"),
+    createdByPrincipalId: row.created_by_principal_id as string,
+  }));
+}
+
+export async function countCrmTags(pool: DbPool, tenantId: string): Promise<number> {
+  const result = await pool.query(`SELECT COUNT(*)::int AS c FROM crm_tags WHERE tenant_id = $1`, [tenantId]);
+  return result.rows[0]?.c ?? 0;
+}
+
 export async function upsertNotifEmailTemplate(
   pool: DbPool,
   row: {
