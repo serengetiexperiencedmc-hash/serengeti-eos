@@ -135,6 +135,32 @@ export function buildLiveNotifications(store: Store, principal: Principal): Noti
     }
   }
 
+  // I3.19 — remind when SES-noted VIP allowlist awaits dual-control approval
+  const canManageAllowlist =
+    authorize({
+      principal,
+      permission: "notification:dispatch:email",
+      action: "read:email_allowlist",
+    }).result === "allow";
+  if (canManageAllowlist) {
+    const nowMs = Date.now();
+    for (const entry of store.notifEmailAllowlist ?? []) {
+      if (entry.tenantId !== tenantId) continue;
+      if (entry.revokedAt) continue;
+      if (entry.expiresAt && new Date(entry.expiresAt).getTime() <= nowMs) continue;
+      if (entry.sesDualControlStatus !== "pending") continue;
+      items.push({
+        key: `allowlist-ses-dual:${entry.id}`,
+        category: "approval",
+        severity: "urgent",
+        title: "SES allowlist dual-control pending",
+        body: `${entry.email} · awaiting second-principal approval`,
+        href: "/commercial/notifications",
+        createdAt: entry.sesNotedAt ?? entry.createdAt,
+      });
+    }
+  }
+
   return sortNotifications(items.filter((item) => !isDismissed(store, principal.id, item.key)));
 }
 

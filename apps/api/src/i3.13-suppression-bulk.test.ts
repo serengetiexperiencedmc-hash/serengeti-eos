@@ -27,7 +27,7 @@ describe("I3.13 suppression bulk lift and import", () => {
     );
     expect("imported" in imported && imported.imported).toBe(2);
     expect("skipped" in imported && imported.skipped).toBe(1);
-    expect("increment" in imported && imported.increment).toBe("I3.18");
+    expect("increment" in imported && imported.increment).toBe("I3.19");
 
     const active = store.notifEmailSuppressions.filter((s) => !s.liftedAt);
     expect(active).toHaveLength(2);
@@ -76,14 +76,14 @@ describe("I3.13 suppression bulk lift and import", () => {
     });
     expect(imported.statusCode).toBe(200);
     expect(imported.json().imported).toBe(1);
-    expect(imported.json().increment).toBe("I3.18");
+    expect(imported.json().increment).toBe("I3.19");
 
     const health = await app.inject({
       method: "GET",
       url: "/v1/notifications/email/health",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(health.json().increment).toBe("I3.18");
+    expect(health.json().increment).toBe("I3.19");
   });
 });
 

@@ -45,9 +45,9 @@ describe("I4.16 DLQ SLA escalation digest email", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(first.statusCode).toBe(200);
-    expect(first.json().increment).toBe("I4.16");
+    expect(first.json().increment).toBe("I4.17");
     expect(first.json().breachedCount).toBe(1);
-    expect(first.json().dispatched[0]).toMatch(/^dlq-sla-digest:/);
+    expect(first.json().dispatched[0]).toMatch(/^dlq-sla-digest:\d{4}-\d{2}-\d{2}:/);
 
     const second = await app.inject({
       method: "POST",

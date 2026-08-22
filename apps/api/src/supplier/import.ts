@@ -18,6 +18,7 @@ import { allowSupplierAudit, denySupplierAudit } from "./audit.js";
 import { ensureSupplierCollections } from "./collections.js";
 import { findSupplierByCode } from "./supplier.js";
 import { persistSupImportBatchAfterCommit, persistSupEntityAfterCommit, persistSupImportExecuteIdempotencyAfterCommit } from "../persistence/supplier.js";
+import { assertRateWithinSeason } from "./season-bounds.js";
 
 function importExecuteKey(tenantId: string, batchId: string, key: string): string {
   return `${tenantId}:${batchId}:${key}`;
@@ -29,13 +30,23 @@ function findBatch(store: Store, tenantId: string, batchId: string): SupImportBa
   return batch;
 }
 
-/** PG.18 — resolve CSV seasonCode / seasonLabel to an active catalogue season. */
+/** PG.18/PG.19 — resolve CSV seasonCode / seasonLabel to an active catalogue season. */
 export function resolveSeasonForRateImport(
   store: Store,
   tenantId: string,
   input: { seasonCode?: string; seasonLabel?: string },
 ):
-  | { ok: true; season?: { id: string; label: string } }
+  | {
+      ok: true;
+      season?: {
+        id: string;
+        label: string;
+        validFrom?: string;
+        validTo?: string;
+        monthFrom?: number;
+        monthTo?: number;
+      };
+    }
   | { ok: false; error: "season_not_found" | "ambiguous_season_label" } {
   ensureSupplierCollections(store);
   const seasons = (store.supSeasons ?? []).filter((s) => s.tenantId === tenantId && !s.archivedAt);
@@ -43,14 +54,35 @@ export function resolveSeasonForRateImport(
     const code = input.seasonCode.trim().toUpperCase();
     const match = seasons.find((s) => s.seasonCode.toUpperCase() === code);
     if (!match) return { ok: false, error: "season_not_found" };
-    return { ok: true, season: { id: match.id, label: match.label } };
+    return {
+      ok: true,
+      season: {
+        id: match.id,
+        label: match.label,
+        ...(match.validFrom ? { validFrom: match.validFrom } : {}),
+        ...(match.validTo ? { validTo: match.validTo } : {}),
+        ...(match.monthFrom !== undefined ? { monthFrom: match.monthFrom } : {}),
+        ...(match.monthTo !== undefined ? { monthTo: match.monthTo } : {}),
+      },
+    };
   }
   if (input.seasonLabel) {
     const label = input.seasonLabel.trim().toLowerCase();
     const matches = seasons.filter((s) => s.label.trim().toLowerCase() === label);
     if (matches.length === 0) return { ok: false, error: "season_not_found" };
     if (matches.length > 1) return { ok: false, error: "ambiguous_season_label" };
-    return { ok: true, season: { id: matches[0]!.id, label: matches[0]!.label } };
+    const match = matches[0]!;
+    return {
+      ok: true,
+      season: {
+        id: match.id,
+        label: match.label,
+        ...(match.validFrom ? { validFrom: match.validFrom } : {}),
+        ...(match.validTo ? { validTo: match.validTo } : {}),
+        ...(match.monthFrom !== undefined ? { monthFrom: match.monthFrom } : {}),
+        ...(match.monthTo !== undefined ? { monthTo: match.monthTo } : {}),
+      },
+    };
   }
   return { ok: true };
 }
@@ -79,7 +111,7 @@ function sanitizeBatch(batch: SupImportBatch) {
     committedAt: batch.committedAt,
     createdByPrincipalId: batch.createdByPrincipalId,
     committedByPrincipalId: batch.committedByPrincipalId,
-    increment: "PG.18" as const,
+    increment: "PG.19" as const,
   };
 }
 
@@ -183,12 +215,27 @@ function validateBatchRows(store: Store, batch: SupImportBatch): SupImportRowRes
     }
 
     if (batch.entityType === "supplier_rate") {
-      const rateRow = validated as { seasonCode?: string; seasonLabel?: string };
+      const rateRow = validated as {
+        seasonCode?: string;
+        seasonLabel?: string;
+        validFrom: string;
+        validTo: string;
+      };
       if (rateRow.seasonCode || rateRow.seasonLabel) {
         const season = resolveSeasonForRateImport(store, batch.tenantId, rateRow);
         if (!season.ok) {
           results.push({ rowNumber, status: "invalid", errors: [season.error] });
           continue;
+        }
+        if (season.season) {
+          const bounds = assertRateWithinSeason(
+            { validFrom: rateRow.validFrom, validTo: rateRow.validTo },
+            season.season,
+          );
+          if (!bounds.ok) {
+            results.push({ rowNumber, status: "invalid", errors: [bounds.error] });
+            continue;
+          }
         }
       }
     }

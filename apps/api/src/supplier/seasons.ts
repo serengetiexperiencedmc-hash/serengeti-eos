@@ -44,7 +44,7 @@ export function listSupplierSeasons(
     .map(sanitizeSeason)
     .sort((a, b) => a.seasonCode.localeCompare(b.seasonCode));
 
-  return { items, count: items.length, increment: "PG.17" as const };
+  return { items, count: items.length, increment: "PG.19" as const };
 }
 
 export function createSupplierSeason(
@@ -122,7 +122,7 @@ export function createSupplierSeason(
     seasonCode,
     eventType: "supplier.season.created.v1",
   });
-  return { season: sanitizeSeason(season), increment: "PG.17" as const };
+  return { season: sanitizeSeason(season), increment: "PG.19" as const };
 }
 
 export function updateSupplierSeason(
@@ -193,7 +193,7 @@ export function updateSupplierSeason(
   allowSupplierAudit(store, principal, "supplier:write:supplier", "sup_season", season.id, correlationId, {
     eventType: "supplier.season.updated.v1",
   });
-  return { season: sanitizeSeason(season), increment: "PG.17" as const };
+  return { season: sanitizeSeason(season), increment: "PG.19" as const };
 }
 
 export function archiveSupplierSeason(
@@ -225,7 +225,7 @@ export function archiveSupplierSeason(
   allowSupplierAudit(store, principal, "supplier:write:supplier", "sup_season", season.id, correlationId, {
     eventType: "supplier.season.archived.v1",
   });
-  return { season: sanitizeSeason(season), increment: "PG.17" as const };
+  return { season: sanitizeSeason(season), increment: "PG.19" as const };
 }
 
 export function findSeasonLabel(store: Store, tenantId: string, seasonId: string): string | undefined {

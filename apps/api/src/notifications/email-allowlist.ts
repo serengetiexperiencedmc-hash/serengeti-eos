@@ -123,7 +123,7 @@ export function listEmailAllowlist(
       e.sesDualControlStatus === "pending",
   ).length;
 
-  return { items, pendingCount, increment: "I3.18" as const };
+  return { items, pendingCount, increment: "I3.19" as const };
 }
 
 export function exportEmailAllowlist(
@@ -219,7 +219,7 @@ export function exportEmailAllowlist(
       approvedCount,
       notRequiredCount,
       generatedAt,
-      increment: "I3.18" as const,
+      increment: "I3.19" as const,
     };
   }
 
@@ -231,7 +231,7 @@ export function exportEmailAllowlist(
     approvedCount,
     notRequiredCount,
     generatedAt,
-    increment: "I3.18" as const,
+    increment: "I3.19" as const,
   };
 }
 
@@ -268,7 +268,7 @@ export async function addEmailAllowlistEntry(
       else existing.expiresAt = new Date(input.expiresAt).toISOString();
     }
     void persistNotifEmailAllowlist(store.dbPool, existing);
-    return { entry: sanitizeAllowlistEntry(existing), updated: true, increment: "I3.18" as const };
+    return { entry: sanitizeAllowlistEntry(existing), updated: true, increment: "I3.19" as const };
   }
 
   const entry: NotifEmailAllowlistEntry = {
@@ -283,7 +283,7 @@ export async function addEmailAllowlistEntry(
   };
   store.notifEmailAllowlist.push(entry);
   void persistNotifEmailAllowlist(store.dbPool, entry);
-  return { entry: sanitizeAllowlistEntry(entry), updated: false, increment: "I3.18" as const };
+  return { entry: sanitizeAllowlistEntry(entry), updated: false, increment: "I3.19" as const };
 }
 
 export async function revokeEmailAllowlistEntry(store: Store, principal: Principal, id: string) {
@@ -302,7 +302,7 @@ export async function revokeEmailAllowlistEntry(store: Store, principal: Princip
 
   entry.revokedAt = new Date().toISOString();
   void persistNotifEmailAllowlist(store.dbPool, entry);
-  return { entry: sanitizeAllowlistEntry(entry), increment: "I3.18" as const };
+  return { entry: sanitizeAllowlistEntry(entry), increment: "I3.19" as const };
 }
 
 /** I3.17 — second principal approves SES-noted VIP allowlist override. */
@@ -326,7 +326,7 @@ export async function approveSesNotedAllowlistEntry(store: Store, principal: Pri
     return { error: "invalid_request" as const, reason: "ses_note_required" };
   }
   if (entry.sesDualControlStatus === "approved") {
-    return { entry: sanitizeAllowlistEntry(entry), increment: "I3.18" as const };
+    return { entry: sanitizeAllowlistEntry(entry), increment: "I3.19" as const };
   }
 
   const requesterId = entry.sesApprovalRequestedByPrincipalId ?? entry.createdByPrincipalId;
@@ -338,5 +338,5 @@ export async function approveSesNotedAllowlistEntry(store: Store, principal: Pri
   entry.sesApprovedAt = new Date().toISOString();
   entry.sesApprovedByPrincipalId = principal.id;
   void persistNotifEmailAllowlist(store.dbPool, entry);
-  return { entry: sanitizeAllowlistEntry(entry), increment: "I3.18" as const };
+  return { entry: sanitizeAllowlistEntry(entry), increment: "I3.19" as const };
 }

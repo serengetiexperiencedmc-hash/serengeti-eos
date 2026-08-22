@@ -83,6 +83,18 @@ export type NotifEmailAllowlistEntry = {
   sesApprovalRequestedByPrincipalId?: string;
 };
 
+/** I4.17 — ops aliases that also receive DLQ SLA digest emails. */
+export type NotifDlqSlaDigestRecipient = {
+  id: string;
+  tenantId: string;
+  email: string;
+  note?: string;
+  source: "store" | "env";
+  createdAt: string;
+  createdByPrincipalId?: string;
+  revokedAt?: string;
+};
+
 export type NotifEmailDeliveryAnalytics = {
   deliveryEventsByType: Record<string, number>;
   suppressionsByReason: Record<string, number>;

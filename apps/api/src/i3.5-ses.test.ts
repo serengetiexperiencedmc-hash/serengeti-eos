@@ -39,7 +39,7 @@ describe("I3.5 SES email adapter", () => {
         headers: { authorization: `Bearer ${token}` },
       });
       expect(health.json().sesConfigured).toBe(true);
-      expect(health.json().increment).toBe("I3.18");
+      expect(health.json().increment).toBe("I3.19");
       expect(health.json().snsAutoConfirmSubscription).toBe(true);
       expect(health.json()).toHaveProperty("sesConfigurationSet");
       expect(health.json()).toHaveProperty("suppressionCount");

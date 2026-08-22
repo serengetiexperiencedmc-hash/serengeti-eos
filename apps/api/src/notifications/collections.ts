@@ -7,4 +7,5 @@ export function ensureNotificationCollections(store: Store): void {
   if (!store.notifEmailTemplates) store.notifEmailTemplates = [];
   if (!store.notifEmailSuppressions) store.notifEmailSuppressions = [];
   if (!store.notifEmailAllowlist) store.notifEmailAllowlist = [];
+  if (!store.notifDlqSlaDigestRecipients) store.notifDlqSlaDigestRecipients = [];
 }

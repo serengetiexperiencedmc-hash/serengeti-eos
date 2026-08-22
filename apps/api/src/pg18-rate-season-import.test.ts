@@ -53,7 +53,7 @@ describe("PG.18 season-aware rate import", () => {
       payload: { sourceSystem: "pg18-test", entityType: "supplier_rate", csv },
     });
     expect(created.statusCode).toBe(201);
-    expect(created.json().batch.increment).toBe("PG.18");
+    expect(created.json().batch.increment).toBe("PG.19");
     const batchId = created.json().batch.id as string;
 
     const validated = await app.inject({

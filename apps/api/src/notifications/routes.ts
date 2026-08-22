@@ -12,6 +12,11 @@ import {
   listEmailAllowlist,
   revokeEmailAllowlistEntry,
 } from "./email-allowlist.js";
+import {
+  addDlqSlaDigestRecipient,
+  listDlqSlaDigestRecipients,
+  revokeDlqSlaDigestRecipient,
+} from "./dlq-sla-digest-recipients.js";
 import { getEmailDeliveryAnalytics } from "./email-analytics.js";
 import { dismissAllNotifications, dismissNotification, getNotificationHealth, listNotifications } from "./notifications.js";
 
@@ -93,6 +98,36 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = await dispatchDlqSlaDigest(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.get("/v1/notifications/email/dlq-sla-digest-recipients", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = listDlqSlaDigestRecipients(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/notifications/email/dlq-sla-digest-recipients", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const body = (req.body ?? {}) as { email?: string; note?: string };
+    if (!body.email) return reply.code(400).send({ error: "invalid_request", reason: "email_required" });
+    const result = addDlqSlaDigestRecipient(store, principal, {
+      email: body.email,
+      ...(body.note !== undefined ? { note: body.note } : {}),
+    });
+    if ("error" in result) return sendError(reply, result);
+    return reply.code(result.updated ? 200 : 201).send(result);
+  });
+
+  app.post("/v1/notifications/email/dlq-sla-digest-recipients/:id/revoke", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const id = (req.params as { id: string }).id;
+    const result = revokeDlqSlaDigestRecipient(store, principal, id);
     if ("error" in result) return sendError(reply, result);
     return result;
   });

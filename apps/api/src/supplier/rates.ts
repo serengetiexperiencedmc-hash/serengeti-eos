@@ -11,6 +11,7 @@ import type { Store } from "../store.js";
 import { allowSupplierAudit, denySupplierAudit } from "./audit.js";
 import { ensureSupplierCollections } from "./collections.js";
 import { persistSupEntityAfterCommit } from "../persistence/supplier.js";
+import { assertRateWithinSeason } from "./season-bounds.js";
 
 const ISO_CURRENCY_PATTERN = /^[A-Z]{3}$/;
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -144,6 +145,11 @@ export function createSupplierRate(
     );
     if (!season) return { error: "invalid_request" as const, reason: "season_not_found" };
     seasonLabel = season.label;
+    const bounds = assertRateWithinSeason(
+      { validFrom: input.validFrom, validTo: input.validTo },
+      season,
+    );
+    if (!bounds.ok) return { error: "invalid_request" as const, reason: bounds.error };
   }
 
   const now = new Date().toISOString();
@@ -237,6 +243,18 @@ export function updateSupplierRate(
     if (input.seasonLabel === null || input.seasonLabel.trim() === "") delete rate.seasonLabel;
     else rate.seasonLabel = input.seasonLabel.trim();
   }
+  if (input.seasonId !== undefined) {
+    if (input.seasonId === null || input.seasonId.trim() === "") {
+      delete rate.seasonId;
+    } else {
+      const season = (store.supSeasons ?? []).find(
+        (s) => s.id === input.seasonId && s.tenantId === principal.tenantId && !s.archivedAt,
+      );
+      if (!season) return { error: "invalid_request" as const, reason: "season_not_found" };
+      rate.seasonId = season.id;
+      rate.seasonLabel = season.label;
+    }
+  }
   if (input.includesTax !== undefined) rate.includesTax = input.includesTax;
   if (input.taxPercent !== undefined) {
     if (input.taxPercent === null) delete rate.taxPercent;
@@ -254,6 +272,18 @@ export function updateSupplierRate(
   }
   if (input.preferredInConflict !== undefined) {
     rate.preferredInConflict = input.preferredInConflict;
+  }
+
+  if (rate.seasonId) {
+    const season = (store.supSeasons ?? []).find(
+      (s) => s.id === rate.seasonId && s.tenantId === principal.tenantId && !s.archivedAt,
+    );
+    if (!season) return { error: "invalid_request" as const, reason: "season_not_found" };
+    const bounds = assertRateWithinSeason(
+      { validFrom: rate.validFrom, validTo: rate.validTo },
+      season,
+    );
+    if (!bounds.ok) return { error: "invalid_request" as const, reason: bounds.error };
   }
 
   rate.version += 1;
@@ -342,7 +372,7 @@ export function getSupplierRateCalendar(
     months,
     conflicts,
     unresolvedConflictCount: conflicts.filter((c) => !c.resolved).length,
-    increment: "PG.17" as const,
+    increment: "PG.19" as const,
   };
 }
 
@@ -448,7 +478,7 @@ export function getSupplierRateConflicts(
     conflicts,
     count: conflicts.length,
     unresolvedCount: conflicts.filter((c) => !c.resolved).length,
-    increment: "PG.17" as const,
+    increment: "PG.19" as const,
   };
 }
 
@@ -510,7 +540,7 @@ export function preferSupplierRate(
   return {
     rate: sanitizeRate(rate),
     clearedPeers: cleared,
-    increment: "PG.17" as const,
+    increment: "PG.19" as const,
   };
 }
 

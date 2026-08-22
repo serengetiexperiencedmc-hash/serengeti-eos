@@ -3,10 +3,11 @@ import type { Store } from "../store.js";
 import { listDeadLetters } from "../outbox.js";
 import { createEmailAdapter } from "./email.js";
 import { ensureNotificationCollections } from "./collections.js";
+import { resolveDlqSlaDigestRecipientEmails } from "./dlq-sla-digest-recipients.js";
 
 /**
- * I4.16 — on-demand batched email summarizing open DLQ SLA breaches.
- * Dedupes per principal per UTC day via outbox notificationKey.
+ * I4.16/I4.17 — on-demand batched email summarizing open DLQ SLA breaches.
+ * Fans out to caller + store/env ops aliases; dedupes per recipient per UTC day.
  */
 export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
   const dispatchAuth = authorize({
@@ -27,28 +28,29 @@ export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
     return { error: "forbidden" as const, reason: dlqAuth.reason };
   }
 
-  if (!principal.email) {
-    return { error: "invalid_request" as const, reason: "principal_has_no_email" };
+  ensureNotificationCollections(store);
+  const recipients = resolveDlqSlaDigestRecipientEmails(store, principal);
+  if (recipients.length === 0) {
+    return { error: "invalid_request" as const, reason: "no_digest_recipients" };
   }
 
-  ensureNotificationCollections(store);
   const listed = listDeadLetters(store, principal, { slaBreached: true });
   if (!listed.ok) {
     return { error: "forbidden" as const, reason: listed.reason };
   }
 
   const day = new Date().toISOString().slice(0, 10);
-  const key = `dlq-sla-digest:${day}`;
   const adapter = createEmailAdapter(store, principal);
 
   if (listed.items.length === 0) {
     return {
       dispatched: [] as string[],
-      skipped: [{ key, reason: "none_breached" }],
+      skipped: [{ key: `dlq-sla-digest:${day}`, reason: "none_breached" }],
       adapter: adapter.name,
       breachedCount: 0,
       thresholdHours: listed.sla.thresholdHours,
-      increment: "I4.16" as const,
+      recipientCount: recipients.length,
+      increment: "I4.17" as const,
     };
   }
 
@@ -63,33 +65,31 @@ export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
     "",
     "View in EOS: /commercial/events",
   ].join("\n");
+  const subject = `[EOS URGENT] DLQ SLA digest — ${listed.sla.breachedCount} open`;
 
-  const message = {
-    to: principal.email,
-    subject: `[EOS URGENT] DLQ SLA digest — ${listed.sla.breachedCount} open`,
-    bodyText,
-    notificationKey: key,
-    templateKey: "notif.operations.dlq_sla_digest",
-  };
+  const dispatched: string[] = [];
+  const skipped: { key: string; reason?: string; to?: string }[] = [];
 
-  const result = await adapter.send(message);
-  if (result.status === "sent") {
-    return {
-      dispatched: [key],
-      skipped: [] as { key: string; reason?: string }[],
-      adapter: adapter.name,
-      breachedCount: listed.sla.breachedCount,
-      thresholdHours: listed.sla.thresholdHours,
-      increment: "I4.16" as const,
-    };
+  for (const email of recipients) {
+    const key = `dlq-sla-digest:${day}:${email}`;
+    const result = await adapter.send({
+      to: email,
+      subject,
+      bodyText,
+      notificationKey: key,
+      templateKey: "notif.operations.dlq_sla_digest",
+    });
+    if (result.status === "sent") dispatched.push(key);
+    else skipped.push({ key, reason: result.reason, to: email });
   }
 
   return {
-    dispatched: [] as string[],
-    skipped: [{ key, reason: result.reason }],
+    dispatched,
+    skipped,
     adapter: adapter.name,
     breachedCount: listed.sla.breachedCount,
     thresholdHours: listed.sla.thresholdHours,
-    increment: "I4.16" as const,
+    recipientCount: recipients.length,
+    increment: "I4.17" as const,
   };
 }
