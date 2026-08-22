@@ -117,6 +117,18 @@
 
 ---
 
+### 18:21 — PG.3.2 CRM merge ✅
+
+**Shipped:** server `0.34.2-pg.3.2`
+
+| Increment | Change |
+| --- | --- |
+| **PG.3.2** | Merge record + cascade dual-write (survivor, duplicate, repointed children) |
+
+**Tests:** pg-crm integration 4 skipped (gated), full API 222/222 passing.
+
+---
+
 ## Session summary (for user return)
 
 ### Completed this autonomous window
@@ -133,17 +145,18 @@
 10. **I4.1 NATS JetStream transport**
 11. **I3.4 Tenant email template editor**
 12. **PG.3.1 CRM accounts + notes persistence**
+13. **PG.3.2 CRM merge persistence**
 
 ### Current project status
 
-- **Server version:** `0.34.1-pg.3.1`
-- **Increments live:** C1–C10, O1–O4, I3.4, I4.1, I8.3, I9.2, J1–J2, PG.1–PG.3.1
+- **Server version:** `0.34.2-pg.3.2`
+- **Increments live:** C1–C10, O1–O4, I3.4, I4.1, I8.3, I9.2, J1–J2, PG.1–PG.3.2
 - **All targeted tests passing**
 
 ### Recommended next increments
 
-1. PG.3.2 — CRM merge persistence (cascade upserts)
-2. I4.2 — NATS consumers + idempotent handlers
+1. I4.2 — NATS consumers + idempotent handlers
+2. PG.3+ — relationships, tasks, tags persistence slices
 3. Production SMTP/SES with tenant templates
 
 ### Issues resolved

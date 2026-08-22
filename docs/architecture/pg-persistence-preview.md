@@ -49,6 +49,18 @@ Migration: `037_pg31_crm_accounts_notes.sql` (tenant + updated_at indexes)
 
 Tests: `pg-crm.integration.test.ts` (`PG.3.1` describe block)
 
+## PG.3.2 — CRM merge ✅
+
+| Table | Trigger |
+| --- | --- |
+| `crm_merge_records` | Merge execute (`entityType: merge_record`) |
+| `crm_organizations` / `crm_contacts` | Survivor + duplicate updates (cascade) |
+| `crm_accounts` / `crm_activities` / `crm_notes` | Repointed child rows (cascade) |
+
+Uses existing merge DDL (004 + 010). Cascade dual-write via `persistCrmMergeAfterCommit`.
+
+Tests: `pg-crm.integration.test.ts` (`PG.3.2` describe block)
+
 ## Dev/Test behavior
 
 - In-memory `Store` remains read SoR
@@ -59,4 +71,5 @@ Tests: `pg-crm.integration.test.ts` (`PG.3.1` describe block)
 - Read-through hydration for all modules
 - Production SoR cutover
 - CRM accounts, notes — **PG.3.1 done**
-- CRM merge — PG.3.2 (cascade upserts)
+- CRM merge — **PG.3.2 done**
+- Relationships, tasks, tags — future PG.3+ slices

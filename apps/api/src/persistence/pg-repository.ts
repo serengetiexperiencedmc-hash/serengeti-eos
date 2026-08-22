@@ -865,6 +865,67 @@ export async function countCrmNotes(pool: DbPool, tenantId: string): Promise<num
   return result.rows[0]?.c ?? 0;
 }
 
+export async function upsertCrmMergeRecord(
+  pool: DbPool,
+  record: import("@sedmc/kernel").CrmMergeRecord,
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO crm_merge_records (
+      id, tenant_id, entity_type, survivor_id, merged_ids, duplicate_candidate_id,
+      field_resolutions, reason, idempotency_key, affected_counts, merged_at, merged_by_principal_id
+    ) VALUES (
+      $1,$2,$3,$4,$5::jsonb,$6,$7::jsonb,$8,$9,$10::jsonb,$11,$12
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      survivor_id = EXCLUDED.survivor_id,
+      merged_ids = EXCLUDED.merged_ids,
+      duplicate_candidate_id = EXCLUDED.duplicate_candidate_id,
+      field_resolutions = EXCLUDED.field_resolutions,
+      reason = EXCLUDED.reason,
+      idempotency_key = EXCLUDED.idempotency_key,
+      affected_counts = EXCLUDED.affected_counts,
+      merged_at = EXCLUDED.merged_at,
+      merged_by_principal_id = EXCLUDED.merged_by_principal_id`,
+    [
+      record.id,
+      record.tenantId,
+      record.entityType,
+      record.survivorId,
+      JSON.stringify(record.mergedIds),
+      record.duplicateCandidateId ?? null,
+      JSON.stringify(record.fieldResolutions),
+      record.reason,
+      record.idempotencyKey ?? null,
+      JSON.stringify(record.affectedCounts),
+      record.mergedAt,
+      record.mergedByPrincipalId,
+    ],
+  );
+}
+
+export async function loadCrmMergeRecords(pool: DbPool): Promise<import("@sedmc/kernel").CrmMergeRecord[]> {
+  const result = await pool.query(`SELECT * FROM crm_merge_records ORDER BY merged_at ASC`);
+  return result.rows.map((row) => ({
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    entityType: row.entity_type as "organization" | "contact",
+    survivorId: row.survivor_id as string,
+    mergedIds: row.merged_ids as string[],
+    ...(row.duplicate_candidate_id ? { duplicateCandidateId: row.duplicate_candidate_id as string } : {}),
+    fieldResolutions: (row.field_resolutions ?? {}) as Record<string, unknown>,
+    reason: row.reason as string,
+    ...(row.idempotency_key ? { idempotencyKey: row.idempotency_key as string } : {}),
+    affectedCounts: (row.affected_counts ?? {}) as Record<string, number>,
+    mergedAt: pgTimestamp(row, "merged_at"),
+    mergedByPrincipalId: row.merged_by_principal_id as string,
+  }));
+}
+
+export async function countCrmMergeRecords(pool: DbPool, tenantId: string): Promise<number> {
+  const result = await pool.query(`SELECT COUNT(*)::int AS c FROM crm_merge_records WHERE tenant_id = $1`, [tenantId]);
+  return result.rows[0]?.c ?? 0;
+}
+
 export async function upsertNotifEmailTemplate(
   pool: DbPool,
   row: {
