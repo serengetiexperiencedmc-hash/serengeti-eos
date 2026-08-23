@@ -487,9 +487,17 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **I20.1** | Read-only EOS assistant (Recommend only) on the commercial dashboard |
 
+### 36:xx — I20.2 AI draft artefacts ✅
+
+**Shipped:** server `0.69.0-i20.2`
+
+| Increment | Change |
+| --- | --- |
+| **I20.2** | Draft CRM tasks from live recommendations; unpublished until a human accepts |
+
 ### Recommended next increments
 
-1. I20.2 — optional draft artefacts (L2) that stay unpublished until human accept
+1. I20.3 — additional draft artefact types, or a real model behind the same ADR-0008 port
 2. I3.30 — persist allowlist stale audit to Postgres
 3. I4.28 — stale-audit filters / tenant export window
 

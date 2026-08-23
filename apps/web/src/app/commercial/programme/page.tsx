@@ -205,17 +205,11 @@ function ProgrammeBuilderContent() {
               <p className="text-sm text-muted">No cost sheet yet for this programme.</p>
             )}
             <AiPanel>
-              <div className="rounded-md bg-white/5 p-3 text-xs leading-relaxed">
-                &ldquo;Day 3 — Soar above the Serengeti at dawn in a hot air balloon, followed by a champagne breakfast in the bush.&rdquo;
-                <div className="mt-2 flex gap-2">
-                  <Btn variant="gold" size="sm" disabled>
-                    Use text
-                  </Btn>
-                  <Btn variant="ghost" size="sm" disabled>
-                    Edit
-                  </Btn>
-                </div>
-              </div>
+              <p className="text-sm leading-relaxed">
+                Programme copy is not drafted here. Create a follow-up task from a live recommendation
+                on the commercial dashboard, then accept it yourself. The assistant cannot write
+                itinerary text, merge, email, or approve.
+              </p>
             </AiPanel>
           </Panel>
         </div>

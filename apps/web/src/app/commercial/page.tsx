@@ -10,7 +10,15 @@ import { AiPanel, Btn, Card, PageHeader } from "@/components/commercial/ui";
 import { formatRelativeDate } from "@/lib/crm-api";
 import { formatCurrency, type CommercialAnalyticsSummary } from "@/lib/analytics-api";
 import { fetchCommercialLiveStats, type CommercialLiveStats } from "@/lib/commercial-stats";
-import { listAiRecommendations, type AiRecommendation } from "@/lib/ai-api";
+import {
+  acceptAiDraft,
+  createAiDraft,
+  discardAiDraft,
+  listAiDrafts,
+  listAiRecommendations,
+  type AiDraft,
+  type AiRecommendation,
+} from "@/lib/ai-api";
 import { EosApiError } from "@/lib/eos-client";
 
 const activityIcons: Record<string, string> = {
@@ -32,8 +40,20 @@ export default function CommercialDashboardPage() {
   const { token, ready } = useEosSession();
   const [live, setLive] = useState<CommercialLiveStats | null>(null);
   const [recs, setRecs] = useState<AiRecommendation[] | null>(null);
+  const [drafts, setDrafts] = useState<AiDraft[] | null>(null);
+  const [aiBusy, setAiBusy] = useState<string | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [greeting, setGreeting] = useState("Welcome");
+
+  function reloadAi(sessionToken: string) {
+    void listAiRecommendations(sessionToken)
+      .then((res) => setRecs(res.items))
+      .catch(() => setRecs([]));
+    void listAiDrafts(sessionToken, "pending")
+      .then((res) => setDrafts(res.items))
+      .catch(() => setDrafts([]));
+  }
 
   useEffect(() => {
     setGreeting(timeOfDayGreeting());
@@ -43,6 +63,7 @@ export default function CommercialDashboardPage() {
     if (!token) {
       setLive(null);
       setRecs(null);
+      setDrafts(null);
       return;
     }
     void fetchCommercialLiveStats(token)
@@ -51,9 +72,7 @@ export default function CommercialDashboardPage() {
         setError(err instanceof EosApiError ? err.message : "Failed to load live stats");
         setLive(null);
       });
-    void listAiRecommendations(token)
-      .then((res) => setRecs(res.items))
-      .catch(() => setRecs([]));
+    reloadAi(token);
   }, [token]);
 
   const statCards = token && live
@@ -298,27 +317,100 @@ export default function CommercialDashboardPage() {
           <AiPanel>
             {!token ? (
               <p className="text-sm leading-relaxed">
-                Sign in to see recommended next actions from your EOS records. The assistant can only
-                recommend — it cannot merge, email, or approve.
+                Sign in to see recommended next actions. Drafts stay unpublished until you accept.
+                The assistant cannot merge, email, or approve.
               </p>
             ) : recs === null ? (
               <p className="text-sm text-muted">Loading recommendations…</p>
-            ) : recs.length === 0 ? (
-              <p className="text-sm leading-relaxed">No recommended actions right now.</p>
             ) : (
-              <ul className="space-y-3">
-                {recs.map((item) => (
-                  <li key={item.id} className="rounded-md bg-white/5 p-3 text-sm leading-relaxed">
-                    <p className="font-medium text-sand">{item.title}</p>
-                    <p className="mt-1 text-xs text-muted">{item.reason}</p>
-                    <div className="mt-2">
-                      <Btn href={item.href} variant="gold" size="sm">
-                        Open
-                      </Btn>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <>
+                {aiError && <p className="mb-2 text-xs text-gold">{aiError}</p>}
+                {recs.length === 0 ? (
+                  <p className="text-sm leading-relaxed">No recommended actions right now.</p>
+                ) : (
+                  <ul className="space-y-3">
+                    {recs.map((item) => (
+                      <li key={item.id} className="rounded-md bg-white/5 p-3 text-sm leading-relaxed">
+                        <p className="font-medium text-sand">{item.title}</p>
+                        <p className="mt-1 text-xs text-muted">{item.reason}</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <Btn href={item.href} variant="gold" size="sm">
+                            Open
+                          </Btn>
+                          <Btn
+                            variant="secondary"
+                            size="sm"
+                            disabled={aiBusy === `draft:${item.key}`}
+                            onClick={() => {
+                              setAiBusy(`draft:${item.key}`);
+                              setAiError(null);
+                              void createAiDraft(token, item.key)
+                                .then(() => reloadAi(token))
+                                .catch((err) => {
+                                  setAiError(err instanceof EosApiError ? err.message : "Could not create draft");
+                                })
+                                .finally(() => setAiBusy(null));
+                            }}
+                          >
+                            {aiBusy === `draft:${item.key}` ? "Drafting…" : "Draft"}
+                          </Btn>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {drafts && drafts.length > 0 && (
+                  <div className="mt-4 border-t border-white/10 pt-3">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gold">
+                      Pending drafts
+                    </p>
+                    <ul className="space-y-3">
+                      {drafts.map((draft) => (
+                        <li key={draft.id} className="rounded-md bg-white/5 p-3 text-sm leading-relaxed">
+                          <p className="font-medium text-sand">{draft.title}</p>
+                          <p className="mt-1 whitespace-pre-wrap text-xs text-muted">{draft.body}</p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            <Btn
+                              variant="gold"
+                              size="sm"
+                              disabled={aiBusy === `accept:${draft.id}`}
+                              onClick={() => {
+                                setAiBusy(`accept:${draft.id}`);
+                                setAiError(null);
+                                void acceptAiDraft(token, draft.id)
+                                  .then(() => reloadAi(token))
+                                  .catch((err) => {
+                                    setAiError(err instanceof EosApiError ? err.message : "Could not accept draft");
+                                  })
+                                  .finally(() => setAiBusy(null));
+                              }}
+                            >
+                              {aiBusy === `accept:${draft.id}` ? "Accepting…" : "Accept"}
+                            </Btn>
+                            <Btn
+                              variant="secondary"
+                              size="sm"
+                              disabled={aiBusy === `discard:${draft.id}`}
+                              onClick={() => {
+                                setAiBusy(`discard:${draft.id}`);
+                                setAiError(null);
+                                void discardAiDraft(token, draft.id)
+                                  .then(() => reloadAi(token))
+                                  .catch((err) => {
+                                    setAiError(err instanceof EosApiError ? err.message : "Could not discard draft");
+                                  })
+                                  .finally(() => setAiBusy(null));
+                              }}
+                            >
+                              {aiBusy === `discard:${draft.id}` ? "Discarding…" : "Discard"}
+                            </Btn>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </>
             )}
           </AiPanel>
         </div>

@@ -11,7 +11,10 @@ export function clearanceAllows(clearance: Classification, resource: Classificat
 }
 
 export function abacAllows(req: AuthzRequest): { allow: boolean; reason: string } {
-  if (req.principal.actorType === "AiAgent" && req.action.startsWith("approve:")) {
+  if (
+    req.principal.actorType === "AiAgent" &&
+    (req.action.startsWith("approve:") || req.action.startsWith("accept:"))
+  ) {
     return { allow: false, reason: "ai_cannot_approve" };
   }
   if (req.resource && !tenantAllows(req)) {

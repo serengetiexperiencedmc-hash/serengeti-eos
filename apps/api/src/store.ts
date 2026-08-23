@@ -90,6 +90,7 @@ import {
   type NotifAllowlistDualDigestLastRun,
   type NotifAllowlistDualDigestStaleSuppression,
   type NotifAllowlistDualDigestStaleSuppressionAudit,
+  type AiDraft,
   type EmailTemplate,
   type NatsConsumerOffset,
 } from "@sedmc/kernel";
@@ -231,6 +232,8 @@ export type Store = {
   /** I3.29 — snooze/ack/clear audit for stale allowlist dual digest. */
   notifAllowlistDualDigestStaleSuppressionAudits: NotifAllowlistDualDigestStaleSuppressionAudit[];
   natsConsumerOffsets: NatsConsumerOffset[];
+  /** I20.2 — unpublished AI drafts until human accept. */
+  aiDrafts: AiDraft[];
   /** Optional PostgreSQL pool for dual-write persistence (PG.1+) */
   dbPool?: DbPool;
 };
@@ -414,6 +417,7 @@ const PERMS = {
     "finance:read:payment",
     ...NOTIFICATION_PERMS,
     "ai:read:recommend",
+    "ai:write:draft",
   ],
   commercialManager: [
     "org:read:unit",
@@ -453,6 +457,7 @@ const PERMS = {
     "finance:read:payment",
     ...NOTIFICATION_PERMS,
     "ai:read:recommend",
+    "ai:write:draft",
   ],
 };
 
@@ -856,6 +861,7 @@ export function seedStore(
     notifAllowlistDualDigestStaleSuppressions: [],
     notifAllowlistDualDigestStaleSuppressionAudits: [],
     natsConsumerOffsets: [],
+    aiDrafts: [],
   };
   seedCrmCatalogues(store, tenantId);
   return store;

@@ -89,7 +89,7 @@ export function AiPanel({ children }: { children: React.ReactNode }) {
   return (
     <div className="mt-4 rounded-[10px] bg-gradient-to-br from-[#2a2520] to-ink p-4 text-sand">
       <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gold">
-        ✦ AI Assistant · Recommend only · I20.1
+        ✦ AI Assistant · Draft until accept · I20.2
       </div>
       {children}
       <p className="mt-2 text-[0.65rem] text-muted">

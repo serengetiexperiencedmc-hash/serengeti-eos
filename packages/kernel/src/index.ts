@@ -8,6 +8,7 @@ export * from "./authz.js";
 export * from "./token.js";
 export * from "./ports.js";
 export * from "./ai-recommend.js";
+export * from "./ai-draft.js";
 export * from "./workflow.js";
 export * from "./execution-mode.js";
 export * from "./events.js";

@@ -2,7 +2,24 @@ import type { FastifyInstance } from "fastify";
 import { principalFromAuthHeader } from "../app.js";
 import { getCorrelationId } from "../observability.js";
 import type { Store } from "../store.js";
+import { acceptAiDraft, createAiDraft, discardAiDraft, listAiDrafts } from "./drafts.js";
 import { listAiRecommendations } from "./recommend.js";
+
+function sendError(
+  reply: { code: (n: number) => { send: (b: unknown) => unknown } },
+  result: { error: string; reason?: string },
+) {
+  switch (result.error) {
+    case "forbidden":
+      return reply.code(403).send(result);
+    case "not_found":
+      return reply.code(404).send(result);
+    case "conflict":
+      return reply.code(409).send(result);
+    default:
+      return reply.code(400).send(result);
+  }
+}
 
 export function registerAiRoutes(app: FastifyInstance, store: Store): void {
   app.get("/v1/ai/recommendations", async (req, reply) => {
@@ -10,7 +27,44 @@ export function registerAiRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = listAiRecommendations(store, principal, correlationId);
-    if ("error" in result) return reply.code(403).send(result);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.get("/v1/ai/drafts", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const query = req.query as { status?: string };
+    const result = listAiDrafts(store, principal, query);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/ai/drafts", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const correlationId = getCorrelationId(req);
+    const body = (req.body ?? {}) as { recommendationKey?: string };
+    const result = createAiDraft(store, principal, body, correlationId);
+    if ("error" in result) return sendError(reply, result);
+    return reply.code(201).send(result);
+  });
+
+  app.post("/v1/ai/drafts/:id/accept", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const correlationId = getCorrelationId(req);
+    const result = acceptAiDraft(store, principal, (req.params as { id: string }).id, correlationId);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/ai/drafts/:id/discard", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const correlationId = getCorrelationId(req);
+    const result = discardAiDraft(store, principal, (req.params as { id: string }).id, correlationId);
+    if ("error" in result) return sendError(reply, result);
     return result;
   });
 }
