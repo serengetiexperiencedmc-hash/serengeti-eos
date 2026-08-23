@@ -754,10 +754,17 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **I4.33** | In-memory last-used DLQ stale-audit preset + usage audit on named-preset export; Events last-preset line and usage export |
 | Docs | `i4.33-dlq-preset-usage-last-used-preview.md` recorded after ship |
 
+### I4.34 defined — architecture preview only
+
+**Preview:** `docs/architecture/i4.34-dlq-preset-usage-last-used-persist-preview.md`  
+**Implementation:** NOT AUTHORIZED. Current API remains `1.01.0-i4.33`. Proposed after implementation: `1.02.0-i4.34`.
+
 ### Recommended next increments
 
-1. I20.23 — (unnamed)
-2. PG.30 — (optional ops follow-up)
+1. I4.34 — persist DLQ last-used preset / usage (architecture preview only; implementation not authorized)
+2. I3.36 — (undefined / not authorized)
+3. I20.23 — (unnamed / undefined)
+4. PG.30 — (undefined / not authorized)
 
 ### Issues resolved
 
