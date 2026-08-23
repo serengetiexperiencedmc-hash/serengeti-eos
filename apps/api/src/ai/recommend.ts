@@ -6,8 +6,11 @@ import {
   filterAiRecommendLastRunKeys,
   formatAiRecommendLastRunCsv,
   hasPermission,
+  isAiRecommendStaleSuppressed,
   sanitizeAiRecommendLastRun,
+  sanitizeAiRecommendStaleSuppression,
   type AiRecommendLastRun,
+  type AiRecommendStaleSuppression,
   type AiRecommendSignal,
   type Principal,
 } from "@sedmc/kernel";
@@ -22,7 +25,7 @@ import {
 import { getDlqSlaDigestStatus, isDlqSlaDigestStaleSuppressed } from "../notifications/dlq-sla-digest.js";
 import { persistAiRecommendRun } from "../persistence/ai-recommend-runs.js";
 
-const INCREMENT = "I20.11" as const;
+const INCREMENT = "I20.12" as const;
 
 function recommendStaleThresholdHours(): number {
   const raw = Number(process.env.EOS_AI_RECOMMEND_STALE_HOURS);
@@ -32,6 +35,50 @@ const provider = createDevRulesRecommendProvider();
 
 function ensureAiRecommendRuns(store: Store): void {
   if (!store.aiRecommendRuns) store.aiRecommendRuns = [];
+}
+
+function ensureAiRecommendStaleSuppressions(store: Store): void {
+  if (!store.aiRecommendStaleSuppressions) store.aiRecommendStaleSuppressions = [];
+}
+
+function findAiRecommendStaleSuppression(store: Store, principal: Principal) {
+  ensureAiRecommendStaleSuppressions(store);
+  return (
+    store.aiRecommendStaleSuppressions.find(
+      (row) => row.tenantId === principal.tenantId && row.principalId === principal.id,
+    ) ?? null
+  );
+}
+
+function clearAiRecommendStaleSuppression(store: Store, principal: Principal): void {
+  ensureAiRecommendStaleSuppressions(store);
+  store.aiRecommendStaleSuppressions = store.aiRecommendStaleSuppressions.filter(
+    (row) => !(row.tenantId === principal.tenantId && row.principalId === principal.id),
+  );
+}
+
+function upsertAiRecommendStaleSuppression(
+  store: Store,
+  principal: Principal,
+  patch: Partial<Pick<AiRecommendStaleSuppression, "acknowledgedAt" | "snoozedUntil">>,
+): AiRecommendStaleSuppression {
+  ensureAiRecommendStaleSuppressions(store);
+  const now = new Date().toISOString();
+  const existing = findAiRecommendStaleSuppression(store, principal);
+  const next: AiRecommendStaleSuppression = {
+    tenantId: principal.tenantId,
+    principalId: principal.id,
+    ...(existing ?? {}),
+    ...patch,
+    updatedAt: now,
+    updatedByPrincipalId: principal.id,
+  };
+  const idx = store.aiRecommendStaleSuppressions.findIndex(
+    (row) => row.tenantId === principal.tenantId && row.principalId === principal.id,
+  );
+  if (idx >= 0) store.aiRecommendStaleSuppressions[idx] = next;
+  else store.aiRecommendStaleSuppressions.push(next);
+  return next;
 }
 
 function collectSignals(store: Store, principal: Principal): AiRecommendSignal[] {
@@ -109,6 +156,7 @@ function rememberRecommendRun(
   );
   if (idx >= 0) store.aiRecommendRuns[idx] = run;
   else store.aiRecommendRuns.push(run);
+  clearAiRecommendStaleSuppression(store, principal);
   return run;
 }
 
@@ -171,6 +219,8 @@ export async function listAiRecommendations(store: Store, principal: Principal, 
     autonomyCeiling: provider.autonomyCeiling,
     lastRun: sanitizeAiRecommendLastRun(lastRun),
     freshness: aiRecommendLastRunFreshness(lastRun.occurredAt, Date.now(), recommendStaleThresholdHours()),
+    suppression: null,
+    suppressed: false,
     increment: INCREMENT,
   };
 }
@@ -193,12 +243,16 @@ function lastRunView(store: Store, principal: Principal, key?: string) {
     Date.now(),
     recommendStaleThresholdHours(),
   );
+  const rawSuppression = findAiRecommendStaleSuppression(store, principal);
+  const suppressed = isAiRecommendStaleSuppressed(rawSuppression);
   return {
     lastRun,
     keys,
     matchCount: keys.length,
     filter: { key: key?.trim() ? key.trim() : null },
     freshness,
+    suppression: rawSuppression ? sanitizeAiRecommendStaleSuppression(rawSuppression) : null,
+    suppressed,
     increment: INCREMENT,
   };
 }
@@ -237,4 +291,48 @@ export function exportAiRecommendLastRun(
     };
   }
   return { ...viewed, format: "json" as const, generatedAt };
+}
+
+export function snoozeAiRecommendStale(store: Store, principal: Principal, input: { hours?: number } = {}) {
+  const decision = authorize({
+    principal,
+    permission: "ai:write:draft",
+    action: "snooze:ai_recommend_stale",
+  });
+  if (decision.result === "deny") {
+    return { error: "forbidden" as const, reason: decision.reason };
+  }
+  const hours = Number(input.hours ?? 24);
+  if (!Number.isFinite(hours) || hours <= 0) {
+    return { error: "invalid_request" as const, reason: "invalid_hours" };
+  }
+  const suppression = upsertAiRecommendStaleSuppression(store, principal, {
+    snoozedUntil: new Date(Date.now() + hours * 3_600_000).toISOString(),
+    acknowledgedAt: undefined,
+  });
+  return {
+    suppression: sanitizeAiRecommendStaleSuppression(suppression),
+    suppressed: true,
+    increment: INCREMENT,
+  };
+}
+
+export function acknowledgeAiRecommendStale(store: Store, principal: Principal) {
+  const decision = authorize({
+    principal,
+    permission: "ai:write:draft",
+    action: "ack:ai_recommend_stale",
+  });
+  if (decision.result === "deny") {
+    return { error: "forbidden" as const, reason: decision.reason };
+  }
+  const suppression = upsertAiRecommendStaleSuppression(store, principal, {
+    acknowledgedAt: new Date().toISOString(),
+    snoozedUntil: undefined,
+  });
+  return {
+    suppression: sanitizeAiRecommendStaleSuppression(suppression),
+    suppressed: true,
+    increment: INCREMENT,
+  };
 }

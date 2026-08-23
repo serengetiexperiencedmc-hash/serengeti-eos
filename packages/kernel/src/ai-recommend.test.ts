@@ -7,8 +7,10 @@ import {
   aiRecommendLastRunFreshness,
   filterAiRecommendLastRunKeys,
   formatAiRecommendLastRunCsv,
+  isAiRecommendStaleSuppressed,
   isAllowedAiRecommendHref,
   sanitizeAiRecommendLastRun,
+  sanitizeAiRecommendStaleSuppression,
 } from "./ai-recommend.js";
 
 describe("I20.1 AI recommend port", () => {
@@ -84,5 +86,50 @@ describe("I20.1 AI recommend port", () => {
     const stale = aiRecommendLastRunFreshness(new Date(Date.now() - 30 * 3_600_000).toISOString());
     expect(stale.neverRun).toBe(false);
     expect(stale.stale).toBe(true);
+  });
+
+  it("treats ack and active snooze as suppressed", () => {
+    const now = Date.parse("2026-08-23T12:00:00.000Z");
+    expect(isAiRecommendStaleSuppressed(undefined)).toBe(false);
+    expect(
+      isAiRecommendStaleSuppressed(
+        {
+          tenantId: "t1",
+          principalId: "p1",
+          snoozedUntil: "2026-08-23T11:00:00.000Z",
+          updatedAt: "2026-08-23T10:00:00.000Z",
+          updatedByPrincipalId: "p1",
+        },
+        now,
+      ),
+    ).toBe(false);
+    expect(
+      isAiRecommendStaleSuppressed(
+        {
+          tenantId: "t1",
+          principalId: "p1",
+          snoozedUntil: "2026-08-23T13:00:00.000Z",
+          updatedAt: "2026-08-23T10:00:00.000Z",
+          updatedByPrincipalId: "p1",
+        },
+        now,
+      ),
+    ).toBe(true);
+    const acked = sanitizeAiRecommendStaleSuppression({
+      tenantId: "t1",
+      principalId: "p1",
+      acknowledgedAt: "2026-08-23T10:00:00.000Z",
+      updatedAt: "2026-08-23T10:00:00.000Z",
+      updatedByPrincipalId: "p1",
+    });
+    expect(acked.acknowledgedAt).toBe("2026-08-23T10:00:00.000Z");
+    expect(acked).not.toHaveProperty("tenantId");
+    expect(isAiRecommendStaleSuppressed({
+      tenantId: "t1",
+      principalId: "p1",
+      acknowledgedAt: "2026-08-23T10:00:00.000Z",
+      updatedAt: "2026-08-23T10:00:00.000Z",
+      updatedByPrincipalId: "p1",
+    })).toBe(true);
   });
 });

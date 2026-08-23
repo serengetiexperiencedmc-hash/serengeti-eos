@@ -53,6 +53,15 @@ export type AiRecommendLastRun = {
   keys: string[];
 };
 
+export type AiRecommendStaleSuppression = {
+  tenantId: string;
+  principalId: string;
+  snoozedUntil?: string;
+  acknowledgedAt?: string;
+  updatedAt: string;
+  updatedByPrincipalId: string;
+};
+
 export function sanitizeAiRecommendLastRun(run: AiRecommendLastRun) {
   return {
     occurredAt: run.occurredAt,
@@ -60,6 +69,24 @@ export function sanitizeAiRecommendLastRun(run: AiRecommendLastRun) {
     count: run.count,
     keys: [...run.keys],
   };
+}
+
+export function sanitizeAiRecommendStaleSuppression(suppression: AiRecommendStaleSuppression) {
+  return {
+    ...(suppression.snoozedUntil ? { snoozedUntil: suppression.snoozedUntil } : {}),
+    ...(suppression.acknowledgedAt ? { acknowledgedAt: suppression.acknowledgedAt } : {}),
+    updatedAt: suppression.updatedAt,
+  };
+}
+
+export function isAiRecommendStaleSuppressed(
+  suppression: AiRecommendStaleSuppression | null | undefined,
+  nowMs = Date.now(),
+): boolean {
+  if (!suppression) return false;
+  if (suppression.acknowledgedAt) return true;
+  if (suppression.snoozedUntil && new Date(suppression.snoozedUntil).getTime() > nowMs) return true;
+  return false;
 }
 
 export function filterAiRecommendLastRunKeys(keys: readonly string[], query?: string): string[] {

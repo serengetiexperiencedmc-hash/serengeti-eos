@@ -567,9 +567,17 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **I20.11** | Last-run freshness (`stale` / `neverRun` / `ageHours`); CSV columns; AI page banner |
 
+### 46:xx — I20.12 stale recommend snooze / ack ✅
+
+**Shipped:** server `0.79.0-i20.12`
+
+| Increment | Change |
+| --- | --- |
+| **I20.12** | Snooze or acknowledge a stale recommend last-run; restamp clears suppression |
+
 ### Recommended next increments
 
-1. I20.12 — snooze / acknowledge stale recommend snapshot
+1. I20.13 — persist recommend stale snooze/ack to Postgres
 2. I3.30 — persist allowlist stale audit to Postgres
 3. I4.28 — stale-audit filters / tenant export window
 

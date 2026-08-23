@@ -37,7 +37,7 @@ describe("I20.8 AI draft summary", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(empty.statusCode).toBe(200);
-    expect(empty.json().increment).toBe("I20.11");
+    expect(empty.json().increment).toBe("I20.12");
     expect(empty.json().pendingCount).toBe(0);
 
     const created = await app.inject({

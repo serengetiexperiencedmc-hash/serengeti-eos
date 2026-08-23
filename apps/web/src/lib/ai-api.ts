@@ -45,6 +45,12 @@ export type AiRecommendFreshness = {
   thresholdHours: number;
 };
 
+export type AiRecommendSuppression = {
+  snoozedUntil?: string;
+  acknowledgedAt?: string;
+  updatedAt: string;
+};
+
 export async function listAiRecommendations(token: string) {
   return eosFetch<{
     items: AiRecommendation[];
@@ -52,6 +58,8 @@ export async function listAiRecommendations(token: string) {
     autonomyCeiling: number;
     lastRun: AiRecommendLastRun;
     freshness: AiRecommendFreshness;
+    suppression: AiRecommendSuppression | null;
+    suppressed: boolean;
     increment: string;
   }>("/v1/ai/recommendations", { token });
 }
@@ -66,6 +74,8 @@ export async function getAiRecommendLastRun(token: string, key?: string) {
     matchCount: number;
     filter: { key: string | null };
     freshness: AiRecommendFreshness;
+    suppression: AiRecommendSuppression | null;
+    suppressed: boolean;
     increment: string;
   }>(`/v1/ai/recommendations/last-run${q}`, { token });
 }
@@ -83,8 +93,30 @@ export async function exportAiRecommendLastRun(token: string, query?: { key?: st
     csv?: string;
     generatedAt: string;
     freshness: AiRecommendFreshness;
+    suppression: AiRecommendSuppression | null;
+    suppressed: boolean;
     increment: string;
   }>(`/v1/ai/recommendations/last-run/export${q}`, { token });
+}
+
+export async function snoozeAiRecommendStale(token: string, hours = 24) {
+  return eosFetch<{
+    suppression: AiRecommendSuppression;
+    suppressed: boolean;
+    increment: string;
+  }>("/v1/ai/recommendations/last-run/stale/snooze", {
+    token,
+    method: "POST",
+    body: JSON.stringify({ hours }),
+  });
+}
+
+export async function acknowledgeAiRecommendStale(token: string) {
+  return eosFetch<{
+    suppression: AiRecommendSuppression;
+    suppressed: boolean;
+    increment: string;
+  }>("/v1/ai/recommendations/last-run/stale/ack", { token, method: "POST", body: "{}" });
 }
 
 export async function listAiDrafts(token: string, query?: string | AiDraftListQuery) {

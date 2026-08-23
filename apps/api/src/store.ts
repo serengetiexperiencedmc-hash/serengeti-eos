@@ -92,6 +92,7 @@ import {
   type NotifAllowlistDualDigestStaleSuppressionAudit,
   type AiDraft,
   type AiRecommendLastRun,
+  type AiRecommendStaleSuppression,
   type EmailTemplate,
   type NatsConsumerOffset,
 } from "@sedmc/kernel";
@@ -237,6 +238,8 @@ export type Store = {
   aiDrafts: AiDraft[];
   /** I20.9 — last recommend run per tenant + principal. */
   aiRecommendRuns: AiRecommendLastRun[];
+  /** I20.12 — snooze/ack for stale recommend last-run banner. */
+  aiRecommendStaleSuppressions: AiRecommendStaleSuppression[];
   /** Optional PostgreSQL pool for dual-write persistence (PG.1+) */
   dbPool?: DbPool;
 };
@@ -866,6 +869,7 @@ export function seedStore(
     natsConsumerOffsets: [],
     aiDrafts: [],
     aiRecommendRuns: [],
+    aiRecommendStaleSuppressions: [],
   };
   seedCrmCatalogues(store, tenantId);
   return store;
