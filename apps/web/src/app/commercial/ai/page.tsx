@@ -58,6 +58,7 @@ export default function AiDraftsPage() {
   const [auditAction, setAuditAction] = useState("");
   const [auditSince, setAuditSince] = useState("");
   const [auditUntil, setAuditUntil] = useState("");
+  const [auditHydrated, setAuditHydrated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -89,6 +90,12 @@ export default function AiDraftsPage() {
           setSuppression(res.suppression);
           setSuppressed(res.suppressed);
           setRunKeys(res.keys);
+          if (res.lastFilter && !auditHydrated) {
+            setAuditAction(res.lastFilter.action ?? "");
+            setAuditSince(res.lastFilter.since ?? "");
+            setAuditUntil(res.lastFilter.until ?? "");
+            setAuditHydrated(true);
+          }
         })
         .catch(() => {
           setLastRun(null);
@@ -98,7 +105,7 @@ export default function AiDraftsPage() {
           setRunKeys([]);
         });
     },
-    [keyFilter],
+    [keyFilter, auditHydrated],
   );
 
   useEffect(() => {
@@ -109,6 +116,7 @@ export default function AiDraftsPage() {
       setSuppression(null);
       setSuppressed(false);
       setRunKeys([]);
+      setAuditHydrated(false);
       return;
     }
     reload(token);
@@ -122,7 +130,7 @@ export default function AiDraftsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="I20.16 · Assistant"
+        eyebrow="I20.17 · Assistant"
         title="AI Drafts"
         subtitle="Filter unpublished assistant drafts. Filter and export snooze/ack/clear audit. The assistant cannot merge, email, or approve."
       />

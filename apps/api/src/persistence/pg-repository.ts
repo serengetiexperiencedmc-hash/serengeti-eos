@@ -2688,3 +2688,41 @@ export async function loadAiRecommendStaleSuppressionAudits(
     };
   });
 }
+
+/** I20.17 — upsert last-used stale recommend audit export filter. */
+export async function upsertAiRecommendStaleAuditExportLastFilter(
+  pool: DbPool,
+  row: import("@sedmc/kernel").AiRecommendStaleAuditExportLastFilter,
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO ai_recommend_stale_audit_export_last_filter (
+      tenant_id, principal_id, action, since_text, until_text, updated_at
+    ) VALUES ($1,$2,$3,$4,$5,$6)
+     ON CONFLICT (tenant_id, principal_id) DO UPDATE SET
+       action = EXCLUDED.action,
+       since_text = EXCLUDED.since_text,
+       until_text = EXCLUDED.until_text,
+       updated_at = EXCLUDED.updated_at`,
+    [row.tenantId, row.principalId, row.action ?? null, row.since ?? null, row.until ?? null, row.updatedAt],
+  );
+}
+
+export async function loadAiRecommendStaleAuditExportLastFilters(
+  pool: DbPool,
+): Promise<import("@sedmc/kernel").AiRecommendStaleAuditExportLastFilter[]> {
+  const result = await pool.query(
+    `SELECT tenant_id, principal_id, action, since_text, until_text, updated_at
+     FROM ai_recommend_stale_audit_export_last_filter`,
+  );
+  return result.rows.map((row) => {
+    const updatedAt = row.updated_at instanceof Date ? row.updated_at.toISOString() : String(row.updated_at);
+    return {
+      tenantId: row.tenant_id as string,
+      principalId: row.principal_id as string,
+      ...(row.action ? { action: row.action as "snooze" | "ack" | "cleared" } : {}),
+      ...(row.since_text ? { since: String(row.since_text) } : {}),
+      ...(row.until_text ? { until: String(row.until_text) } : {}),
+      updatedAt,
+    };
+  });
+}

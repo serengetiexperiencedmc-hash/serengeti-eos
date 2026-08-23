@@ -42,7 +42,7 @@ export function registerAiRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const query = req.query as { format?: string; action?: string; since?: string; until?: string };
-    const result = exportAiRecommendStaleSuppression(store, principal, query);
+    const result = await exportAiRecommendStaleSuppression(store, principal, query);
     if ("error" in result) return sendError(reply, result);
     return result;
   });

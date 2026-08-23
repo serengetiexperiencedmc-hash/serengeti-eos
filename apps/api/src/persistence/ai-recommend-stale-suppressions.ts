@@ -1,11 +1,17 @@
 import type { DbPool } from "@sedmc/db";
-import type { AiRecommendStaleSuppression, AiRecommendStaleSuppressionAudit } from "@sedmc/kernel";
+import type {
+  AiRecommendStaleAuditExportLastFilter,
+  AiRecommendStaleSuppression,
+  AiRecommendStaleSuppressionAudit,
+} from "@sedmc/kernel";
 import type { Store } from "../store.js";
 import {
   deleteAiRecommendStaleSuppression,
   insertAiRecommendStaleSuppressionAudit,
+  loadAiRecommendStaleAuditExportLastFilters,
   loadAiRecommendStaleSuppressionAudits,
   loadAiRecommendStaleSuppressions,
+  upsertAiRecommendStaleAuditExportLastFilter,
   upsertAiRecommendStaleSuppression,
 } from "./pg-repository.js";
 
@@ -56,6 +62,36 @@ export async function hydrateAiRecommendStaleSuppressionAudits(pool: DbPool, sto
       store.aiRecommendStaleSuppressionAudits[idx] = row;
     } else {
       store.aiRecommendStaleSuppressionAudits.push(row);
+      merged += 1;
+    }
+  }
+  return merged;
+}
+
+export async function persistAiRecommendStaleAuditExportLastFilter(
+  pool: DbPool | undefined,
+  row: AiRecommendStaleAuditExportLastFilter,
+): Promise<void> {
+  if (!pool) return;
+  try {
+    await upsertAiRecommendStaleAuditExportLastFilter(pool, row);
+  } catch {
+    // Fire-and-forget dual-write.
+  }
+}
+
+export async function hydrateAiRecommendStaleAuditExportLastFilters(pool: DbPool, store: Store): Promise<number> {
+  if (!store.aiRecommendStaleAuditExportLastFilters) store.aiRecommendStaleAuditExportLastFilters = [];
+  const rows = await loadAiRecommendStaleAuditExportLastFilters(pool);
+  let merged = 0;
+  for (const row of rows) {
+    const idx = store.aiRecommendStaleAuditExportLastFilters.findIndex(
+      (f) => f.tenantId === row.tenantId && f.principalId === row.principalId,
+    );
+    if (idx >= 0) {
+      store.aiRecommendStaleAuditExportLastFilters[idx] = row;
+    } else {
+      store.aiRecommendStaleAuditExportLastFilters.push(row);
       merged += 1;
     }
   }

@@ -73,6 +73,24 @@ export type AiRecommendStaleSuppressionAudit = {
   createdByPrincipalId: string;
 };
 
+export type AiRecommendStaleAuditExportLastFilter = {
+  tenantId: string;
+  principalId: string;
+  action?: "snooze" | "ack" | "cleared";
+  since?: string;
+  until?: string;
+  updatedAt: string;
+};
+
+export function sanitizeAiRecommendStaleAuditExportLastFilter(row: AiRecommendStaleAuditExportLastFilter) {
+  return {
+    ...(row.action ? { action: row.action } : {}),
+    ...(row.since ? { since: row.since } : {}),
+    ...(row.until ? { until: row.until } : {}),
+    updatedAt: row.updatedAt,
+  };
+}
+
 export function sanitizeAiRecommendLastRun(run: AiRecommendLastRun) {
   return {
     occurredAt: run.occurredAt,

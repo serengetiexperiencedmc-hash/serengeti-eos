@@ -11,9 +11,11 @@ import {
   isAiRecommendStaleSuppressed,
   parseAiRecommendStaleAuditExportFilter,
   sanitizeAiRecommendLastRun,
+  sanitizeAiRecommendStaleAuditExportLastFilter,
   sanitizeAiRecommendStaleSuppression,
   sanitizeAiRecommendStaleSuppressionAudit,
   type AiRecommendLastRun,
+  type AiRecommendStaleAuditExportLastFilter,
   type AiRecommendStaleSuppression,
   type AiRecommendStaleSuppressionAudit,
   type AiRecommendSignal,
@@ -30,12 +32,13 @@ import {
 import { getDlqSlaDigestStatus, isDlqSlaDigestStaleSuppressed } from "../notifications/dlq-sla-digest.js";
 import { persistAiRecommendRun } from "../persistence/ai-recommend-runs.js";
 import {
+  persistAiRecommendStaleAuditExportLastFilter,
   persistAiRecommendStaleSuppression,
   persistAiRecommendStaleSuppressionAudit,
   persistDeleteAiRecommendStaleSuppression,
 } from "../persistence/ai-recommend-stale-suppressions.js";
 
-const INCREMENT = "I20.16" as const;
+const INCREMENT = "I20.17" as const;
 
 function recommendStaleThresholdHours(): number {
   const raw = Number(process.env.EOS_AI_RECOMMEND_STALE_HOURS);
@@ -53,6 +56,42 @@ function ensureAiRecommendStaleSuppressions(store: Store): void {
 
 function ensureAiRecommendStaleSuppressionAudits(store: Store): void {
   if (!store.aiRecommendStaleSuppressionAudits) store.aiRecommendStaleSuppressionAudits = [];
+}
+
+function ensureAiRecommendStaleAuditExportLastFilters(store: Store): void {
+  if (!store.aiRecommendStaleAuditExportLastFilters) store.aiRecommendStaleAuditExportLastFilters = [];
+}
+
+function findAiRecommendStaleAuditExportLastFilter(store: Store, principal: Principal) {
+  ensureAiRecommendStaleAuditExportLastFilters(store);
+  return (
+    store.aiRecommendStaleAuditExportLastFilters.find(
+      (row) => row.tenantId === principal.tenantId && row.principalId === principal.id,
+    ) ?? null
+  );
+}
+
+async function upsertAiRecommendStaleAuditExportLastFilter(
+  store: Store,
+  principal: Principal,
+  filter: { action: AiRecommendStaleAuditExportLastFilter["action"] | null; since: string | null; until: string | null },
+): Promise<AiRecommendStaleAuditExportLastFilter> {
+  ensureAiRecommendStaleAuditExportLastFilters(store);
+  const next: AiRecommendStaleAuditExportLastFilter = {
+    tenantId: principal.tenantId,
+    principalId: principal.id,
+    ...(filter.action ? { action: filter.action } : {}),
+    ...(filter.since ? { since: filter.since } : {}),
+    ...(filter.until ? { until: filter.until } : {}),
+    updatedAt: new Date().toISOString(),
+  };
+  const idx = store.aiRecommendStaleAuditExportLastFilters.findIndex(
+    (row) => row.tenantId === principal.tenantId && row.principalId === principal.id,
+  );
+  if (idx >= 0) store.aiRecommendStaleAuditExportLastFilters[idx] = next;
+  else store.aiRecommendStaleAuditExportLastFilters.push(next);
+  await persistAiRecommendStaleAuditExportLastFilter(store.dbPool, next);
+  return next;
 }
 
 async function appendAiRecommendStaleSuppressionAudit(
@@ -293,6 +332,10 @@ function lastRunView(store: Store, principal: Principal, key?: string) {
     freshness,
     suppression: rawSuppression ? sanitizeAiRecommendStaleSuppression(rawSuppression) : null,
     suppressed,
+    lastFilter: (() => {
+      const last = findAiRecommendStaleAuditExportLastFilter(store, principal);
+      return last ? sanitizeAiRecommendStaleAuditExportLastFilter(last) : null;
+    })(),
     increment: INCREMENT,
   };
 }
@@ -333,7 +376,7 @@ export function exportAiRecommendLastRun(
   return { ...viewed, format: "json" as const, generatedAt };
 }
 
-export function exportAiRecommendStaleSuppression(
+export async function exportAiRecommendStaleSuppression(
   store: Store,
   principal: Principal,
   query?: { format?: string; action?: string; since?: string; until?: string },
@@ -355,6 +398,8 @@ export function exportAiRecommendStaleSuppression(
   const generatedAt = new Date().toISOString();
   const format = query?.format === "csv" ? "csv" : "json";
   const filter = { action: parsed.action, since: parsed.since, until: parsed.until };
+  const last = await upsertAiRecommendStaleAuditExportLastFilter(store, principal, filter);
+  const lastFilter = sanitizeAiRecommendStaleAuditExportLastFilter(last);
   if (format === "csv") {
     return {
       format: "csv" as const,
@@ -364,6 +409,7 @@ export function exportAiRecommendStaleSuppression(
       audits,
       count: audits.length,
       filter,
+      lastFilter,
       generatedAt,
       increment: INCREMENT,
     };
@@ -375,6 +421,7 @@ export function exportAiRecommendStaleSuppression(
     audits,
     count: audits.length,
     filter,
+    lastFilter,
     generatedAt,
     increment: INCREMENT,
   };

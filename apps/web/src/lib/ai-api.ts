@@ -45,6 +45,13 @@ export type AiRecommendFreshness = {
   thresholdHours: number;
 };
 
+export type AiRecommendLastFilter = {
+  action?: "snooze" | "ack" | "cleared";
+  since?: string;
+  until?: string;
+  updatedAt: string;
+};
+
 export type AiRecommendSuppression = {
   snoozedUntil?: string;
   acknowledgedAt?: string;
@@ -76,6 +83,7 @@ export async function getAiRecommendLastRun(token: string, key?: string) {
     freshness: AiRecommendFreshness;
     suppression: AiRecommendSuppression | null;
     suppressed: boolean;
+    lastFilter: AiRecommendLastFilter | null;
     increment: string;
   }>(`/v1/ai/recommendations/last-run${q}`, { token });
 }
@@ -125,6 +133,7 @@ export async function exportAiRecommendStaleSuppression(
     audits: AiRecommendStaleAudit[];
     count: number;
     filter: { action: string | null; since: string | null; until: string | null };
+    lastFilter: AiRecommendLastFilter;
     generatedAt: string;
     increment: string;
   }>(`/v1/ai/recommendations/last-run/stale/export?${params.toString()}`, { token });
