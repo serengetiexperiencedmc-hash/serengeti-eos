@@ -15,7 +15,7 @@ import {
   hydrateAiRecommendStaleSuppressions,
 } from "./persistence/ai-recommend-stale-suppressions.js";
 import { hydrateCrmFromPostgres } from "./persistence/crm.js";
-import { hydrateNotifEmailTemplates, hydrateNotifEmailSuppressions, hydrateNotifEmailAllowlist, hydrateNotifDlqSlaDigestLastRuns, hydrateNotifAllowlistDualDigestLastRuns, hydrateNotifDlqSlaDigestStaleSuppressions, hydrateNotifDlqSlaDigestStaleSuppressionAudits, hydrateNotifDlqSlaDigestStaleAuditExportLastFilters, hydrateNotifDlqSlaDigestStaleAuditExportPresets, hydrateNotifDlqSlaDigestStaleAuditExportPresetUsages, hydrateNotifDlqSlaDigestStaleAuditExportLastPresets, hydrateNotifAllowlistDualDigestStaleSuppressions, hydrateNotifAllowlistDualDigestStaleSuppressionAudits, hydrateNotifAllowlistDualDigestStaleAuditExportLastFilters, hydrateNotifAllowlistDualDigestStaleAuditExportPresets } from "./persistence/notifications.js";
+import { hydrateNotifEmailTemplates, hydrateNotifEmailSuppressions, hydrateNotifEmailAllowlist, hydrateNotifDlqSlaDigestLastRuns, hydrateNotifAllowlistDualDigestLastRuns, hydrateNotifDlqSlaDigestStaleSuppressions, hydrateNotifDlqSlaDigestStaleSuppressionAudits, hydrateNotifDlqSlaDigestStaleAuditExportLastFilters, hydrateNotifDlqSlaDigestStaleAuditExportPresets, hydrateNotifDlqSlaDigestStaleAuditExportPresetUsages, hydrateNotifDlqSlaDigestStaleAuditExportLastPresets, hydrateNotifAllowlistDualDigestStaleSuppressions, hydrateNotifAllowlistDualDigestStaleSuppressionAudits, hydrateNotifAllowlistDualDigestStaleAuditExportLastFilters, hydrateNotifAllowlistDualDigestStaleAuditExportPresets, hydrateNotifAllowlistDualDigestStaleAuditExportPresetUsages, hydrateNotifAllowlistDualDigestStaleAuditExportLastPresets } from "./persistence/notifications.js";
 import { hydratePendingOutbox } from "./persistence/outbox.js";
 import { hydrateProcessedEvents } from "./persistence/processed-events.js";
 import { hydrateNatsConsumerOffsets } from "./persistence/nats-offsets.js";
@@ -94,6 +94,14 @@ if (databaseUrl) {
     pool,
     store,
   );
+  const allowlistStaleAuditExportPresetUsagesHydrated = await hydrateNotifAllowlistDualDigestStaleAuditExportPresetUsages(
+    pool,
+    store,
+  );
+  const allowlistStaleAuditExportLastPresetsHydrated = await hydrateNotifAllowlistDualDigestStaleAuditExportLastPresets(
+    pool,
+    store,
+  );
   const heatmapRollupsHydrated = await hydrateSupHeatmapRollupSnapshots(pool, store);
   const aiDraftsHydrated = await hydrateAiDrafts(pool, store);
   const aiRecommendRunsHydrated = await hydrateAiRecommendRuns(pool, store);
@@ -130,6 +138,12 @@ if (databaseUrl) {
   });
   logger.info("i334_allowlist_dual_digest_stale_audit_export_preset_hydrate", {
     merged: allowlistStaleAuditExportPresetsHydrated,
+  });
+  logger.info("i337_allowlist_dual_digest_stale_audit_export_preset_usage_hydrate", {
+    merged: allowlistStaleAuditExportPresetUsagesHydrated,
+  });
+  logger.info("i337_allowlist_dual_digest_stale_audit_export_last_preset_hydrate", {
+    merged: allowlistStaleAuditExportLastPresetsHydrated,
   });
   logger.info("pg27_heatmap_rollup_snapshot_hydrate", { merged: heatmapRollupsHydrated });
   logger.info("i204_ai_drafts_hydrate", { merged: aiDraftsHydrated });

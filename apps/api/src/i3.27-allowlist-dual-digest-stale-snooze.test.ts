@@ -35,7 +35,7 @@ describe("I3.27 stale allowlist dual digest snooze / ack", () => {
       payload: { hours: 24 },
     });
     expect(snoozed.statusCode).toBe(200);
-    expect(snoozed.json().increment).toBe("I3.36");
+    expect(snoozed.json().increment).toBe("I3.37");
     expect(snoozed.json().suppression.snoozedUntil).toBeTruthy();
 
     const inbox = await app.inject({
@@ -70,7 +70,7 @@ describe("I3.27 stale allowlist dual digest snooze / ack", () => {
       url: "/v1/notifications/email/allowlist-dual-digest-status",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(status.json().increment).toBe("I3.36");
+    expect(status.json().increment).toBe("I3.37");
     expect(status.json().freshness.stale).toBe(false);
     expect(status.json().suppression).toBeNull();
   });

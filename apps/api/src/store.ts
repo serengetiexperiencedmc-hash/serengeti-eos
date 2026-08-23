@@ -258,9 +258,9 @@ export type Store = {
   notifAllowlistDualDigestStaleAuditExportLastFilters: NotifAllowlistDualDigestStaleAuditExportLastFilter[];
   /** I3.34 — named tenant allowlist stale-audit export presets (persisted). */
   notifAllowlistDualDigestStaleAuditExportPresets: NotifAllowlistDualDigestStaleAuditExportPreset[];
-  /** I3.36 — last-used allowlist stale-audit export preset (in-memory only). */
+  /** I3.36 / I3.37 — last-used allowlist stale-audit export preset (persisted when dbPool set). */
   notifAllowlistDualDigestStaleAuditExportLastPresets: NotifAllowlistDualDigestStaleAuditExportLastPreset[];
-  /** I3.36 — allowlist stale-audit export preset usage rows (in-memory only). */
+  /** I3.36 / I3.37 — allowlist stale-audit export preset usage rows (persisted when dbPool set). */
   notifAllowlistDualDigestStaleAuditExportPresetUsages: NotifAllowlistDualDigestStaleAuditExportPresetUsage[];
   natsConsumerOffsets: NatsConsumerOffset[];
   /** I20.2 — unpublished AI drafts until human accept. */

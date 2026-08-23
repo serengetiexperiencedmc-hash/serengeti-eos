@@ -27,13 +27,15 @@ import {
   persistDeleteNotifAllowlistDualDigestStaleAuditExportPreset,
   persistNotifAllowlistDualDigestLastRun,
   persistNotifAllowlistDualDigestStaleAuditExportLastFilter,
+  persistNotifAllowlistDualDigestStaleAuditExportLastPreset,
   persistNotifAllowlistDualDigestStaleAuditExportPreset,
+  persistNotifAllowlistDualDigestStaleAuditExportPresetUsage,
   persistNotifAllowlistDualDigestStaleSuppression,
   persistNotifAllowlistDualDigestStaleSuppressionAudit,
 } from "../persistence/notifications.js";
 import { digestLastRunFreshness } from "./digest-freshness.js";
 
-const INCREMENT = "I3.36" as const;
+const INCREMENT = "I3.37" as const;
 
 function stampLastRun(
   store: Store,
@@ -155,7 +157,7 @@ function principalAllowlistPresetUsages(store: Store, principal: Principal) {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-function recordAllowlistStaleAuditExportPresetUsage(
+async function recordAllowlistStaleAuditExportPresetUsage(
   store: Store,
   principal: Principal,
   preset: NotifAllowlistDualDigestStaleAuditExportPreset,
@@ -184,6 +186,8 @@ function recordAllowlistStaleAuditExportPresetUsage(
   );
   if (idx >= 0) store.notifAllowlistDualDigestStaleAuditExportLastPresets[idx] = last;
   else store.notifAllowlistDualDigestStaleAuditExportLastPresets.push(last);
+  await persistNotifAllowlistDualDigestStaleAuditExportPresetUsage(store.dbPool, usage);
+  await persistNotifAllowlistDualDigestStaleAuditExportLastPreset(store.dbPool, last);
   return { usage, last };
 }
 
@@ -643,7 +647,7 @@ export function acknowledgeAllowlistDualDigestStale(store: Store, principal: Pri
   return { suppression, increment: INCREMENT };
 }
 
-/** I3.29 / I3.31 / I3.32 / I3.33 / I3.34 / I3.35 / I3.36 — CSV/JSON export of current suppression + snooze/ack/clear audit. */
+/** I3.29 / I3.31 / I3.32 / I3.33 / I3.34 / I3.35 / I3.36 / I3.37 — CSV/JSON export of current suppression + snooze/ack/clear audit. */
 export async function exportAllowlistDualDigestStaleSuppression(
   store: Store,
   principal: Principal,
@@ -685,7 +689,7 @@ export async function exportAllowlistDualDigestStaleSuppression(
   const filter = { action: parsed.action, since: parsed.since, until: parsed.until };
   const last = await upsertAllowlistStaleAuditExportLastFilter(store, principal, filter);
   const lastFilter = sanitizeNotifAllowlistDualDigestStaleAuditExportLastFilter(last);
-  const recorded = preset ? recordAllowlistStaleAuditExportPresetUsage(store, principal, preset) : null;
+  const recorded = preset ? await recordAllowlistStaleAuditExportPresetUsage(store, principal, preset) : null;
   const lastPreset = recorded
     ? sanitizeNotifAllowlistDualDigestStaleAuditExportLastPreset(recorded.last)
     : (() => {
@@ -742,7 +746,7 @@ export async function exportAllowlistDualDigestStaleSuppression(
   };
 }
 
-/** I3.36 — JSON/CSV export of the caller’s in-memory allowlist preset usage. Does not record usage. */
+/** I3.36 / I3.37 — JSON/CSV export of the caller’s allowlist preset usage. Does not record or persist usage. */
 export function exportAllowlistDualDigestStaleAuditExportPresetUsage(
   store: Store,
   principal: Principal,

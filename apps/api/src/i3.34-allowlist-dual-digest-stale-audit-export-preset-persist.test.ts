@@ -36,7 +36,7 @@ describe("I3.34 persist named stale allowlist audit export presets", () => {
     store.dbPool = {
       query: async (sql: string, params?: unknown[]) => {
         const text = String(sql);
-        if (text.includes("INSERT INTO notif_allowlist_dual_digest_stale_audit_export_preset")) {
+        if (text.includes("INSERT INTO notif_allowlist_dual_digest_stale_audit_export_preset (")) {
           writes.push({
             id: params![0] as string,
             tenantId: params![1] as string,
@@ -49,7 +49,7 @@ describe("I3.34 persist named stale allowlist audit export presets", () => {
             updatedAt: params![8] as string,
           });
         }
-        if (text.includes("FROM notif_allowlist_dual_digest_stale_audit_export_preset") && !text.includes("INSERT")) {
+        if (text.includes("FROM notif_allowlist_dual_digest_stale_audit_export_preset") && !text.includes("INSERT") && !text.includes("preset_usage")) {
           return {
             rows: writes.map((row) => ({
               id: row.id,
@@ -77,7 +77,7 @@ describe("I3.34 persist named stale allowlist audit export presets", () => {
       url: "/v1/notifications/email/allowlist-dual-digest-status",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(empty.json().increment).toBe("I3.36");
+    expect(empty.json().increment).toBe("I3.37");
     expect(empty.json().presets).toEqual([]);
     expect(writes.length).toBe(0);
 
@@ -97,7 +97,7 @@ describe("I3.34 persist named stale allowlist audit export presets", () => {
       payload: { name: "Snoozes only", action: "snooze" },
     });
     expect(saved.statusCode).toBe(200);
-    expect(saved.json().increment).toBe("I3.36");
+    expect(saved.json().increment).toBe("I3.37");
     expect(saved.json().preset.name).toBe("Snoozes only");
     expect(saved.json().preset).not.toHaveProperty("tenantId");
     expect(writes.length).toBeGreaterThanOrEqual(1);

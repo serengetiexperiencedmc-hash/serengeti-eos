@@ -788,7 +788,16 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 **Predecessor:** I3.36 (CLOSED)  
 **Preview:** `docs/architecture/i3.37-allowlist-preset-usage-persistence-preview.md`  
 **Architecture preview:** Authorized  
-**Implementation:** **NOT AUTHORIZED**
+**Implementation:** later authorized and shipped below. Historical preview state remains in the architecture contract.
+
+### 71:xx — I3.37 persist allowlist preset usage / last-used preset ✅
+
+**Shipped:** server `1.04.0-i3.37`
+
+| Increment | Change |
+| --- | --- |
+| **I3.37** | Dual-write + hydrate I3.36 last-used allowlist preset and usage rows; I3.32 last-filter and I3.35 delete stay independent |
+| Docs | `i3.37-allowlist-preset-usage-persistence-preview.md` recorded after ship |
 
 ### Recommended next increments
 

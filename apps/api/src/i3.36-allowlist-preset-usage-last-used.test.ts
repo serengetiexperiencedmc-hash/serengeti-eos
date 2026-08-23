@@ -7,12 +7,10 @@ const P = TEST_BOOTSTRAP_SECRETS;
 const PARTNER_TENANT_ID = "22222222-2222-4222-8222-222222222222";
 const PARTNER_PRESET_ID = "33333333-3333-4333-8333-333333333333";
 
-function isUsageOrLastPresetSql(sql: string) {
+function isI337UsageSql(sql: string) {
   return (
-    sql.includes("preset_usage") ||
-    sql.includes("last_preset") ||
-    sql.includes("ai_recommend_stale_audit_export_preset_usage") ||
-    sql.includes("ai_recommend_stale_audit_export_last_preset")
+    sql.includes("notif_allowlist_dual_digest_stale_audit_export_preset_usage") ||
+    sql.includes("notif_allowlist_dual_digest_stale_audit_export_last_preset")
   );
 }
 
@@ -30,10 +28,9 @@ async function loginCarol(app: ReturnType<typeof buildServer>) {
 }
 
 describe("I3.36 allowlist preset usage and last-used preset echo", () => {
-  it("does not add an I3.36 usage migration", () => {
+  it("does not add an I3.36-named usage migration", () => {
     const files = listMigrationFiles();
     expect(files.some((f) => f.includes("i336") && f.includes("preset_usage"))).toBe(false);
-    expect(files.some((f) => f.includes("allowlist") && f.includes("preset_usage"))).toBe(false);
   });
 
   it("records usage only when a preset is applied and does not persist usage", async () => {
@@ -74,11 +71,11 @@ describe("I3.36 allowlist preset usage and last-used preset echo", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(empty.statusCode).toBe(200);
-    expect(empty.json().increment).toBe("I3.36");
+    expect(empty.json().increment).toBe("I3.37");
     expect(empty.json().lastPreset).toBeNull();
     expect(empty.json().usages).toEqual([]);
     expect(empty.json().lastFilter).toBeNull();
-    expect(writes.filter(isUsageOrLastPresetSql)).toHaveLength(0);
+    expect(writes.filter(isI337UsageSql)).toHaveLength(0);
 
     const plain = await app.inject({
       method: "GET",
@@ -86,12 +83,12 @@ describe("I3.36 allowlist preset usage and last-used preset echo", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(plain.statusCode).toBe(200);
-    expect(plain.json().increment).toBe("I3.36");
+    expect(plain.json().increment).toBe("I3.37");
     expect(plain.json().lastPreset).toBeNull();
     expect(store.notifAllowlistDualDigestStaleAuditExportPresetUsages).toHaveLength(0);
     expect(plain.json().lastFilter).toBeTruthy();
     expect(writes.some(isI332LastFilterSql)).toBe(true);
-    expect(writes.filter(isUsageOrLastPresetSql)).toHaveLength(0);
+    expect(writes.filter(isI337UsageSql)).toHaveLength(0);
 
     const created = await app.inject({
       method: "POST",
@@ -144,20 +141,21 @@ describe("I3.36 allowlist preset usage and last-used preset echo", () => {
     expect(invalidName.statusCode).toBe(400);
     expect(store.notifAllowlistDualDigestStaleAuditExportPresetUsages).toHaveLength(0);
 
-    const persistBeforeApply = writes.filter(isUsageOrLastPresetSql).length;
+    const persistBeforeApply = writes.filter(isI337UsageSql).length;
     const exported = await app.inject({
       method: "GET",
       url: "/v1/notifications/email/allowlist-dual-digest-stale/export?preset=Snoozes%20only",
       headers: { authorization: `Bearer ${token}` },
     });
     expect(exported.statusCode).toBe(200);
-    expect(exported.json().increment).toBe("I3.36");
+    expect(exported.json().increment).toBe("I3.37");
     expect(exported.json().lastPreset.presetName).toBe("Snoozes only");
     expect(exported.json().lastPreset.presetId).toBe(presetId);
     expect(exported.json().lastPreset).not.toHaveProperty("tenantId");
     expect(exported.json().lastFilter.action).toBe("snooze");
     expect(store.notifAllowlistDualDigestStaleAuditExportPresetUsages).toHaveLength(1);
-    expect(writes.filter(isUsageOrLastPresetSql)).toHaveLength(persistBeforeApply);
+    const persistAfterApply = writes.filter(isI337UsageSql).length;
+    expect(persistAfterApply).toBeGreaterThan(persistBeforeApply);
 
     const after = await app.inject({
       method: "GET",
@@ -170,7 +168,7 @@ describe("I3.36 allowlist preset usage and last-used preset echo", () => {
     expect(after.json().usages[0]).not.toHaveProperty("principalId");
     expect(after.json().lastFilter.action).toBe("snooze");
     expect(store.notifAllowlistDualDigestStaleAuditExportPresetUsages).toHaveLength(1);
-    expect(writes.filter(isUsageOrLastPresetSql)).toHaveLength(persistBeforeApply);
+    expect(writes.filter(isI337UsageSql)).toHaveLength(persistAfterApply);
 
     const alice = await app.inject({
       method: "POST",
@@ -194,6 +192,8 @@ describe("I3.36 allowlist preset usage and last-used preset echo", () => {
     });
     expect(repeated.statusCode).toBe(200);
     expect(store.notifAllowlistDualDigestStaleAuditExportPresetUsages).toHaveLength(2);
+    const persistAfterRepeat = writes.filter(isI337UsageSql).length;
+    expect(persistAfterRepeat).toBeGreaterThan(persistAfterApply);
 
     const statusAfterRepeat = await app.inject({
       method: "GET",
@@ -202,7 +202,7 @@ describe("I3.36 allowlist preset usage and last-used preset echo", () => {
     });
     expect(statusAfterRepeat.json().usages).toHaveLength(2);
     expect(statusAfterRepeat.json().usages[0].createdAt >= statusAfterRepeat.json().usages[1].createdAt).toBe(true);
-    expect(writes.filter(isUsageOrLastPresetSql)).toHaveLength(persistBeforeApply);
+    expect(writes.filter(isI337UsageSql)).toHaveLength(persistAfterRepeat);
 
     const bad = await app.inject({
       method: "GET",
@@ -219,7 +219,7 @@ describe("I3.36 allowlist preset usage and last-used preset echo", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(usageJson.statusCode).toBe(200);
-    expect(usageJson.json().increment).toBe("I3.36");
+    expect(usageJson.json().increment).toBe("I3.37");
     expect(usageJson.json().format).toBe("json");
     expect(usageJson.json().count).toBe(2);
     expect(usageJson.json().lastPreset.presetName).toBe("Snoozes only");
@@ -236,7 +236,7 @@ describe("I3.36 allowlist preset usage and last-used preset echo", () => {
     expect(usage.json().csv).toContain("presetId,presetName,createdAt");
     expect(usage.json().lastPreset.presetName).toBe("Snoozes only");
     expect(store.notifAllowlistDualDigestStaleAuditExportPresetUsages).toHaveLength(2);
-    expect(writes.filter(isUsageOrLastPresetSql)).toHaveLength(persistBeforeApply);
+    expect(writes.filter(isI337UsageSql)).toHaveLength(persistAfterRepeat);
 
     const snapshotName = store.notifAllowlistDualDigestStaleAuditExportPresetUsages[0]!.presetName;
     const renamed = await app.inject({
@@ -264,7 +264,13 @@ describe("I3.36 allowlist preset usage and last-used preset echo", () => {
     });
     expect(exportDeleted.statusCode).toBe(404);
     expect(store.notifAllowlistDualDigestStaleAuditExportPresetUsages).toHaveLength(2);
-    expect(writes.filter(isUsageOrLastPresetSql)).toHaveLength(persistBeforeApply);
+    expect(writes.filter(isI337UsageSql)).toHaveLength(persistAfterRepeat);
+    expect(writes.some((sql) => sql.includes("DELETE FROM notif_allowlist_dual_digest_stale_audit_export_preset_usage"))).toBe(
+      false,
+    );
+    expect(writes.some((sql) => sql.includes("DELETE FROM notif_allowlist_dual_digest_stale_audit_export_last_preset"))).toBe(
+      false,
+    );
 
     const statusAfterDelete = await app.inject({
       method: "GET",

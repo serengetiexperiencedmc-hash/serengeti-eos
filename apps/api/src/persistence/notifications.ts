@@ -14,7 +14,9 @@ import type {
   NotifDlqSlaDigestStaleSuppressionAudit,
   NotifAllowlistDualDigestLastRun,
   NotifAllowlistDualDigestStaleAuditExportLastFilter,
+  NotifAllowlistDualDigestStaleAuditExportLastPreset,
   NotifAllowlistDualDigestStaleAuditExportPreset,
+  NotifAllowlistDualDigestStaleAuditExportPresetUsage,
   NotifAllowlistDualDigestStaleSuppression,
   NotifAllowlistDualDigestStaleSuppressionAudit,
 } from "@sedmc/kernel";
@@ -27,11 +29,15 @@ import {
   insertNotifAllowlistDualDigestStaleSuppressionAudit,
   loadNotifAllowlistDualDigestLastRuns,
   loadNotifAllowlistDualDigestStaleAuditExportLastFilters,
+  loadNotifAllowlistDualDigestStaleAuditExportLastPresets,
   loadNotifAllowlistDualDigestStaleAuditExportPresets,
+  loadNotifAllowlistDualDigestStaleAuditExportPresetUsages,
   loadNotifAllowlistDualDigestStaleSuppressionAudits,
   loadNotifAllowlistDualDigestStaleSuppressions,
   upsertNotifAllowlistDualDigestStaleAuditExportLastFilter,
+  upsertNotifAllowlistDualDigestStaleAuditExportLastPreset,
   upsertNotifAllowlistDualDigestStaleAuditExportPreset,
+  insertNotifAllowlistDualDigestStaleAuditExportPresetUsage,
   deleteNotifAllowlistDualDigestStaleAuditExportPreset,
   loadNotifDlqSlaDigestLastRuns,
   insertNotifDlqSlaDigestStaleSuppressionAudit,
@@ -539,6 +545,70 @@ export async function hydrateNotifAllowlistDualDigestStaleAuditExportPresets(
       store.notifAllowlistDualDigestStaleAuditExportPresets[idx] = row;
     } else {
       store.notifAllowlistDualDigestStaleAuditExportPresets.push(row);
+      merged += 1;
+    }
+  }
+  return merged;
+}
+
+export async function persistNotifAllowlistDualDigestStaleAuditExportPresetUsage(
+  pool: DbPool | undefined,
+  row: NotifAllowlistDualDigestStaleAuditExportPresetUsage,
+): Promise<void> {
+  if (!pool) return;
+  try {
+    await insertNotifAllowlistDualDigestStaleAuditExportPresetUsage(pool, row);
+  } catch {
+    // Fire-and-forget dual-write.
+  }
+}
+
+export async function persistNotifAllowlistDualDigestStaleAuditExportLastPreset(
+  pool: DbPool | undefined,
+  row: NotifAllowlistDualDigestStaleAuditExportLastPreset,
+): Promise<void> {
+  if (!pool) return;
+  try {
+    await upsertNotifAllowlistDualDigestStaleAuditExportLastPreset(pool, row);
+  } catch {
+    // Fire-and-forget dual-write.
+  }
+}
+
+export async function hydrateNotifAllowlistDualDigestStaleAuditExportPresetUsages(
+  pool: DbPool,
+  store: Store,
+): Promise<number> {
+  ensureNotificationCollections(store);
+  const rows = await loadNotifAllowlistDualDigestStaleAuditExportPresetUsages(pool);
+  let merged = 0;
+  for (const row of rows) {
+    const idx = store.notifAllowlistDualDigestStaleAuditExportPresetUsages.findIndex((u) => u.id === row.id);
+    if (idx >= 0) {
+      store.notifAllowlistDualDigestStaleAuditExportPresetUsages[idx] = row;
+    } else {
+      store.notifAllowlistDualDigestStaleAuditExportPresetUsages.push(row);
+      merged += 1;
+    }
+  }
+  return merged;
+}
+
+export async function hydrateNotifAllowlistDualDigestStaleAuditExportLastPresets(
+  pool: DbPool,
+  store: Store,
+): Promise<number> {
+  ensureNotificationCollections(store);
+  const rows = await loadNotifAllowlistDualDigestStaleAuditExportLastPresets(pool);
+  let merged = 0;
+  for (const row of rows) {
+    const idx = store.notifAllowlistDualDigestStaleAuditExportLastPresets.findIndex(
+      (p) => p.tenantId === row.tenantId && p.principalId === row.principalId,
+    );
+    if (idx >= 0) {
+      store.notifAllowlistDualDigestStaleAuditExportLastPresets[idx] = row;
+    } else {
+      store.notifAllowlistDualDigestStaleAuditExportLastPresets.push(row);
       merged += 1;
     }
   }
