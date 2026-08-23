@@ -74,7 +74,7 @@ describe("I20.4 AI draft persistence", () => {
       payload: { recommendationKey: "notifications.allowlist_digest.stale" },
     });
     expect(created.statusCode).toBe(201);
-    expect(created.json().increment).toBe("I20.17");
+    expect(created.json().increment).toBe("I20.18");
     expect(writes.length).toBeGreaterThanOrEqual(1);
     expect(writes[0]![6]).toBe("pending");
 

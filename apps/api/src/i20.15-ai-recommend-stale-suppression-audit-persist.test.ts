@@ -75,7 +75,7 @@ describe("I20.15 stale recommend suppression audit persistence", () => {
       payload: { hours: 24 },
     });
     expect(snoozed.statusCode).toBe(200);
-    expect(snoozed.json().increment).toBe("I20.17");
+    expect(snoozed.json().increment).toBe("I20.18");
     expect(writes.some((row) => row.action === "snooze")).toBe(true);
 
     await app.inject({

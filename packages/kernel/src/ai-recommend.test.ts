@@ -11,8 +11,10 @@ import {
   isAllowedAiRecommendHref,
   filterAiRecommendStaleSuppressionAudits,
   formatAiRecommendStaleSuppressionAuditCsv,
+  normalizeAiRecommendStaleAuditExportPresetName,
   parseAiRecommendStaleAuditExportFilter,
   sanitizeAiRecommendStaleAuditExportLastFilter,
+  sanitizeAiRecommendStaleAuditExportPreset,
   sanitizeAiRecommendLastRun,
   sanitizeAiRecommendStaleSuppression,
   sanitizeAiRecommendStaleSuppressionAudit,
@@ -192,5 +194,23 @@ describe("I20.1 AI recommend port", () => {
     expect(view.action).toBe("snooze");
     expect(view.since).toBe("2026-08-23T00:00:00.000Z");
     expect(view).not.toHaveProperty("tenantId");
+  });
+
+  it("normalizes and sanitizes named audit export presets", () => {
+    expect(normalizeAiRecommendStaleAuditExportPresetName("  Last  24h ")).toBe("Last 24h");
+    expect(normalizeAiRecommendStaleAuditExportPresetName("")).toBeNull();
+    expect(normalizeAiRecommendStaleAuditExportPresetName("x".repeat(81))).toBeNull();
+    const view = sanitizeAiRecommendStaleAuditExportPreset({
+      id: "p1",
+      tenantId: "t1",
+      name: "Last 24h",
+      action: "snooze",
+      createdAt: "2026-08-23T12:00:00.000Z",
+      createdByPrincipalId: "carol",
+      updatedAt: "2026-08-23T12:00:00.000Z",
+    });
+    expect(view.name).toBe("Last 24h");
+    expect(view).not.toHaveProperty("tenantId");
+    expect(view).not.toHaveProperty("createdByPrincipalId");
   });
 });

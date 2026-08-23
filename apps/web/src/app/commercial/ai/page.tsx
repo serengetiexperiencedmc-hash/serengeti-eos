@@ -13,9 +13,11 @@ import {
   getAiRecommendLastRun,
   listAiDrafts,
   snoozeAiRecommendStale,
+  upsertAiRecommendStaleAuditExportPreset,
   type AiDraft,
   type AiRecommendFreshness,
   type AiRecommendLastRun,
+  type AiRecommendStaleAuditExportPreset,
   type AiRecommendSuppression,
 } from "@/lib/ai-api";
 import { EosApiError } from "@/lib/eos-client";
@@ -59,6 +61,9 @@ export default function AiDraftsPage() {
   const [auditSince, setAuditSince] = useState("");
   const [auditUntil, setAuditUntil] = useState("");
   const [auditHydrated, setAuditHydrated] = useState(false);
+  const [auditPresets, setAuditPresets] = useState<AiRecommendStaleAuditExportPreset[]>([]);
+  const [auditPresetId, setAuditPresetId] = useState("");
+  const [auditPresetName, setAuditPresetName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -90,6 +95,7 @@ export default function AiDraftsPage() {
           setSuppression(res.suppression);
           setSuppressed(res.suppressed);
           setRunKeys(res.keys);
+          setAuditPresets(res.presets ?? []);
           if (res.lastFilter && !auditHydrated) {
             setAuditAction(res.lastFilter.action ?? "");
             setAuditSince(res.lastFilter.since ?? "");
@@ -103,6 +109,7 @@ export default function AiDraftsPage() {
           setSuppression(null);
           setSuppressed(false);
           setRunKeys([]);
+          setAuditPresets([]);
         });
     },
     [keyFilter, auditHydrated],
@@ -117,6 +124,8 @@ export default function AiDraftsPage() {
       setSuppressed(false);
       setRunKeys([]);
       setAuditHydrated(false);
+      setAuditPresets([]);
+      setAuditPresetId("");
       return;
     }
     reload(token);
@@ -130,9 +139,9 @@ export default function AiDraftsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="I20.17 · Assistant"
+        eyebrow="I20.18 · Assistant"
         title="AI Drafts"
-        subtitle="Filter unpublished assistant drafts. Filter and export snooze/ack/clear audit. The assistant cannot merge, email, or approve."
+        subtitle="Filter unpublished assistant drafts. Save named tenant audit-export presets. The assistant cannot merge, email, or approve."
       />
       <Card>
         <div className="mb-4 flex flex-wrap gap-3">
@@ -265,6 +274,67 @@ export default function AiDraftsPage() {
             </Btn>
           )}
           <label className="text-xs text-muted">
+            Audit preset
+            <select
+              className="ml-2 rounded-md border border-line bg-paper px-2 py-1 text-sm text-ink"
+              value={auditPresetId}
+              onChange={(event) => {
+                const nextId = event.target.value;
+                setAuditPresetId(nextId);
+                const preset = auditPresets.find((row) => row.id === nextId);
+                if (!preset) return;
+                setAuditAction(preset.action ?? "");
+                setAuditSince(preset.since ?? "");
+                setAuditUntil(preset.until ?? "");
+                setAuditPresetName(preset.name);
+              }}
+            >
+              <option value="">No preset</option>
+              {auditPresets.map((preset) => (
+                <option key={preset.id} value={preset.id}>
+                  {preset.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs text-muted">
+            Preset name
+            <input
+              className="ml-2 rounded-md border border-line bg-paper px-2 py-1 text-sm text-ink"
+              value={auditPresetName}
+              placeholder="Last 24h snoozes"
+              onChange={(event) => setAuditPresetName(event.target.value)}
+            />
+          </label>
+          {token && (
+            <Btn
+              variant="secondary"
+              size="sm"
+              disabled={busy === "save-preset" || !auditPresetName.trim()}
+              onClick={() => {
+                setBusy("save-preset");
+                setError(null);
+                void upsertAiRecommendStaleAuditExportPreset(token, {
+                  name: auditPresetName.trim(),
+                  ...(auditAction ? { action: auditAction } : {}),
+                  ...(auditSince.trim() ? { since: auditSince.trim() } : {}),
+                  ...(auditUntil.trim() ? { until: auditUntil.trim() } : {}),
+                })
+                  .then((res) => {
+                    setAuditPresets(res.presets);
+                    setAuditPresetId(res.preset.id);
+                    setAuditPresetName(res.preset.name);
+                  })
+                  .catch((err) => {
+                    setError(err instanceof EosApiError ? err.message : "Could not save audit preset");
+                  })
+                  .finally(() => setBusy(null));
+              }}
+            >
+              {busy === "save-preset" ? "Saving…" : "Save preset"}
+            </Btn>
+          )}
+          <label className="text-xs text-muted">
             Audit action
             <select
               className="ml-2 rounded-md border border-line bg-paper px-2 py-1 text-sm text-ink"
@@ -308,6 +378,7 @@ export default function AiDraftsPage() {
                   ...(auditAction ? { action: auditAction } : {}),
                   ...(auditSince.trim() ? { since: auditSince.trim() } : {}),
                   ...(auditUntil.trim() ? { until: auditUntil.trim() } : {}),
+                  ...(auditPresetId ? { presetId: auditPresetId } : {}),
                 })
                   .then((res) => {
                     const blob = new Blob([res.csv ?? ""], { type: "text/csv" });

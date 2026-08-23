@@ -615,11 +615,19 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **I20.17** | Persist last-used stale-audit export filter; last-run echoes `lastFilter`; AI page prefills |
 
+### 52:xx — I20.18 named tenant recommend audit export presets ✅
+
+**Shipped:** server `0.85.0-i20.18`
+
+| Increment | Change |
+| --- | --- |
+| **I20.18** | Named tenant stale-audit export presets; last-run echoes `presets`; AI page save/select |
+
 ### Recommended next increments
 
 1. I3.30 — persist allowlist stale audit to Postgres
 2. I4.28 — stale-audit filters / tenant export window
-3. I20.18 — named tenant window presets for recommend-audit export
+3. I20.19 — persist named recommend-audit export presets
 
 ### Issues resolved
 

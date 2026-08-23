@@ -9,7 +9,9 @@ import {
   exportAiRecommendStaleSuppression,
   getAiRecommendLastRun,
   listAiRecommendations,
+  listAiRecommendStaleAuditExportPresets,
   snoozeAiRecommendStale,
+  upsertAiRecommendStaleAuditExportPreset,
 } from "./recommend.js";
 
 function sendError(
@@ -38,10 +40,34 @@ export function registerAiRoutes(app: FastifyInstance, store: Store): void {
     return result;
   });
 
+  app.get("/v1/ai/recommendations/last-run/stale/export/presets", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = listAiRecommendStaleAuditExportPresets(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/ai/recommendations/last-run/stale/export/presets", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const body = (req.body ?? {}) as { name?: string; action?: string; since?: string; until?: string };
+    const result = upsertAiRecommendStaleAuditExportPreset(store, principal, body);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
   app.get("/v1/ai/recommendations/last-run/stale/export", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const query = req.query as { format?: string; action?: string; since?: string; until?: string };
+    const query = req.query as {
+      format?: string;
+      action?: string;
+      since?: string;
+      until?: string;
+      preset?: string;
+      presetId?: string;
+    };
     const result = await exportAiRecommendStaleSuppression(store, principal, query);
     if ("error" in result) return sendError(reply, result);
     return result;

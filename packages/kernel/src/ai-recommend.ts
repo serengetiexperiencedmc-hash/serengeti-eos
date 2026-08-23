@@ -91,6 +91,36 @@ export function sanitizeAiRecommendStaleAuditExportLastFilter(row: AiRecommendSt
   };
 }
 
+export type AiRecommendStaleAuditExportPreset = {
+  id: string;
+  tenantId: string;
+  name: string;
+  action?: "snooze" | "ack" | "cleared";
+  since?: string;
+  until?: string;
+  createdAt: string;
+  createdByPrincipalId: string;
+  updatedAt: string;
+};
+
+export function sanitizeAiRecommendStaleAuditExportPreset(row: AiRecommendStaleAuditExportPreset) {
+  return {
+    id: row.id,
+    name: row.name,
+    ...(row.action ? { action: row.action } : {}),
+    ...(row.since ? { since: row.since } : {}),
+    ...(row.until ? { until: row.until } : {}),
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
+
+export function normalizeAiRecommendStaleAuditExportPresetName(name?: string): string | null {
+  const trimmed = name?.trim().replace(/\s+/g, " ") ?? "";
+  if (!trimmed || trimmed.length > 80) return null;
+  return trimmed;
+}
+
 export function sanitizeAiRecommendLastRun(run: AiRecommendLastRun) {
   return {
     occurredAt: run.occurredAt,

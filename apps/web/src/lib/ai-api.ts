@@ -52,6 +52,16 @@ export type AiRecommendLastFilter = {
   updatedAt: string;
 };
 
+export type AiRecommendStaleAuditExportPreset = {
+  id: string;
+  name: string;
+  action?: "snooze" | "ack" | "cleared";
+  since?: string;
+  until?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type AiRecommendSuppression = {
   snoozedUntil?: string;
   acknowledgedAt?: string;
@@ -84,8 +94,24 @@ export async function getAiRecommendLastRun(token: string, key?: string) {
     suppression: AiRecommendSuppression | null;
     suppressed: boolean;
     lastFilter: AiRecommendLastFilter | null;
+    presets: AiRecommendStaleAuditExportPreset[];
     increment: string;
   }>(`/v1/ai/recommendations/last-run${q}`, { token });
+}
+
+export async function upsertAiRecommendStaleAuditExportPreset(
+  token: string,
+  input: { name: string; action?: string; since?: string; until?: string },
+) {
+  return eosFetch<{
+    preset: AiRecommendStaleAuditExportPreset;
+    presets: AiRecommendStaleAuditExportPreset[];
+    increment: string;
+  }>("/v1/ai/recommendations/last-run/stale/export/presets", {
+    token,
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
 
 export type AiRecommendStaleAudit = {
@@ -118,13 +144,15 @@ export async function exportAiRecommendLastRun(token: string, query?: { key?: st
 
 export async function exportAiRecommendStaleSuppression(
   token: string,
-  query?: { format?: "json" | "csv"; action?: string; since?: string; until?: string },
+  query?: { format?: "json" | "csv"; action?: string; since?: string; until?: string; preset?: string; presetId?: string },
 ) {
   const params = new URLSearchParams();
   params.set("format", query?.format ?? "csv");
   if (query?.action) params.set("action", query.action);
   if (query?.since) params.set("since", query.since);
   if (query?.until) params.set("until", query.until);
+  if (query?.preset) params.set("preset", query.preset);
+  if (query?.presetId) params.set("presetId", query.presetId);
   return eosFetch<{
     format: "json" | "csv";
     csv?: string;
@@ -134,6 +162,7 @@ export async function exportAiRecommendStaleSuppression(
     count: number;
     filter: { action: string | null; since: string | null; until: string | null };
     lastFilter: AiRecommendLastFilter;
+    preset: AiRecommendStaleAuditExportPreset | null;
     generatedAt: string;
     increment: string;
   }>(`/v1/ai/recommendations/last-run/stale/export?${params.toString()}`, { token });

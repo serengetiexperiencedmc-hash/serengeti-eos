@@ -9,13 +9,16 @@ import {
   formatAiRecommendStaleSuppressionAuditCsv,
   hasPermission,
   isAiRecommendStaleSuppressed,
+  normalizeAiRecommendStaleAuditExportPresetName,
   parseAiRecommendStaleAuditExportFilter,
   sanitizeAiRecommendLastRun,
   sanitizeAiRecommendStaleAuditExportLastFilter,
+  sanitizeAiRecommendStaleAuditExportPreset,
   sanitizeAiRecommendStaleSuppression,
   sanitizeAiRecommendStaleSuppressionAudit,
   type AiRecommendLastRun,
   type AiRecommendStaleAuditExportLastFilter,
+  type AiRecommendStaleAuditExportPreset,
   type AiRecommendStaleSuppression,
   type AiRecommendStaleSuppressionAudit,
   type AiRecommendSignal,
@@ -38,7 +41,7 @@ import {
   persistDeleteAiRecommendStaleSuppression,
 } from "../persistence/ai-recommend-stale-suppressions.js";
 
-const INCREMENT = "I20.17" as const;
+const INCREMENT = "I20.18" as const;
 
 function recommendStaleThresholdHours(): number {
   const raw = Number(process.env.EOS_AI_RECOMMEND_STALE_HOURS);
@@ -67,6 +70,42 @@ function findAiRecommendStaleAuditExportLastFilter(store: Store, principal: Prin
   return (
     store.aiRecommendStaleAuditExportLastFilters.find(
       (row) => row.tenantId === principal.tenantId && row.principalId === principal.id,
+    ) ?? null
+  );
+}
+
+function ensureAiRecommendStaleAuditExportPresets(store: Store): void {
+  if (!store.aiRecommendStaleAuditExportPresets) store.aiRecommendStaleAuditExportPresets = [];
+}
+
+function listTenantAiRecommendStaleAuditExportPresets(store: Store, tenantId: string) {
+  ensureAiRecommendStaleAuditExportPresets(store);
+  return store.aiRecommendStaleAuditExportPresets
+    .filter((row) => row.tenantId === tenantId)
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function sanitizedTenantPresets(store: Store, tenantId: string) {
+  return listTenantAiRecommendStaleAuditExportPresets(store, tenantId).map(sanitizeAiRecommendStaleAuditExportPreset);
+}
+
+function findAiRecommendStaleAuditExportPreset(
+  store: Store,
+  tenantId: string,
+  query: { presetId?: string; preset?: string },
+) {
+  ensureAiRecommendStaleAuditExportPresets(store);
+  const presetId = query.presetId?.trim();
+  if (presetId) {
+    return store.aiRecommendStaleAuditExportPresets.find((row) => row.tenantId === tenantId && row.id === presetId) ?? null;
+  }
+  const name = normalizeAiRecommendStaleAuditExportPresetName(query.preset);
+  if (!name) return null;
+  const lowered = name.toLowerCase();
+  return (
+    store.aiRecommendStaleAuditExportPresets.find(
+      (row) => row.tenantId === tenantId && row.name.toLowerCase() === lowered,
     ) ?? null
   );
 }
@@ -336,6 +375,7 @@ function lastRunView(store: Store, principal: Principal, key?: string) {
       const last = findAiRecommendStaleAuditExportLastFilter(store, principal);
       return last ? sanitizeAiRecommendStaleAuditExportLastFilter(last) : null;
     })(),
+    presets: sanitizedTenantPresets(store, principal.tenantId),
     increment: INCREMENT,
   };
 }
@@ -376,15 +416,91 @@ export function exportAiRecommendLastRun(
   return { ...viewed, format: "json" as const, generatedAt };
 }
 
+export function listAiRecommendStaleAuditExportPresets(store: Store, principal: Principal) {
+  const viewed = lastRunView(store, principal);
+  if ("error" in viewed) return viewed;
+  return { presets: viewed.presets, increment: INCREMENT };
+}
+
+export function upsertAiRecommendStaleAuditExportPreset(
+  store: Store,
+  principal: Principal,
+  input: { name?: string; action?: string; since?: string; until?: string } = {},
+) {
+  const decision = authorize({
+    principal,
+    permission: "ai:write:draft",
+    action: "write:ai_recommend_stale_audit_export_preset",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+  const name = normalizeAiRecommendStaleAuditExportPresetName(input.name);
+  if (!name) return { error: "invalid_request" as const, reason: "invalid_name" };
+  const parsed = parseAiRecommendStaleAuditExportFilter(input);
+  if ("error" in parsed) return { error: "invalid_request" as const, reason: parsed.error };
+  ensureAiRecommendStaleAuditExportPresets(store);
+  const now = new Date().toISOString();
+  const existing = findAiRecommendStaleAuditExportPreset(store, principal.tenantId, { preset: name });
+  const next: AiRecommendStaleAuditExportPreset = existing
+    ? {
+        ...existing,
+        name,
+        action: parsed.action ?? undefined,
+        since: parsed.since ?? undefined,
+        until: parsed.until ?? undefined,
+        updatedAt: now,
+      }
+    : {
+        id: crypto.randomUUID(),
+        tenantId: principal.tenantId,
+        name,
+        ...(parsed.action ? { action: parsed.action } : {}),
+        ...(parsed.since ? { since: parsed.since } : {}),
+        ...(parsed.until ? { until: parsed.until } : {}),
+        createdAt: now,
+        createdByPrincipalId: principal.id,
+        updatedAt: now,
+      };
+  if (!parsed.action) delete next.action;
+  if (!parsed.since) delete next.since;
+  if (!parsed.until) delete next.until;
+  const idx = existing
+    ? store.aiRecommendStaleAuditExportPresets.findIndex((row) => row.id === existing.id)
+    : -1;
+  if (idx >= 0) store.aiRecommendStaleAuditExportPresets[idx] = next;
+  else store.aiRecommendStaleAuditExportPresets.push(next);
+  return {
+    preset: sanitizeAiRecommendStaleAuditExportPreset(next),
+    presets: sanitizedTenantPresets(store, principal.tenantId),
+    increment: INCREMENT,
+  };
+}
+
 export async function exportAiRecommendStaleSuppression(
   store: Store,
   principal: Principal,
-  query?: { format?: string; action?: string; since?: string; until?: string },
+  query?: { format?: string; action?: string; since?: string; until?: string; preset?: string; presetId?: string },
 ) {
   if (query?.format && query.format !== "json" && query.format !== "csv") {
     return { error: "invalid_request" as const, reason: "invalid_format" };
   }
-  const parsed = parseAiRecommendStaleAuditExportFilter(query);
+  const presetId = query?.presetId?.trim();
+  const presetName = query?.preset?.trim();
+  let preset: AiRecommendStaleAuditExportPreset | null = null;
+  if (presetId || presetName) {
+    if (presetName && !presetId && !normalizeAiRecommendStaleAuditExportPresetName(presetName)) {
+      return { error: "invalid_request" as const, reason: "invalid_name" };
+    }
+    preset = findAiRecommendStaleAuditExportPreset(store, principal.tenantId, {
+      ...(presetId ? { presetId } : {}),
+      ...(presetName ? { preset: presetName } : {}),
+    });
+    if (!preset) return { error: "not_found" as const, reason: "preset_not_found" };
+  }
+  const parsed = parseAiRecommendStaleAuditExportFilter({
+    action: query?.action || preset?.action,
+    since: query?.since || preset?.since,
+    until: query?.until || preset?.until,
+  });
   if ("error" in parsed) return { error: "invalid_request" as const, reason: parsed.error };
   const viewed = lastRunView(store, principal);
   if ("error" in viewed) return viewed;
@@ -410,6 +526,7 @@ export async function exportAiRecommendStaleSuppression(
       count: audits.length,
       filter,
       lastFilter,
+      preset: preset ? sanitizeAiRecommendStaleAuditExportPreset(preset) : null,
       generatedAt,
       increment: INCREMENT,
     };
@@ -422,6 +539,7 @@ export async function exportAiRecommendStaleSuppression(
     count: audits.length,
     filter,
     lastFilter,
+    preset: preset ? sanitizeAiRecommendStaleAuditExportPreset(preset) : null,
     generatedAt,
     increment: INCREMENT,
   };
