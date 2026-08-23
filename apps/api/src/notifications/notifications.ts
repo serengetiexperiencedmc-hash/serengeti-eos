@@ -11,6 +11,7 @@ import { persistNotifDismissal } from "../persistence/notifications.js";
 import { ensureNotificationCollections } from "./collections.js";
 import { resolveEmailAdapterName } from "./email-config.js";
 import { digestLastRunFreshness } from "./digest-freshness.js";
+import { isDlqSlaDigestStaleSuppressed } from "./dlq-sla-digest.js";
 
 function isDismissed(store: Store, principalId: string, key: string): boolean {
   return store.notifDismissals.some((d) => d.principalId === principalId && d.notificationKey === key);
@@ -141,7 +142,7 @@ export function buildLiveNotifications(store: Store, principal: Principal): Noti
     const lastRun =
       (store.notifDlqSlaDigestLastRuns ?? []).find((r) => r.tenantId === tenantId) ?? null;
     const freshness = digestLastRunFreshness(lastRun?.lastRunAt);
-    if (freshness.stale) {
+    if (freshness.stale && !isDlqSlaDigestStaleSuppressed(store, tenantId)) {
       const day = now.slice(0, 10);
       items.push({
         key: `dlq-sla-digest-stale:${day}`,
@@ -183,6 +184,28 @@ export function buildLiveNotifications(store: Store, principal: Principal): Noti
         body: `${entry.email} · awaiting second-principal approval`,
         href: "/commercial/notifications",
         createdAt: entry.sesNotedAt ?? entry.createdAt,
+      });
+    }
+
+    const allowlistLastRun =
+      (store.notifAllowlistDualDigestLastRuns ?? []).find((r) => r.tenantId === tenantId) ?? null;
+    const allowlistFreshness = digestLastRunFreshness(
+      allowlistLastRun?.lastRunAt,
+      Date.now(),
+      "EOS_ALLOWLIST_DUAL_DIGEST_STALE_HOURS",
+    );
+    if (allowlistFreshness.stale) {
+      const day = now.slice(0, 10);
+      items.push({
+        key: `allowlist-dual-digest-stale:${day}`,
+        category: "approval",
+        severity: "urgent",
+        title: allowlistFreshness.neverRun ? "Allowlist dual digest never run" : "Allowlist dual digest stale",
+        body: allowlistFreshness.neverRun
+          ? `No last-run stamp (threshold ${allowlistFreshness.thresholdHours}h)`
+          : `${allowlistFreshness.ageHours ?? "?"}h since last run (threshold ${allowlistFreshness.thresholdHours}h)`,
+        href: "/commercial/notifications",
+        createdAt: allowlistLastRun?.lastRunAt ?? now,
       });
     }
   }

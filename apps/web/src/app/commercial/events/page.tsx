@@ -17,6 +17,8 @@ import {
   exportDlqSlaDigestLastRun,
   dispatchDlqSlaDigest,
   dispatchDlqSlaDigestStaleAlert,
+  snoozeDlqSlaDigestStale,
+  acknowledgeDlqSlaDigestStale,
   type DeadLetterItem,
   type DigestFreshness,
   type DlqSlaDigestLastRun,
@@ -333,6 +335,46 @@ export default function EventsInfrastructurePage() {
                 }}
               >
                 Escalate stale digest
+              </Btn>
+              <Btn
+                variant="secondary"
+                disabled={busy || !digestFreshness?.stale}
+                onClick={() => {
+                  void (async () => {
+                    setBusy(true);
+                    try {
+                      await snoozeDlqSlaDigestStale(token, 24);
+                      setMsg("Stale digest snoozed 24h");
+                      await reload();
+                    } catch (err) {
+                      setMsg(err instanceof Error ? err.message : "Snooze failed");
+                    } finally {
+                      setBusy(false);
+                    }
+                  })();
+                }}
+              >
+                Snooze stale 24h
+              </Btn>
+              <Btn
+                variant="secondary"
+                disabled={busy || !digestFreshness?.stale}
+                onClick={() => {
+                  void (async () => {
+                    setBusy(true);
+                    try {
+                      await acknowledgeDlqSlaDigestStale(token);
+                      setMsg("Stale digest acknowledged");
+                      await reload();
+                    } catch (err) {
+                      setMsg(err instanceof Error ? err.message : "Ack failed");
+                    } finally {
+                      setBusy(false);
+                    }
+                  })();
+                }}
+              >
+                Ack stale digest
               </Btn>
             </div>
           )}

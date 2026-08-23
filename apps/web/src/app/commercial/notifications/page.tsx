@@ -28,6 +28,7 @@ import {
   approveSesNotedAllowlist,
   exportEmailAllowlist,
   dispatchAllowlistDualDigest,
+  dispatchAllowlistDualDigestStaleAlert,
   getAllowlistDualDigestStatus,
   type DigestLastRun,
   type EmailDeliveryAnalytics,
@@ -452,6 +453,25 @@ export default function NotificationsPage() {
           )}
           {token && (
             <div className="mb-3 flex flex-wrap gap-2">
+              <Btn
+                variant="secondary"
+                size="sm"
+                disabled={!allowlistDigest?.freshness?.stale}
+                onClick={() =>
+                  void dispatchAllowlistDualDigestStaleAlert(token)
+                    .then((res) => {
+                      setSyncMsg(
+                        res.dispatched.length > 0
+                          ? `Stale allowlist digest alert: ${res.dispatched.length} sent`
+                          : `Stale allowlist alert skipped (${res.skipped[0]?.reason ?? "none"})`,
+                      );
+                      return reload();
+                    })
+                    .catch((err) => setError(err instanceof Error ? err.message : "Stale alert failed"))
+                }
+              >
+                Escalate stale digest
+              </Btn>
               <Btn
                 variant="secondary"
                 size="sm"

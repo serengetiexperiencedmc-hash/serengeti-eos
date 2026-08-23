@@ -267,6 +267,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       seasonLabel?: string;
       seasonId?: string;
       format?: string;
+      view?: string;
     };
     const result = exportSupplierRateConflictHeatmap(store, principal, {
       ...(query.supplierId ? { supplierId: query.supplierId } : {}),
@@ -276,6 +277,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       ...(query.seasonLabel ? { seasonLabel: query.seasonLabel } : {}),
       ...(query.seasonId ? { seasonId: query.seasonId } : {}),
       format: query.format === "csv" ? "csv" : "json",
+      view: query.view === "suppliers" ? "suppliers" : "cells",
     });
     if ("error" in result) return sendSupplierError(reply, result);
     return result;

@@ -548,7 +548,7 @@ function SupplierDetailDrawer({
               )}
               {calendar && (
                 <div className="mb-3 rounded-md border border-line bg-ivory p-3">
-                  <div className="mb-2 text-xs uppercase tracking-wide text-muted">Rate calendar (PG.25)</div>
+                  <div className="mb-2 text-xs uppercase tracking-wide text-muted">Rate calendar (PG.26)</div>
                   <div className="mb-2 grid grid-cols-2 gap-2">
                     <input
                       type="date"
@@ -893,6 +893,31 @@ export default function SuppliersPage() {
         actions={
           token ? (
             <>
+              <Btn
+                variant="secondary"
+                onClick={() => {
+                  void exportSupplierRateConflictHeatmap(token, {
+                    format: "csv",
+                    view: "suppliers",
+                    from: "2026-01-01",
+                    to: "2026-12-31",
+                  })
+                    .then((res) => {
+                      const blob = new Blob([res.csv ?? ""], { type: "text/csv" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `heatmap-supplier-rollup-${res.generatedAt.slice(0, 10)}.csv`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    })
+                    .catch((err) =>
+                      setError(err instanceof EosApiError ? err.message : "Failed to export heatmap rollup"),
+                    );
+                }}
+              >
+                Export heatmap rollup
+              </Btn>
               <Btn variant="secondary" onClick={() => setImportOpen(true)}>
                 Import CSV
               </Btn>

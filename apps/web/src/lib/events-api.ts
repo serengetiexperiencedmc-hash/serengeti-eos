@@ -232,6 +232,20 @@ export async function dispatchDlqSlaDigest(token: string) {
   }>("/v1/notifications/email/dispatch-dlq-sla-digest", { token, method: "POST", body: "{}" });
 }
 
+export async function snoozeDlqSlaDigestStale(token: string, hours = 24) {
+  return eosFetch<{ suppression: { snoozedUntil?: string; acknowledgedAt?: string }; increment: string }>(
+    "/v1/notifications/email/dlq-sla-digest-stale/snooze",
+    { token, method: "POST", body: JSON.stringify({ hours }) },
+  );
+}
+
+export async function acknowledgeDlqSlaDigestStale(token: string) {
+  return eosFetch<{ suppression: { snoozedUntil?: string; acknowledgedAt?: string }; increment: string }>(
+    "/v1/notifications/email/dlq-sla-digest-stale/ack",
+    { token, method: "POST", body: "{}" },
+  );
+}
+
 export async function dispatchDlqSlaDigestStaleAlert(token: string) {
   return eosFetch<{
     dispatched: string[];

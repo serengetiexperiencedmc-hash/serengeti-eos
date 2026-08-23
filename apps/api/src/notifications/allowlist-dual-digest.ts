@@ -86,7 +86,7 @@ export async function dispatchAllowlistDualDigest(store: Store, principal: Princ
       pendingCount: 0,
       recipientCount: recipients.length,
       lastRun,
-      increment: "I3.25" as const,
+      increment: "I3.26" as const,
     };
   }
 
@@ -133,7 +133,7 @@ export async function dispatchAllowlistDualDigest(store: Store, principal: Princ
     pendingCount: pending.length,
     recipientCount: recipients.length,
     lastRun,
-    increment: "I3.25" as const,
+    increment: "I3.26" as const,
   };
 }
 
@@ -168,6 +168,79 @@ export function getAllowlistDualDigestStatus(store: Store, principal: Principal)
       outboxByStatus: byStatus,
     },
     freshness: digestLastRunFreshness(lastRun?.lastRunAt, Date.now(), "EOS_ALLOWLIST_DUAL_DIGEST_STALE_HOURS"),
-    increment: "I3.25" as const,
+    increment: "I3.26" as const,
+  };
+}
+
+/** I3.26 — email escalation when allowlist dual digest last-run is stale / never-run. */
+export async function dispatchAllowlistDualDigestStaleAlert(store: Store, principal: Principal) {
+  const dispatchAuth = authorize({
+    principal,
+    permission: "notification:dispatch:email",
+    action: "dispatch:allowlist_dual_digest_stale",
+  });
+  if (dispatchAuth.result === "deny") {
+    return { error: "forbidden" as const, reason: dispatchAuth.reason };
+  }
+
+  const status = getAllowlistDualDigestStatus(store, principal);
+  if ("error" in status) return status;
+
+  ensureNotificationCollections(store);
+  const recipients = resolveAllowlistDualDigestRecipientEmails(store, principal);
+  if (recipients.length === 0) {
+    return { error: "invalid_request" as const, reason: "no_digest_recipients" };
+  }
+
+  const day = new Date().toISOString().slice(0, 10);
+  const adapter = createEmailAdapter(store, principal);
+  const inboxKey = `allowlist-dual-digest-stale:${day}`;
+
+  if (!status.freshness.stale) {
+    return {
+      dispatched: [] as string[],
+      skipped: [{ key: inboxKey, reason: "not_stale" }],
+      adapter: adapter.name,
+      freshness: status.freshness,
+      inboxKey,
+      increment: "I3.26" as const,
+    };
+  }
+
+  const age = status.freshness.neverRun
+    ? "never run"
+    : `${status.freshness.ageHours ?? "?"}h old (threshold ${status.freshness.thresholdHours}h)`;
+  const subject = `[EOS URGENT] Allowlist dual digest stale — ${age}`;
+  const bodyText = [
+    "The allowlist dual-control digest last-run is stale.",
+    "",
+    `Status: ${status.freshness.neverRun ? "never run" : `last run ${status.lastRun?.lastRunAt}`}`,
+    `Age: ${age}`,
+    "",
+    "Dispatch the digest or check /commercial/notifications.",
+  ].join("\n");
+
+  const dispatched: string[] = [];
+  const skipped: { key: string; reason?: string; to?: string }[] = [];
+  for (const email of recipients) {
+    const key = `allowlist-dual-digest-stale:${day}:${email}`;
+    const result = await adapter.send({
+      to: email,
+      subject,
+      bodyText,
+      notificationKey: key,
+      templateKey: "notif.approval.allowlist_dual_digest_stale",
+    });
+    if (result.status === "sent") dispatched.push(key);
+    else skipped.push({ key, reason: result.reason, to: email });
+  }
+
+  return {
+    dispatched,
+    skipped,
+    adapter: adapter.name,
+    freshness: status.freshness,
+    inboxKey,
+    increment: "I3.26" as const,
   };
 }

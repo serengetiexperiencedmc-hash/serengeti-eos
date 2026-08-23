@@ -56,7 +56,7 @@ describe("I4.17 DLQ SLA digest recipients", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(first.statusCode).toBe(200);
-    expect(first.json().increment).toBe("I4.23");
+    expect(first.json().increment).toBe("I4.24");
     expect(first.json().recipientCount).toBe(2);
     expect(first.json().dispatched).toHaveLength(2);
     expect(first.json().dispatched.every((k: string) => /^dlq-sla-digest:\d{4}-\d{2}-\d{2}:/.test(k))).toBe(true);

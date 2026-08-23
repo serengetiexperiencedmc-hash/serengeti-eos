@@ -102,6 +102,15 @@ export type NotifDlqSlaDigestRecipient = {
   revokedAt?: string;
 };
 
+/** I4.24 — tenant-level snooze/ack for stale DLQ SLA digest inbox. */
+export type NotifDlqSlaDigestStaleSuppression = {
+  tenantId: string;
+  acknowledgedAt?: string;
+  snoozedUntil?: string;
+  updatedAt: string;
+  updatedByPrincipalId: string;
+};
+
 /** I4.19/I4.20 — last DLQ SLA digest dispatch stamp (per tenant). */
 export type NotifDlqSlaDigestLastRun = {
   tenantId: string;

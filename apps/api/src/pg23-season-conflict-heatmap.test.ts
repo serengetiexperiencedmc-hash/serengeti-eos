@@ -71,7 +71,7 @@ describe("PG.23 season calendar conflict heatmap", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(calendar.statusCode).toBe(200);
-    expect(calendar.json().increment).toBe("PG.25");
+    expect(calendar.json().increment).toBe("PG.26");
     expect(calendar.json().heatmap.maxConflictCount).toBeGreaterThanOrEqual(1);
     expect(calendar.json().heatmap.months.some((m: { month: string }) => m.month === "2026-07")).toBe(true);
     expect(calendar.json().heatmap.seasons.map((s: { label: string }) => s.label).sort()).toEqual([
@@ -90,7 +90,7 @@ describe("PG.23 season calendar conflict heatmap", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(heatmap.statusCode).toBe(200);
-    expect(heatmap.json().increment).toBe("PG.25");
+    expect(heatmap.json().increment).toBe("PG.26");
     expect(heatmap.json().conflictCount).toBe(1);
     expect(heatmap.json().heatmap.months.find((m: { month: string }) => m.month === "2026-07").conflictCount).toBe(1);
 

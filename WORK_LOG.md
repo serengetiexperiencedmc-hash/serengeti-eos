@@ -438,11 +438,22 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **I3.25** | Allowlist dual digest last-run freshness SLA |
 | **I4.23** | Stale DLQ digest inbox item + email escalation |
 
+### 31:xx — PG.26 + I3.26 + I4.24 ✅
+
+**Shipped:** server `0.64.0-pg26-i3.26-i4.24`
+
+| Increment | Change |
+| --- | --- |
+| **Preview** | Demo seed creates catalogue seasons so rate import no longer dies (`season_not_found`) |
+| **PG.26** | Heatmap supplier rollup + multi-supplier export (`view=suppliers`) |
+| **I3.26** | Allowlist dual digest stale inbox + email escalation |
+| **I4.24** | Stale DLQ digest snooze / ack |
+
 ### Recommended next increments
 
-1. PG.26 — heatmap supplier rollup / multi-supplier export
-2. I3.26 — persist allowlist freshness alert / stale inbox (mirror I4.23)
-3. I4.24 — stale-digest snooze / ack
+1. PG.27 — heatmap rollup persist / season catalogue export
+2. I3.27 — allowlist stale snooze / ack (mirror I4.24)
+3. I4.25 — persist stale-digest suppression to Postgres
 
 ### Issues resolved
 

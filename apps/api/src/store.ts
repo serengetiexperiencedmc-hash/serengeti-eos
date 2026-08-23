@@ -83,6 +83,7 @@ import {
   type NotifEmailAllowlistEntry,
   type NotifDlqSlaDigestRecipient,
   type NotifDlqSlaDigestLastRun,
+  type NotifDlqSlaDigestStaleSuppression,
   type NotifAllowlistDualDigestRecipient,
   type NotifAllowlistDualDigestLastRun,
   type EmailTemplate,
@@ -211,6 +212,8 @@ export type Store = {
   notifDlqSlaDigestRecipients: NotifDlqSlaDigestRecipient[];
   /** I4.19 — last DLQ SLA digest run per tenant. */
   notifDlqSlaDigestLastRuns: NotifDlqSlaDigestLastRun[];
+  /** I4.24 — snooze/ack for stale DLQ SLA digest inbox. */
+  notifDlqSlaDigestStaleSuppressions: NotifDlqSlaDigestStaleSuppression[];
   /** I3.22 — allowlist dual-control digest ops aliases. */
   notifAllowlistDualDigestRecipients: NotifAllowlistDualDigestRecipient[];
   /** I3.23 — last allowlist dual-control digest run per tenant. */
@@ -831,6 +834,7 @@ export function seedStore(
     notifEmailAllowlist: [],
     notifDlqSlaDigestRecipients: [],
     notifDlqSlaDigestLastRuns: [],
+    notifDlqSlaDigestStaleSuppressions: [],
     notifAllowlistDualDigestRecipients: [],
     notifAllowlistDualDigestLastRuns: [],
     natsConsumerOffsets: [],

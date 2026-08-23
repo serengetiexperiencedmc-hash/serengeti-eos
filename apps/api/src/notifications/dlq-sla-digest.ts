@@ -1,4 +1,4 @@
-import { authorize, type NotifDlqSlaDigestLastRun, type Principal } from "@sedmc/kernel";
+import { authorize, type NotifDlqSlaDigestLastRun, type NotifDlqSlaDigestStaleSuppression, type Principal } from "@sedmc/kernel";
 import type { Store } from "../store.js";
 import { listDeadLetters } from "../outbox.js";
 import { createEmailAdapter } from "./email.js";
@@ -33,7 +33,43 @@ function stampLastRun(
   if (idx >= 0) store.notifDlqSlaDigestLastRuns[idx] = run;
   else store.notifDlqSlaDigestLastRuns.push(run);
   void persistNotifDlqSlaDigestLastRun(store.dbPool, run);
+  store.notifDlqSlaDigestStaleSuppressions = (store.notifDlqSlaDigestStaleSuppressions ?? []).filter(
+    (s) => s.tenantId !== principal.tenantId,
+  );
   return run;
+}
+
+export function getDlqSlaDigestStaleSuppression(store: Store, tenantId: string) {
+  return (store.notifDlqSlaDigestStaleSuppressions ?? []).find((s) => s.tenantId === tenantId) ?? null;
+}
+
+export function isDlqSlaDigestStaleSuppressed(store: Store, tenantId: string, nowMs = Date.now()) {
+  const suppression = getDlqSlaDigestStaleSuppression(store, tenantId);
+  if (!suppression) return false;
+  if (suppression.acknowledgedAt) return true;
+  if (suppression.snoozedUntil && new Date(suppression.snoozedUntil).getTime() > nowMs) return true;
+  return false;
+}
+
+function upsertStaleSuppression(
+  store: Store,
+  principal: Principal,
+  patch: Partial<Pick<NotifDlqSlaDigestStaleSuppression, "acknowledgedAt" | "snoozedUntil">>,
+) {
+  ensureNotificationCollections(store);
+  const now = new Date().toISOString();
+  const existing = getDlqSlaDigestStaleSuppression(store, principal.tenantId);
+  const next: NotifDlqSlaDigestStaleSuppression = {
+    tenantId: principal.tenantId,
+    ...existing,
+    ...patch,
+    updatedAt: now,
+    updatedByPrincipalId: principal.id,
+  };
+  const idx = (store.notifDlqSlaDigestStaleSuppressions ?? []).findIndex((s) => s.tenantId === principal.tenantId);
+  if (idx >= 0) store.notifDlqSlaDigestStaleSuppressions[idx] = next;
+  else store.notifDlqSlaDigestStaleSuppressions.push(next);
+  return next;
 }
 
 /**
@@ -89,7 +125,7 @@ export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
       thresholdHours: listed.sla.thresholdHours,
       recipientCount: recipients.length,
       lastRun,
-      increment: "I4.23" as const,
+      increment: "I4.24" as const,
     };
   }
 
@@ -137,7 +173,7 @@ export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
     thresholdHours: listed.sla.thresholdHours,
     recipientCount: recipients.length,
     lastRun,
-    increment: "I4.23" as const,
+    increment: "I4.24" as const,
   };
 }
 
@@ -172,7 +208,8 @@ export function getDlqSlaDigestStatus(store: Store, principal: Principal) {
       outboxByStatus: byStatus,
     },
     freshness: digestLastRunFreshness(lastRun?.lastRunAt),
-    increment: "I4.23" as const,
+    suppression: getDlqSlaDigestStaleSuppression(store, principal.tenantId),
+    increment: "I4.24" as const,
   };
 }
 
@@ -245,7 +282,7 @@ export function exportDlqSlaDigestLastRun(
       analytics: status.analytics,
       freshness: status.freshness,
       generatedAt,
-      increment: "I4.23" as const,
+      increment: "I4.24" as const,
     };
   }
 
@@ -256,7 +293,7 @@ export function exportDlqSlaDigestLastRun(
     freshness: status.freshness,
     row,
     generatedAt,
-    increment: "I4.23" as const,
+    increment: "I4.24" as const,
   };
 }
 
@@ -291,7 +328,25 @@ export async function dispatchDlqSlaDigestStaleAlert(store: Store, principal: Pr
       adapter: adapter.name,
       freshness: status.freshness,
       inboxKey,
-      increment: "I4.23" as const,
+      increment: "I4.24" as const,
+    };
+  }
+
+  if (isDlqSlaDigestStaleSuppressed(store, principal.tenantId)) {
+    const suppression = getDlqSlaDigestStaleSuppression(store, principal.tenantId);
+    return {
+      dispatched: [] as string[],
+      skipped: [
+        {
+          key: `dlq-sla-digest-stale:${day}`,
+          reason: suppression?.acknowledgedAt ? "acknowledged" : "snoozed",
+        },
+      ],
+      adapter: adapter.name,
+      freshness: status.freshness,
+      suppression,
+      inboxKey,
+      increment: "I4.24" as const,
     };
   }
 
@@ -329,6 +384,47 @@ export async function dispatchDlqSlaDigestStaleAlert(store: Store, principal: Pr
     adapter: adapter.name,
     freshness: status.freshness,
     inboxKey,
-    increment: "I4.23" as const,
+    increment: "I4.24" as const,
   };
+}
+
+/** I4.24 — snooze stale-digest inbox / email escalation. */
+export function snoozeDlqSlaDigestStale(store: Store, principal: Principal, input: { hours?: number } = {}) {
+  const decision = authorize({
+    principal,
+    permission: "notification:dispatch:email",
+    action: "snooze:dlq_sla_digest_stale",
+  });
+  if (decision.result === "deny") {
+    return { error: "forbidden" as const, reason: decision.reason };
+  }
+  const hours = Number(input.hours ?? 24);
+  if (!Number.isFinite(hours) || hours <= 0) {
+    return { error: "invalid_request" as const, reason: "invalid_hours" };
+  }
+  ensureNotificationCollections(store);
+  const snoozedUntil = new Date(Date.now() + hours * 3_600_000).toISOString();
+  const suppression = upsertStaleSuppression(store, principal, {
+    snoozedUntil,
+    acknowledgedAt: undefined,
+  });
+  return { suppression, increment: "I4.24" as const };
+}
+
+/** I4.24 — acknowledge stale-digest inbox until the next last-run stamp. */
+export function acknowledgeDlqSlaDigestStale(store: Store, principal: Principal) {
+  const decision = authorize({
+    principal,
+    permission: "notification:dispatch:email",
+    action: "ack:dlq_sla_digest_stale",
+  });
+  if (decision.result === "deny") {
+    return { error: "forbidden" as const, reason: decision.reason };
+  }
+  ensureNotificationCollections(store);
+  const suppression = upsertStaleSuppression(store, principal, {
+    acknowledgedAt: new Date().toISOString(),
+    snoozedUntil: undefined,
+  });
+  return { suppression, increment: "I4.24" as const };
 }

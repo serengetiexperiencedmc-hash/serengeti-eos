@@ -9,6 +9,7 @@ export function ensureNotificationCollections(store: Store): void {
   if (!store.notifEmailAllowlist) store.notifEmailAllowlist = [];
   if (!store.notifDlqSlaDigestRecipients) store.notifDlqSlaDigestRecipients = [];
   if (!store.notifDlqSlaDigestLastRuns) store.notifDlqSlaDigestLastRuns = [];
+  if (!store.notifDlqSlaDigestStaleSuppressions) store.notifDlqSlaDigestStaleSuppressions = [];
   if (!store.notifAllowlistDualDigestRecipients) store.notifAllowlistDualDigestRecipients = [];
   if (!store.notifAllowlistDualDigestLastRuns) store.notifAllowlistDualDigestLastRuns = [];
 }

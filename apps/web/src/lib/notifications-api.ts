@@ -99,6 +99,15 @@ export async function dispatchAllowlistDualDigest(token: string) {
   }>("/v1/notifications/email/dispatch-allowlist-dual-digest", { token, method: "POST", body: "{}" });
 }
 
+export async function dispatchAllowlistDualDigestStaleAlert(token: string) {
+  return eosFetch<{
+    dispatched: string[];
+    skipped: { key: string; reason?: string }[];
+    freshness: DigestFreshness;
+    increment: string;
+  }>("/v1/notifications/email/dispatch-allowlist-dual-digest-stale", { token, method: "POST", body: "{}" });
+}
+
 export async function getAllowlistDualDigestStatus(token: string) {
   return eosFetch<{
     lastRun: DigestLastRun | null;

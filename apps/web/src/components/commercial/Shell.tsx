@@ -73,7 +73,10 @@ export function Sidebar() {
           <div key={section.section} className="mb-6">
             <div className="mb-2 px-3 text-[0.65rem] uppercase tracking-wider text-muted">{section.section}</div>
             {section.items.map((item) => {
-              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const path = (pathname ?? "").replace(/\/$/, "") || "/";
+              const active =
+                mounted &&
+                (path === item.href || (item.href !== "/commercial" && path.startsWith(`${item.href}/`)));
               const badge = mounted ? badgeValue(badges, "badgeKey" in item ? item.badgeKey : undefined) : undefined;
               return (
                 <Link
@@ -100,7 +103,7 @@ export function Sidebar() {
       <div className="border-t border-white/10 px-5 py-4 text-xs text-muted">
         Serengeti Experience DMC
         <br />
-        v0.55 · Dev/Test
+        v0.64 · Dev/Test
       </div>
     </aside>
   );
@@ -138,7 +141,7 @@ export function Topbar() {
 export function MockupBanner() {
   return (
     <div className="bg-gold py-1.5 text-center text-[0.7rem] font-semibold uppercase tracking-wide text-ink">
-      Serengeti EOS · C1–C10 · O1–O4 · I3.5 · I4.2 · PG.3+ · J1–J2
+      Serengeti EOS · C1–C10 · O1–O4 · I3.26 · I4.24 · PG.26 · J1–J2
     </div>
   );
 }

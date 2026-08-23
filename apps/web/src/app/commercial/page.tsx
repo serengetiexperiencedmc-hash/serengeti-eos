@@ -20,10 +20,22 @@ const activityIcons: Record<string, string> = {
   proposal_discussion: "📄",
 };
 
+function timeOfDayGreeting(now = new Date()): string {
+  const hour = now.getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
 export default function CommercialDashboardPage() {
   const { token, ready } = useEosSession();
   const [live, setLive] = useState<CommercialLiveStats | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [greeting, setGreeting] = useState("Welcome");
+
+  useEffect(() => {
+    setGreeting(timeOfDayGreeting());
+  }, []);
 
   useEffect(() => {
     if (!token) {
@@ -95,7 +107,7 @@ export default function CommercialDashboardPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Good afternoon"
+        eyebrow={greeting}
         title="Commercial Dashboard"
         subtitle={
           token && live

@@ -157,6 +157,26 @@ export async function seedDemoCommercialData(
     readCsv("docs/c4/import/supplier-contacts.csv"),
     "demo-seed-supplier-contacts",
   );
+
+  const authHeaders = { authorization: `Bearer ${token}` };
+  const demoSeasons = [
+    { seasonCode: "HIGH-2025", label: "High Season 2025", validFrom: "2025-07-01", validTo: "2025-10-31" },
+    { seasonCode: "LOW-2025", label: "Low Season 2025", validFrom: "2025-11-01", validTo: "2026-06-30" },
+    { seasonCode: "STD-2025", label: "Standard 2025", validFrom: "2025-01-01", validTo: "2025-12-31" },
+    { seasonCode: "YR-2025", label: "Year-round 2025", validFrom: "2025-01-01", validTo: "2025-12-31" },
+  ];
+  for (const season of demoSeasons) {
+    const created = await app.inject({
+      method: "POST",
+      url: "/v1/suppliers/seasons",
+      headers: authHeaders,
+      payload: season,
+    });
+    if (created.statusCode !== 201 && created.statusCode !== 409) {
+      throw new Error(`demo_season_failed:${season.seasonCode}:${created.statusCode}:${created.body}`);
+    }
+  }
+
   await runImportBatch(
     app,
     token,
@@ -223,7 +243,6 @@ export async function seedDemoCommercialData(
     { email: "sophie.braun@europeanpharma.example.de", orgName: "European Pharma AG" },
   ];
 
-  const authHeaders = { authorization: `Bearer ${token}` };
   for (const link of links) {
     const contact = contactByEmail.get(link.email.toLowerCase());
     const org = orgByName.get(link.orgName);

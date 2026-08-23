@@ -401,6 +401,7 @@ export function getSupplierRateCalendar(
   if (query.unresolvedOnly) conflicts = conflicts.filter((c) => !c.resolved);
   conflicts = conflicts.filter((c) => conflictMatchesSeason(c, query, catalogue));
   const heatmap = buildConflictHeatmap(conflicts, query.from, query.to);
+  heatmap.suppliers = buildSupplierHeatmapRollup(store, principal.tenantId, conflicts);
   return {
     from: query.from,
     to: query.to,
@@ -415,7 +416,7 @@ export function getSupplierRateCalendar(
       ...(query.seasonLabel ? { seasonLabel: query.seasonLabel } : {}),
       ...(query.seasonId ? { seasonId: query.seasonId } : {}),
     },
-    increment: "PG.25" as const,
+    increment: "PG.26" as const,
   };
 }
 
@@ -526,6 +527,7 @@ export function getSupplierRateConflicts(
   const windowTo = query.to ?? (conflicts.length ? maxDate(conflicts.map((c) => c.overlapTo)) : undefined);
   const heatmap =
     windowFrom && windowTo ? buildConflictHeatmap(conflicts, windowFrom, windowTo) : emptyHeatmap();
+  heatmap.suppliers = buildSupplierHeatmapRollup(store, principal.tenantId, conflicts);
 
   return {
     conflicts,
@@ -537,7 +539,7 @@ export function getSupplierRateConflicts(
       ...(query.seasonLabel ? { seasonLabel: query.seasonLabel } : {}),
       ...(query.seasonId ? { seasonId: query.seasonId } : {}),
     },
-    increment: "PG.25" as const,
+    increment: "PG.26" as const,
   };
 }
 
@@ -549,6 +551,14 @@ function maxDate(values: string[]): string {
   return values.reduce((max, v) => (v > max ? v : max));
 }
 
+type HeatmapSupplierRollup = {
+  supplierId: string;
+  supplierCode: string;
+  legalName: string;
+  conflictCount: number;
+  unresolvedCount: number;
+};
+
 function emptyHeatmap() {
   return {
     months: [] as Array<{ month: string; conflictCount: number; unresolvedCount: number }>,
@@ -559,8 +569,36 @@ function emptyHeatmap() {
       conflictCount: number;
       unresolvedCount: number;
     }>,
+    suppliers: [] as HeatmapSupplierRollup[],
     maxConflictCount: 0,
   };
+}
+
+function buildSupplierHeatmapRollup(
+  store: Store,
+  tenantId: string,
+  conflicts: Array<{ supplierId: string; resolved: boolean }>,
+): HeatmapSupplierRollup[] {
+  const map = new Map<string, HeatmapSupplierRollup>();
+  for (const conflict of conflicts) {
+    const existing = map.get(conflict.supplierId);
+    if (existing) {
+      existing.conflictCount += 1;
+      existing.unresolvedCount += conflict.resolved ? 0 : 1;
+      continue;
+    }
+    const supplier = store.supSuppliers.find((s) => s.id === conflict.supplierId && s.tenantId === tenantId);
+    map.set(conflict.supplierId, {
+      supplierId: conflict.supplierId,
+      supplierCode: supplier?.supplierCode ?? "",
+      legalName: supplier?.legalName ?? "",
+      conflictCount: 1,
+      unresolvedCount: conflict.resolved ? 0 : 1,
+    });
+  }
+  return [...map.values()].sort(
+    (a, b) => b.conflictCount - a.conflictCount || a.supplierCode.localeCompare(b.supplierCode),
+  );
 }
 
 function eachMonth(from: string, to: string): string[] {
@@ -633,7 +671,7 @@ function buildConflictHeatmap(
   );
   const maxConflictCount = months.reduce((max, m) => Math.max(max, m.conflictCount), 0);
 
-  return { months, seasons, cells, maxConflictCount };
+  return { months, seasons, cells, suppliers: [] as HeatmapSupplierRollup[], maxConflictCount };
 }
 
 /** PG.23 — dedicated heatmap endpoint (same filters as conflicts). */
@@ -651,7 +689,7 @@ export function getSupplierRateConflictHeatmap(
     conflictCount: listed.count,
     unresolvedCount: listed.unresolvedCount,
     filters: listed.filters,
-    increment: "PG.25" as const,
+    increment: "PG.26" as const,
   };
 }
 
@@ -660,7 +698,7 @@ function csvEscape(value: string): string {
   return value;
 }
 
-/** PG.25 — CSV/JSON export of heatmap cells (same filters as conflicts). */
+/** PG.26 — CSV/JSON export of heatmap cells or supplier rollup (same filters as conflicts). */
 export function exportSupplierRateConflictHeatmap(
   store: Store,
   principal: Principal,
@@ -672,6 +710,7 @@ export function exportSupplierRateConflictHeatmap(
     seasonLabel?: string;
     seasonId?: string;
     format?: "json" | "csv";
+    view?: "cells" | "suppliers";
   } = {},
 ) {
   const listed = getSupplierRateConflictHeatmap(store, principal, query);
@@ -679,43 +718,57 @@ export function exportSupplierRateConflictHeatmap(
 
   const generatedAt = new Date().toISOString();
   const format = query.format === "csv" ? "csv" : "json";
-  const rows = listed.heatmap.cells.map((cell) => ({
+  const view = query.view === "suppliers" ? "suppliers" : "cells";
+  const cellRows = listed.heatmap.cells.map((cell) => ({
     month: cell.month,
     seasonLabel: cell.seasonLabel,
     conflictCount: cell.conflictCount,
     unresolvedCount: cell.unresolvedCount,
   }));
+  const supplierRows = listed.heatmap.suppliers;
 
   if (format === "csv") {
-    const header = "month,seasonLabel,conflictCount,unresolvedCount";
-    const csv = [
-      header,
-      ...rows.map((row) =>
-        [row.month, row.seasonLabel, String(row.conflictCount), String(row.unresolvedCount)].map(csvEscape).join(","),
-      ),
-    ].join("\n");
+    const csv =
+      view === "suppliers"
+        ? [
+            "supplierId,supplierCode,legalName,conflictCount,unresolvedCount",
+            ...supplierRows.map((row) =>
+              [row.supplierId, row.supplierCode, row.legalName, String(row.conflictCount), String(row.unresolvedCount)]
+                .map(csvEscape)
+                .join(","),
+            ),
+          ].join("\n")
+        : [
+            "month,seasonLabel,conflictCount,unresolvedCount",
+            ...cellRows.map((row) =>
+              [row.month, row.seasonLabel, String(row.conflictCount), String(row.unresolvedCount)].map(csvEscape).join(","),
+            ),
+          ].join("\n");
     return {
       format,
+      view,
       csv,
-      count: rows.length,
+      count: view === "suppliers" ? supplierRows.length : cellRows.length,
       conflictCount: listed.conflictCount,
       unresolvedCount: listed.unresolvedCount,
       filters: listed.filters,
       generatedAt,
-      increment: "PG.25" as const,
+      increment: "PG.26" as const,
     };
   }
 
   return {
     format,
-    items: rows,
-    count: rows.length,
+    view,
+    items: view === "suppliers" ? supplierRows : cellRows,
+    suppliers: supplierRows,
+    count: view === "suppliers" ? supplierRows.length : cellRows.length,
     heatmap: listed.heatmap,
     conflictCount: listed.conflictCount,
     unresolvedCount: listed.unresolvedCount,
     filters: listed.filters,
     generatedAt,
-    increment: "PG.25" as const,
+    increment: "PG.26" as const,
   };
 }
 

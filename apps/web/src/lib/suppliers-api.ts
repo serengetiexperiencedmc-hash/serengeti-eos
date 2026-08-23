@@ -402,6 +402,7 @@ export async function exportSupplierRateConflictHeatmap(
     seasonLabel?: string;
     unresolvedOnly?: boolean;
     format?: "json" | "csv";
+    view?: "cells" | "suppliers";
   } = {},
 ) {
   const params = new URLSearchParams();
@@ -410,6 +411,7 @@ export async function exportSupplierRateConflictHeatmap(
   if (query.supplierId) params.set("supplierId", query.supplierId);
   if (query.seasonLabel) params.set("seasonLabel", query.seasonLabel);
   if (query.unresolvedOnly) params.set("unresolvedOnly", "1");
+  if (query.view) params.set("view", query.view);
   params.set("format", query.format ?? "csv");
   return eosFetch<{
     format: "json" | "csv";

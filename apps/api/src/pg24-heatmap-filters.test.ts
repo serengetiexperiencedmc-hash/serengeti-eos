@@ -87,7 +87,7 @@ describe("PG.24 heatmap unresolved / season filters", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(byLabel.statusCode).toBe(200);
-    expect(byLabel.json().increment).toBe("PG.25");
+    expect(byLabel.json().increment).toBe("PG.26");
     expect(byLabel.json().filters.seasonLabel).toBe("High A");
     expect(byLabel.json().conflictCount).toBe(1);
     expect(byLabel.json().heatmap.seasons.every((s: { label: string }) => s.label === "High A" || s.label === "High B")).toBe(true);
@@ -97,7 +97,7 @@ describe("PG.24 heatmap unresolved / season filters", () => {
       url: `/v1/suppliers/rates/conflicts/heatmap?supplierId=${supplierId}&from=2026-01-01&to=2026-12-31&seasonId=${seasonId}`,
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(byId.json().increment).toBe("PG.25");
+    expect(byId.json().increment).toBe("PG.26");
     expect(byId.json().filters.seasonId).toBe(seasonId);
     expect(byId.json().conflictCount).toBe(1);
     expect(byId.json().heatmap.maxConflictCount).toBeGreaterThanOrEqual(1);
@@ -113,7 +113,7 @@ describe("PG.24 heatmap unresolved / season filters", () => {
       url: `/v1/suppliers/rates/conflicts/heatmap?supplierId=${supplierId}&from=2026-01-01&to=2026-12-31&unresolvedOnly=1`,
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(unresolved.json().increment).toBe("PG.25");
+    expect(unresolved.json().increment).toBe("PG.26");
     expect(unresolved.json().filters.unresolvedOnly).toBe(true);
     expect(unresolved.json().conflictCount).toBe(0);
     expect(unresolved.json().heatmap.maxConflictCount).toBe(0);
