@@ -734,6 +734,7 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | Increment | Change |
 | --- | --- |
 | **I3.35** | Rename/delete named tenant allowlist stale-audit export presets; persist-delete; `conflict` → 409 |
+| Docs | `i3.35-allowlist-dual-digest-stale-audit-export-presets-rename-delete-preview.md` recorded after ship |
 
 ### Recommended next increments
 
