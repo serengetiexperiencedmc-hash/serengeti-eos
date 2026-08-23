@@ -68,7 +68,7 @@ describe("I20.6 AI draft pending count", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(pending.statusCode).toBe(200);
-    expect(pending.json().increment).toBe("I20.8");
+    expect(pending.json().increment).toBe("I20.9");
     expect(pending.json().pendingCount).toBe(1);
     expect(pending.json().items).toHaveLength(1);
 

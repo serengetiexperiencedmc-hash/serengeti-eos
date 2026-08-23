@@ -31,13 +31,28 @@ export type AiDraftListQuery = {
   artefactType?: string;
 };
 
+export type AiRecommendLastRun = {
+  occurredAt: string;
+  provider: string;
+  count: number;
+  keys: string[];
+};
+
 export async function listAiRecommendations(token: string) {
   return eosFetch<{
     items: AiRecommendation[];
     provider: string;
     autonomyCeiling: number;
+    lastRun: AiRecommendLastRun;
     increment: string;
   }>("/v1/ai/recommendations", { token });
+}
+
+export async function getAiRecommendLastRun(token: string) {
+  return eosFetch<{ lastRun: AiRecommendLastRun | null; increment: string }>(
+    "/v1/ai/recommendations/last-run",
+    { token },
+  );
 }
 
 export async function listAiDrafts(token: string, query?: string | AiDraftListQuery) {

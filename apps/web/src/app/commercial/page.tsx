@@ -17,6 +17,7 @@ import {
   listAiDrafts,
   listAiRecommendations,
   type AiDraft,
+  type AiRecommendLastRun,
   type AiRecommendation,
 } from "@/lib/ai-api";
 import { EosApiError } from "@/lib/eos-client";
@@ -40,6 +41,7 @@ export default function CommercialDashboardPage() {
   const { token, ready } = useEosSession();
   const [live, setLive] = useState<CommercialLiveStats | null>(null);
   const [recs, setRecs] = useState<AiRecommendation[] | null>(null);
+  const [lastRun, setLastRun] = useState<AiRecommendLastRun | null>(null);
   const [drafts, setDrafts] = useState<AiDraft[] | null>(null);
   const [aiBusy, setAiBusy] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -48,8 +50,14 @@ export default function CommercialDashboardPage() {
 
   function reloadAi(sessionToken: string) {
     void listAiRecommendations(sessionToken)
-      .then((res) => setRecs(res.items))
-      .catch(() => setRecs([]));
+      .then((res) => {
+        setRecs(res.items);
+        setLastRun(res.lastRun);
+      })
+      .catch(() => {
+        setRecs([]);
+        setLastRun(null);
+      });
     void listAiDrafts(sessionToken, "pending")
       .then((res) => setDrafts(res.items))
       .catch(() => setDrafts([]));
@@ -63,6 +71,7 @@ export default function CommercialDashboardPage() {
     if (!token) {
       setLive(null);
       setRecs(null);
+      setLastRun(null);
       setDrafts(null);
       return;
     }
@@ -325,6 +334,12 @@ export default function CommercialDashboardPage() {
             ) : (
               <>
                 {aiError && <p className="mb-2 text-xs text-gold">{aiError}</p>}
+                {lastRun && (
+                  <p className="mb-2 text-xs text-muted">
+                    Last recommend {new Date(lastRun.occurredAt).toLocaleString()} · {lastRun.count} key
+                    {lastRun.count === 1 ? "" : "s"}
+                  </p>
+                )}
                 {recs.length === 0 ? (
                   <p className="text-sm leading-relaxed">No recommended actions right now.</p>
                 ) : (

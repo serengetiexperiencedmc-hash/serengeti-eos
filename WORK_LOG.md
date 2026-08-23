@@ -543,9 +543,17 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **I20.8** | Draft summary endpoint; sidebar badge refreshes after accept/discard |
 
+### 43:xx — I20.9 recommend last-run ✅
+
+**Shipped:** server `0.76.0-i20.9`
+
+| Increment | Change |
+| --- | --- |
+| **I20.9** | Persist last recommend run; drafts page shows it without recording again |
+
 ### Recommended next increments
 
-1. I20.9 — persist recommendation audit / show last-run on the drafts page
+1. I20.10 — filter last-run keys / export recommend snapshot
 2. I3.30 — persist allowlist stale audit to Postgres
 3. I4.28 — stale-audit filters / tenant export window
 

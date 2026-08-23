@@ -34,7 +34,7 @@ describe("I20.7 applied CRM href", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(accepted.statusCode).toBe(200);
-    expect(accepted.json().increment).toBe("I20.8");
+    expect(accepted.json().increment).toBe("I20.9");
     const taskId = accepted.json().draft.appliedEntityId as string;
     expect(accepted.json().draft.appliedHref).toBe(`/commercial/crm?task=${taskId}`);
 

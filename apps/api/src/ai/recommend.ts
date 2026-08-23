@@ -2,6 +2,8 @@ import {
   authorize,
   createDevRulesRecommendProvider,
   hasPermission,
+  sanitizeAiRecommendLastRun,
+  type AiRecommendLastRun,
   type AiRecommendSignal,
   type Principal,
 } from "@sedmc/kernel";
@@ -14,8 +16,14 @@ import {
   isAllowlistDualDigestStaleSuppressed,
 } from "../notifications/allowlist-dual-digest.js";
 import { getDlqSlaDigestStatus, isDlqSlaDigestStaleSuppressed } from "../notifications/dlq-sla-digest.js";
+import { persistAiRecommendRun } from "../persistence/ai-recommend-runs.js";
 
+const INCREMENT = "I20.9" as const;
 const provider = createDevRulesRecommendProvider();
+
+function ensureAiRecommendRuns(store: Store): void {
+  if (!store.aiRecommendRuns) store.aiRecommendRuns = [];
+}
 
 function collectSignals(store: Store, principal: Principal): AiRecommendSignal[] {
   const signals: AiRecommendSignal[] = [];
@@ -73,7 +81,29 @@ function collectSignals(store: Store, principal: Principal): AiRecommendSignal[]
   return signals;
 }
 
-export function listAiRecommendations(store: Store, principal: Principal, correlationId: string) {
+function rememberRecommendRun(
+  store: Store,
+  principal: Principal,
+  keys: string[],
+): AiRecommendLastRun {
+  ensureAiRecommendRuns(store);
+  const run: AiRecommendLastRun = {
+    tenantId: principal.tenantId,
+    principalId: principal.id,
+    occurredAt: new Date().toISOString(),
+    provider: provider.name,
+    count: keys.length,
+    keys,
+  };
+  const idx = store.aiRecommendRuns.findIndex(
+    (row) => row.tenantId === principal.tenantId && row.principalId === principal.id,
+  );
+  if (idx >= 0) store.aiRecommendRuns[idx] = run;
+  else store.aiRecommendRuns.push(run);
+  return run;
+}
+
+export async function listAiRecommendations(store: Store, principal: Principal, correlationId: string) {
   const decision = authorize({
     principal,
     permission: "ai:read:recommend",
@@ -119,10 +149,35 @@ export function listAiRecommendations(store: Store, principal: Principal, correl
     },
   });
 
+  const lastRun = rememberRecommendRun(
+    store,
+    principal,
+    items.map((i) => i.key),
+  );
+  await persistAiRecommendRun(store.dbPool, lastRun);
+
   return {
     items,
     provider: provider.name,
     autonomyCeiling: provider.autonomyCeiling,
-    increment: "I20.8" as const,
+    lastRun: sanitizeAiRecommendLastRun(lastRun),
+    increment: INCREMENT,
+  };
+}
+
+export function getAiRecommendLastRun(store: Store, principal: Principal) {
+  ensureAiRecommendRuns(store);
+  const decision = authorize({
+    principal,
+    permission: "ai:read:recommend",
+    action: "read:ai_recommendations",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+  const run = store.aiRecommendRuns.find(
+    (row) => row.tenantId === principal.tenantId && row.principalId === principal.id,
+  );
+  return {
+    lastRun: run ? sanitizeAiRecommendLastRun(run) : null,
+    increment: INCREMENT,
   };
 }

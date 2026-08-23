@@ -2524,3 +2524,42 @@ export async function loadAiDrafts(pool: DbPool): Promise<import("@sedmc/kernel"
     };
   });
 }
+
+/** I20.9 — upsert last recommend run. */
+export async function upsertAiRecommendRun(
+  pool: DbPool,
+  run: import("@sedmc/kernel").AiRecommendLastRun,
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO ai_recommend_runs (
+      tenant_id, principal_id, occurred_at, provider, item_count, keys
+    ) VALUES ($1,$2,$3,$4,$5,$6)
+     ON CONFLICT (tenant_id, principal_id) DO UPDATE SET
+       occurred_at = EXCLUDED.occurred_at,
+       provider = EXCLUDED.provider,
+       item_count = EXCLUDED.item_count,
+       keys = EXCLUDED.keys`,
+    [run.tenantId, run.principalId, run.occurredAt, run.provider, run.count, run.keys],
+  );
+}
+
+export async function loadAiRecommendRuns(
+  pool: DbPool,
+): Promise<import("@sedmc/kernel").AiRecommendLastRun[]> {
+  const result = await pool.query(
+    `SELECT tenant_id, principal_id, occurred_at, provider, item_count, keys
+     FROM ai_recommend_runs
+     ORDER BY occurred_at ASC`,
+  );
+  return result.rows.map((row) => {
+    const occurredAt = row.occurred_at instanceof Date ? row.occurred_at.toISOString() : String(row.occurred_at);
+    return {
+      tenantId: row.tenant_id as string,
+      principalId: row.principal_id as string,
+      occurredAt,
+      provider: row.provider as string,
+      count: Number(row.item_count),
+      keys: Array.isArray(row.keys) ? (row.keys as string[]) : [],
+    };
+  });
+}

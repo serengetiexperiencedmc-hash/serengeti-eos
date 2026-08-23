@@ -38,7 +38,7 @@ function findOverdueAssociation(store: Store, tenantId: string) {
   return undefined;
 }
 
-const INCREMENT = "I20.8" as const;
+const INCREMENT = "I20.9" as const;
 
 export function ensureAiCollections(store: Store): void {
   if (!store.aiDrafts) store.aiDrafts = [];
@@ -99,7 +99,7 @@ export async function createAiDraft(
     return { error: "invalid_request" as const, reason: "unknown_recommendation_key" };
   }
 
-  const listed = listAiRecommendations(store, principal, correlationId);
+  const listed = await listAiRecommendations(store, principal, correlationId);
   if ("error" in listed) return listed;
   const rec = listed.items.find((item) => item.key === key);
   if (!rec) return { error: "conflict" as const, reason: "recommendation_not_active" };

@@ -5,6 +5,7 @@ import {
   assertSafeAiRecommendations,
   createDevRulesRecommendProvider,
   isAllowedAiRecommendHref,
+  sanitizeAiRecommendLastRun,
 } from "./ai-recommend.js";
 
 describe("I20.1 AI recommend port", () => {
@@ -40,5 +41,24 @@ describe("I20.1 AI recommend port", () => {
         },
       ]),
     ).toThrow("ai_recommend_href_rejected");
+  });
+
+  it("sanitizes last-run to keys only", () => {
+    const view = sanitizeAiRecommendLastRun({
+      tenantId: "11111111-1111-4111-8111-111111111111",
+      principalId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+      occurredAt: "2026-08-23T09:00:00.000Z",
+      provider: "dev-rules",
+      count: 1,
+      keys: ["crm.duplicate.review"],
+    });
+    expect(view).toEqual({
+      occurredAt: "2026-08-23T09:00:00.000Z",
+      provider: "dev-rules",
+      count: 1,
+      keys: ["crm.duplicate.review"],
+    });
+    expect(view).not.toHaveProperty("tenantId");
+    expect(view).not.toHaveProperty("principalId");
   });
 });

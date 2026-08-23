@@ -44,6 +44,24 @@ export type AiRecommendProvider = {
   recommend(request: AiRecommendRequest): AiRecommendation[];
 };
 
+export type AiRecommendLastRun = {
+  tenantId: string;
+  principalId: string;
+  occurredAt: string;
+  provider: string;
+  count: number;
+  keys: string[];
+};
+
+export function sanitizeAiRecommendLastRun(run: AiRecommendLastRun) {
+  return {
+    occurredAt: run.occurredAt,
+    provider: run.provider,
+    count: run.count,
+    keys: [...run.keys],
+  };
+}
+
 const INTERNAL_HREF = /^\/commercial\/(crm|notifications|events)(\/|\?|$)/;
 
 export function isAllowedAiRecommendHref(href: string): boolean {

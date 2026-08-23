@@ -91,6 +91,7 @@ import {
   type NotifAllowlistDualDigestStaleSuppression,
   type NotifAllowlistDualDigestStaleSuppressionAudit,
   type AiDraft,
+  type AiRecommendLastRun,
   type EmailTemplate,
   type NatsConsumerOffset,
 } from "@sedmc/kernel";
@@ -234,6 +235,8 @@ export type Store = {
   natsConsumerOffsets: NatsConsumerOffset[];
   /** I20.2 — unpublished AI drafts until human accept. */
   aiDrafts: AiDraft[];
+  /** I20.9 — last recommend run per tenant + principal. */
+  aiRecommendRuns: AiRecommendLastRun[];
   /** Optional PostgreSQL pool for dual-write persistence (PG.1+) */
   dbPool?: DbPool;
 };
@@ -862,6 +865,7 @@ export function seedStore(
     notifAllowlistDualDigestStaleSuppressionAudits: [],
     natsConsumerOffsets: [],
     aiDrafts: [],
+    aiRecommendRuns: [],
   };
   seedCrmCatalogues(store, tenantId);
   return store;

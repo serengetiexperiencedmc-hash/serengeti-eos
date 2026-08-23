@@ -7,8 +7,10 @@ import { Btn, Card, PageHeader } from "@/components/commercial/ui";
 import {
   acceptAiDraft,
   discardAiDraft,
+  getAiRecommendLastRun,
   listAiDrafts,
   type AiDraft,
+  type AiRecommendLastRun,
 } from "@/lib/ai-api";
 import { EosApiError } from "@/lib/eos-client";
 
@@ -35,6 +37,7 @@ export default function AiDraftsPage() {
   const [artefactType, setArtefactType] = useState("");
   const [drafts, setDrafts] = useState<AiDraft[] | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
+  const [lastRun, setLastRun] = useState<AiRecommendLastRun | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -60,9 +63,13 @@ export default function AiDraftsPage() {
   useEffect(() => {
     if (!token) {
       setDrafts(null);
+      setLastRun(null);
       return;
     }
     reload(token);
+    void getAiRecommendLastRun(token)
+      .then((res) => setLastRun(res.lastRun))
+      .catch(() => setLastRun(null));
   }, [token, reload]);
 
   if (ready && !token) {
@@ -72,7 +79,7 @@ export default function AiDraftsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="I20.8 · Assistant"
+        eyebrow="I20.9 · Assistant"
         title="AI Drafts"
         subtitle="Filter unpublished assistant drafts. Accept creates a CRM task or activity. Open an accepted draft in CRM. The assistant cannot merge, email, or approve."
       />
@@ -107,6 +114,11 @@ export default function AiDraftsPage() {
             </select>
           </label>
           <p className="self-end text-xs text-muted">{pendingCount} pending</p>
+          <p className="self-end text-xs text-muted">
+            {lastRun
+              ? `Last recommend ${new Date(lastRun.occurredAt).toLocaleString()} · ${lastRun.count} key${lastRun.count === 1 ? "" : "s"} · ${lastRun.provider}`
+              : "No recommend run yet"}
+          </p>
         </div>
         {error && <p className="mb-3 text-sm text-red-700">{error}</p>}
         {drafts === null ? (
