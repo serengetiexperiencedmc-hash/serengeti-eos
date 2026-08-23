@@ -511,9 +511,17 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **I20.4** | Dual-write / hydrate AI drafts so they survive API restart |
 
+### 39:xx — I20.5 AI draft filters ✅
+
+**Shipped:** server `0.72.0-i20.5`
+
+| Increment | Change |
+| --- | --- |
+| **I20.5** | Filter drafts by status/type and review them on `/commercial/ai` |
+
 ### Recommended next increments
 
-1. I20.5 — draft list filters (status + artefact type) or a dedicated drafts page
+1. I20.6 — pending-draft nav badge, or open the applied CRM record from an accepted draft
 2. I3.30 — persist allowlist stale audit to Postgres
 3. I4.28 — stale-audit filters / tenant export window
 

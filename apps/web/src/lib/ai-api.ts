@@ -19,7 +19,14 @@ export type AiDraft = {
   body: string;
   status: "pending" | "accepted" | "discarded";
   autonomyLevel: number;
+  createdAt?: string;
+  appliedEntityType?: string;
   appliedEntityId?: string;
+};
+
+export type AiDraftListQuery = {
+  status?: string;
+  artefactType?: string;
 };
 
 export async function listAiRecommendations(token: string) {
@@ -31,9 +38,17 @@ export async function listAiRecommendations(token: string) {
   }>("/v1/ai/recommendations", { token });
 }
 
-export async function listAiDrafts(token: string, status?: string) {
-  const q = status ? `?status=${encodeURIComponent(status)}` : "";
-  return eosFetch<{ items: AiDraft[]; increment: string }>(`/v1/ai/drafts${q}`, { token });
+export async function listAiDrafts(token: string, query?: string | AiDraftListQuery) {
+  const filters: AiDraftListQuery = typeof query === "string" ? { status: query } : (query ?? {});
+  const params = new URLSearchParams();
+  if (filters.status) params.set("status", filters.status);
+  if (filters.artefactType) params.set("artefactType", filters.artefactType);
+  const q = params.toString() ? `?${params.toString()}` : "";
+  return eosFetch<{
+    items: AiDraft[];
+    filters: { status: string | null; artefactType: string | null };
+    increment: string;
+  }>(`/v1/ai/drafts${q}`, { token });
 }
 
 export async function createAiDraft(token: string, recommendationKey: string) {

@@ -1,6 +1,8 @@
 import {
   authorize,
   buildAiDraftArtefact,
+  isAiDraftArtefactType,
+  isAiDraftStatus,
   isDraftableRecommendationKey,
   newId,
   type AiDraft,
@@ -35,7 +37,7 @@ function findOverdueAssociation(store: Store, tenantId: string) {
   return undefined;
 }
 
-const INCREMENT = "I20.4" as const;
+const INCREMENT = "I20.5" as const;
 
 export function ensureAiCollections(store: Store): void {
   if (!store.aiDrafts) store.aiDrafts = [];
@@ -169,7 +171,7 @@ export async function createAiDraft(
   return { draft: sanitizeDraft(draft), increment: INCREMENT };
 }
 
-export function listAiDrafts(store: Store, principal: Principal, query?: { status?: string }) {
+export function listAiDrafts(store: Store, principal: Principal, query?: { status?: string; artefactType?: string }) {
   ensureAiCollections(store);
   const decision = authorize({
     principal,
@@ -178,10 +180,25 @@ export function listAiDrafts(store: Store, principal: Principal, query?: { statu
   });
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
 
+  if (query?.status && !isAiDraftStatus(query.status)) {
+    return { error: "invalid_request" as const, reason: "invalid_status" };
+  }
+  if (query?.artefactType && !isAiDraftArtefactType(query.artefactType)) {
+    return { error: "invalid_request" as const, reason: "invalid_artefact_type" };
+  }
+
   let items = store.aiDrafts.filter((d) => d.tenantId === principal.tenantId);
   if (query?.status) items = items.filter((d) => d.status === query.status);
+  if (query?.artefactType) items = items.filter((d) => d.artefactType === query.artefactType);
   items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  return { items: items.map(sanitizeDraft), increment: INCREMENT };
+  return {
+    items: items.map(sanitizeDraft),
+    filters: {
+      status: query?.status ?? null,
+      artefactType: query?.artefactType ?? null,
+    },
+    increment: INCREMENT,
+  };
 }
 
 export async function discardAiDraft(store: Store, principal: Principal, draftId: string, correlationId: string) {

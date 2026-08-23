@@ -1,6 +1,12 @@
 /// <reference types="vitest" />
 import { describe, expect, it } from "vitest";
-import { AI_DRAFT_AUTONOMY_LEVEL, buildAiDraftArtefact, isDraftableRecommendationKey } from "./ai-draft.js";
+import {
+  AI_DRAFT_AUTONOMY_LEVEL,
+  buildAiDraftArtefact,
+  isAiDraftArtefactType,
+  isAiDraftStatus,
+  isDraftableRecommendationKey,
+} from "./ai-draft.js";
 
 describe("I20.3 AI draft artefacts", () => {
   it("builds a crm_task draft from a known recommendation", () => {
@@ -28,6 +34,15 @@ describe("I20.3 AI draft artefacts", () => {
     expect(artefact.artefactType).toBe("crm_activity");
     expect(artefact.title).toContain("Log follow-up");
     expect(artefact.body).toContain("CRM activity");
+  });
+
+  it("accepts only known draft filters", () => {
+    expect(isAiDraftStatus("pending")).toBe(true);
+    expect(isAiDraftStatus("accepted")).toBe(true);
+    expect(isAiDraftStatus("applied")).toBe(false);
+    expect(isAiDraftArtefactType("crm_task")).toBe(true);
+    expect(isAiDraftArtefactType("crm_activity")).toBe(true);
+    expect(isAiDraftArtefactType("crm_merge")).toBe(false);
   });
 
   it("rejects unknown recommendation keys", () => {

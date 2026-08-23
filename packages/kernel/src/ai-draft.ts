@@ -38,6 +38,14 @@ export type AiDraft = {
   relatedContactId?: string;
 };
 
+export function isAiDraftStatus(value: string): value is AiDraftStatus {
+  return (AI_DRAFT_STATUSES as readonly string[]).includes(value);
+}
+
+export function isAiDraftArtefactType(value: string): value is AiDraftArtefactType {
+  return (AI_DRAFT_ARTEFACT_TYPES as readonly string[]).includes(value);
+}
+
 export function isDraftableRecommendationKey(key: string): key is AiDraftableRecommendationKey {
   return (AI_DRAFTABLE_RECOMMENDATION_KEYS as readonly string[]).includes(key);
 }

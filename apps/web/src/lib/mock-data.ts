@@ -7,6 +7,7 @@ export const navItems = [
     section: "Overview",
     items: [
       { href: "/commercial", label: "Dashboard", icon: "dashboard" },
+      { href: "/commercial/ai", label: "AI Drafts", icon: "ai" },
       { href: "/commercial/notifications", label: "Notifications", icon: "notifications", badgeKey: "notifications" as NavBadgeKey },
       { href: "/commercial/pipeline", label: "Pipeline", icon: "pipeline", badgeKey: "pipeline" as NavBadgeKey },
     ],

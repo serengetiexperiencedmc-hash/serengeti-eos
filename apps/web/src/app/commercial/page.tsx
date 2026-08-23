@@ -361,9 +361,14 @@ export default function CommercialDashboardPage() {
                 )}
                 {drafts && drafts.length > 0 && (
                   <div className="mt-4 border-t border-white/10 pt-3">
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gold">
-                      Pending drafts
-                    </p>
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-gold">
+                        Pending drafts
+                      </p>
+                      <Link href="/commercial/ai" className="text-xs text-gold hover:underline">
+                        All drafts →
+                      </Link>
+                    </div>
                     <ul className="space-y-3">
                       {drafts.map((draft) => (
                         <li key={draft.id} className="rounded-md bg-white/5 p-3 text-sm leading-relaxed">
