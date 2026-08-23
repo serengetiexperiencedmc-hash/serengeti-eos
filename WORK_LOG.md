@@ -428,11 +428,21 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **I3.24** | Persist allowlist dual digest last-run to Postgres |
 | **I4.22** | DLQ digest last-run freshness SLA / stale-run alert |
 
+### 30:xx — PG.25 + I3.25 + I4.23 ✅
+
+**Shipped:** server `0.63.0-pg25-i3.25-i4.23`
+
+| Increment | Change |
+| --- | --- |
+| **PG.25** | Heatmap CSV/JSON export (`GET …/heatmap/export`) |
+| **I3.25** | Allowlist dual digest last-run freshness SLA |
+| **I4.23** | Stale DLQ digest inbox item + email escalation |
+
 ### Recommended next increments
 
-1. PG.25 — heatmap CSV export
-2. I3.25 — allowlist digest last-run freshness (mirror I4.22)
-3. I4.23 — stale digest inbox / email escalation
+1. PG.26 — heatmap supplier rollup / multi-supplier export
+2. I3.26 — persist allowlist freshness alert / stale inbox (mirror I4.23)
+3. I4.24 — stale-digest snooze / ack
 
 ### Issues resolved
 

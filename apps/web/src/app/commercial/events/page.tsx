@@ -16,6 +16,7 @@ import {
   getDlqSlaDigestStatus,
   exportDlqSlaDigestLastRun,
   dispatchDlqSlaDigest,
+  dispatchDlqSlaDigestStaleAlert,
   type DeadLetterItem,
   type DigestFreshness,
   type DlqSlaDigestLastRun,
@@ -308,6 +309,30 @@ export default function EventsInfrastructurePage() {
                 }}
               >
                 Export last-run
+              </Btn>
+              <Btn
+                variant="secondary"
+                disabled={busy || !digestFreshness?.stale}
+                onClick={() => {
+                  void (async () => {
+                    setBusy(true);
+                    try {
+                      const res = await dispatchDlqSlaDigestStaleAlert(token);
+                      setMsg(
+                        res.dispatched.length > 0
+                          ? `Stale digest alert: ${res.dispatched.length} sent`
+                          : `Stale digest alert skipped (${res.skipped[0]?.reason ?? "none"})`,
+                      );
+                      await reload();
+                    } catch (err) {
+                      setMsg(err instanceof Error ? err.message : "Stale alert failed");
+                    } finally {
+                      setBusy(false);
+                    }
+                  })();
+                }}
+              >
+                Escalate stale digest
               </Btn>
             </div>
           )}

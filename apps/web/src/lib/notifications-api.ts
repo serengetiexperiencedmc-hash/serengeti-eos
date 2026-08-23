@@ -53,6 +53,13 @@ export async function dispatchEmailDigest(token: string) {
   );
 }
 
+export type DigestFreshness = {
+  stale: boolean;
+  neverRun: boolean;
+  ageHours: number | null;
+  thresholdHours: number;
+};
+
 export type DigestLastRun = {
   tenantId: string;
   day: string;
@@ -76,7 +83,9 @@ export async function getEmailAdapterHealth(token: string) {
     templateCount?: number;
     smtpConfigured?: boolean;
     allowlistDualDigestLastRun?: DigestLastRun | null;
+    allowlistDualDigestFreshness?: DigestFreshness;
     dlqSlaDigestLastRun?: DigestLastRun | null;
+    dlqSlaDigestFreshness?: DigestFreshness;
   }>("/v1/notifications/email/health", { token });
 }
 
@@ -93,6 +102,7 @@ export async function dispatchAllowlistDualDigest(token: string) {
 export async function getAllowlistDualDigestStatus(token: string) {
   return eosFetch<{
     lastRun: DigestLastRun | null;
+    freshness: DigestFreshness;
     analytics: { outboxDigestCount: number; outboxByStatus: Record<string, number> };
     increment: string;
   }>("/v1/notifications/email/allowlist-dual-digest-status", { token });

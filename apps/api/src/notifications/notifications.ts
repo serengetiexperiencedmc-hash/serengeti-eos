@@ -10,6 +10,7 @@ import { DLQ_SLA_THRESHOLD_HOURS } from "../outbox.js";
 import { persistNotifDismissal } from "../persistence/notifications.js";
 import { ensureNotificationCollections } from "./collections.js";
 import { resolveEmailAdapterName } from "./email-config.js";
+import { digestLastRunFreshness } from "./digest-freshness.js";
 
 function isDismissed(store: Store, principalId: string, key: string): boolean {
   return store.notifDismissals.some((d) => d.principalId === principalId && d.notificationKey === key);
@@ -131,6 +132,27 @@ export function buildLiveNotifications(store: Store, principal: Principal): Noti
         body: `${dlq.eventType} · ${ageHours}h open${dlq.owner ? ` · owner ${dlq.owner}` : ""}`,
         href: "/commercial/events",
         createdAt: dlq.firstFailureAt,
+      });
+    }
+  }
+
+  // I4.23 — escalate when DLQ SLA digest last-run is stale / never-run
+  if (canReadDlq) {
+    const lastRun =
+      (store.notifDlqSlaDigestLastRuns ?? []).find((r) => r.tenantId === tenantId) ?? null;
+    const freshness = digestLastRunFreshness(lastRun?.lastRunAt);
+    if (freshness.stale) {
+      const day = now.slice(0, 10);
+      items.push({
+        key: `dlq-sla-digest-stale:${day}`,
+        category: "operations",
+        severity: "urgent",
+        title: freshness.neverRun ? "DLQ SLA digest never run" : "DLQ SLA digest stale",
+        body: freshness.neverRun
+          ? `No last-run stamp (threshold ${freshness.thresholdHours}h)`
+          : `${freshness.ageHours ?? "?"}h since last run (threshold ${freshness.thresholdHours}h)`,
+        href: "/commercial/events",
+        createdAt: lastRun?.lastRunAt ?? now,
       });
     }
   }

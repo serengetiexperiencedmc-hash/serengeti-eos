@@ -415,7 +415,7 @@ export function getSupplierRateCalendar(
       ...(query.seasonLabel ? { seasonLabel: query.seasonLabel } : {}),
       ...(query.seasonId ? { seasonId: query.seasonId } : {}),
     },
-    increment: "PG.24" as const,
+    increment: "PG.25" as const,
   };
 }
 
@@ -537,7 +537,7 @@ export function getSupplierRateConflicts(
       ...(query.seasonLabel ? { seasonLabel: query.seasonLabel } : {}),
       ...(query.seasonId ? { seasonId: query.seasonId } : {}),
     },
-    increment: "PG.24" as const,
+    increment: "PG.25" as const,
   };
 }
 
@@ -651,7 +651,71 @@ export function getSupplierRateConflictHeatmap(
     conflictCount: listed.count,
     unresolvedCount: listed.unresolvedCount,
     filters: listed.filters,
-    increment: "PG.24" as const,
+    increment: "PG.25" as const,
+  };
+}
+
+function csvEscape(value: string): string {
+  if (/[",\n]/.test(value)) return `"${value.replaceAll("\"", "\"\"")}"`;
+  return value;
+}
+
+/** PG.25 — CSV/JSON export of heatmap cells (same filters as conflicts). */
+export function exportSupplierRateConflictHeatmap(
+  store: Store,
+  principal: Principal,
+  query: {
+    supplierId?: string;
+    from?: string;
+    to?: string;
+    unresolvedOnly?: boolean;
+    seasonLabel?: string;
+    seasonId?: string;
+    format?: "json" | "csv";
+  } = {},
+) {
+  const listed = getSupplierRateConflictHeatmap(store, principal, query);
+  if ("error" in listed) return listed;
+
+  const generatedAt = new Date().toISOString();
+  const format = query.format === "csv" ? "csv" : "json";
+  const rows = listed.heatmap.cells.map((cell) => ({
+    month: cell.month,
+    seasonLabel: cell.seasonLabel,
+    conflictCount: cell.conflictCount,
+    unresolvedCount: cell.unresolvedCount,
+  }));
+
+  if (format === "csv") {
+    const header = "month,seasonLabel,conflictCount,unresolvedCount";
+    const csv = [
+      header,
+      ...rows.map((row) =>
+        [row.month, row.seasonLabel, String(row.conflictCount), String(row.unresolvedCount)].map(csvEscape).join(","),
+      ),
+    ].join("\n");
+    return {
+      format,
+      csv,
+      count: rows.length,
+      conflictCount: listed.conflictCount,
+      unresolvedCount: listed.unresolvedCount,
+      filters: listed.filters,
+      generatedAt,
+      increment: "PG.25" as const,
+    };
+  }
+
+  return {
+    format,
+    items: rows,
+    count: rows.length,
+    heatmap: listed.heatmap,
+    conflictCount: listed.conflictCount,
+    unresolvedCount: listed.unresolvedCount,
+    filters: listed.filters,
+    generatedAt,
+    increment: "PG.25" as const,
   };
 }
 

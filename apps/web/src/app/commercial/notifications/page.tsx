@@ -67,6 +67,7 @@ export default function NotificationsPage() {
   const [allowlistDigest, setAllowlistDigest] = useState<{
     lastRun: DigestLastRun | null;
     outboxDigestCount: number;
+    freshness?: { stale: boolean; neverRun: boolean; ageHours: number | null; thresholdHours: number };
   } | null>(null);
 
   const selectedTemplate = useMemo(
@@ -97,7 +98,11 @@ export default function NotificationsPage() {
     setAnalytics(stats.analytics);
     setAllowlistDigest(
       dualStatus
-        ? { lastRun: dualStatus.lastRun, outboxDigestCount: dualStatus.analytics.outboxDigestCount }
+        ? {
+            lastRun: dualStatus.lastRun,
+            outboxDigestCount: dualStatus.analytics.outboxDigestCount,
+            freshness: dualStatus.freshness,
+          }
         : health.allowlistDualDigestLastRun
           ? { lastRun: health.allowlistDualDigestLastRun, outboxDigestCount: 0 }
           : null,
@@ -435,6 +440,14 @@ export default function NotificationsPage() {
               {allowlistDigest.lastRun
                 ? `${allowlistDigest.lastRun.day} · pending ${allowlistDigest.lastRun.pendingCount ?? 0} · sent ${allowlistDigest.lastRun.dispatchedCount} · outbox ${allowlistDigest.outboxDigestCount}`
                 : "never"}
+              {allowlistDigest.freshness?.stale ? " · stale" : ""}
+            </p>
+          )}
+          {allowlistDigest?.freshness?.stale && (
+            <p className="mb-3 rounded border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
+              {allowlistDigest.freshness.neverRun
+                ? `Allowlist dual digest has never run (stale after ${allowlistDigest.freshness.thresholdHours}h).`
+                : `Allowlist dual digest is stale (${allowlistDigest.freshness.ageHours ?? "?"}h ≥ ${allowlistDigest.freshness.thresholdHours}h).`}
             </p>
           )}
           {token && (

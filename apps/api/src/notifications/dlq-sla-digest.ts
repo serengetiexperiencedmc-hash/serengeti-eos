@@ -89,7 +89,7 @@ export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
       thresholdHours: listed.sla.thresholdHours,
       recipientCount: recipients.length,
       lastRun,
-      increment: "I4.22" as const,
+      increment: "I4.23" as const,
     };
   }
 
@@ -137,7 +137,7 @@ export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
     thresholdHours: listed.sla.thresholdHours,
     recipientCount: recipients.length,
     lastRun,
-    increment: "I4.22" as const,
+    increment: "I4.23" as const,
   };
 }
 
@@ -172,7 +172,7 @@ export function getDlqSlaDigestStatus(store: Store, principal: Principal) {
       outboxByStatus: byStatus,
     },
     freshness: digestLastRunFreshness(lastRun?.lastRunAt),
-    increment: "I4.22" as const,
+    increment: "I4.23" as const,
   };
 }
 
@@ -245,7 +245,7 @@ export function exportDlqSlaDigestLastRun(
       analytics: status.analytics,
       freshness: status.freshness,
       generatedAt,
-      increment: "I4.22" as const,
+      increment: "I4.23" as const,
     };
   }
 
@@ -256,6 +256,79 @@ export function exportDlqSlaDigestLastRun(
     freshness: status.freshness,
     row,
     generatedAt,
-    increment: "I4.22" as const,
+    increment: "I4.23" as const,
+  };
+}
+
+/** I4.23 — email escalation when last-run is stale / never-run (deduped per recipient per UTC day). */
+export async function dispatchDlqSlaDigestStaleAlert(store: Store, principal: Principal) {
+  const dispatchAuth = authorize({
+    principal,
+    permission: "notification:dispatch:email",
+    action: "dispatch:dlq_sla_digest_stale",
+  });
+  if (dispatchAuth.result === "deny") {
+    return { error: "forbidden" as const, reason: dispatchAuth.reason };
+  }
+
+  const status = getDlqSlaDigestStatus(store, principal);
+  if ("error" in status) return status;
+
+  ensureNotificationCollections(store);
+  const recipients = resolveDlqSlaDigestRecipientEmails(store, principal);
+  if (recipients.length === 0) {
+    return { error: "invalid_request" as const, reason: "no_digest_recipients" };
+  }
+
+  const day = new Date().toISOString().slice(0, 10);
+  const adapter = createEmailAdapter(store, principal);
+  const inboxKey = `dlq-sla-digest-stale:${day}`;
+
+  if (!status.freshness.stale) {
+    return {
+      dispatched: [] as string[],
+      skipped: [{ key: `dlq-sla-digest-stale:${day}`, reason: "not_stale" }],
+      adapter: adapter.name,
+      freshness: status.freshness,
+      inboxKey,
+      increment: "I4.23" as const,
+    };
+  }
+
+  const age = status.freshness.neverRun
+    ? "never run"
+    : `${status.freshness.ageHours ?? "?"}h old (threshold ${status.freshness.thresholdHours}h)`;
+  const subject = `[EOS URGENT] DLQ SLA digest stale — ${age}`;
+  const bodyText = [
+    "The DLQ SLA digest last-run is stale.",
+    "",
+    `Status: ${status.freshness.neverRun ? "never run" : `last run ${status.lastRun?.lastRunAt}`}`,
+    `Age: ${age}`,
+    "",
+    "Dispatch the digest or check /commercial/events.",
+  ].join("\n");
+
+  const dispatched: string[] = [];
+  const skipped: { key: string; reason?: string; to?: string }[] = [];
+  for (const email of recipients) {
+    const key = `dlq-sla-digest-stale:${day}:${email}`;
+    const result = await adapter.send({
+      to: email,
+      subject,
+      bodyText,
+      notificationKey: key,
+      templateKey: "notif.operations.dlq_sla_digest_stale",
+    });
+    if (result.status === "sent") dispatched.push(key);
+    else skipped.push({ key, reason: result.reason, to: email });
+  }
+
+  return {
+    dispatched,
+    skipped,
+    adapter: adapter.name,
+    freshness: status.freshness,
+    inboxKey,
+    increment: "I4.23" as const,
   };
 }

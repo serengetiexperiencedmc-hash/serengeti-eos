@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { principalFromAuthHeader } from "../app.js";
 import type { Store } from "../store.js";
 import { dispatchEmailDigest, getEmailAdapterHealth, listEmailOutbox, listEmailTemplates, previewEmailTemplate, upsertEmailTemplate } from "./email.js";
-import { dispatchDlqSlaDigest, exportDlqSlaDigestLastRun, getDlqSlaDigestStatus } from "./dlq-sla-digest.js";
+import { dispatchDlqSlaDigest, dispatchDlqSlaDigestStaleAlert, exportDlqSlaDigestLastRun, getDlqSlaDigestStatus } from "./dlq-sla-digest.js";
 import { dispatchAllowlistDualDigest, getAllowlistDualDigestStatus } from "./allowlist-dual-digest.js";
 import {
   addAllowlistDualDigestRecipient,
@@ -115,6 +115,14 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getDlqSlaDigestStatus(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/notifications/email/dispatch-dlq-sla-digest-stale", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = await dispatchDlqSlaDigestStaleAlert(store, principal);
     if ("error" in result) return sendError(reply, result);
     return result;
   });

@@ -344,6 +344,11 @@ export function getEmailAdapterHealth(store: Store, principal?: Principal) {
     status: "ok" as const,
     outboxCount: (store.notifEmailOutbox ?? []).length,
     allowlistDualDigestLastRun,
+    allowlistDualDigestFreshness: digestLastRunFreshness(
+      allowlistDualDigestLastRun?.lastRunAt,
+      Date.now(),
+      "EOS_ALLOWLIST_DUAL_DIGEST_STALE_HOURS",
+    ),
     dlqSlaDigestLastRun,
     dlqSlaDigestFreshness: digestLastRunFreshness(dlqSlaDigestLastRun?.lastRunAt),
     deliveryEventCount: (store.notifEmailDeliveryEvents ?? []).length,

@@ -393,6 +393,33 @@ export type RateConflictHeatmap = {
   maxConflictCount: number;
 };
 
+export async function exportSupplierRateConflictHeatmap(
+  token: string,
+  query: {
+    from?: string;
+    to?: string;
+    supplierId?: string;
+    seasonLabel?: string;
+    unresolvedOnly?: boolean;
+    format?: "json" | "csv";
+  } = {},
+) {
+  const params = new URLSearchParams();
+  if (query.from) params.set("from", query.from);
+  if (query.to) params.set("to", query.to);
+  if (query.supplierId) params.set("supplierId", query.supplierId);
+  if (query.seasonLabel) params.set("seasonLabel", query.seasonLabel);
+  if (query.unresolvedOnly) params.set("unresolvedOnly", "1");
+  params.set("format", query.format ?? "csv");
+  return eosFetch<{
+    format: "json" | "csv";
+    csv?: string;
+    count: number;
+    generatedAt: string;
+    increment: string;
+  }>(`/v1/suppliers/rates/conflicts/heatmap/export?${params.toString()}`, { token });
+}
+
 export async function getSupplierRateConflicts(
   token: string,
   query: { supplierId?: string; from?: string; to?: string; unresolvedOnly?: boolean } = {},

@@ -231,3 +231,12 @@ export async function dispatchDlqSlaDigest(token: string) {
     increment: string;
   }>("/v1/notifications/email/dispatch-dlq-sla-digest", { token, method: "POST", body: "{}" });
 }
+
+export async function dispatchDlqSlaDigestStaleAlert(token: string) {
+  return eosFetch<{
+    dispatched: string[];
+    skipped: { key: string; reason?: string }[];
+    freshness: DigestFreshness;
+    increment: string;
+  }>("/v1/notifications/email/dispatch-dlq-sla-digest-stale", { token, method: "POST", body: "{}" });
+}

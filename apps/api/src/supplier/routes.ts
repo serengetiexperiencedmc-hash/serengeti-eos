@@ -20,7 +20,7 @@ import {
   restoreSupplier,
 } from "./supplier.js";
 import { archiveSupplierContact, createSupplierContact, updateSupplierContact } from "./contacts.js";
-import { archiveSupplierRate, createSupplierRate, getSupplierRateCalendar, getSupplierRateConflicts, getSupplierRateConflictHeatmap, preferSupplierRate, updateSupplierRate } from "./rates.js";
+import { archiveSupplierRate, createSupplierRate, getSupplierRateCalendar, getSupplierRateConflicts, getSupplierRateConflictHeatmap, exportSupplierRateConflictHeatmap, preferSupplierRate, updateSupplierRate } from "./rates.js";
 import {
   archiveSupplierSeason,
   backfillSeasonRates,
@@ -251,6 +251,31 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       ...(query.seasonLabel ? { seasonLabel: query.seasonLabel } : {}),
       ...(query.seasonId ? { seasonId: query.seasonId } : {}),
       ...(query.unresolvedOnly === "1" || query.unresolvedOnly === "true" ? { unresolvedOnly: true } : {}),
+    });
+    if ("error" in result) return sendSupplierError(reply, result);
+    return result;
+  });
+
+  app.get("/v1/suppliers/rates/conflicts/heatmap/export", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const query = req.query as {
+      supplierId?: string;
+      from?: string;
+      to?: string;
+      unresolvedOnly?: string;
+      seasonLabel?: string;
+      seasonId?: string;
+      format?: string;
+    };
+    const result = exportSupplierRateConflictHeatmap(store, principal, {
+      ...(query.supplierId ? { supplierId: query.supplierId } : {}),
+      ...(query.from ? { from: query.from } : {}),
+      ...(query.to ? { to: query.to } : {}),
+      ...(query.unresolvedOnly === "1" || query.unresolvedOnly === "true" ? { unresolvedOnly: true } : {}),
+      ...(query.seasonLabel ? { seasonLabel: query.seasonLabel } : {}),
+      ...(query.seasonId ? { seasonId: query.seasonId } : {}),
+      format: query.format === "csv" ? "csv" : "json",
     });
     if ("error" in result) return sendSupplierError(reply, result);
     return result;

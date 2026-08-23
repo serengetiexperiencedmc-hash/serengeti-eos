@@ -18,7 +18,7 @@ export {
   updateSupplier,
 } from "./supplier.js";
 export { archiveSupplierContact, createSupplierContact, updateSupplierContact } from "./contacts.js";
-export { archiveSupplierRate, createSupplierRate, getSupplierRateCalendar, getSupplierRateConflicts, getSupplierRateConflictHeatmap, preferSupplierRate, updateSupplierRate } from "./rates.js";
+export { archiveSupplierRate, createSupplierRate, getSupplierRateCalendar, getSupplierRateConflicts, getSupplierRateConflictHeatmap, exportSupplierRateConflictHeatmap, preferSupplierRate, updateSupplierRate } from "./rates.js";
 export {
   archiveSupplierSeason,
   backfillSeasonRates,

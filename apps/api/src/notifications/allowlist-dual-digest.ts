@@ -4,6 +4,7 @@ import { createEmailAdapter } from "./email.js";
 import { ensureNotificationCollections } from "./collections.js";
 import { resolveAllowlistDualDigestRecipientEmails } from "./allowlist-dual-digest-recipients.js";
 import { persistNotifAllowlistDualDigestLastRun } from "../persistence/notifications.js";
+import { digestLastRunFreshness } from "./digest-freshness.js";
 
 function stampLastRun(
   store: Store,
@@ -85,7 +86,7 @@ export async function dispatchAllowlistDualDigest(store: Store, principal: Princ
       pendingCount: 0,
       recipientCount: recipients.length,
       lastRun,
-      increment: "I3.24" as const,
+      increment: "I3.25" as const,
     };
   }
 
@@ -132,11 +133,11 @@ export async function dispatchAllowlistDualDigest(store: Store, principal: Princ
     pendingCount: pending.length,
     recipientCount: recipients.length,
     lastRun,
-    increment: "I3.24" as const,
+    increment: "I3.25" as const,
   };
 }
 
-/** I3.23 — last-run stamp + outbox digest analytics for the tenant. */
+/** I3.23–I3.25 — last-run stamp + outbox digest analytics + freshness. */
 export function getAllowlistDualDigestStatus(store: Store, principal: Principal) {
   const decision = authorize({
     principal,
@@ -166,6 +167,7 @@ export function getAllowlistDualDigestStatus(store: Store, principal: Principal)
       outboxDigestCount,
       outboxByStatus: byStatus,
     },
-    increment: "I3.24" as const,
+    freshness: digestLastRunFreshness(lastRun?.lastRunAt, Date.now(), "EOS_ALLOWLIST_DUAL_DIGEST_STALE_HOURS"),
+    increment: "I3.25" as const,
   };
 }

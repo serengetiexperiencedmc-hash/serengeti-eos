@@ -18,6 +18,7 @@ import {
   formatCategoryLabel,
   getSupplier,
   getSupplierFacets,
+  exportSupplierRateConflictHeatmap,
   getSupplierRateCalendar,
   listSuppliers,
   preferSupplierRate,
@@ -547,7 +548,7 @@ function SupplierDetailDrawer({
               )}
               {calendar && (
                 <div className="mb-3 rounded-md border border-line bg-ivory p-3">
-                  <div className="mb-2 text-xs uppercase tracking-wide text-muted">Rate calendar (PG.24)</div>
+                  <div className="mb-2 text-xs uppercase tracking-wide text-muted">Rate calendar (PG.25)</div>
                   <div className="mb-2 grid grid-cols-2 gap-2">
                     <input
                       type="date"
@@ -576,6 +577,38 @@ function SupplierDetailDrawer({
                       />
                       Unresolved only
                     </label>
+                  </div>
+                  <div className="mb-2">
+                    <Btn
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        if (!supplier) return;
+                        void exportSupplierRateConflictHeatmap(token, {
+                          from: calendarFrom,
+                          to: calendarTo,
+                          supplierId: supplier.id,
+                          format: "csv",
+                          ...(heatmapUnresolvedOnly ? { unresolvedOnly: true } : {}),
+                          ...(heatmapSeasonLabel.trim() ? { seasonLabel: heatmapSeasonLabel.trim() } : {}),
+                        })
+                          .then((res) => {
+                            const blob = new Blob([res.csv ?? ""], { type: "text/csv" });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download = `rate-conflict-heatmap-${res.generatedAt.slice(0, 10)}.csv`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          })
+                          .catch((err) => {
+                            setFormError(err instanceof EosApiError ? err.message : "Failed to export heatmap");
+                          });
+                      }}
+                    >
+                      Export heatmap CSV
+                    </Btn>
                   </div>
                   <div className="mb-2 flex flex-wrap gap-2">
                     {calendar.seasons.map((s) => (
