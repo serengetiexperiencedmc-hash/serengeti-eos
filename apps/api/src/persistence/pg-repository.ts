@@ -2631,3 +2631,60 @@ export async function deleteAiRecommendStaleSuppression(
     [tenantId, principalId],
   );
 }
+
+/** I20.15 — append-only stale recommend snooze/ack/clear audit. */
+export async function insertAiRecommendStaleSuppressionAudit(
+  pool: DbPool,
+  entry: import("@sedmc/kernel").AiRecommendStaleSuppressionAudit,
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO ai_recommend_stale_suppression_audit (
+      id, tenant_id, principal_id, action, snoozed_until, acknowledged_at, created_at, created_by_principal_id
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+    [
+      entry.id,
+      entry.tenantId,
+      entry.principalId,
+      entry.action,
+      entry.snoozedUntil ?? null,
+      entry.acknowledgedAt ?? null,
+      entry.createdAt,
+      entry.createdByPrincipalId,
+    ],
+  );
+}
+
+export async function loadAiRecommendStaleSuppressionAudits(
+  pool: DbPool,
+): Promise<import("@sedmc/kernel").AiRecommendStaleSuppressionAudit[]> {
+  const result = await pool.query(
+    `SELECT id, tenant_id, principal_id, action, snoozed_until, acknowledged_at, created_at, created_by_principal_id
+     FROM ai_recommend_stale_suppression_audit
+     ORDER BY created_at ASC`,
+  );
+  return result.rows.map((row) => {
+    const createdAt = row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at);
+    const snoozedUntil =
+      row.snoozed_until instanceof Date
+        ? row.snoozed_until.toISOString()
+        : row.snoozed_until
+          ? String(row.snoozed_until)
+          : undefined;
+    const acknowledgedAt =
+      row.acknowledged_at instanceof Date
+        ? row.acknowledged_at.toISOString()
+        : row.acknowledged_at
+          ? String(row.acknowledged_at)
+          : undefined;
+    return {
+      id: row.id as string,
+      tenantId: row.tenant_id as string,
+      principalId: row.principal_id as string,
+      action: row.action as import("@sedmc/kernel").AiRecommendStaleSuppressionAudit["action"],
+      ...(snoozedUntil ? { snoozedUntil } : {}),
+      ...(acknowledgedAt ? { acknowledgedAt } : {}),
+      createdAt,
+      createdByPrincipalId: row.created_by_principal_id as string,
+    };
+  });
+}

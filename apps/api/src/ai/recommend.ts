@@ -29,10 +29,11 @@ import { getDlqSlaDigestStatus, isDlqSlaDigestStaleSuppressed } from "../notific
 import { persistAiRecommendRun } from "../persistence/ai-recommend-runs.js";
 import {
   persistAiRecommendStaleSuppression,
+  persistAiRecommendStaleSuppressionAudit,
   persistDeleteAiRecommendStaleSuppression,
 } from "../persistence/ai-recommend-stale-suppressions.js";
 
-const INCREMENT = "I20.14" as const;
+const INCREMENT = "I20.15" as const;
 
 function recommendStaleThresholdHours(): number {
   const raw = Number(process.env.EOS_AI_RECOMMEND_STALE_HOURS);
@@ -52,14 +53,14 @@ function ensureAiRecommendStaleSuppressionAudits(store: Store): void {
   if (!store.aiRecommendStaleSuppressionAudits) store.aiRecommendStaleSuppressionAudits = [];
 }
 
-function appendAiRecommendStaleSuppressionAudit(
+async function appendAiRecommendStaleSuppressionAudit(
   store: Store,
   principal: Principal,
   action: AiRecommendStaleSuppressionAudit["action"],
   suppression?: AiRecommendStaleSuppression | null,
-): void {
+): Promise<void> {
   ensureAiRecommendStaleSuppressionAudits(store);
-  store.aiRecommendStaleSuppressionAudits.push({
+  const entry: AiRecommendStaleSuppressionAudit = {
     id: crypto.randomUUID(),
     tenantId: principal.tenantId,
     principalId: principal.id,
@@ -68,7 +69,9 @@ function appendAiRecommendStaleSuppressionAudit(
     ...(suppression?.acknowledgedAt ? { acknowledgedAt: suppression.acknowledgedAt } : {}),
     createdAt: new Date().toISOString(),
     createdByPrincipalId: principal.id,
-  });
+  };
+  store.aiRecommendStaleSuppressionAudits.push(entry);
+  await persistAiRecommendStaleSuppressionAudit(store.dbPool, entry);
 }
 
 function findAiRecommendStaleSuppression(store: Store, principal: Principal) {
@@ -109,7 +112,7 @@ async function upsertAiRecommendStaleSuppression(
   if (idx >= 0) store.aiRecommendStaleSuppressions[idx] = next;
   else store.aiRecommendStaleSuppressions.push(next);
   await persistAiRecommendStaleSuppression(store.dbPool, next);
-  appendAiRecommendStaleSuppressionAudit(store, principal, next.acknowledgedAt ? "ack" : "snooze", next);
+  await appendAiRecommendStaleSuppressionAudit(store, principal, next.acknowledgedAt ? "ack" : "snooze", next);
   return next;
 }
 
@@ -190,7 +193,7 @@ async function rememberRecommendRun(
   else store.aiRecommendRuns.push(run);
   const existing = findAiRecommendStaleSuppression(store, principal);
   clearAiRecommendStaleSuppression(store, principal);
-  if (existing) appendAiRecommendStaleSuppressionAudit(store, principal, "cleared", existing);
+  if (existing) await appendAiRecommendStaleSuppressionAudit(store, principal, "cleared", existing);
   await persistDeleteAiRecommendStaleSuppression(store.dbPool, principal.tenantId, principal.id);
   return run;
 }

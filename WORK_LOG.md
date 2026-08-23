@@ -591,11 +591,19 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **I20.14** | In-memory snooze/ack/clear audit; JSON/CSV export; AI page **Export stale audit** |
 
+### 49:xx — I20.15 persist recommend stale suppression audit ✅
+
+**Shipped:** server `0.82.0-i20.15`
+
+| Increment | Change |
+| --- | --- |
+| **I20.15** | Dual-write snooze/ack/clear audit to Postgres; hydrate on startup |
+
 ### Recommended next increments
 
-1. I20.15 — persist stale-recommend audit to Postgres
-2. I3.30 — persist allowlist stale audit to Postgres
-3. I4.28 — stale-audit filters / tenant export window
+1. I3.30 — persist allowlist stale audit to Postgres
+2. I4.28 — stale-audit filters / tenant export window
+3. I20.16 — stale-recommend audit filters / tenant export window
 
 ### Issues resolved
 

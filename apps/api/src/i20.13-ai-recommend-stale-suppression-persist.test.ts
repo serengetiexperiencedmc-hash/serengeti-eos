@@ -81,7 +81,7 @@ describe("I20.13 stale recommend suppression persistence", () => {
       payload: { hours: 24 },
     });
     expect(snoozed.statusCode).toBe(200);
-    expect(snoozed.json().increment).toBe("I20.14");
+    expect(snoozed.json().increment).toBe("I20.15");
     expect(writes.length).toBeGreaterThanOrEqual(1);
     expect(writes[0]!.snoozedUntil).toBeTruthy();
 
