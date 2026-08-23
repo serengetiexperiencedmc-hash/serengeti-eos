@@ -114,6 +114,7 @@ export async function getAllowlistDualDigestStatus(token: string) {
     freshness: DigestFreshness;
     analytics: { outboxDigestCount: number; outboxByStatus: Record<string, number> };
     suppression: { snoozedUntil?: string; acknowledgedAt?: string } | null;
+    lastFilter: { action?: string; since?: string; until?: string; updatedAt: string } | null;
     increment: string;
   }>("/v1/notifications/email/allowlist-dual-digest-status", { token });
 }

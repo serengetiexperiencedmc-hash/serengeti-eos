@@ -146,6 +146,27 @@ export type NotifAllowlistDualDigestRecipient = {
   revokedAt?: string;
 };
 
+/** I3.32 — last-used allowlist stale-audit export filter per tenant + principal. */
+export type NotifAllowlistDualDigestStaleAuditExportLastFilter = {
+  tenantId: string;
+  principalId: string;
+  action?: "snooze" | "ack" | "cleared";
+  since?: string;
+  until?: string;
+  updatedAt: string;
+};
+
+export function sanitizeNotifAllowlistDualDigestStaleAuditExportLastFilter(
+  row: NotifAllowlistDualDigestStaleAuditExportLastFilter,
+) {
+  return {
+    ...(row.action ? { action: row.action } : {}),
+    ...(row.since ? { since: row.since } : {}),
+    ...(row.until ? { until: row.until } : {}),
+    updatedAt: row.updatedAt,
+  };
+}
+
 /** I3.29 — audit trail for stale allowlist dual digest snooze/ack/clear. */
 export type NotifAllowlistDualDigestStaleSuppressionAudit = {
   id: string;

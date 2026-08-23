@@ -9,6 +9,7 @@ import type {
   NotifDlqSlaDigestStaleSuppression,
   NotifDlqSlaDigestStaleSuppressionAudit,
   NotifAllowlistDualDigestLastRun,
+  NotifAllowlistDualDigestStaleAuditExportLastFilter,
   NotifAllowlistDualDigestStaleSuppression,
   NotifAllowlistDualDigestStaleSuppressionAudit,
 } from "@sedmc/kernel";
@@ -20,8 +21,10 @@ import {
   insertNotifEmailOutbox,
   insertNotifAllowlistDualDigestStaleSuppressionAudit,
   loadNotifAllowlistDualDigestLastRuns,
+  loadNotifAllowlistDualDigestStaleAuditExportLastFilters,
   loadNotifAllowlistDualDigestStaleSuppressionAudits,
   loadNotifAllowlistDualDigestStaleSuppressions,
+  upsertNotifAllowlistDualDigestStaleAuditExportLastFilter,
   loadNotifDlqSlaDigestLastRuns,
   insertNotifDlqSlaDigestStaleSuppressionAudit,
   loadNotifDlqSlaDigestStaleSuppressionAudits,
@@ -307,6 +310,39 @@ export async function persistNotifAllowlistDualDigestStaleSuppressionAudit(
   } catch {
     // Fire-and-forget dual-write.
   }
+}
+
+export async function persistNotifAllowlistDualDigestStaleAuditExportLastFilter(
+  pool: DbPool | undefined,
+  row: NotifAllowlistDualDigestStaleAuditExportLastFilter,
+): Promise<void> {
+  if (!pool) return;
+  try {
+    await upsertNotifAllowlistDualDigestStaleAuditExportLastFilter(pool, row);
+  } catch {
+    // Fire-and-forget dual-write.
+  }
+}
+
+export async function hydrateNotifAllowlistDualDigestStaleAuditExportLastFilters(
+  pool: DbPool,
+  store: Store,
+): Promise<number> {
+  ensureNotificationCollections(store);
+  const rows = await loadNotifAllowlistDualDigestStaleAuditExportLastFilters(pool);
+  let merged = 0;
+  for (const row of rows) {
+    const idx = store.notifAllowlistDualDigestStaleAuditExportLastFilters.findIndex(
+      (f) => f.tenantId === row.tenantId && f.principalId === row.principalId,
+    );
+    if (idx >= 0) {
+      store.notifAllowlistDualDigestStaleAuditExportLastFilters[idx] = row;
+    } else {
+      store.notifAllowlistDualDigestStaleAuditExportLastFilters.push(row);
+      merged += 1;
+    }
+  }
+  return merged;
 }
 
 export async function hydrateNotifAllowlistDualDigestStaleSuppressionAudits(pool: DbPool, store: Store): Promise<number> {

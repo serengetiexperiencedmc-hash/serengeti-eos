@@ -679,10 +679,18 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **I3.31** | Filter allowlist stale-audit export by action / since / until; tenant-scoped window |
 
+### 60:xx — I3.32 persist last-used allowlist stale-audit filter ✅
+
+**Shipped:** server `0.93.0-i3.32`
+
+| Increment | Change |
+| --- | --- |
+| **I3.32** | Dual-write last-used allowlist stale-audit export filter; hydrate on startup |
+
 ### Recommended next increments
 
 1. I20.23 — (unnamed)
-2. I3.32 — persist last-used allowlist stale-audit filter
+2. I4.29 — persist last-used DLQ stale-audit filter
 3. PG.30 — (optional ops follow-up)
 
 ### Issues resolved

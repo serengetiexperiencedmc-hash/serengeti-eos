@@ -88,6 +88,7 @@ import {
   type NotifDlqSlaDigestStaleSuppressionAudit,
   type NotifAllowlistDualDigestRecipient,
   type NotifAllowlistDualDigestLastRun,
+  type NotifAllowlistDualDigestStaleAuditExportLastFilter,
   type NotifAllowlistDualDigestStaleSuppression,
   type NotifAllowlistDualDigestStaleSuppressionAudit,
   type AiDraft,
@@ -238,6 +239,8 @@ export type Store = {
   notifAllowlistDualDigestStaleSuppressions: NotifAllowlistDualDigestStaleSuppression[];
   /** I3.29 / I3.30 — snooze/ack/clear audit for stale allowlist dual digest (persisted). */
   notifAllowlistDualDigestStaleSuppressionAudits: NotifAllowlistDualDigestStaleSuppressionAudit[];
+  /** I3.32 — last-used allowlist stale-audit export filter (persisted). */
+  notifAllowlistDualDigestStaleAuditExportLastFilters: NotifAllowlistDualDigestStaleAuditExportLastFilter[];
   natsConsumerOffsets: NatsConsumerOffset[];
   /** I20.2 — unpublished AI drafts until human accept. */
   aiDrafts: AiDraft[];
@@ -881,6 +884,7 @@ export function seedStore(
     notifAllowlistDualDigestLastRuns: [],
     notifAllowlistDualDigestStaleSuppressions: [],
     notifAllowlistDualDigestStaleSuppressionAudits: [],
+    notifAllowlistDualDigestStaleAuditExportLastFilters: [],
     natsConsumerOffsets: [],
     aiDrafts: [],
     aiRecommendRuns: [],

@@ -64,6 +64,7 @@ export default function NotificationsPage() {
   const [staleAuditAction, setStaleAuditAction] = useState("");
   const [staleAuditSince, setStaleAuditSince] = useState("");
   const [staleAuditUntil, setStaleAuditUntil] = useState("");
+  const [staleAuditHydrated, setStaleAuditHydrated] = useState(false);
 
   const [selectedKey, setSelectedKey] = useState<string>("");
   const [editSubject, setEditSubject] = useState("");
@@ -114,6 +115,12 @@ export default function NotificationsPage() {
           ? { lastRun: health.allowlistDualDigestLastRun, outboxDigestCount: 0 }
           : null,
     );
+    if (dualStatus?.lastFilter && !staleAuditHydrated) {
+      setStaleAuditAction(dualStatus.lastFilter.action ?? "");
+      setStaleAuditSince(dualStatus.lastFilter.since ?? "");
+      setStaleAuditUntil(dualStatus.lastFilter.until ?? "");
+      setStaleAuditHydrated(true);
+    }
     if (tmpl.items.length > 0 && !selectedKey) {
       const first = tmpl.items[0];
       setSelectedKey(first.key);
@@ -252,7 +259,7 @@ export default function NotificationsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="I3 · I3.31 · Notifications"
+        eyebrow="I3 · I3.32 · Notifications"
         title="Action Inbox"
         subtitle={`Live alerts + email digest · adapter: ${adapter}`}
         actions={

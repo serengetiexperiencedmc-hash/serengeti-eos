@@ -15,4 +15,7 @@ export function ensureNotificationCollections(store: Store): void {
   if (!store.notifAllowlistDualDigestLastRuns) store.notifAllowlistDualDigestLastRuns = [];
   if (!store.notifAllowlistDualDigestStaleSuppressions) store.notifAllowlistDualDigestStaleSuppressions = [];
   if (!store.notifAllowlistDualDigestStaleSuppressionAudits) store.notifAllowlistDualDigestStaleSuppressionAudits = [];
+  if (!store.notifAllowlistDualDigestStaleAuditExportLastFilters) {
+    store.notifAllowlistDualDigestStaleAuditExportLastFilters = [];
+  }
 }
