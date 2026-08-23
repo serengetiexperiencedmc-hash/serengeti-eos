@@ -37,7 +37,7 @@ function findOverdueAssociation(store: Store, tenantId: string) {
   return undefined;
 }
 
-const INCREMENT = "I20.5" as const;
+const INCREMENT = "I20.6" as const;
 
 export function ensureAiCollections(store: Store): void {
   if (!store.aiDrafts) store.aiDrafts = [];
@@ -187,12 +187,15 @@ export function listAiDrafts(store: Store, principal: Principal, query?: { statu
     return { error: "invalid_request" as const, reason: "invalid_artefact_type" };
   }
 
-  let items = store.aiDrafts.filter((d) => d.tenantId === principal.tenantId);
+  const scoped = store.aiDrafts.filter((d) => d.tenantId === principal.tenantId);
+  const pendingCount = scoped.filter((d) => d.status === "pending").length;
+  let items = scoped;
   if (query?.status) items = items.filter((d) => d.status === query.status);
   if (query?.artefactType) items = items.filter((d) => d.artefactType === query.artefactType);
   items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   return {
     items: items.map(sanitizeDraft),
+    pendingCount,
     filters: {
       status: query?.status ?? null,
       artefactType: query?.artefactType ?? null,

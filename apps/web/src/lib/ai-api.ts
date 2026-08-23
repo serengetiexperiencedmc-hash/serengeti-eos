@@ -46,6 +46,7 @@ export async function listAiDrafts(token: string, query?: string | AiDraftListQu
   const q = params.toString() ? `?${params.toString()}` : "";
   return eosFetch<{
     items: AiDraft[];
+    pendingCount: number;
     filters: { status: string | null; artefactType: string | null };
     increment: string;
   }>(`/v1/ai/drafts${q}`, { token });

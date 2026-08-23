@@ -1,13 +1,19 @@
 export type BadgeVariant = "urgent" | "progress" | "review" | "won" | "draft";
 
-export type NavBadgeKey = "pipeline" | "activeRfps" | "reconciliationExceptions" | "fieldSyncConflicts" | "notifications";
+export type NavBadgeKey =
+  | "pipeline"
+  | "activeRfps"
+  | "reconciliationExceptions"
+  | "fieldSyncConflicts"
+  | "notifications"
+  | "aiDrafts";
 
 export const navItems = [
   {
     section: "Overview",
     items: [
       { href: "/commercial", label: "Dashboard", icon: "dashboard" },
-      { href: "/commercial/ai", label: "AI Drafts", icon: "ai" },
+      { href: "/commercial/ai", label: "AI Drafts", icon: "ai", badgeKey: "aiDrafts" as NavBadgeKey },
       { href: "/commercial/notifications", label: "Notifications", icon: "notifications", badgeKey: "notifications" as NavBadgeKey },
       { href: "/commercial/pipeline", label: "Pipeline", icon: "pipeline", badgeKey: "pipeline" as NavBadgeKey },
     ],

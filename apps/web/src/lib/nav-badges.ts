@@ -1,3 +1,4 @@
+import { listAiDrafts } from "./ai-api";
 import { getCommercialSummary } from "./analytics-api";
 import { getUnreadCount } from "./notifications-api";
 import { listRfps } from "./rfp-api";
@@ -10,15 +11,17 @@ export type NavBadgeCounts = {
   reconciliationExceptions: number;
   fieldSyncConflicts: number;
   notifications: number;
+  aiDrafts: number;
 };
 
 export async function fetchNavBadges(token: string): Promise<NavBadgeCounts> {
-  const [summary, rfps, conflicts, pipelineHealth, notifCount] = await Promise.all([
+  const [summary, rfps, conflicts, pipelineHealth, notifCount, drafts] = await Promise.all([
     getCommercialSummary(token),
     listRfps(token, { status: "active" }),
     listSyncConflicts(token).catch(() => ({ items: [] })),
     eosFetch<{ opportunities: number }>("/v1/pipeline/health", { token }).catch(() => ({ opportunities: 0 })),
     getUnreadCount(token).catch(() => ({ unreadCount: 0 })),
+    listAiDrafts(token, { status: "pending" }).catch(() => ({ items: [], pendingCount: 0 })),
   ]);
 
   return {
@@ -27,5 +30,6 @@ export async function fetchNavBadges(token: string): Promise<NavBadgeCounts> {
     reconciliationExceptions: summary.summary.reconciliationExceptions,
     fieldSyncConflicts: conflicts.items.length || summary.summary.fieldSyncConflicts,
     notifications: notifCount.unreadCount,
+    aiDrafts: drafts.pendingCount ?? drafts.items.length,
   };
 }

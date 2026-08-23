@@ -33,6 +33,7 @@ export default function AiDraftsPage() {
   const [status, setStatus] = useState("pending");
   const [artefactType, setArtefactType] = useState("");
   const [drafts, setDrafts] = useState<AiDraft[] | null>(null);
+  const [pendingCount, setPendingCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -44,6 +45,7 @@ export default function AiDraftsPage() {
       })
         .then((res) => {
           setDrafts(res.items);
+          setPendingCount(res.pendingCount);
           setError(null);
         })
         .catch((err) => {
@@ -69,9 +71,9 @@ export default function AiDraftsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="I20.5 · Assistant"
+        eyebrow="I20.6 · Assistant"
         title="AI Drafts"
-        subtitle="Filter unpublished assistant drafts. Accept creates a CRM task or activity. Discard drops the draft. The assistant cannot merge, email, or approve."
+        subtitle="Filter unpublished assistant drafts. The sidebar badge is the pending count. Accept creates a CRM task or activity. Discard drops the draft. The assistant cannot merge, email, or approve."
       />
       <Card>
         <div className="mb-4 flex flex-wrap gap-3">
@@ -103,6 +105,7 @@ export default function AiDraftsPage() {
               ))}
             </select>
           </label>
+          <p className="self-end text-xs text-muted">{pendingCount} pending</p>
         </div>
         {error && <p className="mb-3 text-sm text-red-700">{error}</p>}
         {drafts === null ? (
