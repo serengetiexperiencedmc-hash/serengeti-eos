@@ -67,7 +67,7 @@ describe("I4.28 stale DLQ SLA digest suppression export filters", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(snoozeOnly.statusCode).toBe(200);
-    expect(snoozeOnly.json().increment).toBe("I4.30");
+    expect(snoozeOnly.json().increment).toBe("I4.31");
     expect(snoozeOnly.json().filter.action).toBe("snooze");
     expect(snoozeOnly.json().audits.every((a: { action: string }) => a.action === "snooze")).toBe(true);
     expect(snoozeOnly.json().count).toBe(1);

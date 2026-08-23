@@ -288,7 +288,7 @@ export function sanitizeNotifDlqSlaDigestStaleAuditExportLastFilter(
   };
 }
 
-/** I4.30 — named tenant DLQ stale-audit export preset. Persist is I4.31. */
+/** I4.30 / I4.31 — named tenant DLQ stale-audit export preset. */
 export type NotifDlqSlaDigestStaleAuditExportPreset = {
   id: string;
   tenantId: string;

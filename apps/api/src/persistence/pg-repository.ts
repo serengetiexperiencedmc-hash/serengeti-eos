@@ -2366,6 +2366,61 @@ export async function loadNotifDlqSlaDigestStaleAuditExportLastFilters(
   });
 }
 
+/** I4.31 — upsert named tenant DLQ stale-audit export preset. */
+export async function upsertNotifDlqSlaDigestStaleAuditExportPreset(
+  pool: DbPool,
+  row: import("@sedmc/kernel").NotifDlqSlaDigestStaleAuditExportPreset,
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO notif_dlq_sla_digest_stale_audit_export_preset (
+      id, tenant_id, name, action, since_text, until_text,
+      created_at, created_by_principal_id, updated_at
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+     ON CONFLICT (id) DO UPDATE SET
+       name = EXCLUDED.name,
+       action = EXCLUDED.action,
+       since_text = EXCLUDED.since_text,
+       until_text = EXCLUDED.until_text,
+       updated_at = EXCLUDED.updated_at`,
+    [
+      row.id,
+      row.tenantId,
+      row.name,
+      row.action ?? null,
+      row.since ?? null,
+      row.until ?? null,
+      row.createdAt,
+      row.createdByPrincipalId,
+      row.updatedAt,
+    ],
+  );
+}
+
+export async function loadNotifDlqSlaDigestStaleAuditExportPresets(
+  pool: DbPool,
+): Promise<import("@sedmc/kernel").NotifDlqSlaDigestStaleAuditExportPreset[]> {
+  const result = await pool.query(
+    `SELECT id, tenant_id, name, action, since_text, until_text,
+            created_at, created_by_principal_id, updated_at
+     FROM notif_dlq_sla_digest_stale_audit_export_preset`,
+  );
+  return result.rows.map((row) => {
+    const createdAt = row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at);
+    const updatedAt = row.updated_at instanceof Date ? row.updated_at.toISOString() : String(row.updated_at);
+    return {
+      id: row.id as string,
+      tenantId: row.tenant_id as string,
+      name: String(row.name),
+      ...(row.action ? { action: row.action as "snooze" | "ack" | "cleared" } : {}),
+      ...(row.since_text ? { since: String(row.since_text) } : {}),
+      ...(row.until_text ? { until: String(row.until_text) } : {}),
+      createdAt,
+      createdByPrincipalId: row.created_by_principal_id as string,
+      updatedAt,
+    };
+  });
+}
+
 /** I3.28 — upsert stale allowlist dual digest snooze/ack (one row per tenant). */
 export async function upsertNotifAllowlistDualDigestStaleSuppression(
   pool: DbPool,

@@ -22,6 +22,7 @@ import {
   persistDeleteNotifDlqSlaDigestStaleSuppression,
   persistNotifDlqSlaDigestLastRun,
   persistNotifDlqSlaDigestStaleAuditExportLastFilter,
+  persistNotifDlqSlaDigestStaleAuditExportPreset,
   persistNotifDlqSlaDigestStaleSuppression,
   persistNotifDlqSlaDigestStaleSuppressionAudit,
 } from "../persistence/notifications.js";
@@ -169,7 +170,7 @@ export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
       thresholdHours: listed.sla.thresholdHours,
       recipientCount: recipients.length,
       lastRun,
-      increment: "I4.30" as const,
+      increment: "I4.31" as const,
     };
   }
 
@@ -217,7 +218,7 @@ export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
     thresholdHours: listed.sla.thresholdHours,
     recipientCount: recipients.length,
     lastRun,
-    increment: "I4.30" as const,
+    increment: "I4.31" as const,
   };
 }
 
@@ -258,7 +259,7 @@ export function getDlqSlaDigestStatus(store: Store, principal: Principal) {
       return last ? sanitizeNotifDlqSlaDigestStaleAuditExportLastFilter(last) : null;
     })(),
     presets: sanitizedTenantDlqPresets(store, principal.tenantId),
-    increment: "I4.30" as const,
+    increment: "I4.31" as const,
   };
 }
 
@@ -308,10 +309,10 @@ function findDlqStaleAuditExportPreset(
 export function listDlqSlaDigestStaleAuditExportPresets(store: Store, principal: Principal) {
   const status = getDlqSlaDigestStatus(store, principal);
   if ("error" in status) return status;
-  return { presets: status.presets, increment: "I4.30" as const };
+  return { presets: status.presets, increment: "I4.31" as const };
 }
 
-export function upsertDlqSlaDigestStaleAuditExportPreset(
+export async function upsertDlqSlaDigestStaleAuditExportPreset(
   store: Store,
   principal: Principal,
   input: { name?: string; action?: string; since?: string; until?: string } = {},
@@ -357,10 +358,11 @@ export function upsertDlqSlaDigestStaleAuditExportPreset(
     : -1;
   if (idx >= 0) store.notifDlqSlaDigestStaleAuditExportPresets[idx] = next;
   else store.notifDlqSlaDigestStaleAuditExportPresets.push(next);
+  await persistNotifDlqSlaDigestStaleAuditExportPreset(store.dbPool, next);
   return {
     preset: sanitizeNotifDlqSlaDigestStaleAuditExportPreset(next),
     presets: sanitizedTenantDlqPresets(store, principal.tenantId),
-    increment: "I4.30" as const,
+    increment: "I4.31" as const,
   };
 }
 
@@ -460,7 +462,7 @@ export function exportDlqSlaDigestLastRun(
       analytics: status.analytics,
       freshness: status.freshness,
       generatedAt,
-      increment: "I4.30" as const,
+      increment: "I4.31" as const,
     };
   }
 
@@ -471,7 +473,7 @@ export function exportDlqSlaDigestLastRun(
     freshness: status.freshness,
     row,
     generatedAt,
-    increment: "I4.30" as const,
+    increment: "I4.31" as const,
   };
 }
 
@@ -506,7 +508,7 @@ export async function dispatchDlqSlaDigestStaleAlert(store: Store, principal: Pr
       adapter: adapter.name,
       freshness: status.freshness,
       inboxKey,
-      increment: "I4.30" as const,
+      increment: "I4.31" as const,
     };
   }
 
@@ -524,7 +526,7 @@ export async function dispatchDlqSlaDigestStaleAlert(store: Store, principal: Pr
       freshness: status.freshness,
       suppression,
       inboxKey,
-      increment: "I4.30" as const,
+      increment: "I4.31" as const,
     };
   }
 
@@ -562,7 +564,7 @@ export async function dispatchDlqSlaDigestStaleAlert(store: Store, principal: Pr
     adapter: adapter.name,
     freshness: status.freshness,
     inboxKey,
-    increment: "I4.30" as const,
+    increment: "I4.31" as const,
   };
 }
 
@@ -586,7 +588,7 @@ export function snoozeDlqSlaDigestStale(store: Store, principal: Principal, inpu
     snoozedUntil,
     acknowledgedAt: undefined,
   });
-  return { suppression, increment: "I4.30" as const };
+  return { suppression, increment: "I4.31" as const };
 }
 
 /** I4.24 — acknowledge stale-digest inbox until the next last-run stamp. */
@@ -604,10 +606,10 @@ export function acknowledgeDlqSlaDigestStale(store: Store, principal: Principal)
     acknowledgedAt: new Date().toISOString(),
     snoozedUntil: undefined,
   });
-  return { suppression, increment: "I4.30" as const };
+  return { suppression, increment: "I4.31" as const };
 }
 
-/** I4.26 / I4.28 / I4.29 / I4.30 — CSV/JSON export of current suppression + snooze/ack/clear audit. */
+/** I4.26 / I4.28 / I4.29 / I4.30 / I4.31 — CSV/JSON export of current suppression + snooze/ack/clear audit. */
 export async function exportDlqSlaDigestStaleSuppression(
   store: Store,
   principal: Principal,
@@ -680,7 +682,7 @@ export async function exportDlqSlaDigestStaleSuppression(
       lastFilter,
       preset: sanitizedPreset,
       generatedAt,
-      increment: "I4.30" as const,
+      increment: "I4.31" as const,
     };
   }
 
@@ -693,6 +695,6 @@ export async function exportDlqSlaDigestStaleSuppression(
     lastFilter,
     preset: sanitizedPreset,
     generatedAt,
-    increment: "I4.30" as const,
+    increment: "I4.31" as const,
   };
 }

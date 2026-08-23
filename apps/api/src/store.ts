@@ -236,7 +236,7 @@ export type Store = {
   notifDlqSlaDigestStaleSuppressionAudits: NotifDlqSlaDigestStaleSuppressionAudit[];
   /** I4.29 — last-used DLQ stale-audit export filter (persisted). */
   notifDlqSlaDigestStaleAuditExportLastFilters: NotifDlqSlaDigestStaleAuditExportLastFilter[];
-  /** I4.30 — named tenant DLQ stale-audit export presets (in-memory). */
+  /** I4.31 — named tenant DLQ stale-audit export presets (persisted). */
   notifDlqSlaDigestStaleAuditExportPresets: NotifDlqSlaDigestStaleAuditExportPreset[];
   /** I3.22 — allowlist dual-control digest ops aliases. */
   notifAllowlistDualDigestRecipients: NotifAllowlistDualDigestRecipient[];

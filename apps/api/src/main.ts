@@ -15,7 +15,7 @@ import {
   hydrateAiRecommendStaleSuppressions,
 } from "./persistence/ai-recommend-stale-suppressions.js";
 import { hydrateCrmFromPostgres } from "./persistence/crm.js";
-import { hydrateNotifEmailTemplates, hydrateNotifEmailSuppressions, hydrateNotifEmailAllowlist, hydrateNotifDlqSlaDigestLastRuns, hydrateNotifAllowlistDualDigestLastRuns, hydrateNotifDlqSlaDigestStaleSuppressions, hydrateNotifDlqSlaDigestStaleSuppressionAudits, hydrateNotifDlqSlaDigestStaleAuditExportLastFilters, hydrateNotifAllowlistDualDigestStaleSuppressions, hydrateNotifAllowlistDualDigestStaleSuppressionAudits, hydrateNotifAllowlistDualDigestStaleAuditExportLastFilters, hydrateNotifAllowlistDualDigestStaleAuditExportPresets } from "./persistence/notifications.js";
+import { hydrateNotifEmailTemplates, hydrateNotifEmailSuppressions, hydrateNotifEmailAllowlist, hydrateNotifDlqSlaDigestLastRuns, hydrateNotifAllowlistDualDigestLastRuns, hydrateNotifDlqSlaDigestStaleSuppressions, hydrateNotifDlqSlaDigestStaleSuppressionAudits, hydrateNotifDlqSlaDigestStaleAuditExportLastFilters, hydrateNotifDlqSlaDigestStaleAuditExportPresets, hydrateNotifAllowlistDualDigestStaleSuppressions, hydrateNotifAllowlistDualDigestStaleSuppressionAudits, hydrateNotifAllowlistDualDigestStaleAuditExportLastFilters, hydrateNotifAllowlistDualDigestStaleAuditExportPresets } from "./persistence/notifications.js";
 import { hydratePendingOutbox } from "./persistence/outbox.js";
 import { hydrateProcessedEvents } from "./persistence/processed-events.js";
 import { hydrateNatsConsumerOffsets } from "./persistence/nats-offsets.js";
@@ -75,6 +75,7 @@ if (databaseUrl) {
     pool,
     store,
   );
+  const digestStaleAuditExportPresetsHydrated = await hydrateNotifDlqSlaDigestStaleAuditExportPresets(pool, store);
   const allowlistStaleSuppressionsHydrated = await hydrateNotifAllowlistDualDigestStaleSuppressions(pool, store);
   const allowlistStaleSuppressionAuditsHydrated = await hydrateNotifAllowlistDualDigestStaleSuppressionAudits(pool, store);
   const allowlistStaleAuditExportLastFiltersHydrated = await hydrateNotifAllowlistDualDigestStaleAuditExportLastFilters(
@@ -104,6 +105,9 @@ if (databaseUrl) {
   logger.info("i427_dlq_sla_digest_stale_suppression_audit_hydrate", { merged: digestStaleSuppressionAuditsHydrated });
   logger.info("i429_dlq_sla_digest_stale_audit_export_last_filter_hydrate", {
     merged: digestStaleAuditExportLastFiltersHydrated,
+  });
+  logger.info("i431_dlq_sla_digest_stale_audit_export_preset_hydrate", {
+    merged: digestStaleAuditExportPresetsHydrated,
   });
   logger.info("i328_allowlist_dual_digest_stale_suppression_hydrate", { merged: allowlistStaleSuppressionsHydrated });
   logger.info("i330_allowlist_dual_digest_stale_suppression_audit_hydrate", { merged: allowlistStaleSuppressionAuditsHydrated });
