@@ -42,7 +42,7 @@ describe("I3.22 allowlist dual-control digest recipients", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(dispatched.statusCode).toBe(200);
-    expect(dispatched.json().increment).toBe("I3.27");
+    expect(dispatched.json().increment).toBe("I3.28");
     expect(dispatched.json().recipientCount).toBeGreaterThanOrEqual(2);
     expect(dispatched.json().dispatched.length).toBeGreaterThanOrEqual(2);
 

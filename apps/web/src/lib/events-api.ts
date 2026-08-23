@@ -246,6 +246,16 @@ export async function acknowledgeDlqSlaDigestStale(token: string) {
   );
 }
 
+export async function exportDlqSlaDigestStaleSuppression(token: string, format: "json" | "csv" = "csv") {
+  return eosFetch<{
+    format: "json" | "csv";
+    csv?: string;
+    count: number;
+    generatedAt: string;
+    increment: string;
+  }>(`/v1/notifications/email/dlq-sla-digest-stale/export?format=${format}`, { token });
+}
+
 export async function dispatchDlqSlaDigestStaleAlert(token: string) {
   return eosFetch<{
     dispatched: string[];

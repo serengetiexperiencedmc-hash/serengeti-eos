@@ -36,7 +36,7 @@ describe("PG.17 rate seasons catalogue", () => {
       },
     });
     expect(created.statusCode).toBe(201);
-    expect(created.json().increment).toBe("PG.21");
+    expect(created.json().increment).toBe("PG.28");
     const seasonId = created.json().season.id as string;
 
     const dup = await app.inject({

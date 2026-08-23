@@ -102,7 +102,7 @@ export function listSupplierSeasons(
     .map(sanitizeSeason)
     .sort((a, b) => a.seasonCode.localeCompare(b.seasonCode));
 
-  return { items, count: items.length, increment: "PG.21" as const };
+  return { items, count: items.length, increment: "PG.28" as const };
 }
 
 function csvEscape(value: string): string {
@@ -141,9 +141,9 @@ export function exportSupplierSeasons(
           .join(","),
       ),
     ].join("\n");
-    return { format, csv, items: listed.items, count: listed.count, generatedAt, increment: "PG.27" as const };
+    return { format, csv, items: listed.items, count: listed.count, generatedAt, increment: "PG.28" as const };
   }
-  return { format, items: listed.items, count: listed.count, generatedAt, increment: "PG.27" as const };
+  return { format, items: listed.items, count: listed.count, generatedAt, increment: "PG.28" as const };
 }
 
 export function createSupplierSeason(
@@ -217,11 +217,12 @@ export function createSupplierSeason(
     updatedByPrincipalId: principal.id,
   };
   store.supSeasons.push(season);
+  void persistSupEntityAfterCommit(store.dbPool, store, "supplier_season", season.id);
   allowSupplierAudit(store, principal, "supplier:write:supplier", "sup_season", season.id, correlationId, {
     seasonCode,
     eventType: "supplier.season.created.v1",
   });
-  return { season: sanitizeSeason(season), increment: "PG.21" as const };
+  return { season: sanitizeSeason(season), increment: "PG.28" as const };
 }
 
 /** PG.20 — dry-run season shrink impact without mutating. */
@@ -313,12 +314,13 @@ export function updateSupplierSeason(
   // PG.20/PG.22 — warn-only shrink impact + expand backfill suggestions.
   const impact = buildSeasonShrinkImpact(store.supRates ?? [], season, principal.tenantId);
   const expandBackfill = buildSeasonExpandBackfill(store.supRates ?? [], season, principal.tenantId);
+  void persistSupEntityAfterCommit(store.dbPool, store, "supplier_season", season.id);
   allowSupplierAudit(store, principal, "supplier:write:supplier", "sup_season", season.id, correlationId, {
     eventType: "supplier.season.updated.v1",
     outsideCount: impact.outsideCount,
     suggestionCount: expandBackfill.suggestionCount,
   });
-  return { season: sanitizeSeason(season), impact, expandBackfill, increment: "PG.22" as const };
+  return { season: sanitizeSeason(season), impact, expandBackfill, increment: "PG.28" as const };
 }
 
 export function archiveSupplierSeason(
@@ -347,10 +349,11 @@ export function archiveSupplierSeason(
   season.version += 1;
   season.updatedAt = season.archivedAt;
   season.updatedByPrincipalId = principal.id;
+  void persistSupEntityAfterCommit(store.dbPool, store, "supplier_season", season.id);
   allowSupplierAudit(store, principal, "supplier:write:supplier", "sup_season", season.id, correlationId, {
     eventType: "supplier.season.archived.v1",
   });
-  return { season: sanitizeSeason(season), increment: "PG.21" as const };
+  return { season: sanitizeSeason(season), increment: "PG.28" as const };
 }
 
 /**

@@ -459,11 +459,21 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **I3.27** | Allowlist stale digest snooze / ack (mirror I4.24) |
 | **I4.25** | Persist stale DLQ digest snooze/ack to Postgres |
 
+### 33:xx — PG.28 + I3.28 + I4.26 ✅
+
+**Shipped:** server `0.66.0-pg28-i3.28-i4.26`
+
+| Increment | Change |
+| --- | --- |
+| **PG.28** | Dual-write season catalogue + `season_id` on rates |
+| **I3.28** | Persist allowlist stale snooze/ack to Postgres |
+| **I4.26** | Stale-digest suppression export / audit |
+
 ### Recommended next increments
 
-1. PG.28 — persist season catalogue dual-write (complete migration 055)
-2. I3.28 — persist allowlist stale snooze/ack to Postgres (mirror I4.25)
-3. I4.26 — stale-digest suppression export / audit
+1. PG.29 — season catalogue import / idempotent upsert
+2. I3.29 — allowlist stale suppression export / audit (mirror I4.26)
+3. I4.27 — persist stale-digest suppression audit to Postgres
 
 ### Issues resolved
 

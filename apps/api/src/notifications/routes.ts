@@ -7,6 +7,7 @@ import {
   dispatchDlqSlaDigest,
   dispatchDlqSlaDigestStaleAlert,
   exportDlqSlaDigestLastRun,
+  exportDlqSlaDigestStaleSuppression,
   getDlqSlaDigestStatus,
   snoozeDlqSlaDigestStale,
 } from "./dlq-sla-digest.js";
@@ -153,6 +154,17 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = acknowledgeDlqSlaDigestStale(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.get("/v1/notifications/email/dlq-sla-digest-stale/export", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const query = req.query as { format?: string };
+    const result = exportDlqSlaDigestStaleSuppression(store, principal, {
+      format: query.format === "csv" ? "csv" : "json",
+    });
     if ("error" in result) return sendError(reply, result);
     return result;
   });

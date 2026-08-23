@@ -10,6 +10,7 @@ export function ensureNotificationCollections(store: Store): void {
   if (!store.notifDlqSlaDigestRecipients) store.notifDlqSlaDigestRecipients = [];
   if (!store.notifDlqSlaDigestLastRuns) store.notifDlqSlaDigestLastRuns = [];
   if (!store.notifDlqSlaDigestStaleSuppressions) store.notifDlqSlaDigestStaleSuppressions = [];
+  if (!store.notifDlqSlaDigestStaleSuppressionAudits) store.notifDlqSlaDigestStaleSuppressionAudits = [];
   if (!store.notifAllowlistDualDigestRecipients) store.notifAllowlistDualDigestRecipients = [];
   if (!store.notifAllowlistDualDigestLastRuns) store.notifAllowlistDualDigestLastRuns = [];
   if (!store.notifAllowlistDualDigestStaleSuppressions) store.notifAllowlistDualDigestStaleSuppressions = [];

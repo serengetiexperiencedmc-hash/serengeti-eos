@@ -31,7 +31,7 @@ describe("PG.20 season shrink impact", () => {
       },
     });
     expect(season.statusCode).toBe(201);
-    expect(season.json().increment).toBe("PG.21");
+    expect(season.json().increment).toBe("PG.28");
     const seasonId = season.json().season.id as string;
 
     const supplier = await app.inject({
@@ -72,7 +72,7 @@ describe("PG.20 season shrink impact", () => {
       payload: { validFrom: "2026-07-01", validTo: "2026-07-31" },
     });
     expect(preview.statusCode).toBe(200);
-    expect(preview.json().increment).toBe("PG.21");
+    expect(preview.json().increment).toBe("PG.22");
     expect(preview.json().impact.linkedRateCount).toBe(1);
     expect(preview.json().impact.outsideCount).toBe(1);
     expect(preview.json().impact.warning).toBe("season_shrink_affects_rates");

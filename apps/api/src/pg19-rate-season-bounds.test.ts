@@ -33,7 +33,7 @@ describe("PG.19 rate season bounds", () => {
       },
     });
     expect(season.statusCode).toBe(201);
-    expect(season.json().increment).toBe("PG.21");
+    expect(season.json().increment).toBe("PG.28");
     const seasonId = season.json().season.id as string;
 
     const supplier = await app.inject({

@@ -9,6 +9,7 @@ import {
   loadSupImportBatches,
   loadSupImportExecuteIdempotencies,
   loadSupRates,
+  loadSupSeasons,
   loadSupSuppliers,
   upsertSupContact,
   upsertSupContentBlock,
@@ -16,6 +17,7 @@ import {
   upsertSupImportBatch,
   upsertSupImportExecuteIdempotency,
   upsertSupRate,
+  upsertSupSeason,
   upsertSupSupplier,
 } from "./pg-repository.js";
 
@@ -73,6 +75,11 @@ export async function persistSupEntityAfterCommit(
     if (entityType === "supplier_content_block") {
       const block = store.supContentBlocks.find((b) => b.id === entityId);
       if (block) await upsertSupContentBlock(pool, block);
+      return;
+    }
+    if (entityType === "supplier_season") {
+      const season = store.supSeasons.find((s) => s.id === entityId);
+      if (season) await upsertSupSeason(pool, season);
     }
   } catch {
     // Fire-and-forget dual-write.
@@ -140,18 +147,21 @@ export async function hydrateSupFromPostgres(pool: DbPool, store: Store): Promis
   contacts: number;
   rates: number;
   contentBlocks: number;
+  seasons: number;
 }> {
   ensureSupplierCollections(store);
-  const [suppliers, contacts, rates, contentBlocks] = await Promise.all([
+  const [suppliers, contacts, rates, contentBlocks, seasons] = await Promise.all([
     loadSupSuppliers(pool),
     loadSupContacts(pool),
     loadSupRates(pool),
     loadSupContentBlocks(pool),
+    loadSupSeasons(pool),
   ]);
   return {
     suppliers: mergeById(store.supSuppliers, suppliers),
     contacts: mergeById(store.supContacts, contacts),
     rates: mergeById(store.supRates, rates),
     contentBlocks: mergeById(store.supContentBlocks, contentBlocks),
+    seasons: mergeById(store.supSeasons, seasons),
   };
 }

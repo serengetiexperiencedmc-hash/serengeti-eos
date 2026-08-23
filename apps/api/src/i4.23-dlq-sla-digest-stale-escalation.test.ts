@@ -38,7 +38,7 @@ describe("I4.23 stale DLQ SLA digest inbox / email escalation", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(alerted.statusCode).toBe(200);
-    expect(alerted.json().increment).toBe("I4.25");
+    expect(alerted.json().increment).toBe("I4.26");
     expect(alerted.json().freshness.neverRun).toBe(true);
     expect(alerted.json().dispatched[0]).toMatch(/^dlq-sla-digest-stale:\d{4}-\d{2}-\d{2}:/);
 

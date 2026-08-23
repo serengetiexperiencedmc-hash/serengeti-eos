@@ -8,6 +8,7 @@ import type {
   NotifDlqSlaDigestLastRun,
   NotifDlqSlaDigestStaleSuppression,
   NotifAllowlistDualDigestLastRun,
+  NotifAllowlistDualDigestStaleSuppression,
 } from "@sedmc/kernel";
 import { ensureNotificationCollections } from "../notifications/collections.js";
 import type { Store } from "../store.js";
@@ -16,12 +17,15 @@ import {
   insertNotifEmailDeliveryEvent,
   insertNotifEmailOutbox,
   loadNotifAllowlistDualDigestLastRuns,
+  loadNotifAllowlistDualDigestStaleSuppressions,
   loadNotifDlqSlaDigestLastRuns,
   loadNotifDlqSlaDigestStaleSuppressions,
   loadNotifEmailAllowlist,
   loadNotifEmailSuppressions,
   loadNotifEmailTemplates,
   upsertNotifAllowlistDualDigestLastRun,
+  upsertNotifAllowlistDualDigestStaleSuppression,
+  deleteNotifAllowlistDualDigestStaleSuppression,
   upsertNotifDlqSlaDigestLastRun,
   upsertNotifDlqSlaDigestStaleSuppression,
   deleteNotifDlqSlaDigestStaleSuppression,
@@ -229,6 +233,46 @@ export async function hydrateNotifDlqSlaDigestStaleSuppressions(pool: DbPool, st
       store.notifDlqSlaDigestStaleSuppressions[idx] = row;
     } else {
       store.notifDlqSlaDigestStaleSuppressions.push(row);
+      merged += 1;
+    }
+  }
+  return merged;
+}
+
+export async function persistNotifAllowlistDualDigestStaleSuppression(
+  pool: DbPool | undefined,
+  suppression: NotifAllowlistDualDigestStaleSuppression,
+): Promise<void> {
+  if (!pool) return;
+  try {
+    await upsertNotifAllowlistDualDigestStaleSuppression(pool, suppression);
+  } catch {
+    // Fire-and-forget dual-write.
+  }
+}
+
+export async function persistDeleteNotifAllowlistDualDigestStaleSuppression(
+  pool: DbPool | undefined,
+  tenantId: string,
+): Promise<void> {
+  if (!pool) return;
+  try {
+    await deleteNotifAllowlistDualDigestStaleSuppression(pool, tenantId);
+  } catch {
+    // Fire-and-forget dual-write.
+  }
+}
+
+export async function hydrateNotifAllowlistDualDigestStaleSuppressions(pool: DbPool, store: Store): Promise<number> {
+  ensureNotificationCollections(store);
+  const rows = await loadNotifAllowlistDualDigestStaleSuppressions(pool);
+  let merged = 0;
+  for (const row of rows) {
+    const idx = store.notifAllowlistDualDigestStaleSuppressions.findIndex((s) => s.tenantId === row.tenantId);
+    if (idx >= 0) {
+      store.notifAllowlistDualDigestStaleSuppressions[idx] = row;
+    } else {
+      store.notifAllowlistDualDigestStaleSuppressions.push(row);
       merged += 1;
     }
   }

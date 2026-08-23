@@ -136,7 +136,7 @@ describe("PG.27 heatmap rollup persist / season catalogue export", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(csv.statusCode).toBe(200);
-    expect(csv.json().increment).toBe("PG.27");
+    expect(csv.json().increment).toBe("PG.28");
     expect(csv.json().csv).toContain("id,seasonCode,label,validFrom,validTo");
     expect(csv.json().csv).toContain("HIGH-2026");
     expect(csv.json().csv).toContain("High Season 2026");

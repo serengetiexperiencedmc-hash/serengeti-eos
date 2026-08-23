@@ -1158,11 +1158,11 @@ export async function upsertSupRate(pool: DbPool, r: import("@sedmc/kernel").Sup
   await pool.query(
     `INSERT INTO sup_rates (
       id, tenant_id, supplier_id, rate_code, rate_name, rate_type, unit_description, amount, currency,
-      valid_from, valid_to, season_label, min_pax, max_pax, min_nights, commission_percent, includes_tax,
+      valid_from, valid_to, season_label, season_id, min_pax, max_pax, min_nights, commission_percent, includes_tax,
       tax_percent, cancellation_policy_ref, notes, status, import_batch_id, version, archived_at,
       created_at, updated_at, created_by_principal_id, updated_by_principal_id, preferred_in_conflict
     ) VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30
     )
     ON CONFLICT (id) DO UPDATE SET
       rate_name = EXCLUDED.rate_name,
@@ -1173,6 +1173,7 @@ export async function upsertSupRate(pool: DbPool, r: import("@sedmc/kernel").Sup
       valid_from = EXCLUDED.valid_from,
       valid_to = EXCLUDED.valid_to,
       season_label = EXCLUDED.season_label,
+      season_id = EXCLUDED.season_id,
       min_pax = EXCLUDED.min_pax,
       max_pax = EXCLUDED.max_pax,
       min_nights = EXCLUDED.min_nights,
@@ -1190,7 +1191,7 @@ export async function upsertSupRate(pool: DbPool, r: import("@sedmc/kernel").Sup
       preferred_in_conflict = EXCLUDED.preferred_in_conflict`,
     [
       r.id, r.tenantId, r.supplierId, r.rateCode, r.rateName, r.rateType, r.unitDescription ?? null, r.amount,
-      r.currency, r.validFrom, r.validTo, r.seasonLabel ?? null, r.minPax ?? null, r.maxPax ?? null,
+      r.currency, r.validFrom, r.validTo, r.seasonLabel ?? null, r.seasonId ?? null, r.minPax ?? null, r.maxPax ?? null,
       r.minNights ?? null, r.commissionPercent ?? null, r.includesTax, r.taxPercent ?? null,
       r.cancellationPolicyRef ?? null, r.notes ?? null, r.status, r.importBatchId ?? null, r.version,
       r.archivedAt ?? null, r.createdAt, r.updatedAt, r.createdByPrincipalId, r.updatedByPrincipalId,
@@ -1214,6 +1215,7 @@ export async function loadSupRates(pool: DbPool): Promise<import("@sedmc/kernel"
     validFrom: String(row.valid_from).slice(0, 10),
     validTo: String(row.valid_to).slice(0, 10),
     ...(row.season_label ? { seasonLabel: row.season_label as string } : {}),
+    ...(row.season_id ? { seasonId: row.season_id as string } : {}),
     ...(row.min_pax != null ? { minPax: row.min_pax as number } : {}),
     ...(row.max_pax != null ? { maxPax: row.max_pax as number } : {}),
     ...(row.min_nights != null ? { minNights: row.min_nights as number } : {}),
@@ -1229,6 +1231,63 @@ export async function loadSupRates(pool: DbPool): Promise<import("@sedmc/kernel"
     ...(row.archived_at ? { archivedAt: new Date(row.archived_at as string).toISOString() } : {}),
     createdAt: new Date(row.created_at as string).toISOString(),
     updatedAt: new Date(row.updated_at as string).toISOString(),
+    createdByPrincipalId: row.created_by_principal_id as string,
+    updatedByPrincipalId: row.updated_by_principal_id as string,
+  }));
+}
+
+/** PG.28 — upsert named season catalogue row. */
+export async function upsertSupSeason(pool: DbPool, s: import("@sedmc/kernel").SupSeason): Promise<void> {
+  await pool.query(
+    `INSERT INTO sup_seasons (
+      id, tenant_id, season_code, label, valid_from, valid_to, month_from, month_to,
+      version, archived_at, created_at, updated_at, created_by_principal_id, updated_by_principal_id
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+     ON CONFLICT (id) DO UPDATE SET
+       season_code = EXCLUDED.season_code,
+       label = EXCLUDED.label,
+       valid_from = EXCLUDED.valid_from,
+       valid_to = EXCLUDED.valid_to,
+       month_from = EXCLUDED.month_from,
+       month_to = EXCLUDED.month_to,
+       version = EXCLUDED.version,
+       archived_at = EXCLUDED.archived_at,
+       updated_at = EXCLUDED.updated_at,
+       updated_by_principal_id = EXCLUDED.updated_by_principal_id`,
+    [
+      s.id,
+      s.tenantId,
+      s.seasonCode,
+      s.label,
+      s.validFrom ?? null,
+      s.validTo ?? null,
+      s.monthFrom ?? null,
+      s.monthTo ?? null,
+      s.version,
+      s.archivedAt ?? null,
+      s.createdAt,
+      s.updatedAt,
+      s.createdByPrincipalId,
+      s.updatedByPrincipalId,
+    ],
+  );
+}
+
+export async function loadSupSeasons(pool: DbPool): Promise<import("@sedmc/kernel").SupSeason[]> {
+  const result = await pool.query(`SELECT * FROM sup_seasons ORDER BY created_at ASC`);
+  return result.rows.map((row) => ({
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    seasonCode: row.season_code as string,
+    label: row.label as string,
+    ...(row.valid_from ? { validFrom: String(row.valid_from).slice(0, 10) } : {}),
+    ...(row.valid_to ? { validTo: String(row.valid_to).slice(0, 10) } : {}),
+    ...(row.month_from != null ? { monthFrom: Number(row.month_from) } : {}),
+    ...(row.month_to != null ? { monthTo: Number(row.month_to) } : {}),
+    version: Number(row.version ?? 1),
+    ...(row.archived_at ? { archivedAt: (row.archived_at as Date).toISOString() } : {}),
+    createdAt: (row.created_at as Date).toISOString(),
+    updatedAt: (row.updated_at as Date).toISOString(),
     createdByPrincipalId: row.created_by_principal_id as string,
     updatedByPrincipalId: row.updated_by_principal_id as string,
   }));
@@ -2227,6 +2286,50 @@ export async function loadNotifDlqSlaDigestStaleSuppressions(
 
 export async function deleteNotifDlqSlaDigestStaleSuppression(pool: DbPool, tenantId: string): Promise<void> {
   await pool.query(`DELETE FROM notif_dlq_sla_digest_stale_suppression WHERE tenant_id = $1`, [tenantId]);
+}
+
+/** I3.28 — upsert stale allowlist dual digest snooze/ack (one row per tenant). */
+export async function upsertNotifAllowlistDualDigestStaleSuppression(
+  pool: DbPool,
+  suppression: import("@sedmc/kernel").NotifAllowlistDualDigestStaleSuppression,
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO notif_allowlist_dual_digest_stale_suppression (
+      tenant_id, acknowledged_at, snoozed_until, updated_at, updated_by_principal_id
+    ) VALUES ($1,$2,$3,$4,$5)
+     ON CONFLICT (tenant_id) DO UPDATE SET
+       acknowledged_at = EXCLUDED.acknowledged_at,
+       snoozed_until = EXCLUDED.snoozed_until,
+       updated_at = EXCLUDED.updated_at,
+       updated_by_principal_id = EXCLUDED.updated_by_principal_id`,
+    [
+      suppression.tenantId,
+      suppression.acknowledgedAt ?? null,
+      suppression.snoozedUntil ?? null,
+      suppression.updatedAt,
+      suppression.updatedByPrincipalId,
+    ],
+  );
+}
+
+export async function loadNotifAllowlistDualDigestStaleSuppressions(
+  pool: DbPool,
+): Promise<import("@sedmc/kernel").NotifAllowlistDualDigestStaleSuppression[]> {
+  const result = await pool.query(
+    `SELECT tenant_id, acknowledged_at, snoozed_until, updated_at, updated_by_principal_id
+     FROM notif_allowlist_dual_digest_stale_suppression`,
+  );
+  return result.rows.map((row) => ({
+    tenantId: row.tenant_id as string,
+    ...(row.acknowledged_at ? { acknowledgedAt: (row.acknowledged_at as Date).toISOString() } : {}),
+    ...(row.snoozed_until ? { snoozedUntil: (row.snoozed_until as Date).toISOString() } : {}),
+    updatedAt: (row.updated_at as Date).toISOString(),
+    updatedByPrincipalId: row.updated_by_principal_id as string,
+  }));
+}
+
+export async function deleteNotifAllowlistDualDigestStaleSuppression(pool: DbPool, tenantId: string): Promise<void> {
+  await pool.query(`DELETE FROM notif_allowlist_dual_digest_stale_suppression WHERE tenant_id = $1`, [tenantId]);
 }
 
 /** PG.27 — upsert last heatmap supplier rollup snapshot (one row per tenant). */

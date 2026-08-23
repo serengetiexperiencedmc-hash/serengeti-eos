@@ -15,6 +15,7 @@ import {
   updateDeadLetterRemediation,
   getDlqSlaDigestStatus,
   exportDlqSlaDigestLastRun,
+  exportDlqSlaDigestStaleSuppression,
   dispatchDlqSlaDigest,
   dispatchDlqSlaDigestStaleAlert,
   snoozeDlqSlaDigestStale,
@@ -311,6 +312,24 @@ export default function EventsInfrastructurePage() {
                 }}
               >
                 Export last-run
+              </Btn>
+              <Btn
+                variant="secondary"
+                disabled={busy}
+                onClick={() => {
+                  void exportDlqSlaDigestStaleSuppression(token, "csv").then((res) => {
+                    const blob = new Blob([res.csv ?? ""], { type: "text/csv" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `dlq-sla-digest-stale-${res.generatedAt.slice(0, 10)}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    setMsg(`Exported stale-digest audit (${res.count} row${res.count === 1 ? "" : "s"})`);
+                  });
+                }}
+              >
+                Export stale audit
               </Btn>
               <Btn
                 variant="secondary"

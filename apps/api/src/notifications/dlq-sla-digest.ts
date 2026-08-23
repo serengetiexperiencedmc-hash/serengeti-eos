@@ -1,4 +1,11 @@
-import { authorize, type NotifDlqSlaDigestLastRun, type NotifDlqSlaDigestStaleSuppression, type Principal } from "@sedmc/kernel";
+import {
+  authorize,
+  newId,
+  type NotifDlqSlaDigestLastRun,
+  type NotifDlqSlaDigestStaleSuppression,
+  type NotifDlqSlaDigestStaleSuppressionAudit,
+  type Principal,
+} from "@sedmc/kernel";
 import type { Store } from "../store.js";
 import { listDeadLetters } from "../outbox.js";
 import { createEmailAdapter } from "./email.js";
@@ -41,6 +48,7 @@ function stampLastRun(
     (s) => s.tenantId !== principal.tenantId,
   );
   void persistDeleteNotifDlqSlaDigestStaleSuppression(store.dbPool, principal.tenantId);
+  appendStaleSuppressionAudit(store, principal, "cleared");
   return run;
 }
 
@@ -54,6 +62,24 @@ export function isDlqSlaDigestStaleSuppressed(store: Store, tenantId: string, no
   if (suppression.acknowledgedAt) return true;
   if (suppression.snoozedUntil && new Date(suppression.snoozedUntil).getTime() > nowMs) return true;
   return false;
+}
+
+function appendStaleSuppressionAudit(
+  store: Store,
+  principal: Principal,
+  action: NotifDlqSlaDigestStaleSuppressionAudit["action"],
+  suppression?: NotifDlqSlaDigestStaleSuppression | null,
+) {
+  ensureNotificationCollections(store);
+  store.notifDlqSlaDigestStaleSuppressionAudits.push({
+    id: newId(),
+    tenantId: principal.tenantId,
+    action,
+    ...(suppression?.snoozedUntil ? { snoozedUntil: suppression.snoozedUntil } : {}),
+    ...(suppression?.acknowledgedAt ? { acknowledgedAt: suppression.acknowledgedAt } : {}),
+    createdAt: new Date().toISOString(),
+    createdByPrincipalId: principal.id,
+  });
 }
 
 function upsertStaleSuppression(
@@ -75,6 +101,7 @@ function upsertStaleSuppression(
   if (idx >= 0) store.notifDlqSlaDigestStaleSuppressions[idx] = next;
   else store.notifDlqSlaDigestStaleSuppressions.push(next);
   void persistNotifDlqSlaDigestStaleSuppression(store.dbPool, next);
+  appendStaleSuppressionAudit(store, principal, next.acknowledgedAt ? "ack" : "snooze", next);
   return next;
 }
 
@@ -131,7 +158,7 @@ export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
       thresholdHours: listed.sla.thresholdHours,
       recipientCount: recipients.length,
       lastRun,
-      increment: "I4.25" as const,
+      increment: "I4.26" as const,
     };
   }
 
@@ -179,7 +206,7 @@ export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
     thresholdHours: listed.sla.thresholdHours,
     recipientCount: recipients.length,
     lastRun,
-    increment: "I4.25" as const,
+    increment: "I4.26" as const,
   };
 }
 
@@ -215,7 +242,7 @@ export function getDlqSlaDigestStatus(store: Store, principal: Principal) {
     },
     freshness: digestLastRunFreshness(lastRun?.lastRunAt),
     suppression: getDlqSlaDigestStaleSuppression(store, principal.tenantId),
-    increment: "I4.25" as const,
+    increment: "I4.26" as const,
   };
 }
 
@@ -288,7 +315,7 @@ export function exportDlqSlaDigestLastRun(
       analytics: status.analytics,
       freshness: status.freshness,
       generatedAt,
-      increment: "I4.25" as const,
+      increment: "I4.26" as const,
     };
   }
 
@@ -299,7 +326,7 @@ export function exportDlqSlaDigestLastRun(
     freshness: status.freshness,
     row,
     generatedAt,
-    increment: "I4.25" as const,
+    increment: "I4.26" as const,
   };
 }
 
@@ -334,7 +361,7 @@ export async function dispatchDlqSlaDigestStaleAlert(store: Store, principal: Pr
       adapter: adapter.name,
       freshness: status.freshness,
       inboxKey,
-      increment: "I4.25" as const,
+      increment: "I4.26" as const,
     };
   }
 
@@ -352,7 +379,7 @@ export async function dispatchDlqSlaDigestStaleAlert(store: Store, principal: Pr
       freshness: status.freshness,
       suppression,
       inboxKey,
-      increment: "I4.25" as const,
+      increment: "I4.26" as const,
     };
   }
 
@@ -390,7 +417,7 @@ export async function dispatchDlqSlaDigestStaleAlert(store: Store, principal: Pr
     adapter: adapter.name,
     freshness: status.freshness,
     inboxKey,
-    increment: "I4.25" as const,
+    increment: "I4.26" as const,
   };
 }
 
@@ -414,7 +441,7 @@ export function snoozeDlqSlaDigestStale(store: Store, principal: Principal, inpu
     snoozedUntil,
     acknowledgedAt: undefined,
   });
-  return { suppression, increment: "I4.25" as const };
+  return { suppression, increment: "I4.26" as const };
 }
 
 /** I4.24 — acknowledge stale-digest inbox until the next last-run stamp. */
@@ -432,5 +459,58 @@ export function acknowledgeDlqSlaDigestStale(store: Store, principal: Principal)
     acknowledgedAt: new Date().toISOString(),
     snoozedUntil: undefined,
   });
-  return { suppression, increment: "I4.25" as const };
+  return { suppression, increment: "I4.26" as const };
+}
+
+/** I4.26 — CSV/JSON export of current suppression + snooze/ack/clear audit. */
+export function exportDlqSlaDigestStaleSuppression(
+  store: Store,
+  principal: Principal,
+  options: { format?: "json" | "csv" } = {},
+) {
+  const status = getDlqSlaDigestStatus(store, principal);
+  if ("error" in status) return status;
+
+  ensureNotificationCollections(store);
+  const generatedAt = new Date().toISOString();
+  const format = options.format === "csv" ? "csv" : "json";
+  const suppression = status.suppression;
+  const audits = (store.notifDlqSlaDigestStaleSuppressionAudits ?? []).filter(
+    (a) => a.tenantId === principal.tenantId,
+  );
+
+  if (format === "csv") {
+    const csv = [
+      "action,snoozedUntil,acknowledgedAt,createdAt,createdByPrincipalId",
+      ...audits.map((row) =>
+        [
+          row.action,
+          row.snoozedUntil ?? "",
+          row.acknowledgedAt ?? "",
+          row.createdAt,
+          row.createdByPrincipalId,
+        ]
+          .map(csvEscape)
+          .join(","),
+      ),
+    ].join("\n");
+    return {
+      format,
+      csv,
+      suppression,
+      audits,
+      count: audits.length,
+      generatedAt,
+      increment: "I4.26" as const,
+    };
+  }
+
+  return {
+    format,
+    suppression,
+    audits,
+    count: audits.length,
+    generatedAt,
+    increment: "I4.26" as const,
+  };
 }

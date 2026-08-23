@@ -111,6 +111,17 @@ export type NotifDlqSlaDigestStaleSuppression = {
   updatedByPrincipalId: string;
 };
 
+/** I4.26 — audit trail for stale DLQ SLA digest snooze/ack/clear. */
+export type NotifDlqSlaDigestStaleSuppressionAudit = {
+  id: string;
+  tenantId: string;
+  action: "snooze" | "ack" | "cleared";
+  snoozedUntil?: string;
+  acknowledgedAt?: string;
+  createdAt: string;
+  createdByPrincipalId: string;
+};
+
 /** I4.19/I4.20 — last DLQ SLA digest dispatch stamp (per tenant). */
 export type NotifDlqSlaDigestLastRun = {
   tenantId: string;
