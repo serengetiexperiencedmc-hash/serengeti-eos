@@ -61,7 +61,7 @@ describe("I4.25 stale DLQ SLA digest suppression persistence", () => {
       payload: { hours: 24 },
     });
     expect(snoozed.statusCode).toBe(200);
-    expect(snoozed.json().increment).toBe("I4.27");
+    expect(snoozed.json().increment).toBe("I4.28");
     expect(writes.length).toBeGreaterThanOrEqual(1);
     expect(writes[0]!.snoozedUntil).toBeTruthy();
 

@@ -1,6 +1,8 @@
 import {
   authorize,
+  filterNotifDlqSlaDigestStaleSuppressionAudits,
   newId,
+  parseNotifDlqSlaDigestStaleAuditExportFilter,
   type NotifDlqSlaDigestLastRun,
   type NotifDlqSlaDigestStaleSuppression,
   type NotifDlqSlaDigestStaleSuppressionAudit,
@@ -161,7 +163,7 @@ export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
       thresholdHours: listed.sla.thresholdHours,
       recipientCount: recipients.length,
       lastRun,
-      increment: "I4.27" as const,
+      increment: "I4.28" as const,
     };
   }
 
@@ -209,7 +211,7 @@ export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
     thresholdHours: listed.sla.thresholdHours,
     recipientCount: recipients.length,
     lastRun,
-    increment: "I4.27" as const,
+    increment: "I4.28" as const,
   };
 }
 
@@ -245,7 +247,7 @@ export function getDlqSlaDigestStatus(store: Store, principal: Principal) {
     },
     freshness: digestLastRunFreshness(lastRun?.lastRunAt),
     suppression: getDlqSlaDigestStaleSuppression(store, principal.tenantId),
-    increment: "I4.27" as const,
+    increment: "I4.28" as const,
   };
 }
 
@@ -318,7 +320,7 @@ export function exportDlqSlaDigestLastRun(
       analytics: status.analytics,
       freshness: status.freshness,
       generatedAt,
-      increment: "I4.27" as const,
+      increment: "I4.28" as const,
     };
   }
 
@@ -329,7 +331,7 @@ export function exportDlqSlaDigestLastRun(
     freshness: status.freshness,
     row,
     generatedAt,
-    increment: "I4.27" as const,
+    increment: "I4.28" as const,
   };
 }
 
@@ -364,7 +366,7 @@ export async function dispatchDlqSlaDigestStaleAlert(store: Store, principal: Pr
       adapter: adapter.name,
       freshness: status.freshness,
       inboxKey,
-      increment: "I4.27" as const,
+      increment: "I4.28" as const,
     };
   }
 
@@ -382,7 +384,7 @@ export async function dispatchDlqSlaDigestStaleAlert(store: Store, principal: Pr
       freshness: status.freshness,
       suppression,
       inboxKey,
-      increment: "I4.27" as const,
+      increment: "I4.28" as const,
     };
   }
 
@@ -420,7 +422,7 @@ export async function dispatchDlqSlaDigestStaleAlert(store: Store, principal: Pr
     adapter: adapter.name,
     freshness: status.freshness,
     inboxKey,
-    increment: "I4.27" as const,
+    increment: "I4.28" as const,
   };
 }
 
@@ -444,7 +446,7 @@ export function snoozeDlqSlaDigestStale(store: Store, principal: Principal, inpu
     snoozedUntil,
     acknowledgedAt: undefined,
   });
-  return { suppression, increment: "I4.27" as const };
+  return { suppression, increment: "I4.28" as const };
 }
 
 /** I4.24 — acknowledge stale-digest inbox until the next last-run stamp. */
@@ -462,15 +464,17 @@ export function acknowledgeDlqSlaDigestStale(store: Store, principal: Principal)
     acknowledgedAt: new Date().toISOString(),
     snoozedUntil: undefined,
   });
-  return { suppression, increment: "I4.27" as const };
+  return { suppression, increment: "I4.28" as const };
 }
 
-/** I4.26 — CSV/JSON export of current suppression + snooze/ack/clear audit. */
+/** I4.26 / I4.28 — CSV/JSON export of current suppression + snooze/ack/clear audit. */
 export function exportDlqSlaDigestStaleSuppression(
   store: Store,
   principal: Principal,
-  options: { format?: "json" | "csv" } = {},
+  options: { format?: "json" | "csv"; action?: string; since?: string; until?: string } = {},
 ) {
+  const parsed = parseNotifDlqSlaDigestStaleAuditExportFilter(options);
+  if ("error" in parsed) return { error: "invalid_request" as const, reason: parsed.error };
   const status = getDlqSlaDigestStatus(store, principal);
   if ("error" in status) return status;
 
@@ -478,8 +482,10 @@ export function exportDlqSlaDigestStaleSuppression(
   const generatedAt = new Date().toISOString();
   const format = options.format === "csv" ? "csv" : "json";
   const suppression = status.suppression;
-  const audits = (store.notifDlqSlaDigestStaleSuppressionAudits ?? []).filter(
-    (a) => a.tenantId === principal.tenantId,
+  const filter = { action: parsed.action, since: parsed.since, until: parsed.until };
+  const audits = filterNotifDlqSlaDigestStaleSuppressionAudits(
+    (store.notifDlqSlaDigestStaleSuppressionAudits ?? []).filter((a) => a.tenantId === principal.tenantId),
+    parsed,
   );
 
   if (format === "csv") {
@@ -503,8 +509,9 @@ export function exportDlqSlaDigestStaleSuppression(
       suppression,
       audits,
       count: audits.length,
+      filter,
       generatedAt,
-      increment: "I4.27" as const,
+      increment: "I4.28" as const,
     };
   }
 
@@ -513,7 +520,8 @@ export function exportDlqSlaDigestStaleSuppression(
     suppression,
     audits,
     count: audits.length,
+    filter,
     generatedAt,
-    increment: "I4.27" as const,
+    increment: "I4.28" as const,
   };
 }

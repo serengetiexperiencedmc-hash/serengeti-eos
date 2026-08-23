@@ -663,10 +663,18 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **I3.30** | Dual-write allowlist stale snooze/ack/clear audit; hydrate on startup |
 
+### 58:xx — I4.28 stale-audit filters / tenant export window ✅
+
+**Shipped:** server `0.91.0-i4.28`
+
+| Increment | Change |
+| --- | --- |
+| **I4.28** | Filter DLQ stale-audit export by action / since / until; tenant-scoped window |
+
 ### Recommended next increments
 
-1. I4.28 — stale-audit filters / tenant export window
-2. I20.23 — (unnamed)
+1. I20.23 — (unnamed)
+2. I3.31 — allowlist stale-audit filters
 3. PG.30 — (optional ops follow-up)
 
 ### Issues resolved

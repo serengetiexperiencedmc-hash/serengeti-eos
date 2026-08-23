@@ -69,6 +69,9 @@ export default function EventsInfrastructurePage() {
   const [digestLastRun, setDigestLastRun] = useState<DlqSlaDigestLastRun | null>(null);
   const [digestOutboxCount, setDigestOutboxCount] = useState(0);
   const [digestFreshness, setDigestFreshness] = useState<DigestFreshness | null>(null);
+  const [staleAuditAction, setStaleAuditAction] = useState("");
+  const [staleAuditSince, setStaleAuditSince] = useState("");
+  const [staleAuditUntil, setStaleAuditUntil] = useState("");
 
   const reload = useCallback(async () => {
     if (!token) return;
@@ -222,7 +225,7 @@ export default function EventsInfrastructurePage() {
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <PageHeader
-        eyebrow="I4 · I4.15 · Events"
+        eyebrow="I4 · I4.28 · Events"
         title="Event Infrastructure"
         subtitle="NATS lag, DLQ SLA ack/snooze, bulk owner assign, and controlled replay"
         actions={
@@ -313,11 +316,46 @@ export default function EventsInfrastructurePage() {
               >
                 Export last-run
               </Btn>
+              <label className="text-xs text-muted">
+                Action
+                <select
+                  className="ml-2 rounded-md border border-line bg-paper px-2 py-1 text-sm text-ink"
+                  value={staleAuditAction}
+                  onChange={(event) => setStaleAuditAction(event.target.value)}
+                >
+                  <option value="">All actions</option>
+                  <option value="snooze">Snooze</option>
+                  <option value="ack">Ack</option>
+                  <option value="cleared">Cleared</option>
+                </select>
+              </label>
+              <label className="text-xs text-muted">
+                Since
+                <input
+                  className="ml-2 rounded-md border border-line bg-paper px-2 py-1 text-sm text-ink"
+                  value={staleAuditSince}
+                  placeholder="2026-08-23T00:00:00Z"
+                  onChange={(event) => setStaleAuditSince(event.target.value)}
+                />
+              </label>
+              <label className="text-xs text-muted">
+                Until
+                <input
+                  className="ml-2 rounded-md border border-line bg-paper px-2 py-1 text-sm text-ink"
+                  value={staleAuditUntil}
+                  placeholder="2026-08-24T00:00:00Z"
+                  onChange={(event) => setStaleAuditUntil(event.target.value)}
+                />
+              </label>
               <Btn
                 variant="secondary"
                 disabled={busy}
                 onClick={() => {
-                  void exportDlqSlaDigestStaleSuppression(token, "csv").then((res) => {
+                  void exportDlqSlaDigestStaleSuppression(token, "csv", {
+                    ...(staleAuditAction ? { action: staleAuditAction } : {}),
+                    ...(staleAuditSince.trim() ? { since: staleAuditSince.trim() } : {}),
+                    ...(staleAuditUntil.trim() ? { until: staleAuditUntil.trim() } : {}),
+                  }).then((res) => {
                     const blob = new Blob([res.csv ?? ""], { type: "text/csv" });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement("a");

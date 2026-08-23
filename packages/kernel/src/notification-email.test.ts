@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildEmailFromNotification, shouldEmailNotification } from "./notification-email.js";
+import {
+  buildEmailFromNotification,
+  filterNotifDlqSlaDigestStaleSuppressionAudits,
+  parseNotifDlqSlaDigestStaleAuditExportFilter,
+  shouldEmailNotification,
+} from "./notification-email.js";
 import type { NotifItem } from "./notification.js";
 
 const sample: NotifItem = {
@@ -26,5 +31,30 @@ describe("notification email kernel", () => {
     expect(shouldEmailNotification(sample)).toBe(true);
     expect(shouldEmailNotification({ ...sample, severity: "warning" })).toBe(true);
     expect(shouldEmailNotification({ ...sample, severity: "info" })).toBe(false);
+  });
+
+  it("filters stale DLQ digest audit by action and createdAt window", () => {
+    expect(parseNotifDlqSlaDigestStaleAuditExportFilter({ action: "merge" })).toEqual({ error: "invalid_action" });
+    expect(parseNotifDlqSlaDigestStaleAuditExportFilter({ since: "not-a-date" })).toEqual({ error: "invalid_window" });
+    expect(
+      parseNotifDlqSlaDigestStaleAuditExportFilter({
+        since: "2026-08-24T00:00:00.000Z",
+        until: "2026-08-23T00:00:00.000Z",
+      }),
+    ).toEqual({ error: "invalid_window" });
+    const parsed = parseNotifDlqSlaDigestStaleAuditExportFilter({
+      action: "ack",
+      since: "2026-08-23T10:00:00.000Z",
+    });
+    expect("error" in parsed).toBe(false);
+    const rows = [
+      { action: "snooze", createdAt: "2026-08-23T09:00:00.000Z" },
+      { action: "ack", createdAt: "2026-08-23T11:00:00.000Z" },
+      { action: "ack", createdAt: "2026-08-23T08:00:00.000Z" },
+      { action: "cleared", createdAt: "2026-08-23T12:00:00.000Z" },
+    ];
+    expect(
+      filterNotifDlqSlaDigestStaleSuppressionAudits(rows, parsed as Extract<typeof parsed, { action: unknown }>),
+    ).toEqual([{ action: "ack", createdAt: "2026-08-23T11:00:00.000Z" }]);
   });
 });

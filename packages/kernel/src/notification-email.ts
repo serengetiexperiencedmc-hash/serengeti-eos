@@ -212,3 +212,58 @@ export function buildEmailFromNotification(
 export function shouldEmailNotification(item: NotifItem): boolean {
   return item.severity === "urgent" || item.severity === "warning";
 }
+
+/** I4.28 — filter stale DLQ SLA digest audit export by action and createdAt window. */
+export const NOTIF_DLQ_SLA_DIGEST_STALE_AUDIT_ACTIONS = ["snooze", "ack", "cleared"] as const;
+export type NotifDlqSlaDigestStaleAuditAction = (typeof NOTIF_DLQ_SLA_DIGEST_STALE_AUDIT_ACTIONS)[number];
+
+export type NotifDlqSlaDigestStaleAuditExportFilter = {
+  action: NotifDlqSlaDigestStaleAuditAction | null;
+  since: string | null;
+  until: string | null;
+  sinceMs: number | null;
+  untilMs: number | null;
+};
+
+function parseOptionalIso(value?: string): { ok: true; raw: string | null; ms: number | null } | { ok: false } {
+  const raw = value?.trim() ?? "";
+  if (!raw) return { ok: true, raw: null, ms: null };
+  const ms = Date.parse(raw);
+  if (!Number.isFinite(ms)) return { ok: false };
+  return { ok: true, raw, ms };
+}
+
+export function parseNotifDlqSlaDigestStaleAuditExportFilter(query?: {
+  action?: string;
+  since?: string;
+  until?: string;
+}): NotifDlqSlaDigestStaleAuditExportFilter | { error: "invalid_action" | "invalid_window" } {
+  const actionRaw = query?.action?.trim() ?? "";
+  if (actionRaw && !NOTIF_DLQ_SLA_DIGEST_STALE_AUDIT_ACTIONS.includes(actionRaw as NotifDlqSlaDigestStaleAuditAction)) {
+    return { error: "invalid_action" };
+  }
+  const since = parseOptionalIso(query?.since);
+  const until = parseOptionalIso(query?.until);
+  if (!since.ok || !until.ok) return { error: "invalid_window" };
+  if (since.ms !== null && until.ms !== null && since.ms > until.ms) return { error: "invalid_window" };
+  return {
+    action: actionRaw ? (actionRaw as NotifDlqSlaDigestStaleAuditAction) : null,
+    since: since.raw,
+    until: until.raw,
+    sinceMs: since.ms,
+    untilMs: until.ms,
+  };
+}
+
+export function filterNotifDlqSlaDigestStaleSuppressionAudits<T extends { action: string; createdAt: string }>(
+  audits: readonly T[],
+  filter: Pick<NotifDlqSlaDigestStaleAuditExportFilter, "action" | "sinceMs" | "untilMs">,
+): T[] {
+  return audits.filter((row) => {
+    if (filter.action && row.action !== filter.action) return false;
+    const createdMs = Date.parse(row.createdAt);
+    if (filter.sinceMs !== null && !(Number.isFinite(createdMs) && createdMs >= filter.sinceMs)) return false;
+    if (filter.untilMs !== null && !(Number.isFinite(createdMs) && createdMs <= filter.untilMs)) return false;
+    return true;
+  });
+}
