@@ -72,7 +72,7 @@ export default function AiDraftsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="I20.7 · Assistant"
+        eyebrow="I20.8 · Assistant"
         title="AI Drafts"
         subtitle="Filter unpublished assistant drafts. Accept creates a CRM task or activity. Open an accepted draft in CRM. The assistant cannot merge, email, or approve."
       />

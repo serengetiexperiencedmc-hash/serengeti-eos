@@ -1,3 +1,4 @@
+import { notifyAiDraftsChanged } from "./ai-draft-events";
 import { eosFetch } from "./eos-client";
 
 export type AiRecommendation = {
@@ -53,27 +54,37 @@ export async function listAiDrafts(token: string, query?: string | AiDraftListQu
   }>(`/v1/ai/drafts${q}`, { token });
 }
 
+export async function getAiDraftSummary(token: string) {
+  return eosFetch<{ pendingCount: number; increment: string }>("/v1/ai/drafts/summary", { token });
+}
+
 export async function createAiDraft(token: string, recommendationKey: string) {
-  return eosFetch<{ draft: AiDraft; increment: string }>("/v1/ai/drafts", {
+  const result = await eosFetch<{ draft: AiDraft; increment: string }>("/v1/ai/drafts", {
     token,
     method: "POST",
     body: JSON.stringify({ recommendationKey }),
   });
+  notifyAiDraftsChanged();
+  return result;
 }
 
 export async function acceptAiDraft(token: string, id: string) {
-  return eosFetch<{
+  const result = await eosFetch<{
     draft: AiDraft;
     task?: { id: string; title: string };
     activity?: { id: string; subject: string };
     increment: string;
   }>(`/v1/ai/drafts/${id}/accept`, { token, method: "POST", body: "{}" });
+  notifyAiDraftsChanged();
+  return result;
 }
 
 export async function discardAiDraft(token: string, id: string) {
-  return eosFetch<{ draft: AiDraft; increment: string }>(`/v1/ai/drafts/${id}/discard`, {
+  const result = await eosFetch<{ draft: AiDraft; increment: string }>(`/v1/ai/drafts/${id}/discard`, {
     token,
     method: "POST",
     body: "{}",
   });
+  notifyAiDraftsChanged();
+  return result;
 }

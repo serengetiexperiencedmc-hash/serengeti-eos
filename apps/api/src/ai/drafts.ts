@@ -38,7 +38,7 @@ function findOverdueAssociation(store: Store, tenantId: string) {
   return undefined;
 }
 
-const INCREMENT = "I20.7" as const;
+const INCREMENT = "I20.8" as const;
 
 export function ensureAiCollections(store: Store): void {
   if (!store.aiDrafts) store.aiDrafts = [];
@@ -194,7 +194,7 @@ export function listAiDrafts(store: Store, principal: Principal, query?: { statu
   }
 
   const scoped = store.aiDrafts.filter((d) => d.tenantId === principal.tenantId);
-  const pendingCount = scoped.filter((d) => d.status === "pending").length;
+  const pendingCount = countPendingAiDrafts(scoped);
   let items = scoped;
   if (query?.status) items = items.filter((d) => d.status === query.status);
   if (query?.artefactType) items = items.filter((d) => d.artefactType === query.artefactType);
@@ -208,6 +208,24 @@ export function listAiDrafts(store: Store, principal: Principal, query?: { statu
     },
     increment: INCREMENT,
   };
+}
+
+export function getAiDraftSummary(store: Store, principal: Principal) {
+  ensureAiCollections(store);
+  const decision = authorize({
+    principal,
+    permission: "ai:read:recommend",
+    action: "read:ai_draft",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+  const pendingCount = countPendingAiDrafts(
+    store.aiDrafts.filter((d) => d.tenantId === principal.tenantId),
+  );
+  return { pendingCount, increment: INCREMENT };
+}
+
+function countPendingAiDrafts(drafts: AiDraft[]): number {
+  return drafts.filter((d) => d.status === "pending").length;
 }
 
 export async function discardAiDraft(store: Store, principal: Principal, draftId: string, correlationId: string) {

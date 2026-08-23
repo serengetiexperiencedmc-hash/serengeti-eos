@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useEosSession } from "@/components/commercial/EosSessionProvider";
 import { navItems, type NavBadgeKey } from "@/lib/mock-data";
+import { getAiDraftSummary } from "@/lib/ai-api";
+import { subscribeAiDraftsChanged } from "@/lib/ai-draft-events";
 import { fetchNavBadges, type NavBadgeCounts } from "@/lib/nav-badges";
 import { NotificationBell } from "@/components/commercial/NotificationBell";
 
@@ -57,9 +59,37 @@ export function Sidebar() {
       setBadges(null);
       return;
     }
+    let cancelled = false;
     void fetchNavBadges(token)
-      .then(setBadges)
-      .catch(() => setBadges(null));
+      .then((counts) => {
+        if (!cancelled) setBadges(counts);
+      })
+      .catch(() => {
+        if (!cancelled) setBadges(null);
+      });
+    const unsubscribe = subscribeAiDraftsChanged(() => {
+      void getAiDraftSummary(token)
+        .then((summary) => {
+          if (cancelled) return;
+          setBadges((prev) =>
+            prev
+              ? { ...prev, aiDrafts: summary.pendingCount }
+              : {
+                  pipeline: 0,
+                  activeRfps: 0,
+                  reconciliationExceptions: 0,
+                  fieldSyncConflicts: 0,
+                  notifications: 0,
+                  aiDrafts: summary.pendingCount,
+                },
+          );
+        })
+        .catch(() => undefined);
+    });
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, [token]);
   return (
     <aside className="fixed left-0 top-0 z-50 flex h-screen w-[260px] flex-col bg-ink text-sand">
@@ -103,7 +133,7 @@ export function Sidebar() {
       <div className="border-t border-white/10 px-5 py-4 text-xs text-muted">
         Serengeti Experience DMC
         <br />
-        v0.74 · Dev/Test
+        v0.75 · Dev/Test
       </div>
     </aside>
   );
@@ -141,7 +171,7 @@ export function Topbar() {
 export function MockupBanner() {
   return (
     <div className="bg-gold py-1.5 text-center text-[0.7rem] font-semibold uppercase tracking-wide text-ink">
-      Serengeti EOS · C1–C10 · O1–O4 · I3.29 · I4.27 · PG.29 · I20.7 · J1–J2
+      Serengeti EOS · C1–C10 · O1–O4 · I3.29 · I4.27 · PG.29 · I20.8 · J1–J2
     </div>
   );
 }

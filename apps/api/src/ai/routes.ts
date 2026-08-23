@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { principalFromAuthHeader } from "../app.js";
 import { getCorrelationId } from "../observability.js";
 import type { Store } from "../store.js";
-import { acceptAiDraft, createAiDraft, discardAiDraft, listAiDrafts } from "./drafts.js";
+import { acceptAiDraft, createAiDraft, discardAiDraft, getAiDraftSummary, listAiDrafts } from "./drafts.js";
 import { listAiRecommendations } from "./recommend.js";
 
 function sendError(
@@ -27,6 +27,14 @@ export function registerAiRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = listAiRecommendations(store, principal, correlationId);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.get("/v1/ai/drafts/summary", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = getAiDraftSummary(store, principal);
     if ("error" in result) return sendError(reply, result);
     return result;
   });

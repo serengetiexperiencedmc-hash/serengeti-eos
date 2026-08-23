@@ -535,9 +535,17 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **I20.7** | `appliedHref` on accepted drafts; CRM task/activity deep-link |
 
+### 42:xx — I20.8 refresh pending draft badge ✅
+
+**Shipped:** server `0.75.0-i20.8`
+
+| Increment | Change |
+| --- | --- |
+| **I20.8** | Draft summary endpoint; sidebar badge refreshes after accept/discard |
+
 ### Recommended next increments
 
-1. I20.8 — refresh the AI Drafts nav badge after accept/discard
+1. I20.9 — persist recommendation audit / show last-run on the drafts page
 2. I3.30 — persist allowlist stale audit to Postgres
 3. I4.28 — stale-audit filters / tenant export window
 
