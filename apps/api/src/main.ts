@@ -6,6 +6,7 @@ import { createEnvSecretsProvider } from "./ports/secrets.js";
 import { syncStoreToPostgres } from "./persistence/sync.js";
 import { hydrateAiDrafts } from "./persistence/ai-drafts.js";
 import { hydrateAiRecommendRuns } from "./persistence/ai-recommend-runs.js";
+import { hydrateAiRecommendStaleSuppressions } from "./persistence/ai-recommend-stale-suppressions.js";
 import { hydrateCrmFromPostgres } from "./persistence/crm.js";
 import { hydrateNotifEmailTemplates, hydrateNotifEmailSuppressions, hydrateNotifEmailAllowlist, hydrateNotifDlqSlaDigestLastRuns, hydrateNotifAllowlistDualDigestLastRuns, hydrateNotifDlqSlaDigestStaleSuppressions, hydrateNotifDlqSlaDigestStaleSuppressionAudits, hydrateNotifAllowlistDualDigestStaleSuppressions } from "./persistence/notifications.js";
 import { hydratePendingOutbox } from "./persistence/outbox.js";
@@ -67,6 +68,7 @@ if (databaseUrl) {
   const heatmapRollupsHydrated = await hydrateSupHeatmapRollupSnapshots(pool, store);
   const aiDraftsHydrated = await hydrateAiDrafts(pool, store);
   const aiRecommendRunsHydrated = await hydrateAiRecommendRuns(pool, store);
+  const aiRecommendStaleSuppressionsHydrated = await hydrateAiRecommendStaleSuppressions(pool, store);
   logger.info("pg3_crm_hydrate", crmHydrated);
   logger.info("i3_email_templates_hydrate", { merged: templatesHydrated });
   logger.info("i39_email_suppressions_hydrate", { merged: suppressionsHydrated });
@@ -79,6 +81,7 @@ if (databaseUrl) {
   logger.info("pg27_heatmap_rollup_snapshot_hydrate", { merged: heatmapRollupsHydrated });
   logger.info("i204_ai_drafts_hydrate", { merged: aiDraftsHydrated });
   logger.info("i209_ai_recommend_runs_hydrate", { merged: aiRecommendRunsHydrated });
+  logger.info("i2013_ai_recommend_stale_suppression_hydrate", { merged: aiRecommendStaleSuppressionsHydrated });
   const merged = await hydratePendingOutbox(pool, store);
   const processedMerged = await hydrateProcessedEvents(pool, store);
   const natsOffsetsMerged = await hydrateNatsConsumerOffsets(pool, store);

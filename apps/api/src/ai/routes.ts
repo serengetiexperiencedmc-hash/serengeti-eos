@@ -41,7 +41,7 @@ export function registerAiRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const body = (req.body ?? {}) as { hours?: number };
-    const result = snoozeAiRecommendStale(store, principal, body);
+    const result = await snoozeAiRecommendStale(store, principal, body);
     if ("error" in result) return sendError(reply, result);
     return result;
   });
@@ -49,7 +49,7 @@ export function registerAiRoutes(app: FastifyInstance, store: Store): void {
   app.post("/v1/ai/recommendations/last-run/stale/ack", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const result = acknowledgeAiRecommendStale(store, principal);
+    const result = await acknowledgeAiRecommendStale(store, principal);
     if ("error" in result) return sendError(reply, result);
     return result;
   });

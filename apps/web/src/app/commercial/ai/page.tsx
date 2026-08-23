@@ -118,7 +118,7 @@ export default function AiDraftsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="I20.12 · Assistant"
+        eyebrow="I20.13 · Assistant"
         title="AI Drafts"
         subtitle="Filter unpublished assistant drafts. Snooze or acknowledge a stale recommend snapshot. The assistant cannot merge, email, or approve."
       />

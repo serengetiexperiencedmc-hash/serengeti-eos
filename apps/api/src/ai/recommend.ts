@@ -24,8 +24,12 @@ import {
 } from "../notifications/allowlist-dual-digest.js";
 import { getDlqSlaDigestStatus, isDlqSlaDigestStaleSuppressed } from "../notifications/dlq-sla-digest.js";
 import { persistAiRecommendRun } from "../persistence/ai-recommend-runs.js";
+import {
+  persistAiRecommendStaleSuppression,
+  persistDeleteAiRecommendStaleSuppression,
+} from "../persistence/ai-recommend-stale-suppressions.js";
 
-const INCREMENT = "I20.12" as const;
+const INCREMENT = "I20.13" as const;
 
 function recommendStaleThresholdHours(): number {
   const raw = Number(process.env.EOS_AI_RECOMMEND_STALE_HOURS);
@@ -57,11 +61,11 @@ function clearAiRecommendStaleSuppression(store: Store, principal: Principal): v
   );
 }
 
-function upsertAiRecommendStaleSuppression(
+async function upsertAiRecommendStaleSuppression(
   store: Store,
   principal: Principal,
   patch: Partial<Pick<AiRecommendStaleSuppression, "acknowledgedAt" | "snoozedUntil">>,
-): AiRecommendStaleSuppression {
+): Promise<AiRecommendStaleSuppression> {
   ensureAiRecommendStaleSuppressions(store);
   const now = new Date().toISOString();
   const existing = findAiRecommendStaleSuppression(store, principal);
@@ -78,6 +82,7 @@ function upsertAiRecommendStaleSuppression(
   );
   if (idx >= 0) store.aiRecommendStaleSuppressions[idx] = next;
   else store.aiRecommendStaleSuppressions.push(next);
+  await persistAiRecommendStaleSuppression(store.dbPool, next);
   return next;
 }
 
@@ -137,11 +142,11 @@ function collectSignals(store: Store, principal: Principal): AiRecommendSignal[]
   return signals;
 }
 
-function rememberRecommendRun(
+async function rememberRecommendRun(
   store: Store,
   principal: Principal,
   keys: string[],
-): AiRecommendLastRun {
+): Promise<AiRecommendLastRun> {
   ensureAiRecommendRuns(store);
   const run: AiRecommendLastRun = {
     tenantId: principal.tenantId,
@@ -157,6 +162,7 @@ function rememberRecommendRun(
   if (idx >= 0) store.aiRecommendRuns[idx] = run;
   else store.aiRecommendRuns.push(run);
   clearAiRecommendStaleSuppression(store, principal);
+  await persistDeleteAiRecommendStaleSuppression(store.dbPool, principal.tenantId, principal.id);
   return run;
 }
 
@@ -206,7 +212,7 @@ export async function listAiRecommendations(store: Store, principal: Principal, 
     },
   });
 
-  const lastRun = rememberRecommendRun(
+  const lastRun = await rememberRecommendRun(
     store,
     principal,
     items.map((i) => i.key),
@@ -293,7 +299,7 @@ export function exportAiRecommendLastRun(
   return { ...viewed, format: "json" as const, generatedAt };
 }
 
-export function snoozeAiRecommendStale(store: Store, principal: Principal, input: { hours?: number } = {}) {
+export async function snoozeAiRecommendStale(store: Store, principal: Principal, input: { hours?: number } = {}) {
   const decision = authorize({
     principal,
     permission: "ai:write:draft",
@@ -306,7 +312,7 @@ export function snoozeAiRecommendStale(store: Store, principal: Principal, input
   if (!Number.isFinite(hours) || hours <= 0) {
     return { error: "invalid_request" as const, reason: "invalid_hours" };
   }
-  const suppression = upsertAiRecommendStaleSuppression(store, principal, {
+  const suppression = await upsertAiRecommendStaleSuppression(store, principal, {
     snoozedUntil: new Date(Date.now() + hours * 3_600_000).toISOString(),
     acknowledgedAt: undefined,
   });
@@ -317,7 +323,7 @@ export function snoozeAiRecommendStale(store: Store, principal: Principal, input
   };
 }
 
-export function acknowledgeAiRecommendStale(store: Store, principal: Principal) {
+export async function acknowledgeAiRecommendStale(store: Store, principal: Principal) {
   const decision = authorize({
     principal,
     permission: "ai:write:draft",
@@ -326,7 +332,7 @@ export function acknowledgeAiRecommendStale(store: Store, principal: Principal) 
   if (decision.result === "deny") {
     return { error: "forbidden" as const, reason: decision.reason };
   }
-  const suppression = upsertAiRecommendStaleSuppression(store, principal, {
+  const suppression = await upsertAiRecommendStaleSuppression(store, principal, {
     acknowledgedAt: new Date().toISOString(),
     snoozedUntil: undefined,
   });

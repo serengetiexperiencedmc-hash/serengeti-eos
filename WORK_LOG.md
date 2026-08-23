@@ -575,9 +575,17 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **I20.12** | Snooze or acknowledge a stale recommend last-run; restamp clears suppression |
 
+### 47:xx — I20.13 persist recommend stale snooze / ack ✅
+
+**Shipped:** server `0.80.0-i20.13`
+
+| Increment | Change |
+| --- | --- |
+| **I20.13** | Dual-write stale recommend snooze/ack to Postgres; hydrate; restamp deletes the row |
+
 ### Recommended next increments
 
-1. I20.13 — persist recommend stale snooze/ack to Postgres
+1. I20.14 — stale-recommend snooze/ack audit export
 2. I3.30 — persist allowlist stale audit to Postgres
 3. I4.28 — stale-audit filters / tenant export window
 

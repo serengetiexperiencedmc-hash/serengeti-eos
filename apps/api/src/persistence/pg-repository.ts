@@ -2563,3 +2563,71 @@ export async function loadAiRecommendRuns(
     };
   });
 }
+
+/** I20.13 — upsert stale recommend snooze/ack (one row per tenant + principal). */
+export async function upsertAiRecommendStaleSuppression(
+  pool: DbPool,
+  suppression: import("@sedmc/kernel").AiRecommendStaleSuppression,
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO ai_recommend_stale_suppression (
+      tenant_id, principal_id, acknowledged_at, snoozed_until, updated_at, updated_by_principal_id
+    ) VALUES ($1,$2,$3,$4,$5,$6)
+     ON CONFLICT (tenant_id, principal_id) DO UPDATE SET
+       acknowledged_at = EXCLUDED.acknowledged_at,
+       snoozed_until = EXCLUDED.snoozed_until,
+       updated_at = EXCLUDED.updated_at,
+       updated_by_principal_id = EXCLUDED.updated_by_principal_id`,
+    [
+      suppression.tenantId,
+      suppression.principalId,
+      suppression.acknowledgedAt ?? null,
+      suppression.snoozedUntil ?? null,
+      suppression.updatedAt,
+      suppression.updatedByPrincipalId,
+    ],
+  );
+}
+
+export async function loadAiRecommendStaleSuppressions(
+  pool: DbPool,
+): Promise<import("@sedmc/kernel").AiRecommendStaleSuppression[]> {
+  const result = await pool.query(
+    `SELECT tenant_id, principal_id, acknowledged_at, snoozed_until, updated_at, updated_by_principal_id
+     FROM ai_recommend_stale_suppression`,
+  );
+  return result.rows.map((row) => {
+    const updatedAt = row.updated_at instanceof Date ? row.updated_at.toISOString() : String(row.updated_at);
+    const acknowledgedAt =
+      row.acknowledged_at instanceof Date
+        ? row.acknowledged_at.toISOString()
+        : row.acknowledged_at
+          ? String(row.acknowledged_at)
+          : undefined;
+    const snoozedUntil =
+      row.snoozed_until instanceof Date
+        ? row.snoozed_until.toISOString()
+        : row.snoozed_until
+          ? String(row.snoozed_until)
+          : undefined;
+    return {
+      tenantId: row.tenant_id as string,
+      principalId: row.principal_id as string,
+      ...(acknowledgedAt ? { acknowledgedAt } : {}),
+      ...(snoozedUntil ? { snoozedUntil } : {}),
+      updatedAt,
+      updatedByPrincipalId: row.updated_by_principal_id as string,
+    };
+  });
+}
+
+export async function deleteAiRecommendStaleSuppression(
+  pool: DbPool,
+  tenantId: string,
+  principalId: string,
+): Promise<void> {
+  await pool.query(
+    `DELETE FROM ai_recommend_stale_suppression WHERE tenant_id = $1 AND principal_id = $2`,
+    [tenantId, principalId],
+  );
+}
