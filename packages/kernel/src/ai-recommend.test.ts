@@ -9,7 +9,9 @@ import {
   formatAiRecommendLastRunCsv,
   isAiRecommendStaleSuppressed,
   isAllowedAiRecommendHref,
+  filterAiRecommendStaleSuppressionAudits,
   formatAiRecommendStaleSuppressionAuditCsv,
+  parseAiRecommendStaleAuditExportFilter,
   sanitizeAiRecommendLastRun,
   sanitizeAiRecommendStaleSuppression,
   sanitizeAiRecommendStaleSuppressionAudit,
@@ -151,5 +153,30 @@ describe("I20.1 AI recommend port", () => {
       "action,snoozedUntil,acknowledgedAt,createdAt,createdByPrincipalId",
     );
     expect(formatAiRecommendStaleSuppressionAuditCsv([view])).toContain("snooze");
+  });
+
+  it("filters stale audit by action and createdAt window", () => {
+    expect(parseAiRecommendStaleAuditExportFilter({ action: "merge" })).toEqual({ error: "invalid_action" });
+    expect(parseAiRecommendStaleAuditExportFilter({ since: "not-a-date" })).toEqual({ error: "invalid_window" });
+    expect(
+      parseAiRecommendStaleAuditExportFilter({
+        since: "2026-08-24T00:00:00.000Z",
+        until: "2026-08-23T00:00:00.000Z",
+      }),
+    ).toEqual({ error: "invalid_window" });
+    const parsed = parseAiRecommendStaleAuditExportFilter({
+      action: "ack",
+      since: "2026-08-23T10:00:00.000Z",
+    });
+    expect("error" in parsed).toBe(false);
+    const rows = [
+      { action: "snooze", createdAt: "2026-08-23T09:00:00.000Z" },
+      { action: "ack", createdAt: "2026-08-23T11:00:00.000Z" },
+      { action: "ack", createdAt: "2026-08-23T08:00:00.000Z" },
+      { action: "cleared", createdAt: "2026-08-23T12:00:00.000Z" },
+    ];
+    expect(
+      filterAiRecommendStaleSuppressionAudits(rows, parsed as Extract<typeof parsed, { action: unknown }>),
+    ).toEqual([{ action: "ack", createdAt: "2026-08-23T11:00:00.000Z" }]);
   });
 });

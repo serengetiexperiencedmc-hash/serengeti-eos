@@ -46,7 +46,7 @@ describe("I20.10 AI recommend last-run export", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(filtered.statusCode).toBe(200);
-    expect(filtered.json().increment).toBe("I20.15");
+    expect(filtered.json().increment).toBe("I20.16");
     expect(filtered.json().filter.key).toBe("notifications.");
     expect(filtered.json().keys.every((key: string) => key.startsWith("notifications."))).toBe(true);
     expect(filtered.json().lastRun.occurredAt).toBe(occurredAt);

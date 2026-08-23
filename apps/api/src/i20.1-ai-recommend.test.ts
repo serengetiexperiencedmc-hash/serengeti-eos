@@ -69,7 +69,7 @@ describe("I20.1 AI recommend (read-only)", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(res.statusCode).toBe(200);
-    expect(res.json().increment).toBe("I20.15");
+    expect(res.json().increment).toBe("I20.16");
     expect(res.json().provider).toBe("dev-rules");
     expect(res.json().autonomyCeiling).toBe(1);
     const keys = res.json().items.map((i: { key: string }) => i.key);

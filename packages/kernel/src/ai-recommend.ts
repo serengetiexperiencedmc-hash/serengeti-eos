@@ -111,6 +111,60 @@ export function formatAiRecommendStaleSuppressionAuditCsv(
   return [header, ...rows].join("\n");
 }
 
+export const AI_RECOMMEND_STALE_AUDIT_ACTIONS = ["snooze", "ack", "cleared"] as const;
+export type AiRecommendStaleAuditAction = (typeof AI_RECOMMEND_STALE_AUDIT_ACTIONS)[number];
+
+export type AiRecommendStaleAuditExportFilter = {
+  action: AiRecommendStaleAuditAction | null;
+  since: string | null;
+  until: string | null;
+  sinceMs: number | null;
+  untilMs: number | null;
+};
+
+function parseOptionalIso(value?: string): { ok: true; raw: string | null; ms: number | null } | { ok: false } {
+  const raw = value?.trim() ?? "";
+  if (!raw) return { ok: true, raw: null, ms: null };
+  const ms = Date.parse(raw);
+  if (!Number.isFinite(ms)) return { ok: false };
+  return { ok: true, raw, ms };
+}
+
+export function parseAiRecommendStaleAuditExportFilter(query?: {
+  action?: string;
+  since?: string;
+  until?: string;
+}): AiRecommendStaleAuditExportFilter | { error: "invalid_action" | "invalid_window" } {
+  const actionRaw = query?.action?.trim() ?? "";
+  if (actionRaw && !AI_RECOMMEND_STALE_AUDIT_ACTIONS.includes(actionRaw as AiRecommendStaleAuditAction)) {
+    return { error: "invalid_action" };
+  }
+  const since = parseOptionalIso(query?.since);
+  const until = parseOptionalIso(query?.until);
+  if (!since.ok || !until.ok) return { error: "invalid_window" };
+  if (since.ms !== null && until.ms !== null && since.ms > until.ms) return { error: "invalid_window" };
+  return {
+    action: actionRaw ? (actionRaw as AiRecommendStaleAuditAction) : null,
+    since: since.raw,
+    until: until.raw,
+    sinceMs: since.ms,
+    untilMs: until.ms,
+  };
+}
+
+export function filterAiRecommendStaleSuppressionAudits<T extends { action: string; createdAt: string }>(
+  audits: readonly T[],
+  filter: Pick<AiRecommendStaleAuditExportFilter, "action" | "sinceMs" | "untilMs">,
+): T[] {
+  return audits.filter((row) => {
+    if (filter.action && row.action !== filter.action) return false;
+    const createdMs = Date.parse(row.createdAt);
+    if (filter.sinceMs !== null && !(Number.isFinite(createdMs) && createdMs >= filter.sinceMs)) return false;
+    if (filter.untilMs !== null && !(Number.isFinite(createdMs) && createdMs <= filter.untilMs)) return false;
+    return true;
+  });
+}
+
 export function isAiRecommendStaleSuppressed(
   suppression: AiRecommendStaleSuppression | null | undefined,
   nowMs = Date.now(),

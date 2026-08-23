@@ -55,6 +55,9 @@ export default function AiDraftsPage() {
   const [suppressed, setSuppressed] = useState(false);
   const [runKeys, setRunKeys] = useState<string[]>([]);
   const [keyFilter, setKeyFilter] = useState("");
+  const [auditAction, setAuditAction] = useState("");
+  const [auditSince, setAuditSince] = useState("");
+  const [auditUntil, setAuditUntil] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -119,9 +122,9 @@ export default function AiDraftsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="I20.15 · Assistant"
+        eyebrow="I20.16 · Assistant"
         title="AI Drafts"
-        subtitle="Filter unpublished assistant drafts. Export snooze/ack/clear audit. The assistant cannot merge, email, or approve."
+        subtitle="Filter unpublished assistant drafts. Filter and export snooze/ack/clear audit. The assistant cannot merge, email, or approve."
       />
       <Card>
         <div className="mb-4 flex flex-wrap gap-3">
@@ -253,6 +256,37 @@ export default function AiDraftsPage() {
               {busy === "export" ? "Exporting…" : "Export last-run"}
             </Btn>
           )}
+          <label className="text-xs text-muted">
+            Audit action
+            <select
+              className="ml-2 rounded-md border border-line bg-paper px-2 py-1 text-sm text-ink"
+              value={auditAction}
+              onChange={(event) => setAuditAction(event.target.value)}
+            >
+              <option value="">All actions</option>
+              <option value="snooze">Snooze</option>
+              <option value="ack">Ack</option>
+              <option value="cleared">Cleared</option>
+            </select>
+          </label>
+          <label className="text-xs text-muted">
+            Since
+            <input
+              className="ml-2 rounded-md border border-line bg-paper px-2 py-1 text-sm text-ink"
+              value={auditSince}
+              placeholder="2026-08-23T00:00:00Z"
+              onChange={(event) => setAuditSince(event.target.value)}
+            />
+          </label>
+          <label className="text-xs text-muted">
+            Until
+            <input
+              className="ml-2 rounded-md border border-line bg-paper px-2 py-1 text-sm text-ink"
+              value={auditUntil}
+              placeholder="2026-08-24T00:00:00Z"
+              onChange={(event) => setAuditUntil(event.target.value)}
+            />
+          </label>
           {token && (
             <Btn
               variant="secondary"
@@ -261,7 +295,12 @@ export default function AiDraftsPage() {
               onClick={() => {
                 setBusy("export-stale");
                 setError(null);
-                void exportAiRecommendStaleSuppression(token, "csv")
+                void exportAiRecommendStaleSuppression(token, {
+                  format: "csv",
+                  ...(auditAction ? { action: auditAction } : {}),
+                  ...(auditSince.trim() ? { since: auditSince.trim() } : {}),
+                  ...(auditUntil.trim() ? { until: auditUntil.trim() } : {}),
+                })
                   .then((res) => {
                     const blob = new Blob([res.csv ?? ""], { type: "text/csv" });
                     const url = URL.createObjectURL(blob);

@@ -4,10 +4,12 @@ import {
   authorize,
   createDevRulesRecommendProvider,
   filterAiRecommendLastRunKeys,
+  filterAiRecommendStaleSuppressionAudits,
   formatAiRecommendLastRunCsv,
   formatAiRecommendStaleSuppressionAuditCsv,
   hasPermission,
   isAiRecommendStaleSuppressed,
+  parseAiRecommendStaleAuditExportFilter,
   sanitizeAiRecommendLastRun,
   sanitizeAiRecommendStaleSuppression,
   sanitizeAiRecommendStaleSuppressionAudit,
@@ -33,7 +35,7 @@ import {
   persistDeleteAiRecommendStaleSuppression,
 } from "../persistence/ai-recommend-stale-suppressions.js";
 
-const INCREMENT = "I20.15" as const;
+const INCREMENT = "I20.16" as const;
 
 function recommendStaleThresholdHours(): number {
   const raw = Number(process.env.EOS_AI_RECOMMEND_STALE_HOURS);
@@ -334,19 +336,25 @@ export function exportAiRecommendLastRun(
 export function exportAiRecommendStaleSuppression(
   store: Store,
   principal: Principal,
-  query?: { format?: string },
+  query?: { format?: string; action?: string; since?: string; until?: string },
 ) {
   if (query?.format && query.format !== "json" && query.format !== "csv") {
     return { error: "invalid_request" as const, reason: "invalid_format" };
   }
+  const parsed = parseAiRecommendStaleAuditExportFilter(query);
+  if ("error" in parsed) return { error: "invalid_request" as const, reason: parsed.error };
   const viewed = lastRunView(store, principal);
   if ("error" in viewed) return viewed;
   ensureAiRecommendStaleSuppressionAudits(store);
-  const audits = store.aiRecommendStaleSuppressionAudits
-    .filter((row) => row.tenantId === principal.tenantId && row.principalId === principal.id)
-    .map(sanitizeAiRecommendStaleSuppressionAudit);
+  const audits = filterAiRecommendStaleSuppressionAudits(
+    store.aiRecommendStaleSuppressionAudits.filter(
+      (row) => row.tenantId === principal.tenantId && row.principalId === principal.id,
+    ),
+    parsed,
+  ).map(sanitizeAiRecommendStaleSuppressionAudit);
   const generatedAt = new Date().toISOString();
   const format = query?.format === "csv" ? "csv" : "json";
+  const filter = { action: parsed.action, since: parsed.since, until: parsed.until };
   if (format === "csv") {
     return {
       format: "csv" as const,
@@ -355,6 +363,7 @@ export function exportAiRecommendStaleSuppression(
       suppressed: viewed.suppressed,
       audits,
       count: audits.length,
+      filter,
       generatedAt,
       increment: INCREMENT,
     };
@@ -365,6 +374,7 @@ export function exportAiRecommendStaleSuppression(
     suppressed: viewed.suppressed,
     audits,
     count: audits.length,
+    filter,
     generatedAt,
     increment: INCREMENT,
   };

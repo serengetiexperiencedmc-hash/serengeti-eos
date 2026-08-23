@@ -599,11 +599,19 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **I20.15** | Dual-write snooze/ack/clear audit to Postgres; hydrate on startup |
 
+### 50:xx — I20.16 stale recommend audit filters / export window ✅
+
+**Shipped:** server `0.83.0-i20.16`
+
+| Increment | Change |
+| --- | --- |
+| **I20.16** | Filter stale-recommend audit export by action and `since`/`until` |
+
 ### Recommended next increments
 
 1. I3.30 — persist allowlist stale audit to Postgres
 2. I4.28 — stale-audit filters / tenant export window
-3. I20.16 — stale-recommend audit filters / tenant export window
+3. I20.17 — persist recommend-audit export filter last-used / tenant window preset
 
 ### Issues resolved
 
