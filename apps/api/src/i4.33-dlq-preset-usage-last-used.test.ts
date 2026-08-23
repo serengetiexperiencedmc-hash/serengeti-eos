@@ -6,6 +6,13 @@ const P = TEST_BOOTSTRAP_SECRETS;
 const PARTNER_TENANT_ID = "22222222-2222-4222-8222-222222222222";
 const PARTNER_PRESET_ID = "33333333-3333-4333-8333-333333333333";
 
+function isI434UsagePersistSql(sql: string) {
+  return (
+    sql.includes("notif_dlq_sla_digest_stale_audit_export_preset_usage") ||
+    sql.includes("notif_dlq_sla_digest_stale_audit_export_last_preset")
+  );
+}
+
 async function loginCarol(app: ReturnType<typeof buildServer>) {
   const res = await app.inject({
     method: "POST",
@@ -47,11 +54,12 @@ describe("I4.33 DLQ preset usage and last-used preset echo", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(empty.statusCode).toBe(200);
-    expect(empty.json().increment).toBe("I4.33");
+    expect(empty.json().increment).toBe("I4.34");
     expect(empty.json().lastPreset).toBeNull();
     expect(empty.json().usages).toEqual([]);
     expect(empty.json().lastFilter).toBeNull();
     const writesAfterEmptyStatus = writes.length;
+    expect(writes.filter(isI434UsagePersistSql)).toHaveLength(0);
 
     const plain = await app.inject({
       method: "GET",
@@ -59,10 +67,11 @@ describe("I4.33 DLQ preset usage and last-used preset echo", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(plain.statusCode).toBe(200);
-    expect(plain.json().increment).toBe("I4.33");
+    expect(plain.json().increment).toBe("I4.34");
     expect(plain.json().lastPreset).toBeNull();
     expect(store.notifDlqSlaDigestStaleAuditExportPresetUsages).toHaveLength(0);
     expect(plain.json().lastFilter).toBeTruthy();
+    expect(writes.filter(isI434UsagePersistSql)).toHaveLength(0);
 
     const created = await app.inject({
       method: "POST",
@@ -88,6 +97,7 @@ describe("I4.33 DLQ preset usage and last-used preset echo", () => {
     expect(missing.statusCode).toBe(404);
     expect(missing.json().reason).toBe("preset_not_found");
     expect(store.notifDlqSlaDigestStaleAuditExportPresetUsages).toHaveLength(0);
+    expect(writes.filter(isI434UsagePersistSql)).toHaveLength(0);
 
     const crossTenant = await app.inject({
       method: "GET",
@@ -96,6 +106,7 @@ describe("I4.33 DLQ preset usage and last-used preset echo", () => {
     });
     expect(crossTenant.statusCode).toBe(404);
     expect(store.notifDlqSlaDigestStaleAuditExportPresetUsages).toHaveLength(0);
+    expect(writes.filter(isI434UsagePersistSql)).toHaveLength(0);
 
     const exported = await app.inject({
       method: "GET",
@@ -103,12 +114,14 @@ describe("I4.33 DLQ preset usage and last-used preset echo", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(exported.statusCode).toBe(200);
-    expect(exported.json().increment).toBe("I4.33");
+    expect(exported.json().increment).toBe("I4.34");
     expect(exported.json().lastPreset.presetName).toBe("Snoozes only");
     expect(exported.json().lastPreset.presetId).toBe(presetId);
     expect(exported.json().lastPreset).not.toHaveProperty("tenantId");
     expect(exported.json().lastFilter.action).toBe("snooze");
     expect(store.notifDlqSlaDigestStaleAuditExportPresetUsages).toHaveLength(1);
+    const persistAfterNamedApply = writes.filter(isI434UsagePersistSql).length;
+    expect(persistAfterNamedApply).toBeGreaterThanOrEqual(2);
 
     const after = await app.inject({
       method: "GET",
@@ -122,6 +135,7 @@ describe("I4.33 DLQ preset usage and last-used preset echo", () => {
     expect(after.json().lastFilter.action).toBe("snooze");
     expect(store.notifDlqSlaDigestStaleAuditExportPresetUsages).toHaveLength(1);
     expect(writesAfterEmptyStatus).toBe(0);
+    expect(writes.filter(isI434UsagePersistSql)).toHaveLength(persistAfterNamedApply);
 
     const repeated = await app.inject({
       method: "GET",
@@ -130,6 +144,8 @@ describe("I4.33 DLQ preset usage and last-used preset echo", () => {
     });
     expect(repeated.statusCode).toBe(200);
     expect(store.notifDlqSlaDigestStaleAuditExportPresetUsages).toHaveLength(2);
+    const persistAfterRepeat = writes.filter(isI434UsagePersistSql).length;
+    expect(persistAfterRepeat).toBeGreaterThan(persistAfterNamedApply);
 
     const statusAfterRepeat = await app.inject({
       method: "GET",
@@ -153,7 +169,7 @@ describe("I4.33 DLQ preset usage and last-used preset echo", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(usageJson.statusCode).toBe(200);
-    expect(usageJson.json().increment).toBe("I4.33");
+    expect(usageJson.json().increment).toBe("I4.34");
     expect(usageJson.json().format).toBe("json");
     expect(usageJson.json().count).toBe(2);
     expect(usageJson.json().lastPreset.presetName).toBe("Snoozes only");
@@ -169,7 +185,9 @@ describe("I4.33 DLQ preset usage and last-used preset echo", () => {
     expect(usage.json().csv).toContain("presetId,presetName,createdAt");
     expect(usage.json().lastPreset.presetName).toBe("Snoozes only");
     expect(store.notifDlqSlaDigestStaleAuditExportPresetUsages).toHaveLength(2);
-    expect(writes.some((sql) => sql.includes("preset_usage") || sql.includes("last_preset"))).toBe(false);
+    expect(writes.filter(isI434UsagePersistSql)).toHaveLength(persistAfterRepeat);
+    expect(writes.some((sql) => sql.includes("ai_recommend_stale_audit_export_preset_usage"))).toBe(false);
+    expect(writes.some((sql) => sql.includes("notif_allowlist") && sql.includes("preset_usage"))).toBe(false);
 
     const removed = await app.inject({
       method: "DELETE",
@@ -185,6 +203,13 @@ describe("I4.33 DLQ preset usage and last-used preset echo", () => {
     });
     expect(exportDeleted.statusCode).toBe(404);
     expect(store.notifDlqSlaDigestStaleAuditExportPresetUsages).toHaveLength(2);
+    expect(writes.filter(isI434UsagePersistSql)).toHaveLength(persistAfterRepeat);
+    expect(writes.some((sql) => sql.includes("DELETE FROM notif_dlq_sla_digest_stale_audit_export_preset_usage"))).toBe(
+      false,
+    );
+    expect(writes.some((sql) => sql.includes("DELETE FROM notif_dlq_sla_digest_stale_audit_export_last_preset"))).toBe(
+      false,
+    );
 
     const statusAfterDelete = await app.inject({
       method: "GET",

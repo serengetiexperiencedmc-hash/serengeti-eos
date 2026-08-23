@@ -253,7 +253,7 @@ export default function EventsInfrastructurePage() {
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <PageHeader
-        eyebrow="I4 · I4.33 · Events"
+        eyebrow="I4 · I4.34 · Events"
         title="Event Infrastructure"
         subtitle="NATS lag, DLQ SLA ack/snooze, bulk owner assign, and controlled replay"
         actions={

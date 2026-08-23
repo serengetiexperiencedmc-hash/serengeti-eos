@@ -28,7 +28,7 @@ describe("I4.32 rename and delete stale DLQ audit export presets", () => {
         if (text.includes("DELETE FROM notif_dlq_sla_digest_stale_audit_export_preset")) {
           deleted.push(params![0] as string);
         }
-        if (text.includes("INSERT INTO notif_dlq_sla_digest_stale_audit_export_preset")) {
+        if (text.includes("INSERT INTO notif_dlq_sla_digest_stale_audit_export_preset (")) {
           writes.push({ id: params![0] as string, name: params![2] as string });
         }
         return { rows: [], rowCount: 0 };
@@ -140,7 +140,7 @@ describe("I4.32 rename and delete stale DLQ audit export presets", () => {
       payload: { name: "  Last  snoozes " },
     });
     expect(renamed.statusCode).toBe(200);
-    expect(renamed.json().increment).toBe("I4.33");
+    expect(renamed.json().increment).toBe("I4.34");
     expect(renamed.json().preset.id).toBe(firstId);
     expect(renamed.json().preset.name).toBe("Last snoozes");
     expect(renamed.json().preset.action).toBe("snooze");
@@ -164,7 +164,7 @@ describe("I4.32 rename and delete stale DLQ audit export presets", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(statusAfterRename.statusCode).toBe(200);
-    expect(statusAfterRename.json().increment).toBe("I4.33");
+    expect(statusAfterRename.json().increment).toBe("I4.34");
     expect(statusAfterRename.json().presets.map((row: { name: string }) => row.name)).toEqual([
       "Acks only",
       "Last snoozes",
@@ -216,7 +216,7 @@ describe("I4.32 rename and delete stale DLQ audit export presets", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(removed.statusCode).toBe(200);
-    expect(removed.json().increment).toBe("I4.33");
+    expect(removed.json().increment).toBe("I4.34");
     expect(removed.json().presets.map((row: { name: string }) => row.name)).toEqual(["Last snoozes"]);
     expect(deleted).toContain(secondId);
 
@@ -294,7 +294,7 @@ describe("I4.32 rename and delete stale DLQ audit export presets", () => {
     const writes: string[] = [];
     store.dbPool = {
       query: async (sql: string, params?: unknown[]) => {
-        if (String(sql).includes("INSERT INTO notif_dlq_sla_digest_stale_audit_export_preset")) {
+        if (String(sql).includes("INSERT INTO notif_dlq_sla_digest_stale_audit_export_preset (")) {
           writes.push(params![2] as string);
         }
         return { rows: [], rowCount: 0 };

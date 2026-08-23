@@ -7,7 +7,9 @@ import type {
   NotifEmailAllowlistEntry,
   NotifDlqSlaDigestLastRun,
   NotifDlqSlaDigestStaleAuditExportLastFilter,
+  NotifDlqSlaDigestStaleAuditExportLastPreset,
   NotifDlqSlaDigestStaleAuditExportPreset,
+  NotifDlqSlaDigestStaleAuditExportPresetUsage,
   NotifDlqSlaDigestStaleSuppression,
   NotifDlqSlaDigestStaleSuppressionAudit,
   NotifAllowlistDualDigestLastRun,
@@ -34,10 +36,14 @@ import {
   loadNotifDlqSlaDigestLastRuns,
   insertNotifDlqSlaDigestStaleSuppressionAudit,
   loadNotifDlqSlaDigestStaleAuditExportLastFilters,
+  loadNotifDlqSlaDigestStaleAuditExportLastPresets,
   loadNotifDlqSlaDigestStaleAuditExportPresets,
+  loadNotifDlqSlaDigestStaleAuditExportPresetUsages,
   loadNotifDlqSlaDigestStaleSuppressionAudits,
   loadNotifDlqSlaDigestStaleSuppressions,
+  insertNotifDlqSlaDigestStaleAuditExportPresetUsage,
   upsertNotifDlqSlaDigestStaleAuditExportLastFilter,
+  upsertNotifDlqSlaDigestStaleAuditExportLastPreset,
   upsertNotifDlqSlaDigestStaleAuditExportPreset,
   deleteNotifDlqSlaDigestStaleAuditExportPreset,
   loadNotifEmailAllowlist,
@@ -357,6 +363,70 @@ export async function hydrateNotifDlqSlaDigestStaleAuditExportPresets(
       store.notifDlqSlaDigestStaleAuditExportPresets[idx] = row;
     } else {
       store.notifDlqSlaDigestStaleAuditExportPresets.push(row);
+      merged += 1;
+    }
+  }
+  return merged;
+}
+
+export async function persistNotifDlqSlaDigestStaleAuditExportPresetUsage(
+  pool: DbPool | undefined,
+  row: NotifDlqSlaDigestStaleAuditExportPresetUsage,
+): Promise<void> {
+  if (!pool) return;
+  try {
+    await insertNotifDlqSlaDigestStaleAuditExportPresetUsage(pool, row);
+  } catch {
+    // Fire-and-forget dual-write.
+  }
+}
+
+export async function persistNotifDlqSlaDigestStaleAuditExportLastPreset(
+  pool: DbPool | undefined,
+  row: NotifDlqSlaDigestStaleAuditExportLastPreset,
+): Promise<void> {
+  if (!pool) return;
+  try {
+    await upsertNotifDlqSlaDigestStaleAuditExportLastPreset(pool, row);
+  } catch {
+    // Fire-and-forget dual-write.
+  }
+}
+
+export async function hydrateNotifDlqSlaDigestStaleAuditExportPresetUsages(
+  pool: DbPool,
+  store: Store,
+): Promise<number> {
+  ensureNotificationCollections(store);
+  const rows = await loadNotifDlqSlaDigestStaleAuditExportPresetUsages(pool);
+  let merged = 0;
+  for (const row of rows) {
+    const idx = store.notifDlqSlaDigestStaleAuditExportPresetUsages.findIndex((u) => u.id === row.id);
+    if (idx >= 0) {
+      store.notifDlqSlaDigestStaleAuditExportPresetUsages[idx] = row;
+    } else {
+      store.notifDlqSlaDigestStaleAuditExportPresetUsages.push(row);
+      merged += 1;
+    }
+  }
+  return merged;
+}
+
+export async function hydrateNotifDlqSlaDigestStaleAuditExportLastPresets(
+  pool: DbPool,
+  store: Store,
+): Promise<number> {
+  ensureNotificationCollections(store);
+  const rows = await loadNotifDlqSlaDigestStaleAuditExportLastPresets(pool);
+  let merged = 0;
+  for (const row of rows) {
+    const idx = store.notifDlqSlaDigestStaleAuditExportLastPresets.findIndex(
+      (p) => p.tenantId === row.tenantId && p.principalId === row.principalId,
+    );
+    if (idx >= 0) {
+      store.notifDlqSlaDigestStaleAuditExportLastPresets[idx] = row;
+    } else {
+      store.notifDlqSlaDigestStaleAuditExportLastPresets.push(row);
       merged += 1;
     }
   }

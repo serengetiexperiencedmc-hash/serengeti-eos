@@ -2426,6 +2426,77 @@ export async function deleteNotifDlqSlaDigestStaleAuditExportPreset(pool: DbPool
   await pool.query(`DELETE FROM notif_dlq_sla_digest_stale_audit_export_preset WHERE id = $1`, [id]);
 }
 
+/** I4.34 — append DLQ stale-audit export preset-apply usage. */
+export async function insertNotifDlqSlaDigestStaleAuditExportPresetUsage(
+  pool: DbPool,
+  row: import("@sedmc/kernel").NotifDlqSlaDigestStaleAuditExportPresetUsage,
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO notif_dlq_sla_digest_stale_audit_export_preset_usage (
+      id, tenant_id, principal_id, preset_id, preset_name, created_at, created_by_principal_id
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+    [row.id, row.tenantId, row.principalId, row.presetId, row.presetName, row.createdAt, row.createdByPrincipalId],
+  );
+}
+
+export async function loadNotifDlqSlaDigestStaleAuditExportPresetUsages(
+  pool: DbPool,
+): Promise<import("@sedmc/kernel").NotifDlqSlaDigestStaleAuditExportPresetUsage[]> {
+  const result = await pool.query(
+    `SELECT id, tenant_id, principal_id, preset_id, preset_name, created_at, created_by_principal_id
+     FROM notif_dlq_sla_digest_stale_audit_export_preset_usage
+     ORDER BY created_at ASC`,
+  );
+  return result.rows.map((row) => {
+    const createdAt = row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at);
+    return {
+      id: row.id as string,
+      tenantId: row.tenant_id as string,
+      principalId: row.principal_id as string,
+      presetId: row.preset_id as string,
+      presetName: String(row.preset_name),
+      createdAt,
+      createdByPrincipalId: row.created_by_principal_id as string,
+    };
+  });
+}
+
+/** I4.34 — upsert last-used DLQ stale-audit export preset. */
+export async function upsertNotifDlqSlaDigestStaleAuditExportLastPreset(
+  pool: DbPool,
+  row: import("@sedmc/kernel").NotifDlqSlaDigestStaleAuditExportLastPreset,
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO notif_dlq_sla_digest_stale_audit_export_last_preset (
+      tenant_id, principal_id, preset_id, preset_name, used_at
+    ) VALUES ($1,$2,$3,$4,$5)
+     ON CONFLICT (tenant_id, principal_id) DO UPDATE SET
+       preset_id = EXCLUDED.preset_id,
+       preset_name = EXCLUDED.preset_name,
+       used_at = EXCLUDED.used_at`,
+    [row.tenantId, row.principalId, row.presetId, row.presetName, row.usedAt],
+  );
+}
+
+export async function loadNotifDlqSlaDigestStaleAuditExportLastPresets(
+  pool: DbPool,
+): Promise<import("@sedmc/kernel").NotifDlqSlaDigestStaleAuditExportLastPreset[]> {
+  const result = await pool.query(
+    `SELECT tenant_id, principal_id, preset_id, preset_name, used_at
+     FROM notif_dlq_sla_digest_stale_audit_export_last_preset`,
+  );
+  return result.rows.map((row) => {
+    const usedAt = row.used_at instanceof Date ? row.used_at.toISOString() : String(row.used_at);
+    return {
+      tenantId: row.tenant_id as string,
+      principalId: row.principal_id as string,
+      presetId: row.preset_id as string,
+      presetName: String(row.preset_name),
+      usedAt,
+    };
+  });
+}
+
 /** I3.28 — upsert stale allowlist dual digest snooze/ack (one row per tenant). */
 export async function upsertNotifAllowlistDualDigestStaleSuppression(
   pool: DbPool,

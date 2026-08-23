@@ -133,7 +133,7 @@ export function Sidebar() {
       <div className="border-t border-white/10 px-5 py-4 text-xs text-muted">
         Serengeti Experience DMC
         <br />
-        v1.01 · Dev/Test
+        v1.02 · Dev/Test
       </div>
     </aside>
   );
@@ -171,7 +171,7 @@ export function Topbar() {
 export function MockupBanner() {
   return (
     <div className="bg-gold py-1.5 text-center text-[0.7rem] font-semibold uppercase tracking-wide text-ink">
-      Serengeti EOS · C1–C10 · O1–O4 · I3.35 · I4.33 · PG.29 · I20.22 · J1–J2
+      Serengeti EOS · C1–C10 · O1–O4 · I3.35 · I4.34 · PG.29 · I20.22 · J1–J2
     </div>
   );
 }

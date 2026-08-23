@@ -28,13 +28,15 @@ import {
   persistNotifDlqSlaDigestLastRun,
   persistNotifDlqSlaDigestStaleAuditExportLastFilter,
   persistDeleteNotifDlqSlaDigestStaleAuditExportPreset,
+  persistNotifDlqSlaDigestStaleAuditExportLastPreset,
   persistNotifDlqSlaDigestStaleAuditExportPreset,
+  persistNotifDlqSlaDigestStaleAuditExportPresetUsage,
   persistNotifDlqSlaDigestStaleSuppression,
   persistNotifDlqSlaDigestStaleSuppressionAudit,
 } from "../persistence/notifications.js";
 import { digestLastRunFreshness } from "./digest-freshness.js";
 
-const INCREMENT = "I4.33" as const;
+const INCREMENT = "I4.34" as const;
 
 function stampLastRun(
   store: Store,
@@ -459,7 +461,7 @@ function principalDlqPresetUsages(store: Store, principal: Principal) {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-function recordDlqStaleAuditExportPresetUsage(
+async function recordDlqStaleAuditExportPresetUsage(
   store: Store,
   principal: Principal,
   preset: NotifDlqSlaDigestStaleAuditExportPreset,
@@ -488,6 +490,8 @@ function recordDlqStaleAuditExportPresetUsage(
   );
   if (idx >= 0) store.notifDlqSlaDigestStaleAuditExportLastPresets[idx] = last;
   else store.notifDlqSlaDigestStaleAuditExportLastPresets.push(last);
+  await persistNotifDlqSlaDigestStaleAuditExportPresetUsage(store.dbPool, usage);
+  await persistNotifDlqSlaDigestStaleAuditExportLastPreset(store.dbPool, last);
   return { usage, last };
 }
 
@@ -767,7 +771,7 @@ export async function exportDlqSlaDigestStaleSuppression(
   const filter = { action: parsed.action, since: parsed.since, until: parsed.until };
   const last = await upsertDlqStaleAuditExportLastFilter(store, principal, filter);
   const lastFilter = sanitizeNotifDlqSlaDigestStaleAuditExportLastFilter(last);
-  const recorded = preset ? recordDlqStaleAuditExportPresetUsage(store, principal, preset) : null;
+  const recorded = preset ? await recordDlqStaleAuditExportPresetUsage(store, principal, preset) : null;
   const lastPreset = recorded
     ? sanitizeNotifDlqSlaDigestStaleAuditExportLastPreset(recorded.last)
     : (() => {
