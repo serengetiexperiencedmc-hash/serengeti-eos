@@ -89,7 +89,7 @@ describe("I20.5 AI draft list filters", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(activities.statusCode).toBe(200);
-    expect(activities.json().increment).toBe("I20.10");
+    expect(activities.json().increment).toBe("I20.11");
     expect(activities.json().filters.artefactType).toBe("crm_activity");
     expect(activities.json().items).toHaveLength(1);
     expect(activities.json().items[0].artefactType).toBe("crm_activity");

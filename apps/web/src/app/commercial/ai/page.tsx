@@ -11,6 +11,7 @@ import {
   getAiRecommendLastRun,
   listAiDrafts,
   type AiDraft,
+  type AiRecommendFreshness,
   type AiRecommendLastRun,
 } from "@/lib/ai-api";
 import { EosApiError } from "@/lib/eos-client";
@@ -32,6 +33,12 @@ function artefactLabel(type: string): string {
   return type === "crm_activity" ? "CRM activity" : "CRM task";
 }
 
+function freshnessLabel(freshness: AiRecommendFreshness): string {
+  if (freshness.neverRun) return `Stale · never run (threshold ${freshness.thresholdHours}h)`;
+  if (freshness.stale) return `Stale · ${freshness.ageHours ?? "?"}h (threshold ${freshness.thresholdHours}h)`;
+  return `Fresh · ${freshness.ageHours ?? 0}h (threshold ${freshness.thresholdHours}h)`;
+}
+
 export default function AiDraftsPage() {
   const { token, ready } = useEosSession();
   const [status, setStatus] = useState("pending");
@@ -39,6 +46,7 @@ export default function AiDraftsPage() {
   const [drafts, setDrafts] = useState<AiDraft[] | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
   const [lastRun, setLastRun] = useState<AiRecommendLastRun | null>(null);
+  const [freshness, setFreshness] = useState<AiRecommendFreshness | null>(null);
   const [runKeys, setRunKeys] = useState<string[]>([]);
   const [keyFilter, setKeyFilter] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +75,7 @@ export default function AiDraftsPage() {
     if (!token) {
       setDrafts(null);
       setLastRun(null);
+      setFreshness(null);
       setRunKeys([]);
       return;
     }
@@ -74,10 +83,12 @@ export default function AiDraftsPage() {
     void getAiRecommendLastRun(token, keyFilter || undefined)
       .then((res) => {
         setLastRun(res.lastRun);
+        setFreshness(res.freshness);
         setRunKeys(res.keys);
       })
       .catch(() => {
         setLastRun(null);
+        setFreshness(null);
         setRunKeys([]);
       });
   }, [token, reload, keyFilter]);
@@ -89,9 +100,9 @@ export default function AiDraftsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="I20.10 · Assistant"
+        eyebrow="I20.11 · Assistant"
         title="AI Drafts"
-        subtitle="Filter unpublished assistant drafts. Export the last recommend snapshot. The assistant cannot merge, email, or approve."
+        subtitle="Filter unpublished assistant drafts. Export the last recommend snapshot and its freshness. The assistant cannot merge, email, or approve."
       />
       <Card>
         <div className="mb-4 flex flex-wrap gap-3">
@@ -137,7 +148,15 @@ export default function AiDraftsPage() {
             {lastRun
               ? `Last recommend ${new Date(lastRun.occurredAt).toLocaleString()} · ${runKeys.length}/${lastRun.count} keys · ${lastRun.provider}`
               : "No recommend run yet"}
+            {freshness ? ` · ${freshnessLabel(freshness)}` : ""}
           </p>
+          {freshness?.stale && (
+            <p className="w-full rounded border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
+              {freshness.neverRun
+                ? `Recommend last-run has never been recorded (stale after ${freshness.thresholdHours}h).`
+                : `Recommend last-run is stale (${freshness.ageHours ?? "?"}h ≥ ${freshness.thresholdHours}h).`}
+            </p>
+          )}
           {token && (
             <Btn
               variant="secondary"

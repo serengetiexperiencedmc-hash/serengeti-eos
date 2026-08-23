@@ -68,15 +68,48 @@ export function filterAiRecommendLastRunKeys(keys: readonly string[], query?: st
   return keys.filter((key) => key === needle || key.startsWith(needle));
 }
 
+export const AI_RECOMMEND_STALE_HOURS_DEFAULT = 26;
+
+export function aiRecommendLastRunFreshness(
+  lastRunAt: string | undefined,
+  nowMs = Date.now(),
+  thresholdHours = AI_RECOMMEND_STALE_HOURS_DEFAULT,
+) {
+  if (!lastRunAt) {
+    return { stale: true, neverRun: true, ageHours: null as number | null, thresholdHours };
+  }
+  const ageHours = Math.max(0, (nowMs - new Date(lastRunAt).getTime()) / 3_600_000);
+  return {
+    stale: ageHours >= thresholdHours,
+    neverRun: false,
+    ageHours: Number(ageHours.toFixed(2)),
+    thresholdHours,
+  };
+}
+
 export function formatAiRecommendLastRunCsv(input: {
   occurredAt: string;
   provider: string;
   count: number;
   keys: readonly string[];
+  stale: boolean;
+  neverRun: boolean;
+  ageHours: number | null;
+  thresholdHours: number;
 }): string {
-  const header = "occurredAt,provider,count,key";
-  if (input.keys.length === 0) return `${header}\n`;
-  const rows = input.keys.map((key) => [input.occurredAt, input.provider, String(input.count), key].join(","));
+  const header = "occurredAt,provider,count,key,stale,neverRun,ageHours,thresholdHours";
+  const freshness = [
+    String(input.stale),
+    String(input.neverRun),
+    input.ageHours === null ? "" : String(input.ageHours),
+    String(input.thresholdHours),
+  ];
+  if (input.keys.length === 0) {
+    return [header, ["", input.provider, String(input.count), "", ...freshness].join(",")].join("\n");
+  }
+  const rows = input.keys.map((key) =>
+    [input.occurredAt, input.provider, String(input.count), key, ...freshness].join(","),
+  );
   return [header, ...rows].join("\n");
 }
 

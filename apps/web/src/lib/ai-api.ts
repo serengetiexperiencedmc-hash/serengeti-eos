@@ -38,12 +38,20 @@ export type AiRecommendLastRun = {
   keys: string[];
 };
 
+export type AiRecommendFreshness = {
+  stale: boolean;
+  neverRun: boolean;
+  ageHours: number | null;
+  thresholdHours: number;
+};
+
 export async function listAiRecommendations(token: string) {
   return eosFetch<{
     items: AiRecommendation[];
     provider: string;
     autonomyCeiling: number;
     lastRun: AiRecommendLastRun;
+    freshness: AiRecommendFreshness;
     increment: string;
   }>("/v1/ai/recommendations", { token });
 }
@@ -57,6 +65,7 @@ export async function getAiRecommendLastRun(token: string, key?: string) {
     keys: string[];
     matchCount: number;
     filter: { key: string | null };
+    freshness: AiRecommendFreshness;
     increment: string;
   }>(`/v1/ai/recommendations/last-run${q}`, { token });
 }
@@ -73,6 +82,7 @@ export async function exportAiRecommendLastRun(token: string, query?: { key?: st
     format: "json" | "csv";
     csv?: string;
     generatedAt: string;
+    freshness: AiRecommendFreshness;
     increment: string;
   }>(`/v1/ai/recommendations/last-run/export${q}`, { token });
 }

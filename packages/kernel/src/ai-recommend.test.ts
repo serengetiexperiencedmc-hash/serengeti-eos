@@ -4,6 +4,7 @@ import {
   AI_RECOMMEND_AUTONOMY_CEILING,
   assertSafeAiRecommendations,
   createDevRulesRecommendProvider,
+  aiRecommendLastRunFreshness,
   filterAiRecommendLastRunKeys,
   formatAiRecommendLastRunCsv,
   isAllowedAiRecommendHref,
@@ -73,6 +74,15 @@ describe("I20.1 AI recommend port", () => {
       provider: "dev-rules",
       count: 3,
       keys: ["crm.task.overdue"],
-    })).toContain("crm.task.overdue");
+      stale: false,
+      neverRun: false,
+      ageHours: 0.1,
+      thresholdHours: 26,
+    })).toContain("stale,neverRun,ageHours,thresholdHours");
+    expect(aiRecommendLastRunFreshness(undefined).neverRun).toBe(true);
+    expect(aiRecommendLastRunFreshness(undefined).stale).toBe(true);
+    const stale = aiRecommendLastRunFreshness(new Date(Date.now() - 30 * 3_600_000).toISOString());
+    expect(stale.neverRun).toBe(false);
+    expect(stale.stale).toBe(true);
   });
 });

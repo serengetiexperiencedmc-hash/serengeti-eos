@@ -559,9 +559,17 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **I20.10** | Filter last-run keys; JSON/CSV export without recording a new run |
 
+### 45:xx — I20.11 recommend last-run freshness ✅
+
+**Shipped:** server `0.78.0-i20.11`
+
+| Increment | Change |
+| --- | --- |
+| **I20.11** | Last-run freshness (`stale` / `neverRun` / `ageHours`); CSV columns; AI page banner |
+
 ### Recommended next increments
 
-1. I20.11 — last-run freshness / stale recommend snapshot
+1. I20.12 — snooze / acknowledge stale recommend snapshot
 2. I3.30 — persist allowlist stale audit to Postgres
 3. I4.28 — stale-audit filters / tenant export window
 

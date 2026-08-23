@@ -46,7 +46,7 @@ describe("I20.10 AI recommend last-run export", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(filtered.statusCode).toBe(200);
-    expect(filtered.json().increment).toBe("I20.10");
+    expect(filtered.json().increment).toBe("I20.11");
     expect(filtered.json().filter.key).toBe("notifications.");
     expect(filtered.json().keys.every((key: string) => key.startsWith("notifications."))).toBe(true);
     expect(filtered.json().lastRun.occurredAt).toBe(occurredAt);
@@ -59,7 +59,7 @@ describe("I20.10 AI recommend last-run export", () => {
     });
     expect(csv.statusCode).toBe(200);
     expect(csv.json().format).toBe("csv");
-    expect(csv.json().csv).toContain("occurredAt,provider,count,key");
+    expect(csv.json().csv).toContain("occurredAt,provider,count,key,stale,neverRun,ageHours,thresholdHours");
     expect(csv.json().csv).toContain("notifications.allowlist_digest.stale");
     expect(csv.json().csv).not.toContain("events.dlq_digest.stale");
     expect(store.aiRecommendRuns[0]!.occurredAt).toBe(occurredAt);

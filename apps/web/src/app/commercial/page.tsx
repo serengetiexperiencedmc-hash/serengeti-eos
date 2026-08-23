@@ -17,6 +17,7 @@ import {
   listAiDrafts,
   listAiRecommendations,
   type AiDraft,
+  type AiRecommendFreshness,
   type AiRecommendLastRun,
   type AiRecommendation,
 } from "@/lib/ai-api";
@@ -42,6 +43,7 @@ export default function CommercialDashboardPage() {
   const [live, setLive] = useState<CommercialLiveStats | null>(null);
   const [recs, setRecs] = useState<AiRecommendation[] | null>(null);
   const [lastRun, setLastRun] = useState<AiRecommendLastRun | null>(null);
+  const [freshness, setFreshness] = useState<AiRecommendFreshness | null>(null);
   const [drafts, setDrafts] = useState<AiDraft[] | null>(null);
   const [aiBusy, setAiBusy] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -53,10 +55,12 @@ export default function CommercialDashboardPage() {
       .then((res) => {
         setRecs(res.items);
         setLastRun(res.lastRun);
+        setFreshness(res.freshness);
       })
       .catch(() => {
         setRecs([]);
         setLastRun(null);
+        setFreshness(null);
       });
     void listAiDrafts(sessionToken, "pending")
       .then((res) => setDrafts(res.items))
@@ -72,6 +76,7 @@ export default function CommercialDashboardPage() {
       setLive(null);
       setRecs(null);
       setLastRun(null);
+      setFreshness(null);
       setDrafts(null);
       return;
     }
@@ -338,6 +343,11 @@ export default function CommercialDashboardPage() {
                   <p className="mb-2 text-xs text-muted">
                     Last recommend {new Date(lastRun.occurredAt).toLocaleString()} · {lastRun.count} key
                     {lastRun.count === 1 ? "" : "s"}
+                    {freshness
+                      ? freshness.stale
+                        ? ` · stale (${freshness.ageHours ?? "?"}h ≥ ${freshness.thresholdHours}h)`
+                        : ` · fresh (${freshness.ageHours ?? 0}h)`
+                      : ""}
                   </p>
                 )}
                 {recs.length === 0 ? (

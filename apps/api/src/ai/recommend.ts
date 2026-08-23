@@ -1,4 +1,6 @@
 import {
+  AI_RECOMMEND_STALE_HOURS_DEFAULT,
+  aiRecommendLastRunFreshness,
   authorize,
   createDevRulesRecommendProvider,
   filterAiRecommendLastRunKeys,
@@ -20,7 +22,12 @@ import {
 import { getDlqSlaDigestStatus, isDlqSlaDigestStaleSuppressed } from "../notifications/dlq-sla-digest.js";
 import { persistAiRecommendRun } from "../persistence/ai-recommend-runs.js";
 
-const INCREMENT = "I20.10" as const;
+const INCREMENT = "I20.11" as const;
+
+function recommendStaleThresholdHours(): number {
+  const raw = Number(process.env.EOS_AI_RECOMMEND_STALE_HOURS);
+  return Number.isFinite(raw) && raw > 0 ? raw : AI_RECOMMEND_STALE_HOURS_DEFAULT;
+}
 const provider = createDevRulesRecommendProvider();
 
 function ensureAiRecommendRuns(store: Store): void {
@@ -163,6 +170,7 @@ export async function listAiRecommendations(store: Store, principal: Principal, 
     provider: provider.name,
     autonomyCeiling: provider.autonomyCeiling,
     lastRun: sanitizeAiRecommendLastRun(lastRun),
+    freshness: aiRecommendLastRunFreshness(lastRun.occurredAt, Date.now(), recommendStaleThresholdHours()),
     increment: INCREMENT,
   };
 }
@@ -180,11 +188,17 @@ function lastRunView(store: Store, principal: Principal, key?: string) {
   );
   const lastRun = run ? sanitizeAiRecommendLastRun(run) : null;
   const keys = filterAiRecommendLastRunKeys(lastRun?.keys ?? [], key);
+  const freshness = aiRecommendLastRunFreshness(
+    lastRun?.occurredAt,
+    Date.now(),
+    recommendStaleThresholdHours(),
+  );
   return {
     lastRun,
     keys,
     matchCount: keys.length,
     filter: { key: key?.trim() ? key.trim() : null },
+    freshness,
     increment: INCREMENT,
   };
 }
@@ -215,6 +229,10 @@ export function exportAiRecommendLastRun(
         provider: viewed.lastRun?.provider ?? "",
         count: viewed.lastRun?.count ?? 0,
         keys: viewed.keys,
+        stale: viewed.freshness.stale,
+        neverRun: viewed.freshness.neverRun,
+        ageHours: viewed.freshness.ageHours,
+        thresholdHours: viewed.freshness.thresholdHours,
       }),
     };
   }
