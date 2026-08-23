@@ -80,6 +80,15 @@ export async function getAiRecommendLastRun(token: string, key?: string) {
   }>(`/v1/ai/recommendations/last-run${q}`, { token });
 }
 
+export type AiRecommendStaleAudit = {
+  id: string;
+  action: "snooze" | "ack" | "cleared";
+  snoozedUntil?: string;
+  acknowledgedAt?: string;
+  createdAt: string;
+  createdByPrincipalId: string;
+};
+
 export async function exportAiRecommendLastRun(token: string, query?: { key?: string; format?: "json" | "csv" }) {
   const params = new URLSearchParams();
   if (query?.key) params.set("key", query.key);
@@ -97,6 +106,19 @@ export async function exportAiRecommendLastRun(token: string, query?: { key?: st
     suppressed: boolean;
     increment: string;
   }>(`/v1/ai/recommendations/last-run/export${q}`, { token });
+}
+
+export async function exportAiRecommendStaleSuppression(token: string, format: "json" | "csv" = "csv") {
+  return eosFetch<{
+    format: "json" | "csv";
+    csv?: string;
+    suppression: AiRecommendSuppression | null;
+    suppressed: boolean;
+    audits: AiRecommendStaleAudit[];
+    count: number;
+    generatedAt: string;
+    increment: string;
+  }>(`/v1/ai/recommendations/last-run/stale/export?format=${format}`, { token });
 }
 
 export async function snoozeAiRecommendStale(token: string, hours = 24) {

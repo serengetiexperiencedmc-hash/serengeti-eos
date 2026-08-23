@@ -9,6 +9,7 @@ import {
   acknowledgeAiRecommendStale,
   discardAiDraft,
   exportAiRecommendLastRun,
+  exportAiRecommendStaleSuppression,
   getAiRecommendLastRun,
   listAiDrafts,
   snoozeAiRecommendStale,
@@ -118,9 +119,9 @@ export default function AiDraftsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="I20.13 · Assistant"
+        eyebrow="I20.14 · Assistant"
         title="AI Drafts"
-        subtitle="Filter unpublished assistant drafts. Snooze or acknowledge a stale recommend snapshot. The assistant cannot merge, email, or approve."
+        subtitle="Filter unpublished assistant drafts. Export snooze/ack/clear audit. The assistant cannot merge, email, or approve."
       />
       <Card>
         <div className="mb-4 flex flex-wrap gap-3">
@@ -250,6 +251,33 @@ export default function AiDraftsPage() {
               }}
             >
               {busy === "export" ? "Exporting…" : "Export last-run"}
+            </Btn>
+          )}
+          {token && (
+            <Btn
+              variant="secondary"
+              size="sm"
+              disabled={busy === "export-stale"}
+              onClick={() => {
+                setBusy("export-stale");
+                setError(null);
+                void exportAiRecommendStaleSuppression(token, "csv")
+                  .then((res) => {
+                    const blob = new Blob([res.csv ?? ""], { type: "text/csv" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `ai-recommend-stale-audit-${res.generatedAt.slice(0, 10)}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  })
+                  .catch((err) => {
+                    setError(err instanceof EosApiError ? err.message : "Could not export stale audit");
+                  })
+                  .finally(() => setBusy(null));
+              }}
+            >
+              {busy === "export-stale" ? "Exporting…" : "Export stale audit"}
             </Btn>
           )}
         </div>

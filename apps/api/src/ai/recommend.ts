@@ -5,12 +5,15 @@ import {
   createDevRulesRecommendProvider,
   filterAiRecommendLastRunKeys,
   formatAiRecommendLastRunCsv,
+  formatAiRecommendStaleSuppressionAuditCsv,
   hasPermission,
   isAiRecommendStaleSuppressed,
   sanitizeAiRecommendLastRun,
   sanitizeAiRecommendStaleSuppression,
+  sanitizeAiRecommendStaleSuppressionAudit,
   type AiRecommendLastRun,
   type AiRecommendStaleSuppression,
+  type AiRecommendStaleSuppressionAudit,
   type AiRecommendSignal,
   type Principal,
 } from "@sedmc/kernel";
@@ -29,7 +32,7 @@ import {
   persistDeleteAiRecommendStaleSuppression,
 } from "../persistence/ai-recommend-stale-suppressions.js";
 
-const INCREMENT = "I20.13" as const;
+const INCREMENT = "I20.14" as const;
 
 function recommendStaleThresholdHours(): number {
   const raw = Number(process.env.EOS_AI_RECOMMEND_STALE_HOURS);
@@ -43,6 +46,29 @@ function ensureAiRecommendRuns(store: Store): void {
 
 function ensureAiRecommendStaleSuppressions(store: Store): void {
   if (!store.aiRecommendStaleSuppressions) store.aiRecommendStaleSuppressions = [];
+}
+
+function ensureAiRecommendStaleSuppressionAudits(store: Store): void {
+  if (!store.aiRecommendStaleSuppressionAudits) store.aiRecommendStaleSuppressionAudits = [];
+}
+
+function appendAiRecommendStaleSuppressionAudit(
+  store: Store,
+  principal: Principal,
+  action: AiRecommendStaleSuppressionAudit["action"],
+  suppression?: AiRecommendStaleSuppression | null,
+): void {
+  ensureAiRecommendStaleSuppressionAudits(store);
+  store.aiRecommendStaleSuppressionAudits.push({
+    id: crypto.randomUUID(),
+    tenantId: principal.tenantId,
+    principalId: principal.id,
+    action,
+    ...(suppression?.snoozedUntil ? { snoozedUntil: suppression.snoozedUntil } : {}),
+    ...(suppression?.acknowledgedAt ? { acknowledgedAt: suppression.acknowledgedAt } : {}),
+    createdAt: new Date().toISOString(),
+    createdByPrincipalId: principal.id,
+  });
 }
 
 function findAiRecommendStaleSuppression(store: Store, principal: Principal) {
@@ -83,6 +109,7 @@ async function upsertAiRecommendStaleSuppression(
   if (idx >= 0) store.aiRecommendStaleSuppressions[idx] = next;
   else store.aiRecommendStaleSuppressions.push(next);
   await persistAiRecommendStaleSuppression(store.dbPool, next);
+  appendAiRecommendStaleSuppressionAudit(store, principal, next.acknowledgedAt ? "ack" : "snooze", next);
   return next;
 }
 
@@ -161,7 +188,9 @@ async function rememberRecommendRun(
   );
   if (idx >= 0) store.aiRecommendRuns[idx] = run;
   else store.aiRecommendRuns.push(run);
+  const existing = findAiRecommendStaleSuppression(store, principal);
   clearAiRecommendStaleSuppression(store, principal);
+  if (existing) appendAiRecommendStaleSuppressionAudit(store, principal, "cleared", existing);
   await persistDeleteAiRecommendStaleSuppression(store.dbPool, principal.tenantId, principal.id);
   return run;
 }
@@ -297,6 +326,45 @@ export function exportAiRecommendLastRun(
     };
   }
   return { ...viewed, format: "json" as const, generatedAt };
+}
+
+export function exportAiRecommendStaleSuppression(
+  store: Store,
+  principal: Principal,
+  query?: { format?: string },
+) {
+  if (query?.format && query.format !== "json" && query.format !== "csv") {
+    return { error: "invalid_request" as const, reason: "invalid_format" };
+  }
+  const viewed = lastRunView(store, principal);
+  if ("error" in viewed) return viewed;
+  ensureAiRecommendStaleSuppressionAudits(store);
+  const audits = store.aiRecommendStaleSuppressionAudits
+    .filter((row) => row.tenantId === principal.tenantId && row.principalId === principal.id)
+    .map(sanitizeAiRecommendStaleSuppressionAudit);
+  const generatedAt = new Date().toISOString();
+  const format = query?.format === "csv" ? "csv" : "json";
+  if (format === "csv") {
+    return {
+      format: "csv" as const,
+      csv: formatAiRecommendStaleSuppressionAuditCsv(audits),
+      suppression: viewed.suppression,
+      suppressed: viewed.suppressed,
+      audits,
+      count: audits.length,
+      generatedAt,
+      increment: INCREMENT,
+    };
+  }
+  return {
+    format: "json" as const,
+    suppression: viewed.suppression,
+    suppressed: viewed.suppressed,
+    audits,
+    count: audits.length,
+    generatedAt,
+    increment: INCREMENT,
+  };
 }
 
 export async function snoozeAiRecommendStale(store: Store, principal: Principal, input: { hours?: number } = {}) {

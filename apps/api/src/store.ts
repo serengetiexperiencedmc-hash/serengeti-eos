@@ -93,6 +93,7 @@ import {
   type AiDraft,
   type AiRecommendLastRun,
   type AiRecommendStaleSuppression,
+  type AiRecommendStaleSuppressionAudit,
   type EmailTemplate,
   type NatsConsumerOffset,
 } from "@sedmc/kernel";
@@ -240,6 +241,8 @@ export type Store = {
   aiRecommendRuns: AiRecommendLastRun[];
   /** I20.12 — snooze/ack for stale recommend last-run banner. */
   aiRecommendStaleSuppressions: AiRecommendStaleSuppression[];
+  /** I20.14 — snooze/ack/clear audit for stale recommend last-run. */
+  aiRecommendStaleSuppressionAudits: AiRecommendStaleSuppressionAudit[];
   /** Optional PostgreSQL pool for dual-write persistence (PG.1+) */
   dbPool?: DbPool;
 };
@@ -870,6 +873,7 @@ export function seedStore(
     aiDrafts: [],
     aiRecommendRuns: [],
     aiRecommendStaleSuppressions: [],
+    aiRecommendStaleSuppressionAudits: [],
   };
   seedCrmCatalogues(store, tenantId);
   return store;

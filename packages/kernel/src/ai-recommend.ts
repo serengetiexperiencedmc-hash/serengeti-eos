@@ -62,6 +62,17 @@ export type AiRecommendStaleSuppression = {
   updatedByPrincipalId: string;
 };
 
+export type AiRecommendStaleSuppressionAudit = {
+  id: string;
+  tenantId: string;
+  principalId: string;
+  action: "snooze" | "ack" | "cleared";
+  snoozedUntil?: string;
+  acknowledgedAt?: string;
+  createdAt: string;
+  createdByPrincipalId: string;
+};
+
 export function sanitizeAiRecommendLastRun(run: AiRecommendLastRun) {
   return {
     occurredAt: run.occurredAt,
@@ -77,6 +88,27 @@ export function sanitizeAiRecommendStaleSuppression(suppression: AiRecommendStal
     ...(suppression.acknowledgedAt ? { acknowledgedAt: suppression.acknowledgedAt } : {}),
     updatedAt: suppression.updatedAt,
   };
+}
+
+export function sanitizeAiRecommendStaleSuppressionAudit(entry: AiRecommendStaleSuppressionAudit) {
+  return {
+    id: entry.id,
+    action: entry.action,
+    ...(entry.snoozedUntil ? { snoozedUntil: entry.snoozedUntil } : {}),
+    ...(entry.acknowledgedAt ? { acknowledgedAt: entry.acknowledgedAt } : {}),
+    createdAt: entry.createdAt,
+    createdByPrincipalId: entry.createdByPrincipalId,
+  };
+}
+
+export function formatAiRecommendStaleSuppressionAuditCsv(
+  audits: ReadonlyArray<ReturnType<typeof sanitizeAiRecommendStaleSuppressionAudit>>,
+): string {
+  const header = "action,snoozedUntil,acknowledgedAt,createdAt,createdByPrincipalId";
+  const rows = audits.map((row) =>
+    [row.action, row.snoozedUntil ?? "", row.acknowledgedAt ?? "", row.createdAt, row.createdByPrincipalId].join(","),
+  );
+  return [header, ...rows].join("\n");
 }
 
 export function isAiRecommendStaleSuppressed(

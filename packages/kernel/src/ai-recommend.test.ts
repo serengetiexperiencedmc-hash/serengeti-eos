@@ -9,8 +9,10 @@ import {
   formatAiRecommendLastRunCsv,
   isAiRecommendStaleSuppressed,
   isAllowedAiRecommendHref,
+  formatAiRecommendStaleSuppressionAuditCsv,
   sanitizeAiRecommendLastRun,
   sanitizeAiRecommendStaleSuppression,
+  sanitizeAiRecommendStaleSuppressionAudit,
 } from "./ai-recommend.js";
 
 describe("I20.1 AI recommend port", () => {
@@ -131,5 +133,23 @@ describe("I20.1 AI recommend port", () => {
       updatedAt: "2026-08-23T10:00:00.000Z",
       updatedByPrincipalId: "p1",
     })).toBe(true);
+  });
+
+  it("sanitizes stale suppression audit and formats CSV", () => {
+    const view = sanitizeAiRecommendStaleSuppressionAudit({
+      id: "a1",
+      tenantId: "t1",
+      principalId: "p1",
+      action: "snooze",
+      snoozedUntil: "2026-08-24T10:00:00.000Z",
+      createdAt: "2026-08-23T10:00:00.000Z",
+      createdByPrincipalId: "p1",
+    });
+    expect(view.action).toBe("snooze");
+    expect(view).not.toHaveProperty("tenantId");
+    expect(formatAiRecommendStaleSuppressionAuditCsv([view])).toContain(
+      "action,snoozedUntil,acknowledgedAt,createdAt,createdByPrincipalId",
+    );
+    expect(formatAiRecommendStaleSuppressionAuditCsv([view])).toContain("snooze");
   });
 });
