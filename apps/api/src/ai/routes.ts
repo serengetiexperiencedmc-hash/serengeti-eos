@@ -45,7 +45,7 @@ export function registerAiRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const body = (req.body ?? {}) as { recommendationKey?: string };
-    const result = createAiDraft(store, principal, body, correlationId);
+    const result = await createAiDraft(store, principal, body, correlationId);
     if ("error" in result) return sendError(reply, result);
     return reply.code(201).send(result);
   });
@@ -54,7 +54,7 @@ export function registerAiRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
-    const result = acceptAiDraft(store, principal, (req.params as { id: string }).id, correlationId);
+    const result = await acceptAiDraft(store, principal, (req.params as { id: string }).id, correlationId);
     if ("error" in result) return sendError(reply, result);
     return result;
   });
@@ -63,7 +63,7 @@ export function registerAiRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
-    const result = discardAiDraft(store, principal, (req.params as { id: string }).id, correlationId);
+    const result = await discardAiDraft(store, principal, (req.params as { id: string }).id, correlationId);
     if ("error" in result) return sendError(reply, result);
     return result;
   });

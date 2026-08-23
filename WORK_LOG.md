@@ -503,9 +503,17 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **I20.3** | Overdue-task recs draft a CRM activity; other recs still draft a CRM task |
 
+### 38:xx — I20.4 persist AI drafts ✅
+
+**Shipped:** server `0.71.0-i20.4`
+
+| Increment | Change |
+| --- | --- |
+| **I20.4** | Dual-write / hydrate AI drafts so they survive API restart |
+
 ### Recommended next increments
 
-1. I20.4 — persist drafts so they survive API restart
+1. I20.5 — draft list filters (status + artefact type) or a dedicated drafts page
 2. I3.30 — persist allowlist stale audit to Postgres
 3. I4.28 — stale-audit filters / tenant export window
 

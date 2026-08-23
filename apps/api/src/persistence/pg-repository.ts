@@ -2429,3 +2429,98 @@ export async function loadSupHeatmapRollupSnapshots(
     };
   });
 }
+
+/** I20.4 — upsert AI draft artefacts. */
+export async function upsertAiDraft(pool: DbPool, draft: import("@sedmc/kernel").AiDraft): Promise<void> {
+  await pool.query(
+    `INSERT INTO ai_drafts (
+      id, tenant_id, recommendation_key, artefact_type, title, body, status, autonomy_level,
+      created_at, created_by_principal_id, accepted_at, accepted_by_principal_id,
+      discarded_at, discarded_by_principal_id, applied_entity_type, applied_entity_id,
+      related_organization_id, related_contact_id
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+     ON CONFLICT (id) DO UPDATE SET
+       recommendation_key = EXCLUDED.recommendation_key,
+       artefact_type = EXCLUDED.artefact_type,
+       title = EXCLUDED.title,
+       body = EXCLUDED.body,
+       status = EXCLUDED.status,
+       autonomy_level = EXCLUDED.autonomy_level,
+       accepted_at = EXCLUDED.accepted_at,
+       accepted_by_principal_id = EXCLUDED.accepted_by_principal_id,
+       discarded_at = EXCLUDED.discarded_at,
+       discarded_by_principal_id = EXCLUDED.discarded_by_principal_id,
+       applied_entity_type = EXCLUDED.applied_entity_type,
+       applied_entity_id = EXCLUDED.applied_entity_id,
+       related_organization_id = EXCLUDED.related_organization_id,
+       related_contact_id = EXCLUDED.related_contact_id`,
+    [
+      draft.id,
+      draft.tenantId,
+      draft.recommendationKey,
+      draft.artefactType,
+      draft.title,
+      draft.body,
+      draft.status,
+      draft.autonomyLevel,
+      draft.createdAt,
+      draft.createdByPrincipalId,
+      draft.acceptedAt ?? null,
+      draft.acceptedByPrincipalId ?? null,
+      draft.discardedAt ?? null,
+      draft.discardedByPrincipalId ?? null,
+      draft.appliedEntityType ?? null,
+      draft.appliedEntityId ?? null,
+      draft.relatedOrganizationId ?? null,
+      draft.relatedContactId ?? null,
+    ],
+  );
+}
+
+export async function loadAiDrafts(pool: DbPool): Promise<import("@sedmc/kernel").AiDraft[]> {
+  const result = await pool.query(
+    `SELECT id, tenant_id, recommendation_key, artefact_type, title, body, status, autonomy_level,
+            created_at, created_by_principal_id, accepted_at, accepted_by_principal_id,
+            discarded_at, discarded_by_principal_id, applied_entity_type, applied_entity_id,
+            related_organization_id, related_contact_id
+     FROM ai_drafts
+     ORDER BY created_at ASC`,
+  );
+  return result.rows.map((row) => {
+    const createdAt = row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at);
+    const acceptedAt = row.accepted_at
+      ? row.accepted_at instanceof Date
+        ? row.accepted_at.toISOString()
+        : String(row.accepted_at)
+      : undefined;
+    const discardedAt = row.discarded_at
+      ? row.discarded_at instanceof Date
+        ? row.discarded_at.toISOString()
+        : String(row.discarded_at)
+      : undefined;
+    return {
+      id: row.id as string,
+      tenantId: row.tenant_id as string,
+      recommendationKey: row.recommendation_key as import("@sedmc/kernel").AiDraft["recommendationKey"],
+      artefactType: row.artefact_type as import("@sedmc/kernel").AiDraft["artefactType"],
+      title: row.title as string,
+      body: row.body as string,
+      status: row.status as import("@sedmc/kernel").AiDraft["status"],
+      autonomyLevel: 2 as const,
+      createdAt,
+      createdByPrincipalId: row.created_by_principal_id as string,
+      ...(acceptedAt ? { acceptedAt } : {}),
+      ...(row.accepted_by_principal_id ? { acceptedByPrincipalId: row.accepted_by_principal_id as string } : {}),
+      ...(discardedAt ? { discardedAt } : {}),
+      ...(row.discarded_by_principal_id ? { discardedByPrincipalId: row.discarded_by_principal_id as string } : {}),
+      ...(row.applied_entity_type
+        ? {
+            appliedEntityType: row.applied_entity_type as import("@sedmc/kernel").AiDraft["appliedEntityType"],
+            appliedEntityId: row.applied_entity_id as string,
+          }
+        : {}),
+      ...(row.related_organization_id ? { relatedOrganizationId: row.related_organization_id as string } : {}),
+      ...(row.related_contact_id ? { relatedContactId: row.related_contact_id as string } : {}),
+    };
+  });
+}

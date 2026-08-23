@@ -4,6 +4,7 @@ import { seedDemoCommercialData } from "./dev/seed-demo-data.js";
 import { createLogger } from "./observability.js";
 import { createEnvSecretsProvider } from "./ports/secrets.js";
 import { syncStoreToPostgres } from "./persistence/sync.js";
+import { hydrateAiDrafts } from "./persistence/ai-drafts.js";
 import { hydrateCrmFromPostgres } from "./persistence/crm.js";
 import { hydrateNotifEmailTemplates, hydrateNotifEmailSuppressions, hydrateNotifEmailAllowlist, hydrateNotifDlqSlaDigestLastRuns, hydrateNotifAllowlistDualDigestLastRuns, hydrateNotifDlqSlaDigestStaleSuppressions, hydrateNotifDlqSlaDigestStaleSuppressionAudits, hydrateNotifAllowlistDualDigestStaleSuppressions } from "./persistence/notifications.js";
 import { hydratePendingOutbox } from "./persistence/outbox.js";
@@ -63,6 +64,7 @@ if (databaseUrl) {
   const digestStaleSuppressionAuditsHydrated = await hydrateNotifDlqSlaDigestStaleSuppressionAudits(pool, store);
   const allowlistStaleSuppressionsHydrated = await hydrateNotifAllowlistDualDigestStaleSuppressions(pool, store);
   const heatmapRollupsHydrated = await hydrateSupHeatmapRollupSnapshots(pool, store);
+  const aiDraftsHydrated = await hydrateAiDrafts(pool, store);
   logger.info("pg3_crm_hydrate", crmHydrated);
   logger.info("i3_email_templates_hydrate", { merged: templatesHydrated });
   logger.info("i39_email_suppressions_hydrate", { merged: suppressionsHydrated });
@@ -73,6 +75,7 @@ if (databaseUrl) {
   logger.info("i427_dlq_sla_digest_stale_suppression_audit_hydrate", { merged: digestStaleSuppressionAuditsHydrated });
   logger.info("i328_allowlist_dual_digest_stale_suppression_hydrate", { merged: allowlistStaleSuppressionsHydrated });
   logger.info("pg27_heatmap_rollup_snapshot_hydrate", { merged: heatmapRollupsHydrated });
+  logger.info("i204_ai_drafts_hydrate", { merged: aiDraftsHydrated });
   const merged = await hydratePendingOutbox(pool, store);
   const processedMerged = await hydrateProcessedEvents(pool, store);
   const natsOffsetsMerged = await hydrateNatsConsumerOffsets(pool, store);

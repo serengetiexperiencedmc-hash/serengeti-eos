@@ -66,7 +66,7 @@ describe("I20.2 AI draft accept / discard", () => {
       payload: { recommendationKey: "notifications.allowlist_digest.stale" },
     });
     expect(created.statusCode).toBe(201);
-    expect(created.json().increment).toBe("I20.3");
+    expect(created.json().increment).toBe("I20.4");
     expect(created.json().draft.status).toBe("pending");
     expect(created.json().draft.autonomyLevel).toBe(2);
     expect(created.json().draft.artefactType).toBe("crm_task");
@@ -82,7 +82,7 @@ describe("I20.2 AI draft accept / discard", () => {
 
     const agent = allPrincipals(store).find((p) => p.actorType === "AiAgent")!;
     agent.permissions = [...agent.permissions, "ai:write:draft"];
-    const agentAccept = acceptAiDraft(store, agent, draftId, "corr-agent");
+    const agentAccept = await acceptAiDraft(store, agent, draftId, "corr-agent");
     expect("error" in agentAccept && agentAccept.error === "forbidden").toBe(true);
 
     const accepted = await app.inject({

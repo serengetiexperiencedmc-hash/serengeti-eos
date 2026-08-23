@@ -123,6 +123,6 @@ export function listAiRecommendations(store: Store, principal: Principal, correl
     items,
     provider: provider.name,
     autonomyCeiling: provider.autonomyCeiling,
-    increment: "I20.3" as const,
+    increment: "I20.4" as const,
   };
 }

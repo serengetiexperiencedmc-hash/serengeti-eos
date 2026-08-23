@@ -11,6 +11,7 @@ import { recordAudit } from "../store.js";
 import { createActivity } from "../crm/activity.js";
 import { ensureCrmCollections } from "../crm/collections.js";
 import { createTask } from "../crm/task.js";
+import { persistAiDraft } from "../persistence/ai-drafts.js";
 import { listAiRecommendations } from "./recommend.js";
 
 function findOverdueAssociation(store: Store, tenantId: string) {
@@ -34,7 +35,7 @@ function findOverdueAssociation(store: Store, tenantId: string) {
   return undefined;
 }
 
-const INCREMENT = "I20.3" as const;
+const INCREMENT = "I20.4" as const;
 
 export function ensureAiCollections(store: Store): void {
   if (!store.aiDrafts) store.aiDrafts = [];
@@ -58,7 +59,7 @@ function sanitizeDraft(draft: AiDraft) {
   };
 }
 
-export function createAiDraft(
+export async function createAiDraft(
   store: Store,
   principal: Principal,
   input: { recommendationKey?: string },
@@ -103,6 +104,7 @@ export function createAiDraft(
       d.status === "pending",
   );
   if (existing) {
+    await persistAiDraft(store.dbPool, existing);
     return { draft: sanitizeDraft(existing), replay: true as const, increment: INCREMENT };
   }
 
@@ -151,6 +153,7 @@ export function createAiDraft(
     ...(relatedContactId ? { relatedContactId } : {}),
   };
   store.aiDrafts.push(draft);
+  await persistAiDraft(store.dbPool, draft);
   recordAudit(store, {
     tenantId: principal.tenantId,
     occurredAt: now,
@@ -181,7 +184,7 @@ export function listAiDrafts(store: Store, principal: Principal, query?: { statu
   return { items: items.map(sanitizeDraft), increment: INCREMENT };
 }
 
-export function discardAiDraft(store: Store, principal: Principal, draftId: string, correlationId: string) {
+export async function discardAiDraft(store: Store, principal: Principal, draftId: string, correlationId: string) {
   ensureAiCollections(store);
   const draft = store.aiDrafts.find((d) => d.id === draftId);
   if (!draft || draft.tenantId !== principal.tenantId) return { error: "not_found" as const };
@@ -199,6 +202,7 @@ export function discardAiDraft(store: Store, principal: Principal, draftId: stri
   draft.status = "discarded";
   draft.discardedAt = new Date().toISOString();
   draft.discardedByPrincipalId = principal.id;
+  await persistAiDraft(store.dbPool, draft);
   recordAudit(store, {
     tenantId: principal.tenantId,
     occurredAt: draft.discardedAt,
@@ -214,7 +218,7 @@ export function discardAiDraft(store: Store, principal: Principal, draftId: stri
   return { draft: sanitizeDraft(draft), increment: INCREMENT };
 }
 
-export function acceptAiDraft(store: Store, principal: Principal, draftId: string, correlationId: string) {
+export async function acceptAiDraft(store: Store, principal: Principal, draftId: string, correlationId: string) {
   ensureAiCollections(store);
   const draft = store.aiDrafts.find((d) => d.id === draftId);
   if (!draft || draft.tenantId !== principal.tenantId) return { error: "not_found" as const };
@@ -262,6 +266,7 @@ export function acceptAiDraft(store: Store, principal: Principal, draftId: strin
     draft.acceptedByPrincipalId = principal.id;
     draft.appliedEntityType = "crm_activity";
     draft.appliedEntityId = created.activity.id;
+    await persistAiDraft(store.dbPool, draft);
     recordAudit(store, {
       tenantId: principal.tenantId,
       occurredAt: draft.acceptedAt,
@@ -294,6 +299,7 @@ export function acceptAiDraft(store: Store, principal: Principal, draftId: strin
   draft.acceptedByPrincipalId = principal.id;
   draft.appliedEntityType = "crm_task";
   draft.appliedEntityId = created.task.id;
+  await persistAiDraft(store.dbPool, draft);
   recordAudit(store, {
     tenantId: principal.tenantId,
     occurredAt: draft.acceptedAt,
