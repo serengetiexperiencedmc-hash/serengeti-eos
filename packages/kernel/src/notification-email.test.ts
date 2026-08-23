@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   buildEmailFromNotification,
   filterNotifDlqSlaDigestStaleSuppressionAudits,
+  normalizeNotifDlqSlaDigestStaleAuditExportPresetName,
   parseNotifDlqSlaDigestStaleAuditExportFilter,
   normalizeNotifAllowlistDualDigestStaleAuditExportPresetName,
   sanitizeNotifAllowlistDualDigestStaleAuditExportLastFilter,
   sanitizeNotifAllowlistDualDigestStaleAuditExportPreset,
   sanitizeNotifDlqSlaDigestStaleAuditExportLastFilter,
+  sanitizeNotifDlqSlaDigestStaleAuditExportPreset,
   shouldEmailNotification,
 } from "./notification-email.js";
 import type { NotifItem } from "./notification.js";
@@ -93,6 +95,23 @@ describe("notification email kernel", () => {
     expect(normalizeNotifAllowlistDualDigestStaleAuditExportPresetName("")).toBeNull();
     expect(normalizeNotifAllowlistDualDigestStaleAuditExportPresetName("x".repeat(81))).toBeNull();
     const view = sanitizeNotifAllowlistDualDigestStaleAuditExportPreset({
+      id: "p1",
+      tenantId: "t1",
+      name: "Snoozes only",
+      action: "snooze",
+      createdAt: "2026-08-23T12:00:00.000Z",
+      createdByPrincipalId: "p1",
+      updatedAt: "2026-08-23T12:00:00.000Z",
+    });
+    expect(view.name).toBe("Snoozes only");
+    expect(view).not.toHaveProperty("tenantId");
+  });
+
+  it("normalizes and sanitizes DLQ stale-audit export presets", () => {
+    expect(normalizeNotifDlqSlaDigestStaleAuditExportPresetName("  Last  24h ")).toBe("Last 24h");
+    expect(normalizeNotifDlqSlaDigestStaleAuditExportPresetName("")).toBeNull();
+    expect(normalizeNotifDlqSlaDigestStaleAuditExportPresetName("x".repeat(81))).toBeNull();
+    const view = sanitizeNotifDlqSlaDigestStaleAuditExportPreset({
       id: "p1",
       tenantId: "t1",
       name: "Snoozes only",

@@ -203,14 +203,40 @@ export type DigestFreshness = {
   thresholdHours: number;
 };
 
+export type DlqStaleAuditExportPreset = {
+  id: string;
+  name: string;
+  action?: string;
+  since?: string;
+  until?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export async function getDlqSlaDigestStatus(token: string) {
   return eosFetch<{
     lastRun: DlqSlaDigestLastRun | null;
     analytics: { outboxDigestCount: number; outboxByStatus: Record<string, number> };
     freshness: DigestFreshness;
     lastFilter: { action?: string; since?: string; until?: string; updatedAt: string } | null;
+    presets: DlqStaleAuditExportPreset[];
     increment: string;
   }>("/v1/notifications/email/dlq-sla-digest-status", { token });
+}
+
+export async function upsertDlqSlaDigestStaleAuditExportPreset(
+  token: string,
+  input: { name: string; action?: string; since?: string; until?: string },
+) {
+  return eosFetch<{
+    preset: DlqStaleAuditExportPreset;
+    presets: DlqStaleAuditExportPreset[];
+    increment: string;
+  }>("/v1/notifications/email/dlq-sla-digest-stale/export/presets", {
+    token,
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
 
 export async function exportDlqSlaDigestLastRun(token: string, format: "json" | "csv" = "json") {
@@ -250,12 +276,14 @@ export async function acknowledgeDlqSlaDigestStale(token: string) {
 export async function exportDlqSlaDigestStaleSuppression(
   token: string,
   format: "json" | "csv" = "csv",
-  query: { action?: string; since?: string; until?: string } = {},
+  query: { action?: string; since?: string; until?: string; preset?: string; presetId?: string } = {},
 ) {
   const params = new URLSearchParams({ format });
   if (query.action) params.set("action", query.action);
   if (query.since) params.set("since", query.since);
   if (query.until) params.set("until", query.until);
+  if (query.preset) params.set("preset", query.preset);
+  if (query.presetId) params.set("presetId", query.presetId);
   return eosFetch<{
     format: "json" | "csv";
     csv?: string;

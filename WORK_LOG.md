@@ -711,10 +711,18 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **I3.34** | Dual-write named tenant allowlist stale-audit export presets; hydrate on startup |
 
+### 64:xx — I4.30 named DLQ stale-audit export presets ✅
+
+**Shipped:** server `0.97.0-i4.30`
+
+| Increment | Change |
+| --- | --- |
+| **I4.30** | Named tenant DLQ stale-audit export presets (in-memory) |
+
 ### Recommended next increments
 
 1. I20.23 — (unnamed)
-2. I4.30 — named DLQ stale-audit export presets
+2. I4.31 — persist DLQ stale-audit export presets
 3. PG.30 — (optional ops follow-up)
 
 ### Issues resolved

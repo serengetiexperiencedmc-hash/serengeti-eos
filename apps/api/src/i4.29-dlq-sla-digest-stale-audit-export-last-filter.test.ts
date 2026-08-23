@@ -76,7 +76,7 @@ describe("I4.29 last-used stale DLQ audit export filter", () => {
       url: "/v1/notifications/email/dlq-sla-digest-status",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(empty.json().increment).toBe("I4.29");
+    expect(empty.json().increment).toBe("I4.30");
     expect(empty.json().lastFilter).toBeNull();
     expect(writes.length).toBe(0);
 
@@ -94,7 +94,7 @@ describe("I4.29 last-used stale DLQ audit export filter", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(exported.statusCode).toBe(200);
-    expect(exported.json().increment).toBe("I4.29");
+    expect(exported.json().increment).toBe("I4.30");
     expect(exported.json().lastFilter.action).toBe("snooze");
     expect(exported.json().lastFilter.since).toBe("2026-08-23T00:00:00.000Z");
     expect(exported.json().lastFilter).not.toHaveProperty("tenantId");

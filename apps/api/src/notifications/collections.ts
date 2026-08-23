@@ -14,6 +14,9 @@ export function ensureNotificationCollections(store: Store): void {
   if (!store.notifDlqSlaDigestStaleAuditExportLastFilters) {
     store.notifDlqSlaDigestStaleAuditExportLastFilters = [];
   }
+  if (!store.notifDlqSlaDigestStaleAuditExportPresets) {
+    store.notifDlqSlaDigestStaleAuditExportPresets = [];
+  }
   if (!store.notifAllowlistDualDigestRecipients) store.notifAllowlistDualDigestRecipients = [];
   if (!store.notifAllowlistDualDigestLastRuns) store.notifAllowlistDualDigestLastRuns = [];
   if (!store.notifAllowlistDualDigestStaleSuppressions) store.notifAllowlistDualDigestStaleSuppressions = [];

@@ -14,6 +14,7 @@ import {
   requestEventReplay,
   updateDeadLetterRemediation,
   getDlqSlaDigestStatus,
+  upsertDlqSlaDigestStaleAuditExportPreset,
   exportDlqSlaDigestLastRun,
   exportDlqSlaDigestStaleSuppression,
   dispatchDlqSlaDigest,
@@ -23,6 +24,7 @@ import {
   type DeadLetterItem,
   type DigestFreshness,
   type DlqSlaDigestLastRun,
+  type DlqStaleAuditExportPreset,
   type NatsLagMetrics,
 } from "@/lib/events-api";
 
@@ -73,6 +75,10 @@ export default function EventsInfrastructurePage() {
   const [staleAuditSince, setStaleAuditSince] = useState("");
   const [staleAuditUntil, setStaleAuditUntil] = useState("");
   const [staleAuditHydrated, setStaleAuditHydrated] = useState(false);
+  const [staleAuditPresets, setStaleAuditPresets] = useState<DlqStaleAuditExportPreset[]>([]);
+  const [staleAuditPresetId, setStaleAuditPresetId] = useState("");
+  const [staleAuditPresetName, setStaleAuditPresetName] = useState("");
+  const [presetBusy, setPresetBusy] = useState(false);
 
   const reload = useCallback(async () => {
     if (!token) return;
@@ -97,6 +103,7 @@ export default function EventsInfrastructurePage() {
     setDigestLastRun(digest?.lastRun ?? null);
     setDigestOutboxCount(digest?.analytics.outboxDigestCount ?? 0);
     setDigestFreshness(digest?.freshness ?? null);
+    if (digest?.presets) setStaleAuditPresets(digest.presets);
     if (digest?.lastFilter && !staleAuditHydrated) {
       setStaleAuditAction(digest.lastFilter.action ?? "");
       setStaleAuditSince(digest.lastFilter.since ?? "");
@@ -232,7 +239,7 @@ export default function EventsInfrastructurePage() {
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <PageHeader
-        eyebrow="I4 · I4.29 · Events"
+        eyebrow="I4 · I4.30 · Events"
         title="Event Infrastructure"
         subtitle="NATS lag, DLQ SLA ack/snooze, bulk owner assign, and controlled replay"
         actions={
@@ -324,6 +331,62 @@ export default function EventsInfrastructurePage() {
                 Export last-run
               </Btn>
               <label className="text-xs text-muted">
+                Audit preset
+                <select
+                  className="ml-2 rounded-md border border-line bg-paper px-2 py-1 text-sm text-ink"
+                  value={staleAuditPresetId}
+                  onChange={(event) => {
+                    const nextId = event.target.value;
+                    setStaleAuditPresetId(nextId);
+                    const preset = staleAuditPresets.find((row) => row.id === nextId);
+                    if (!preset) return;
+                    setStaleAuditAction(preset.action ?? "");
+                    setStaleAuditSince(preset.since ?? "");
+                    setStaleAuditUntil(preset.until ?? "");
+                    setStaleAuditPresetName(preset.name);
+                  }}
+                >
+                  <option value="">No preset</option>
+                  {staleAuditPresets.map((preset) => (
+                    <option key={preset.id} value={preset.id}>
+                      {preset.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-xs text-muted">
+                Preset name
+                <input
+                  className="ml-2 rounded-md border border-line bg-paper px-2 py-1 text-sm text-ink"
+                  value={staleAuditPresetName}
+                  placeholder="Last 24h snoozes"
+                  onChange={(event) => setStaleAuditPresetName(event.target.value)}
+                />
+              </label>
+              <Btn
+                variant="secondary"
+                disabled={presetBusy || !staleAuditPresetName.trim()}
+                onClick={() => {
+                  setPresetBusy(true);
+                  void upsertDlqSlaDigestStaleAuditExportPreset(token, {
+                    name: staleAuditPresetName.trim(),
+                    ...(staleAuditAction ? { action: staleAuditAction } : {}),
+                    ...(staleAuditSince.trim() ? { since: staleAuditSince.trim() } : {}),
+                    ...(staleAuditUntil.trim() ? { until: staleAuditUntil.trim() } : {}),
+                  })
+                    .then((res) => {
+                      setStaleAuditPresets(res.presets);
+                      setStaleAuditPresetId(res.preset.id);
+                      setStaleAuditPresetName(res.preset.name);
+                      setMsg(`Saved preset ${res.preset.name}`);
+                    })
+                    .catch((err) => setError(err instanceof Error ? err.message : "Could not save audit preset"))
+                    .finally(() => setPresetBusy(false));
+                }}
+              >
+                {presetBusy ? "Saving…" : "Save preset"}
+              </Btn>
+              <label className="text-xs text-muted">
                 Action
                 <select
                   className="ml-2 rounded-md border border-line bg-paper px-2 py-1 text-sm text-ink"
@@ -362,6 +425,7 @@ export default function EventsInfrastructurePage() {
                     ...(staleAuditAction ? { action: staleAuditAction } : {}),
                     ...(staleAuditSince.trim() ? { since: staleAuditSince.trim() } : {}),
                     ...(staleAuditUntil.trim() ? { until: staleAuditUntil.trim() } : {}),
+                    ...(staleAuditPresetId ? { presetId: staleAuditPresetId } : {}),
                   }).then((res) => {
                     const blob = new Blob([res.csv ?? ""], { type: "text/csv" });
                     const url = URL.createObjectURL(blob);

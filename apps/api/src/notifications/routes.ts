@@ -9,7 +9,9 @@ import {
   exportDlqSlaDigestLastRun,
   exportDlqSlaDigestStaleSuppression,
   getDlqSlaDigestStatus,
+  listDlqSlaDigestStaleAuditExportPresets,
   snoozeDlqSlaDigestStale,
+  upsertDlqSlaDigestStaleAuditExportPreset,
 } from "./dlq-sla-digest.js";
 import {
   acknowledgeAllowlistDualDigestStale,
@@ -161,15 +163,41 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     return result;
   });
 
+  app.get("/v1/notifications/email/dlq-sla-digest-stale/export/presets", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = listDlqSlaDigestStaleAuditExportPresets(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/notifications/email/dlq-sla-digest-stale/export/presets", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const body = (req.body ?? {}) as { name?: string; action?: string; since?: string; until?: string };
+    const result = upsertDlqSlaDigestStaleAuditExportPreset(store, principal, body);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
   app.get("/v1/notifications/email/dlq-sla-digest-stale/export", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const query = req.query as { format?: string; action?: string; since?: string; until?: string };
+    const query = req.query as {
+      format?: string;
+      action?: string;
+      since?: string;
+      until?: string;
+      preset?: string;
+      presetId?: string;
+    };
     const result = await exportDlqSlaDigestStaleSuppression(store, principal, {
       format: query.format === "csv" ? "csv" : "json",
       action: query.action,
       since: query.since,
       until: query.until,
+      preset: query.preset,
+      presetId: query.presetId,
     });
     if ("error" in result) return sendError(reply, result);
     return result;

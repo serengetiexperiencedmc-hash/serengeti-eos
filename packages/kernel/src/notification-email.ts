@@ -288,6 +288,39 @@ export function sanitizeNotifDlqSlaDigestStaleAuditExportLastFilter(
   };
 }
 
+/** I4.30 — named tenant DLQ stale-audit export preset. Persist is I4.31. */
+export type NotifDlqSlaDigestStaleAuditExportPreset = {
+  id: string;
+  tenantId: string;
+  name: string;
+  action?: "snooze" | "ack" | "cleared";
+  since?: string;
+  until?: string;
+  createdAt: string;
+  createdByPrincipalId: string;
+  updatedAt: string;
+};
+
+export function sanitizeNotifDlqSlaDigestStaleAuditExportPreset(
+  row: NotifDlqSlaDigestStaleAuditExportPreset,
+) {
+  return {
+    id: row.id,
+    name: row.name,
+    ...(row.action ? { action: row.action } : {}),
+    ...(row.since ? { since: row.since } : {}),
+    ...(row.until ? { until: row.until } : {}),
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
+
+export function normalizeNotifDlqSlaDigestStaleAuditExportPresetName(name?: string): string | null {
+  const trimmed = name?.trim().replace(/\s+/g, " ") ?? "";
+  if (!trimmed || trimmed.length > 80) return null;
+  return trimmed;
+}
+
 /** I4.28 — filter stale DLQ SLA digest audit export by action and createdAt window. */
 export const NOTIF_DLQ_SLA_DIGEST_STALE_AUDIT_ACTIONS = ["snooze", "ack", "cleared"] as const;
 export type NotifDlqSlaDigestStaleAuditAction = (typeof NOTIF_DLQ_SLA_DIGEST_STALE_AUDIT_ACTIONS)[number];
