@@ -321,6 +321,55 @@ export function normalizeNotifDlqSlaDigestStaleAuditExportPresetName(name?: stri
   return trimmed;
 }
 
+/** I4.33 — in-memory usage row when a named DLQ stale-audit export preset is applied. */
+export type NotifDlqSlaDigestStaleAuditExportPresetUsage = {
+  id: string;
+  tenantId: string;
+  principalId: string;
+  presetId: string;
+  presetName: string;
+  createdAt: string;
+  createdByPrincipalId: string;
+};
+
+export function sanitizeNotifDlqSlaDigestStaleAuditExportPresetUsage(
+  row: NotifDlqSlaDigestStaleAuditExportPresetUsage,
+) {
+  return {
+    id: row.id,
+    presetId: row.presetId,
+    presetName: row.presetName,
+    createdAt: row.createdAt,
+  };
+}
+
+export function formatNotifDlqSlaDigestStaleAuditExportPresetUsageCsv(
+  rows: ReadonlyArray<ReturnType<typeof sanitizeNotifDlqSlaDigestStaleAuditExportPresetUsage>>,
+): string {
+  const header = "presetId,presetName,createdAt";
+  const lines = rows.map((row) => [row.presetId, row.presetName, row.createdAt].join(","));
+  return [header, ...lines].join("\n");
+}
+
+/** I4.33 — last-used DLQ stale-audit export preset per tenant + principal (in-memory). */
+export type NotifDlqSlaDigestStaleAuditExportLastPreset = {
+  tenantId: string;
+  principalId: string;
+  presetId: string;
+  presetName: string;
+  usedAt: string;
+};
+
+export function sanitizeNotifDlqSlaDigestStaleAuditExportLastPreset(
+  row: NotifDlqSlaDigestStaleAuditExportLastPreset,
+) {
+  return {
+    presetId: row.presetId,
+    presetName: row.presetName,
+    usedAt: row.usedAt,
+  };
+}
+
 /** I4.28 — filter stale DLQ SLA digest audit export by action and createdAt window. */
 export const NOTIF_DLQ_SLA_DIGEST_STALE_AUDIT_ACTIONS = ["snooze", "ack", "cleared"] as const;
 export type NotifDlqSlaDigestStaleAuditAction = (typeof NOTIF_DLQ_SLA_DIGEST_STALE_AUDIT_ACTIONS)[number];

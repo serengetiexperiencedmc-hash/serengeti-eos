@@ -745,6 +745,15 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **I4.32** | Rename/delete named tenant DLQ stale-audit export presets; persist-delete; Events UI controls |
 | Docs | `i4.32-dlq-preset-rename-delete-preview.md` recorded after ship |
 
+### 68:xx — I4.33 DLQ preset usage / last-used preset echo ✅
+
+**Shipped:** server `1.01.0-i4.33`
+
+| Increment | Change |
+| --- | --- |
+| **I4.33** | In-memory last-used DLQ stale-audit preset + usage audit on named-preset export; Events last-preset line and usage export |
+| Docs | `i4.33-dlq-preset-usage-last-used-preview.md` recorded after ship |
+
 ### Recommended next increments
 
 1. I20.23 — (unnamed)

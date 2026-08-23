@@ -7,6 +7,7 @@ import {
   dispatchDlqSlaDigest,
   dispatchDlqSlaDigestStaleAlert,
   exportDlqSlaDigestLastRun,
+  exportDlqSlaDigestStaleAuditExportPresetUsage,
   exportDlqSlaDigestStaleSuppression,
   getDlqSlaDigestStatus,
   listDlqSlaDigestStaleAuditExportPresets,
@@ -165,6 +166,16 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = acknowledgeDlqSlaDigestStale(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.get("/v1/notifications/email/dlq-sla-digest-stale/export/presets/usage", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = exportDlqSlaDigestStaleAuditExportPresetUsage(store, principal, {
+      format: (req.query as { format?: string }).format,
+    });
     if ("error" in result) return sendError(reply, result);
     return result;
   });

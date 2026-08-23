@@ -45,7 +45,7 @@ describe("I4.22 DLQ SLA digest last-run freshness", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(before.statusCode).toBe(200);
-    expect(before.json().increment).toBe("I4.32");
+    expect(before.json().increment).toBe("I4.33");
     expect(before.json().freshness.neverRun).toBe(true);
     expect(before.json().freshness.stale).toBe(true);
 
@@ -54,7 +54,7 @@ describe("I4.22 DLQ SLA digest last-run freshness", () => {
       url: "/v1/notifications/email/dispatch-dlq-sla-digest",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(dispatched.json().increment).toBe("I4.32");
+    expect(dispatched.json().increment).toBe("I4.33");
 
     const after = await app.inject({
       method: "GET",
@@ -70,7 +70,7 @@ describe("I4.22 DLQ SLA digest last-run freshness", () => {
       url: "/v1/notifications/email/dlq-sla-digest-status/export?format=csv",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(exported.json().increment).toBe("I4.32");
+    expect(exported.json().increment).toBe("I4.33");
     expect(exported.json().freshness.stale).toBe(false);
     expect(exported.json().csv).toContain("stale,neverRun,ageHours,thresholdHours");
 

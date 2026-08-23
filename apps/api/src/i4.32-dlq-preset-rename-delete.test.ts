@@ -140,7 +140,7 @@ describe("I4.32 rename and delete stale DLQ audit export presets", () => {
       payload: { name: "  Last  snoozes " },
     });
     expect(renamed.statusCode).toBe(200);
-    expect(renamed.json().increment).toBe("I4.32");
+    expect(renamed.json().increment).toBe("I4.33");
     expect(renamed.json().preset.id).toBe(firstId);
     expect(renamed.json().preset.name).toBe("Last snoozes");
     expect(renamed.json().preset.action).toBe("snooze");
@@ -164,7 +164,7 @@ describe("I4.32 rename and delete stale DLQ audit export presets", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(statusAfterRename.statusCode).toBe(200);
-    expect(statusAfterRename.json().increment).toBe("I4.32");
+    expect(statusAfterRename.json().increment).toBe("I4.33");
     expect(statusAfterRename.json().presets.map((row: { name: string }) => row.name)).toEqual([
       "Acks only",
       "Last snoozes",
@@ -216,7 +216,7 @@ describe("I4.32 rename and delete stale DLQ audit export presets", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(removed.statusCode).toBe(200);
-    expect(removed.json().increment).toBe("I4.32");
+    expect(removed.json().increment).toBe("I4.33");
     expect(removed.json().presets.map((row: { name: string }) => row.name)).toEqual(["Last snoozes"]);
     expect(deleted).toContain(secondId);
 

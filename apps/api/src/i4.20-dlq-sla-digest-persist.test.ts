@@ -73,7 +73,7 @@ describe("I4.20 DLQ SLA digest last-run persistence", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(res.statusCode).toBe(200);
-    expect(res.json().increment).toBe("I4.32");
+    expect(res.json().increment).toBe("I4.33");
     expect(res.json().lastRun.breachedCount).toBe(1);
     expect(writes.length).toBeGreaterThanOrEqual(1);
     expect(writes[0]!.tenantId).toBe(carol.tenantId);

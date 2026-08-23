@@ -45,7 +45,7 @@ describe("I4.16 DLQ SLA escalation digest email", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(first.statusCode).toBe(200);
-    expect(first.json().increment).toBe("I4.32");
+    expect(first.json().increment).toBe("I4.33");
     expect(first.json().breachedCount).toBe(1);
     expect(first.json().dispatched[0]).toMatch(/^dlq-sla-digest:\d{4}-\d{2}-\d{2}:/);
 

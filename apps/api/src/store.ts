@@ -85,7 +85,9 @@ import {
   type NotifDlqSlaDigestRecipient,
   type NotifDlqSlaDigestLastRun,
   type NotifDlqSlaDigestStaleAuditExportLastFilter,
+  type NotifDlqSlaDigestStaleAuditExportLastPreset,
   type NotifDlqSlaDigestStaleAuditExportPreset,
+  type NotifDlqSlaDigestStaleAuditExportPresetUsage,
   type NotifDlqSlaDigestStaleSuppression,
   type NotifDlqSlaDigestStaleSuppressionAudit,
   type NotifAllowlistDualDigestRecipient,
@@ -238,6 +240,10 @@ export type Store = {
   notifDlqSlaDigestStaleAuditExportLastFilters: NotifDlqSlaDigestStaleAuditExportLastFilter[];
   /** I4.31 — named tenant DLQ stale-audit export presets (persisted). */
   notifDlqSlaDigestStaleAuditExportPresets: NotifDlqSlaDigestStaleAuditExportPreset[];
+  /** I4.33 — last-used DLQ stale-audit export preset (in-memory only). */
+  notifDlqSlaDigestStaleAuditExportLastPresets: NotifDlqSlaDigestStaleAuditExportLastPreset[];
+  /** I4.33 — DLQ stale-audit export preset usage rows (in-memory only). */
+  notifDlqSlaDigestStaleAuditExportPresetUsages: NotifDlqSlaDigestStaleAuditExportPresetUsage[];
   /** I3.22 — allowlist dual-control digest ops aliases. */
   notifAllowlistDualDigestRecipients: NotifAllowlistDualDigestRecipient[];
   /** I3.23 — last allowlist dual-control digest run per tenant. */
@@ -891,6 +897,8 @@ export function seedStore(
     notifDlqSlaDigestStaleSuppressionAudits: [],
     notifDlqSlaDigestStaleAuditExportLastFilters: [],
     notifDlqSlaDigestStaleAuditExportPresets: [],
+    notifDlqSlaDigestStaleAuditExportLastPresets: [],
+    notifDlqSlaDigestStaleAuditExportPresetUsages: [],
     notifAllowlistDualDigestRecipients: [],
     notifAllowlistDualDigestLastRuns: [],
     notifAllowlistDualDigestStaleSuppressions: [],

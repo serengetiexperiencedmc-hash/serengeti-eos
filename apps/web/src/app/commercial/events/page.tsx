@@ -18,6 +18,7 @@ import {
   renameDlqSlaDigestStaleAuditExportPreset,
   deleteDlqSlaDigestStaleAuditExportPreset,
   exportDlqSlaDigestLastRun,
+  exportDlqSlaDigestStaleAuditExportPresetUsage,
   exportDlqSlaDigestStaleSuppression,
   dispatchDlqSlaDigest,
   dispatchDlqSlaDigestStaleAlert,
@@ -26,6 +27,7 @@ import {
   type DeadLetterItem,
   type DigestFreshness,
   type DlqSlaDigestLastRun,
+  type DlqStaleAuditExportLastPreset,
   type DlqStaleAuditExportPreset,
   type NatsLagMetrics,
 } from "@/lib/events-api";
@@ -80,7 +82,10 @@ export default function EventsInfrastructurePage() {
   const [staleAuditPresets, setStaleAuditPresets] = useState<DlqStaleAuditExportPreset[]>([]);
   const [staleAuditPresetId, setStaleAuditPresetId] = useState("");
   const [staleAuditPresetName, setStaleAuditPresetName] = useState("");
-  const [presetBusy, setPresetBusy] = useState<"save-preset" | "rename-preset" | "delete-preset" | null>(null);
+  const [lastPreset, setLastPreset] = useState<DlqStaleAuditExportLastPreset | null>(null);
+  const [presetBusy, setPresetBusy] = useState<
+    "save-preset" | "rename-preset" | "delete-preset" | "export-usage" | null
+  >(null);
 
   const reload = useCallback(async () => {
     if (!token) return;
@@ -106,10 +111,17 @@ export default function EventsInfrastructurePage() {
     setDigestOutboxCount(digest?.analytics.outboxDigestCount ?? 0);
     setDigestFreshness(digest?.freshness ?? null);
     if (digest?.presets) setStaleAuditPresets(digest.presets);
-    if (digest?.lastFilter && !staleAuditHydrated) {
-      setStaleAuditAction(digest.lastFilter.action ?? "");
-      setStaleAuditSince(digest.lastFilter.since ?? "");
-      setStaleAuditUntil(digest.lastFilter.until ?? "");
+    setLastPreset(digest?.lastPreset ?? null);
+    if (!staleAuditHydrated) {
+      if (digest?.lastFilter) {
+        setStaleAuditAction(digest.lastFilter.action ?? "");
+        setStaleAuditSince(digest.lastFilter.since ?? "");
+        setStaleAuditUntil(digest.lastFilter.until ?? "");
+      }
+      if (digest?.lastPreset && (digest.presets ?? []).some((row) => row.id === digest.lastPreset!.presetId)) {
+        setStaleAuditPresetId(digest.lastPreset.presetId);
+        setStaleAuditPresetName(digest.lastPreset.presetName);
+      }
       setStaleAuditHydrated(true);
     }
   }, [token, ownerFilter, statusFilter, slaOnly, staleAuditHydrated]);
@@ -241,7 +253,7 @@ export default function EventsInfrastructurePage() {
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <PageHeader
-        eyebrow="I4 · I4.32 · Events"
+        eyebrow="I4 · I4.33 · Events"
         title="Event Infrastructure"
         subtitle="NATS lag, DLQ SLA ack/snooze, bulk owner assign, and controlled replay"
         actions={
@@ -280,6 +292,7 @@ export default function EventsInfrastructurePage() {
               ? ` · digest last run ${digestLastRun.day} (${digestLastRun.breachedCount} breached, ${digestLastRun.dispatchedCount} sent)`
               : " · digest never run"}
             {digestOutboxCount > 0 ? ` · outbox ${digestOutboxCount}` : ""}
+            {lastPreset ? ` · Last preset ${lastPreset.presetName}` : ""}
           </p>
           {digestFreshness?.stale && (
             <p className="mb-3 rounded border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
@@ -430,6 +443,29 @@ export default function EventsInfrastructurePage() {
                 }}
               >
                 {presetBusy === "delete-preset" ? "Deleting…" : "Delete preset"}
+              </Btn>
+              <Btn
+                variant="secondary"
+                disabled={presetBusy !== null}
+                onClick={() => {
+                  setPresetBusy("export-usage");
+                  setError(null);
+                  void exportDlqSlaDigestStaleAuditExportPresetUsage(token, "csv")
+                    .then((res) => {
+                      const blob = new Blob([res.csv ?? ""], { type: "text/csv" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `dlq-preset-usage-${res.generatedAt.slice(0, 10)}.csv`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                      setMsg(`Exported preset usage (${res.count} row${res.count === 1 ? "" : "s"})`);
+                    })
+                    .catch((err) => setError(err instanceof Error ? err.message : "Could not export preset usage"))
+                    .finally(() => setPresetBusy(null));
+                }}
+              >
+                {presetBusy === "export-usage" ? "Exporting…" : "Export preset usage"}
               </Btn>
               <label className="text-xs text-muted">
                 Action

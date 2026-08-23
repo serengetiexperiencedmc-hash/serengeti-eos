@@ -17,6 +17,12 @@ export function ensureNotificationCollections(store: Store): void {
   if (!store.notifDlqSlaDigestStaleAuditExportPresets) {
     store.notifDlqSlaDigestStaleAuditExportPresets = [];
   }
+  if (!store.notifDlqSlaDigestStaleAuditExportLastPresets) {
+    store.notifDlqSlaDigestStaleAuditExportLastPresets = [];
+  }
+  if (!store.notifDlqSlaDigestStaleAuditExportPresetUsages) {
+    store.notifDlqSlaDigestStaleAuditExportPresetUsages = [];
+  }
   if (!store.notifAllowlistDualDigestRecipients) store.notifAllowlistDualDigestRecipients = [];
   if (!store.notifAllowlistDualDigestLastRuns) store.notifAllowlistDualDigestLastRuns = [];
   if (!store.notifAllowlistDualDigestStaleSuppressions) store.notifAllowlistDualDigestStaleSuppressions = [];

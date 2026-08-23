@@ -213,12 +213,27 @@ export type DlqStaleAuditExportPreset = {
   updatedAt: string;
 };
 
+export type DlqStaleAuditExportLastPreset = {
+  presetId: string;
+  presetName: string;
+  usedAt: string;
+};
+
+export type DlqStaleAuditExportPresetUsage = {
+  id: string;
+  presetId: string;
+  presetName: string;
+  createdAt: string;
+};
+
 export async function getDlqSlaDigestStatus(token: string) {
   return eosFetch<{
     lastRun: DlqSlaDigestLastRun | null;
     analytics: { outboxDigestCount: number; outboxByStatus: Record<string, number> };
     freshness: DigestFreshness;
     lastFilter: { action?: string; since?: string; until?: string; updatedAt: string } | null;
+    lastPreset: DlqStaleAuditExportLastPreset | null;
+    usages: DlqStaleAuditExportPresetUsage[];
     presets: DlqStaleAuditExportPreset[];
     increment: string;
   }>("/v1/notifications/email/dlq-sla-digest-status", { token });
@@ -311,9 +326,26 @@ export async function exportDlqSlaDigestStaleSuppression(
     csv?: string;
     count: number;
     filter?: { action: string | null; since: string | null; until: string | null };
+    lastFilter?: { action?: string; since?: string; until?: string; updatedAt: string } | null;
+    lastPreset?: DlqStaleAuditExportLastPreset | null;
     generatedAt: string;
     increment: string;
   }>(`/v1/notifications/email/dlq-sla-digest-stale/export?${params.toString()}`, { token });
+}
+
+export async function exportDlqSlaDigestStaleAuditExportPresetUsage(
+  token: string,
+  format: "json" | "csv" = "csv",
+) {
+  return eosFetch<{
+    format: "json" | "csv";
+    csv?: string;
+    lastPreset: DlqStaleAuditExportLastPreset | null;
+    usages: DlqStaleAuditExportPresetUsage[];
+    count: number;
+    generatedAt: string;
+    increment: string;
+  }>(`/v1/notifications/email/dlq-sla-digest-stale/export/presets/usage?format=${format}`, { token });
 }
 
 export async function dispatchDlqSlaDigestStaleAlert(token: string) {

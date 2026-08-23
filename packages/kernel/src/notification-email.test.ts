@@ -7,8 +7,11 @@ import {
   normalizeNotifAllowlistDualDigestStaleAuditExportPresetName,
   sanitizeNotifAllowlistDualDigestStaleAuditExportLastFilter,
   sanitizeNotifAllowlistDualDigestStaleAuditExportPreset,
+  formatNotifDlqSlaDigestStaleAuditExportPresetUsageCsv,
   sanitizeNotifDlqSlaDigestStaleAuditExportLastFilter,
+  sanitizeNotifDlqSlaDigestStaleAuditExportLastPreset,
   sanitizeNotifDlqSlaDigestStaleAuditExportPreset,
+  sanitizeNotifDlqSlaDigestStaleAuditExportPresetUsage,
   shouldEmailNotification,
 } from "./notification-email.js";
 import type { NotifItem } from "./notification.js";
@@ -122,5 +125,30 @@ describe("notification email kernel", () => {
     });
     expect(view.name).toBe("Snoozes only");
     expect(view).not.toHaveProperty("tenantId");
+  });
+
+  it("sanitizes DLQ stale-audit export last preset and usage CSV", () => {
+    const last = sanitizeNotifDlqSlaDigestStaleAuditExportLastPreset({
+      tenantId: "t1",
+      principalId: "p1",
+      presetId: "preset-1",
+      presetName: "Snoozes only",
+      usedAt: "2026-08-23T12:00:00.000Z",
+    });
+    expect(last.presetName).toBe("Snoozes only");
+    expect(last).not.toHaveProperty("tenantId");
+    const usage = sanitizeNotifDlqSlaDigestStaleAuditExportPresetUsage({
+      id: "u1",
+      tenantId: "t1",
+      principalId: "p1",
+      presetId: "preset-1",
+      presetName: "Snoozes only",
+      createdAt: "2026-08-23T12:00:00.000Z",
+      createdByPrincipalId: "p1",
+    });
+    expect(usage).not.toHaveProperty("tenantId");
+    expect(formatNotifDlqSlaDigestStaleAuditExportPresetUsageCsv([usage])).toContain(
+      "presetId,presetName,createdAt",
+    );
   });
 });
