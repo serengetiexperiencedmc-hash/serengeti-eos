@@ -22,6 +22,7 @@ export type AiDraft = {
   createdAt?: string;
   appliedEntityType?: string;
   appliedEntityId?: string;
+  appliedHref?: string;
 };
 
 export type AiDraftListQuery = {

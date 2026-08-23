@@ -1,4 +1,5 @@
 import {
+  appliedCrmHref,
   authorize,
   buildAiDraftArtefact,
   isAiDraftArtefactType,
@@ -37,13 +38,14 @@ function findOverdueAssociation(store: Store, tenantId: string) {
   return undefined;
 }
 
-const INCREMENT = "I20.6" as const;
+const INCREMENT = "I20.7" as const;
 
 export function ensureAiCollections(store: Store): void {
   if (!store.aiDrafts) store.aiDrafts = [];
 }
 
 function sanitizeDraft(draft: AiDraft) {
+  const href = appliedCrmHref(draft.appliedEntityType, draft.appliedEntityId);
   return {
     id: draft.id,
     recommendationKey: draft.recommendationKey,
@@ -56,7 +58,11 @@ function sanitizeDraft(draft: AiDraft) {
     createdByPrincipalId: draft.createdByPrincipalId,
     ...(draft.acceptedAt ? { acceptedAt: draft.acceptedAt } : {}),
     ...(draft.appliedEntityId
-      ? { appliedEntityType: draft.appliedEntityType, appliedEntityId: draft.appliedEntityId }
+      ? {
+          appliedEntityType: draft.appliedEntityType,
+          appliedEntityId: draft.appliedEntityId,
+          ...(href ? { appliedHref: href } : {}),
+        }
       : {}),
   };
 }

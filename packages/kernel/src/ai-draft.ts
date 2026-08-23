@@ -46,6 +46,17 @@ export function isAiDraftArtefactType(value: string): value is AiDraftArtefactTy
   return (AI_DRAFT_ARTEFACT_TYPES as readonly string[]).includes(value);
 }
 
+const APPLIED_ENTITY_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function appliedCrmHref(
+  type: AiDraftArtefactType | undefined,
+  id: string | undefined,
+): string | undefined {
+  if (!type || !id || !isAiDraftArtefactType(type) || !APPLIED_ENTITY_ID.test(id)) return undefined;
+  const param = type === "crm_activity" ? "activity" : "task";
+  return `/commercial/crm?${param}=${id}`;
+}
+
 export function isDraftableRecommendationKey(key: string): key is AiDraftableRecommendationKey {
   return (AI_DRAFTABLE_RECOMMENDATION_KEYS as readonly string[]).includes(key);
 }

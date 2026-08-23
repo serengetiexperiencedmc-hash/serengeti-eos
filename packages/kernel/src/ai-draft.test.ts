@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import {
   AI_DRAFT_AUTONOMY_LEVEL,
+  appliedCrmHref,
   buildAiDraftArtefact,
   isAiDraftArtefactType,
   isAiDraftStatus,
@@ -43,6 +44,17 @@ describe("I20.3 AI draft artefacts", () => {
     expect(isAiDraftArtefactType("crm_task")).toBe(true);
     expect(isAiDraftArtefactType("crm_activity")).toBe(true);
     expect(isAiDraftArtefactType("crm_merge")).toBe(false);
+  });
+
+  it("builds CRM deep-links only for applied task or activity ids", () => {
+    expect(appliedCrmHref("crm_task", "11111111-1111-4111-8111-111111111111")).toBe(
+      "/commercial/crm?task=11111111-1111-4111-8111-111111111111",
+    );
+    expect(appliedCrmHref("crm_activity", "22222222-2222-4222-8222-222222222222")).toBe(
+      "/commercial/crm?activity=22222222-2222-4222-8222-222222222222",
+    );
+    expect(appliedCrmHref("crm_task", "/commercial/notifications")).toBeUndefined();
+    expect(appliedCrmHref(undefined, "11111111-1111-4111-8111-111111111111")).toBeUndefined();
   });
 
   it("rejects unknown recommendation keys", () => {

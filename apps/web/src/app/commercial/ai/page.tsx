@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useEosSession } from "@/components/commercial/EosSessionProvider";
 import { Btn, Card, PageHeader } from "@/components/commercial/ui";
@@ -71,9 +72,9 @@ export default function AiDraftsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="I20.6 · Assistant"
+        eyebrow="I20.7 · Assistant"
         title="AI Drafts"
-        subtitle="Filter unpublished assistant drafts. The sidebar badge is the pending count. Accept creates a CRM task or activity. Discard drops the draft. The assistant cannot merge, email, or approve."
+        subtitle="Filter unpublished assistant drafts. Accept creates a CRM task or activity. Open an accepted draft in CRM. The assistant cannot merge, email, or approve."
       />
       <Card>
         <div className="mb-4 flex flex-wrap gap-3">
@@ -163,7 +164,17 @@ export default function AiDraftsPage() {
                 )}
                 {draft.status === "accepted" && draft.appliedEntityId && (
                   <p className="mt-2 text-xs text-muted">
-                    Applied as {artefactLabel(draft.appliedEntityType ?? draft.artefactType)} · {draft.appliedEntityId}
+                    Applied as {artefactLabel(draft.appliedEntityType ?? draft.artefactType)}
+                    {draft.appliedHref ? (
+                      <>
+                        {" · "}
+                        <Link href={draft.appliedHref} className="text-gold-deep underline">
+                          Open in CRM
+                        </Link>
+                      </>
+                    ) : (
+                      <> · {draft.appliedEntityId}</>
+                    )}
                   </p>
                 )}
               </li>

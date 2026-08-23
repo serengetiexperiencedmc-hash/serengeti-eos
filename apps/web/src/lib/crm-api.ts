@@ -47,6 +47,14 @@ export type CrmActivity = {
   contactId?: string;
 };
 
+export type CrmTask = {
+  id: string;
+  title: string;
+  status: string;
+  dueAt?: string;
+  relatedOrganizationId?: string;
+};
+
 export type CrmRelationship = {
   id: string;
   toOrganizationId?: string;
@@ -109,6 +117,21 @@ export async function listAccounts(token: string, query: { organizationId?: stri
   if (query.limit) params.set("limit", String(query.limit));
   const qs = params.toString();
   return eosFetch<{ items: CrmAccount[]; nextCursor?: string }>(`/v1/crm/accounts${qs ? `?${qs}` : ""}`, { token });
+}
+
+export async function listTasks(token: string, query: { limit?: number } = {}) {
+  const params = new URLSearchParams();
+  if (query.limit) params.set("limit", String(query.limit));
+  const qs = params.toString();
+  return eosFetch<{ items: CrmTask[]; nextCursor?: string }>(`/v1/crm/tasks${qs ? `?${qs}` : ""}`, { token });
+}
+
+export async function getTask(token: string, id: string) {
+  return eosFetch<{ task: CrmTask }>(`/v1/crm/tasks/${id}`, { token });
+}
+
+export async function getActivity(token: string, id: string) {
+  return eosFetch<{ activity: CrmActivity }>(`/v1/crm/activities/${id}`, { token });
 }
 
 export async function listActivities(token: string, query: { limit?: number; organizationId?: string } = {}) {

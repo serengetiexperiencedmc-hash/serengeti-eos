@@ -527,9 +527,17 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **I20.6** | `pendingCount` on draft list; AI Drafts nav badge |
 
+### 41:xx — I20.7 open applied CRM record ✅
+
+**Shipped:** server `0.74.0-i20.7`
+
+| Increment | Change |
+| --- | --- |
+| **I20.7** | `appliedHref` on accepted drafts; CRM task/activity deep-link |
+
 ### Recommended next increments
 
-1. I20.7 — open the applied CRM record from an accepted draft
+1. I20.8 — refresh the AI Drafts nav badge after accept/discard
 2. I3.30 — persist allowlist stale audit to Postgres
 3. I4.28 — stale-audit filters / tenant export window
 

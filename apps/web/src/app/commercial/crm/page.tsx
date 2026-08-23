@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Badge } from "@/components/commercial/Badge";
 import { CrmImportModal } from "@/components/commercial/CrmImportModal";
 import { useEosSession } from "@/components/commercial/EosSessionProvider";
@@ -8,12 +9,15 @@ import { Btn, Card, PageHeader } from "@/components/commercial/ui";
 import { EosApiError } from "@/lib/eos-client";
 import {
   formatRelativeDate,
+  getActivity,
+  getTask,
   listAccounts,
   listActivities,
   listContacts,
   listOrganizationTypes,
   listOrganizations,
   listRelationships,
+  listTasks,
   orgStatusVariant,
   type CrmAccount,
   type CrmActivity,
@@ -21,9 +25,10 @@ import {
   type CrmOrganization,
   type CrmOrganizationType,
   type CrmRelationship,
+  type CrmTask,
 } from "@/lib/crm-api";
 
-const tabs = ["Organizations", "Contacts", "Accounts", "Activities"] as const;
+const tabs = ["Organizations", "Contacts", "Accounts", "Activities", "Tasks"] as const;
 type Tab = (typeof tabs)[number];
 
 type CrmData = {
@@ -31,9 +36,16 @@ type CrmData = {
   contacts: CrmContact[];
   accounts: CrmAccount[];
   activities: CrmActivity[];
+  tasks: CrmTask[];
   relationships: CrmRelationship[];
   orgTypes: CrmOrganizationType[];
 };
+
+function rowClass(id: string, focusId: string | null): string {
+  return id === focusId
+    ? "border-b border-line bg-gold/15"
+    : "border-b border-line hover:bg-sand/30";
+}
 
 function EmptyState({ message, onImport }: { message: string; onImport?: () => void }) {
   return (
@@ -44,33 +56,60 @@ function EmptyState({ message, onImport }: { message: string; onImport?: () => v
   );
 }
 
-export default function CrmPage() {
+function CrmPageContent() {
   const { token, ready } = useEosSession();
-  const [activeTab, setActiveTab] = useState<Tab>("Organizations");
+  const searchParams = useSearchParams();
+  const focusTaskId = searchParams.get("task");
+  const focusActivityId = searchParams.get("activity");
+  const [activeTab, setActiveTab] = useState<Tab>(
+    focusTaskId ? "Tasks" : focusActivityId ? "Activities" : "Organizations",
+  );
   const [data, setData] = useState<CrmData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [focusMissing, setFocusMissing] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!token) return;
     setLoading(true);
     setError(null);
+    setFocusMissing(false);
     try {
-      const [organizations, contacts, accounts, activities, relationships, orgTypes] = await Promise.all([
+      const [organizations, contacts, accounts, activities, tasks, relationships, orgTypes] = await Promise.all([
         listOrganizations(token),
         listContacts(token),
         listAccounts(token, { limit: 100 }),
         listActivities(token, { limit: 100 }),
+        listTasks(token, { limit: 100 }),
         listRelationships(token),
         listOrganizationTypes(token),
       ]);
+      let activityItems = activities.items;
+      let taskItems = tasks.items;
+      if (focusActivityId && !activityItems.some((a) => a.id === focusActivityId)) {
+        try {
+          const focused = await getActivity(token, focusActivityId);
+          activityItems = [focused.activity, ...activityItems];
+        } catch {
+          setFocusMissing(true);
+        }
+      }
+      if (focusTaskId && !taskItems.some((t) => t.id === focusTaskId)) {
+        try {
+          const focused = await getTask(token, focusTaskId);
+          taskItems = [focused.task, ...taskItems];
+        } catch {
+          setFocusMissing(true);
+        }
+      }
       setData({
         organizations: organizations.items,
         contacts: contacts.items,
         accounts: accounts.items,
-        activities: activities.items,
+        activities: activityItems,
+        tasks: taskItems,
         relationships: relationships.items,
         orgTypes: orgTypes.items,
       });
@@ -80,11 +119,21 @@ export default function CrmPage() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, focusActivityId, focusTaskId]);
 
   useEffect(() => {
     if (ready && token) void loadData();
   }, [ready, token, loadData]);
+
+  useEffect(() => {
+    if (focusTaskId) setActiveTab("Tasks");
+    else if (focusActivityId) setActiveTab("Activities");
+  }, [focusTaskId, focusActivityId]);
+
+  useEffect(() => {
+    if (!focusTaskId && !focusActivityId) return;
+    document.getElementById("crm-applied")?.scrollIntoView({ block: "center" });
+  }, [focusTaskId, focusActivityId, data]);
 
   const orgTypeById = useMemo(() => {
     const map = new Map<string, CrmOrganizationType>();
@@ -159,6 +208,12 @@ export default function CrmPage() {
     );
   }, [data, q]);
 
+  const filteredTasks = useMemo(() => {
+    if (!data) return [];
+    if (!q) return data.tasks;
+    return data.tasks.filter((t) => t.title.toLowerCase().includes(q) || t.status.toLowerCase().includes(q));
+  }, [data, q]);
+
   const subtitle = useMemo(() => {
     if (!token) return "Sign in to load CRM data from EOS API";
     if (loading) return "Loading CRM records…";
@@ -221,7 +276,9 @@ export default function CrmPage() {
                     ? data.contacts.length
                     : tab === "Accounts"
                       ? data.accounts.length
-                      : data.activities.length}
+                      : tab === "Activities"
+                        ? data.activities.length
+                        : data.tasks.length}
                 )
               </span>
             )}
@@ -232,6 +289,11 @@ export default function CrmPage() {
       {error && (
         <div className="mb-4 rounded-md border border-danger/30 bg-danger-bg px-4 py-3 text-sm text-danger">
           {error}. Is the API running on port 8080?
+        </div>
+      )}
+      {focusMissing && (focusTaskId || focusActivityId) && (
+        <div className="mb-4 rounded-md border border-line bg-ivory px-4 py-3 text-sm text-muted">
+          Applied CRM record is not visible with the current session.
         </div>
       )}
 
@@ -365,6 +427,45 @@ export default function CrmPage() {
             )
           )}
 
+          {activeTab === "Tasks" && (
+            filteredTasks.length === 0 ? (
+              <EmptyState message="No CRM tasks yet." />
+            ) : (
+              <Card padding={false}>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-line text-left text-[0.7rem] uppercase tracking-wide text-muted">
+                      <th className="px-4 py-3">Title</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3">Organization</th>
+                      <th className="px-4 py-3">Due</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTasks.map((task) => (
+                      <tr
+                        key={task.id}
+                        id={task.id === focusTaskId ? "crm-applied" : undefined}
+                        className={rowClass(task.id, focusTaskId)}
+                      >
+                        <td className="px-4 py-3 font-medium text-ink">{task.title}</td>
+                        <td className="px-4 py-3">
+                          <Badge variant={task.status === "Open" || task.status === "InProgress" ? "review" : "draft"} label={task.status} />
+                        </td>
+                        <td className="px-4 py-3">
+                          {task.relatedOrganizationId
+                            ? orgById.get(task.relatedOrganizationId)?.legalName ?? "—"
+                            : "—"}
+                        </td>
+                        <td className="px-4 py-3">{task.dueAt ? formatRelativeDate(task.dueAt) : "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </Card>
+            )
+          )}
+
           {activeTab === "Activities" && (
             filteredActivities.length === 0 ? (
               <EmptyState message="No activities logged yet." />
@@ -381,7 +482,11 @@ export default function CrmPage() {
                   </thead>
                   <tbody>
                     {filteredActivities.map((activity) => (
-                      <tr key={activity.id} className="border-b border-line hover:bg-sand/30">
+                      <tr
+                        key={activity.id}
+                        id={activity.id === focusActivityId ? "crm-applied" : undefined}
+                        className={rowClass(activity.id, focusActivityId)}
+                      >
                         <td className="px-4 py-3 font-medium text-ink">{activity.subject}</td>
                         <td className="px-4 py-3 capitalize">{activity.activityType.replace(/_/g, " ")}</td>
                         <td className="px-4 py-3">
@@ -409,5 +514,13 @@ export default function CrmPage() {
         />
       )}
     </>
+  );
+}
+
+export default function CrmPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-muted">Loading CRM…</p>}>
+      <CrmPageContent />
+    </Suspense>
   );
 }
