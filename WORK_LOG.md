@@ -782,12 +782,19 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **I3.36** | In-memory last-used allowlist stale-audit preset + usage audit on named-preset export; Notifications last-preset line and usage export |
 | Docs | `i3.36-allowlist-preset-usage-last-used-preview.md` recorded after ship |
 
+### I3.37 defined — architecture preview only
+
+**Assignment:** Explicit 2026-08-23 governance instruction assigned **I3.37** to Allowlist Preset Usage / Last-Used Preset Persistence and Hydration. This supersedes the I3.36 / recommended-next placeholder “I3.37 undefined”. It is not sequence-derived authorization.  
+**Predecessor:** I3.36 (CLOSED)  
+**Preview:** `docs/architecture/i3.37-allowlist-preset-usage-persistence-preview.md`  
+**Architecture preview:** Authorized  
+**Implementation:** **NOT AUTHORIZED**
+
 ### Recommended next increments
 
 1. I20.23 — (unnamed / undefined)
 2. PG.30 — (undefined / not authorized)
 3. I4.35 — (undefined / not authorized)
-4. I3.37 — (undefined / not authorized)
 
 ### Issues resolved
 
