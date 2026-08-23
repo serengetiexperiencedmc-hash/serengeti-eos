@@ -9,6 +9,7 @@ import {
   acknowledgeAiRecommendStale,
   discardAiDraft,
   exportAiRecommendLastRun,
+  exportAiRecommendStaleAuditExportPresetUsage,
   exportAiRecommendStaleSuppression,
   getAiRecommendLastRun,
   listAiDrafts,
@@ -18,6 +19,7 @@ import {
   upsertAiRecommendStaleAuditExportPreset,
   type AiDraft,
   type AiRecommendFreshness,
+  type AiRecommendLastPreset,
   type AiRecommendLastRun,
   type AiRecommendStaleAuditExportPreset,
   type AiRecommendSuppression,
@@ -66,6 +68,7 @@ export default function AiDraftsPage() {
   const [auditPresets, setAuditPresets] = useState<AiRecommendStaleAuditExportPreset[]>([]);
   const [auditPresetId, setAuditPresetId] = useState("");
   const [auditPresetName, setAuditPresetName] = useState("");
+  const [lastPreset, setLastPreset] = useState<AiRecommendLastPreset | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -98,10 +101,15 @@ export default function AiDraftsPage() {
           setSuppressed(res.suppressed);
           setRunKeys(res.keys);
           setAuditPresets(res.presets ?? []);
+          setLastPreset(res.lastPreset ?? null);
           if (res.lastFilter && !auditHydrated) {
             setAuditAction(res.lastFilter.action ?? "");
             setAuditSince(res.lastFilter.since ?? "");
             setAuditUntil(res.lastFilter.until ?? "");
+            if (res.lastPreset && (res.presets ?? []).some((row) => row.id === res.lastPreset!.presetId)) {
+              setAuditPresetId(res.lastPreset.presetId);
+              setAuditPresetName(res.lastPreset.presetName);
+            }
             setAuditHydrated(true);
           }
         })
@@ -112,6 +120,7 @@ export default function AiDraftsPage() {
           setSuppressed(false);
           setRunKeys([]);
           setAuditPresets([]);
+          setLastPreset(null);
         });
     },
     [keyFilter, auditHydrated],
@@ -128,6 +137,7 @@ export default function AiDraftsPage() {
       setAuditHydrated(false);
       setAuditPresets([]);
       setAuditPresetId("");
+      setLastPreset(null);
       return;
     }
     reload(token);
@@ -141,9 +151,9 @@ export default function AiDraftsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="I20.20 · Assistant"
+        eyebrow="I20.21 · Assistant"
         title="AI Drafts"
-        subtitle="Filter unpublished assistant drafts. Save, rename, or delete named tenant audit-export presets. The assistant cannot merge, email, or approve."
+        subtitle="Filter unpublished assistant drafts. Save, rename, or delete named tenant audit-export presets. Export preset usage. The assistant cannot merge, email, or approve."
       />
       <Card>
         <div className="mb-4 flex flex-wrap gap-3">
@@ -190,6 +200,7 @@ export default function AiDraftsPage() {
               ? `Last recommend ${new Date(lastRun.occurredAt).toLocaleString()} · ${runKeys.length}/${lastRun.count} keys · ${lastRun.provider}`
               : "No recommend run yet"}
             {freshness ? ` · ${freshnessLabel(freshness)}` : ""}
+            {lastPreset ? ` · Last preset ${lastPreset.presetName}` : ""}
           </p>
           {freshness?.stale && !suppressed && (
             <p className="w-full rounded border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
@@ -443,6 +454,33 @@ export default function AiDraftsPage() {
               }}
             >
               {busy === "export-stale" ? "Exporting…" : "Export stale audit"}
+            </Btn>
+          )}
+          {token && (
+            <Btn
+              variant="secondary"
+              size="sm"
+              disabled={busy === "export-usage"}
+              onClick={() => {
+                setBusy("export-usage");
+                setError(null);
+                void exportAiRecommendStaleAuditExportPresetUsage(token, { format: "csv" })
+                  .then((res) => {
+                    const blob = new Blob([res.csv ?? ""], { type: "text/csv" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `ai-recommend-preset-usage-${res.generatedAt.slice(0, 10)}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  })
+                  .catch((err) => {
+                    setError(err instanceof EosApiError ? err.message : "Could not export preset usage");
+                  })
+                  .finally(() => setBusy(null));
+              }}
+            >
+              {busy === "export-usage" ? "Exporting…" : "Export preset usage"}
             </Btn>
           )}
         </div>

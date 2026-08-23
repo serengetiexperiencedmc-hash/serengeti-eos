@@ -60,7 +60,7 @@ describe("I20.9 AI recommend last run", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(empty.statusCode).toBe(200);
-    expect(empty.json().increment).toBe("I20.20");
+    expect(empty.json().increment).toBe("I20.21");
     expect(empty.json().lastRun).toBeNull();
 
     const listed = await app.inject({

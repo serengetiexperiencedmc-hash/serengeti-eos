@@ -121,6 +121,49 @@ export function normalizeAiRecommendStaleAuditExportPresetName(name?: string): s
   return trimmed;
 }
 
+export type AiRecommendStaleAuditExportPresetUsage = {
+  id: string;
+  tenantId: string;
+  principalId: string;
+  presetId: string;
+  presetName: string;
+  createdAt: string;
+  createdByPrincipalId: string;
+};
+
+export function sanitizeAiRecommendStaleAuditExportPresetUsage(row: AiRecommendStaleAuditExportPresetUsage) {
+  return {
+    id: row.id,
+    presetId: row.presetId,
+    presetName: row.presetName,
+    createdAt: row.createdAt,
+  };
+}
+
+export function formatAiRecommendStaleAuditExportPresetUsageCsv(
+  rows: ReadonlyArray<ReturnType<typeof sanitizeAiRecommendStaleAuditExportPresetUsage>>,
+): string {
+  const header = "presetId,presetName,createdAt";
+  const lines = rows.map((row) => [row.presetId, row.presetName, row.createdAt].join(","));
+  return [header, ...lines].join("\n");
+}
+
+export type AiRecommendStaleAuditExportLastPreset = {
+  tenantId: string;
+  principalId: string;
+  presetId: string;
+  presetName: string;
+  usedAt: string;
+};
+
+export function sanitizeAiRecommendStaleAuditExportLastPreset(row: AiRecommendStaleAuditExportLastPreset) {
+  return {
+    presetId: row.presetId,
+    presetName: row.presetName,
+    usedAt: row.usedAt,
+  };
+}
+
 export function sanitizeAiRecommendLastRun(run: AiRecommendLastRun) {
   return {
     occurredAt: run.occurredAt,

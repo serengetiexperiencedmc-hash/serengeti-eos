@@ -13,8 +13,11 @@ import {
   formatAiRecommendStaleSuppressionAuditCsv,
   normalizeAiRecommendStaleAuditExportPresetName,
   parseAiRecommendStaleAuditExportFilter,
+  formatAiRecommendStaleAuditExportPresetUsageCsv,
   sanitizeAiRecommendStaleAuditExportLastFilter,
+  sanitizeAiRecommendStaleAuditExportLastPreset,
   sanitizeAiRecommendStaleAuditExportPreset,
+  sanitizeAiRecommendStaleAuditExportPresetUsage,
   sanitizeAiRecommendLastRun,
   sanitizeAiRecommendStaleSuppression,
   sanitizeAiRecommendStaleSuppressionAudit,
@@ -212,5 +215,29 @@ describe("I20.1 AI recommend port", () => {
     expect(view.name).toBe("Last 24h");
     expect(view).not.toHaveProperty("tenantId");
     expect(view).not.toHaveProperty("createdByPrincipalId");
+  });
+
+  it("sanitizes last-used preset and usage rows", () => {
+    const last = sanitizeAiRecommendStaleAuditExportLastPreset({
+      tenantId: "t1",
+      principalId: "p1",
+      presetId: "pre1",
+      presetName: "Snoozes only",
+      usedAt: "2026-08-23T12:00:00.000Z",
+    });
+    expect(last.presetName).toBe("Snoozes only");
+    expect(last).not.toHaveProperty("tenantId");
+    const usage = sanitizeAiRecommendStaleAuditExportPresetUsage({
+      id: "u1",
+      tenantId: "t1",
+      principalId: "p1",
+      presetId: "pre1",
+      presetName: "Snoozes only",
+      createdAt: "2026-08-23T12:00:00.000Z",
+      createdByPrincipalId: "carol",
+    });
+    expect(usage.presetId).toBe("pre1");
+    expect(usage).not.toHaveProperty("tenantId");
+    expect(formatAiRecommendStaleAuditExportPresetUsageCsv([usage])).toContain("presetId,presetName,createdAt");
   });
 });

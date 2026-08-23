@@ -639,11 +639,19 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **I20.20** | Rename or delete named stale-audit export presets; persist delete |
 
+### 55:xx — I20.21 preset usage audit / last-used preset echo ✅
+
+**Shipped:** server `0.88.0-i20.21`
+
+| Increment | Change |
+| --- | --- |
+| **I20.21** | Record preset apply usage; last-run echoes `lastPreset`; **Export preset usage** |
+
 ### Recommended next increments
 
 1. I3.30 — persist allowlist stale audit to Postgres
 2. I4.28 — stale-audit filters / tenant export window
-3. I20.21 — preset-usage audit / last-used preset echo
+3. I20.22 — persist preset usage / last-used preset
 
 ### Issues resolved
 

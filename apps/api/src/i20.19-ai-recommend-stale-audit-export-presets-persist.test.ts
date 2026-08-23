@@ -75,7 +75,7 @@ describe("I20.19 persist named stale recommend audit export presets", () => {
       url: "/v1/ai/recommendations/last-run",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(empty.json().increment).toBe("I20.20");
+    expect(empty.json().increment).toBe("I20.21");
     expect(empty.json().presets).toEqual([]);
     expect(store.aiRecommendRuns.length).toBe(0);
 
@@ -95,7 +95,7 @@ describe("I20.19 persist named stale recommend audit export presets", () => {
       payload: { name: "Snoozes only", action: "snooze" },
     });
     expect(saved.statusCode).toBe(200);
-    expect(saved.json().increment).toBe("I20.20");
+    expect(saved.json().increment).toBe("I20.21");
     expect(saved.json().preset.name).toBe("Snoozes only");
     expect(saved.json().preset).not.toHaveProperty("tenantId");
     expect(writes.length).toBeGreaterThanOrEqual(1);

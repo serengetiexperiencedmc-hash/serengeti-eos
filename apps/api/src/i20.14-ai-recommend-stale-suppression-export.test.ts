@@ -51,7 +51,7 @@ describe("I20.14 stale recommend suppression export / audit", () => {
       payload: { hours: 24 },
     });
     expect(snoozed.statusCode).toBe(200);
-    expect(snoozed.json().increment).toBe("I20.20");
+    expect(snoozed.json().increment).toBe("I20.21");
 
     await app.inject({
       method: "POST",
@@ -65,7 +65,7 @@ describe("I20.14 stale recommend suppression export / audit", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(json.statusCode).toBe(200);
-    expect(json.json().increment).toBe("I20.20");
+    expect(json.json().increment).toBe("I20.21");
     expect(json.json().count).toBeGreaterThanOrEqual(2);
     expect(json.json().audits.map((a: { action: string }) => a.action)).toEqual(
       expect.arrayContaining(["snooze", "ack"]),

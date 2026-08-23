@@ -52,6 +52,19 @@ export type AiRecommendLastFilter = {
   updatedAt: string;
 };
 
+export type AiRecommendLastPreset = {
+  presetId: string;
+  presetName: string;
+  usedAt: string;
+};
+
+export type AiRecommendPresetUsage = {
+  id: string;
+  presetId: string;
+  presetName: string;
+  createdAt: string;
+};
+
 export type AiRecommendStaleAuditExportPreset = {
   id: string;
   name: string;
@@ -94,9 +107,28 @@ export async function getAiRecommendLastRun(token: string, key?: string) {
     suppression: AiRecommendSuppression | null;
     suppressed: boolean;
     lastFilter: AiRecommendLastFilter | null;
+    lastPreset: AiRecommendLastPreset | null;
+    usages: AiRecommendPresetUsage[];
     presets: AiRecommendStaleAuditExportPreset[];
     increment: string;
   }>(`/v1/ai/recommendations/last-run${q}`, { token });
+}
+
+export async function exportAiRecommendStaleAuditExportPresetUsage(
+  token: string,
+  query?: { format?: "json" | "csv" },
+) {
+  const params = new URLSearchParams();
+  params.set("format", query?.format ?? "csv");
+  return eosFetch<{
+    format: "json" | "csv";
+    csv?: string;
+    lastPreset: AiRecommendLastPreset | null;
+    usages: AiRecommendPresetUsage[];
+    count: number;
+    generatedAt: string;
+    increment: string;
+  }>(`/v1/ai/recommendations/last-run/stale/export/presets/usage?${params.toString()}`, { token });
 }
 
 export async function upsertAiRecommendStaleAuditExportPreset(

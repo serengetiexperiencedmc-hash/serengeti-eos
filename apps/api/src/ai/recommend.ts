@@ -6,6 +6,7 @@ import {
   filterAiRecommendLastRunKeys,
   filterAiRecommendStaleSuppressionAudits,
   formatAiRecommendLastRunCsv,
+  formatAiRecommendStaleAuditExportPresetUsageCsv,
   formatAiRecommendStaleSuppressionAuditCsv,
   hasPermission,
   isAiRecommendStaleSuppressed,
@@ -13,12 +14,16 @@ import {
   parseAiRecommendStaleAuditExportFilter,
   sanitizeAiRecommendLastRun,
   sanitizeAiRecommendStaleAuditExportLastFilter,
+  sanitizeAiRecommendStaleAuditExportLastPreset,
   sanitizeAiRecommendStaleAuditExportPreset,
+  sanitizeAiRecommendStaleAuditExportPresetUsage,
   sanitizeAiRecommendStaleSuppression,
   sanitizeAiRecommendStaleSuppressionAudit,
   type AiRecommendLastRun,
   type AiRecommendStaleAuditExportLastFilter,
+  type AiRecommendStaleAuditExportLastPreset,
   type AiRecommendStaleAuditExportPreset,
+  type AiRecommendStaleAuditExportPresetUsage,
   type AiRecommendStaleSuppression,
   type AiRecommendStaleSuppressionAudit,
   type AiRecommendSignal,
@@ -43,7 +48,7 @@ import {
   persistDeleteAiRecommendStaleSuppression,
 } from "../persistence/ai-recommend-stale-suppressions.js";
 
-const INCREMENT = "I20.20" as const;
+const INCREMENT = "I20.21" as const;
 
 function recommendStaleThresholdHours(): number {
   const raw = Number(process.env.EOS_AI_RECOMMEND_STALE_HOURS);
@@ -110,6 +115,64 @@ function findAiRecommendStaleAuditExportPreset(
       (row) => row.tenantId === tenantId && row.name.toLowerCase() === lowered,
     ) ?? null
   );
+}
+
+function ensureAiRecommendStaleAuditExportLastPresets(store: Store): void {
+  if (!store.aiRecommendStaleAuditExportLastPresets) store.aiRecommendStaleAuditExportLastPresets = [];
+}
+
+function ensureAiRecommendStaleAuditExportPresetUsages(store: Store): void {
+  if (!store.aiRecommendStaleAuditExportPresetUsages) store.aiRecommendStaleAuditExportPresetUsages = [];
+}
+
+function findAiRecommendStaleAuditExportLastPreset(store: Store, principal: Principal) {
+  ensureAiRecommendStaleAuditExportLastPresets(store);
+  return (
+    store.aiRecommendStaleAuditExportLastPresets.find(
+      (row) => row.tenantId === principal.tenantId && row.principalId === principal.id,
+    ) ?? null
+  );
+}
+
+function principalPresetUsages(store: Store, principal: Principal) {
+  ensureAiRecommendStaleAuditExportPresetUsages(store);
+  return store.aiRecommendStaleAuditExportPresetUsages
+    .filter((row) => row.tenantId === principal.tenantId && row.principalId === principal.id)
+    .slice()
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+function recordAiRecommendStaleAuditExportPresetUsage(
+  store: Store,
+  principal: Principal,
+  preset: AiRecommendStaleAuditExportPreset,
+) {
+  ensureAiRecommendStaleAuditExportPresetUsages(store);
+  ensureAiRecommendStaleAuditExportLastPresets(store);
+  const usedAt = new Date().toISOString();
+  const usage: AiRecommendStaleAuditExportPresetUsage = {
+    id: crypto.randomUUID(),
+    tenantId: principal.tenantId,
+    principalId: principal.id,
+    presetId: preset.id,
+    presetName: preset.name,
+    createdAt: usedAt,
+    createdByPrincipalId: principal.id,
+  };
+  store.aiRecommendStaleAuditExportPresetUsages.push(usage);
+  const last: AiRecommendStaleAuditExportLastPreset = {
+    tenantId: principal.tenantId,
+    principalId: principal.id,
+    presetId: preset.id,
+    presetName: preset.name,
+    usedAt,
+  };
+  const idx = store.aiRecommendStaleAuditExportLastPresets.findIndex(
+    (row) => row.tenantId === principal.tenantId && row.principalId === principal.id,
+  );
+  if (idx >= 0) store.aiRecommendStaleAuditExportLastPresets[idx] = last;
+  else store.aiRecommendStaleAuditExportLastPresets.push(last);
+  return { usage, last };
 }
 
 async function upsertAiRecommendStaleAuditExportLastFilter(
@@ -377,6 +440,11 @@ function lastRunView(store: Store, principal: Principal, key?: string) {
       const last = findAiRecommendStaleAuditExportLastFilter(store, principal);
       return last ? sanitizeAiRecommendStaleAuditExportLastFilter(last) : null;
     })(),
+    lastPreset: (() => {
+      const last = findAiRecommendStaleAuditExportLastPreset(store, principal);
+      return last ? sanitizeAiRecommendStaleAuditExportLastPreset(last) : null;
+    })(),
+    usages: principalPresetUsages(store, principal).map(sanitizeAiRecommendStaleAuditExportPresetUsage),
     presets: sanitizedTenantPresets(store, principal.tenantId),
     increment: INCREMENT,
   };
@@ -567,6 +635,13 @@ export async function exportAiRecommendStaleSuppression(
   const filter = { action: parsed.action, since: parsed.since, until: parsed.until };
   const last = await upsertAiRecommendStaleAuditExportLastFilter(store, principal, filter);
   const lastFilter = sanitizeAiRecommendStaleAuditExportLastFilter(last);
+  const recorded = preset ? recordAiRecommendStaleAuditExportPresetUsage(store, principal, preset) : null;
+  const lastPreset = recorded
+    ? sanitizeAiRecommendStaleAuditExportLastPreset(recorded.last)
+    : (() => {
+        const existing = findAiRecommendStaleAuditExportLastPreset(store, principal);
+        return existing ? sanitizeAiRecommendStaleAuditExportLastPreset(existing) : null;
+      })();
   if (format === "csv") {
     return {
       format: "csv" as const,
@@ -577,6 +652,7 @@ export async function exportAiRecommendStaleSuppression(
       count: audits.length,
       filter,
       lastFilter,
+      lastPreset,
       preset: preset ? sanitizeAiRecommendStaleAuditExportPreset(preset) : null,
       generatedAt,
       increment: INCREMENT,
@@ -590,7 +666,42 @@ export async function exportAiRecommendStaleSuppression(
     count: audits.length,
     filter,
     lastFilter,
+    lastPreset,
     preset: preset ? sanitizeAiRecommendStaleAuditExportPreset(preset) : null,
+    generatedAt,
+    increment: INCREMENT,
+  };
+}
+
+export function exportAiRecommendStaleAuditExportPresetUsage(
+  store: Store,
+  principal: Principal,
+  query?: { format?: string },
+) {
+  if (query?.format && query.format !== "json" && query.format !== "csv") {
+    return { error: "invalid_request" as const, reason: "invalid_format" };
+  }
+  const viewed = lastRunView(store, principal);
+  if ("error" in viewed) return viewed;
+  const usages = viewed.usages;
+  const generatedAt = new Date().toISOString();
+  const format = query?.format === "csv" ? "csv" : "json";
+  if (format === "csv") {
+    return {
+      format: "csv" as const,
+      csv: formatAiRecommendStaleAuditExportPresetUsageCsv(usages),
+      lastPreset: viewed.lastPreset,
+      usages,
+      count: usages.length,
+      generatedAt,
+      increment: INCREMENT,
+    };
+  }
+  return {
+    format: "json" as const,
+    lastPreset: viewed.lastPreset,
+    usages,
+    count: usages.length,
     generatedAt,
     increment: INCREMENT,
   };

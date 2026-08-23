@@ -26,7 +26,7 @@ describe("I20.11 AI recommend last-run freshness", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(empty.statusCode).toBe(200);
-    expect(empty.json().increment).toBe("I20.20");
+    expect(empty.json().increment).toBe("I20.21");
     expect(empty.json().lastRun).toBeNull();
     expect(empty.json().freshness.neverRun).toBe(true);
     expect(empty.json().freshness.stale).toBe(true);
@@ -57,7 +57,7 @@ describe("I20.11 AI recommend last-run freshness", () => {
       url: "/v1/ai/recommendations/last-run/export?format=csv",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(exported.json().increment).toBe("I20.20");
+    expect(exported.json().increment).toBe("I20.21");
     expect(exported.json().freshness.stale).toBe(false);
     expect(exported.json().csv).toContain("stale,neverRun,ageHours,thresholdHours");
     expect(store.aiRecommendRuns.length).toBe(1);
