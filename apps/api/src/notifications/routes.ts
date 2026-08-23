@@ -220,9 +220,12 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
   app.get("/v1/notifications/email/allowlist-dual-digest-stale/export", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const query = req.query as { format?: string };
+    const query = req.query as { format?: string; action?: string; since?: string; until?: string };
     const result = exportAllowlistDualDigestStaleSuppression(store, principal, {
       format: query.format === "csv" ? "csv" : "json",
+      action: query.action,
+      since: query.since,
+      until: query.until,
     });
     if ("error" in result) return sendError(reply, result);
     return result;

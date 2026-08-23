@@ -1,6 +1,8 @@
 import {
   authorize,
+  filterNotifAllowlistDualDigestStaleSuppressionAudits,
   newId,
+  parseNotifAllowlistDualDigestStaleAuditExportFilter,
   type NotifAllowlistDualDigestLastRun,
   type NotifAllowlistDualDigestStaleSuppression,
   type NotifAllowlistDualDigestStaleSuppressionAudit,
@@ -163,7 +165,7 @@ export async function dispatchAllowlistDualDigest(store: Store, principal: Princ
       pendingCount: 0,
       recipientCount: recipients.length,
       lastRun,
-      increment: "I3.30" as const,
+      increment: "I3.31" as const,
     };
   }
 
@@ -210,7 +212,7 @@ export async function dispatchAllowlistDualDigest(store: Store, principal: Princ
     pendingCount: pending.length,
     recipientCount: recipients.length,
     lastRun,
-    increment: "I3.30" as const,
+    increment: "I3.31" as const,
   };
 }
 
@@ -246,7 +248,7 @@ export function getAllowlistDualDigestStatus(store: Store, principal: Principal)
     },
     freshness: digestLastRunFreshness(lastRun?.lastRunAt, Date.now(), "EOS_ALLOWLIST_DUAL_DIGEST_STALE_HOURS"),
     suppression: getAllowlistDualDigestStaleSuppression(store, principal.tenantId),
-    increment: "I3.30" as const,
+    increment: "I3.31" as const,
   };
 }
 
@@ -281,7 +283,7 @@ export async function dispatchAllowlistDualDigestStaleAlert(store: Store, princi
       adapter: adapter.name,
       freshness: status.freshness,
       inboxKey,
-      increment: "I3.30" as const,
+      increment: "I3.31" as const,
     };
   }
 
@@ -298,7 +300,7 @@ export async function dispatchAllowlistDualDigestStaleAlert(store: Store, princi
       adapter: adapter.name,
       freshness: status.freshness,
       inboxKey,
-      increment: "I3.30" as const,
+      increment: "I3.31" as const,
     };
   }
 
@@ -336,7 +338,7 @@ export async function dispatchAllowlistDualDigestStaleAlert(store: Store, princi
     adapter: adapter.name,
     freshness: status.freshness,
     inboxKey,
-    increment: "I3.30" as const,
+    increment: "I3.31" as const,
   };
 }
 
@@ -360,7 +362,7 @@ export function snoozeAllowlistDualDigestStale(store: Store, principal: Principa
     snoozedUntil,
     acknowledgedAt: undefined,
   });
-  return { suppression, increment: "I3.30" as const };
+  return { suppression, increment: "I3.31" as const };
 }
 
 /** I3.27 — acknowledge stale-digest inbox until the next last-run stamp. */
@@ -378,15 +380,17 @@ export function acknowledgeAllowlistDualDigestStale(store: Store, principal: Pri
     acknowledgedAt: new Date().toISOString(),
     snoozedUntil: undefined,
   });
-  return { suppression, increment: "I3.30" as const };
+  return { suppression, increment: "I3.31" as const };
 }
 
-/** I3.29 — CSV/JSON export of current suppression + snooze/ack/clear audit. */
+/** I3.29 / I3.31 — CSV/JSON export of current suppression + snooze/ack/clear audit. */
 export function exportAllowlistDualDigestStaleSuppression(
   store: Store,
   principal: Principal,
-  options: { format?: "json" | "csv" } = {},
+  options: { format?: "json" | "csv"; action?: string; since?: string; until?: string } = {},
 ) {
+  const parsed = parseNotifAllowlistDualDigestStaleAuditExportFilter(options);
+  if ("error" in parsed) return { error: "invalid_request" as const, reason: parsed.error };
   const status = getAllowlistDualDigestStatus(store, principal);
   if ("error" in status) return status;
 
@@ -394,8 +398,10 @@ export function exportAllowlistDualDigestStaleSuppression(
   const generatedAt = new Date().toISOString();
   const format = options.format === "csv" ? "csv" : "json";
   const suppression = status.suppression;
-  const audits = (store.notifAllowlistDualDigestStaleSuppressionAudits ?? []).filter(
-    (a) => a.tenantId === principal.tenantId,
+  const filter = { action: parsed.action, since: parsed.since, until: parsed.until };
+  const audits = filterNotifAllowlistDualDigestStaleSuppressionAudits(
+    (store.notifAllowlistDualDigestStaleSuppressionAudits ?? []).filter((a) => a.tenantId === principal.tenantId),
+    parsed,
   );
 
   if (format === "csv") {
@@ -419,8 +425,9 @@ export function exportAllowlistDualDigestStaleSuppression(
       suppression,
       audits,
       count: audits.length,
+      filter,
       generatedAt,
-      increment: "I3.30" as const,
+      increment: "I3.31" as const,
     };
   }
 
@@ -429,7 +436,8 @@ export function exportAllowlistDualDigestStaleSuppression(
     suppression,
     audits,
     count: audits.length,
+    filter,
     generatedAt,
-    increment: "I3.30" as const,
+    increment: "I3.31" as const,
   };
 }

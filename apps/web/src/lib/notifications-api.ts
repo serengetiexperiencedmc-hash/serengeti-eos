@@ -132,14 +132,23 @@ export async function acknowledgeAllowlistDualDigestStale(token: string) {
   );
 }
 
-export async function exportAllowlistDualDigestStaleSuppression(token: string, format: "json" | "csv" = "csv") {
+export async function exportAllowlistDualDigestStaleSuppression(
+  token: string,
+  format: "json" | "csv" = "csv",
+  query: { action?: string; since?: string; until?: string } = {},
+) {
+  const params = new URLSearchParams({ format });
+  if (query.action) params.set("action", query.action);
+  if (query.since) params.set("since", query.since);
+  if (query.until) params.set("until", query.until);
   return eosFetch<{
     format: "json" | "csv";
     csv?: string;
     count: number;
+    filter?: { action: string | null; since: string | null; until: string | null };
     generatedAt: string;
     increment: string;
-  }>(`/v1/notifications/email/allowlist-dual-digest-stale/export?format=${format}`, { token });
+  }>(`/v1/notifications/email/allowlist-dual-digest-stale/export?${params.toString()}`, { token });
 }
 
 export type EmailSuppressionItem = {

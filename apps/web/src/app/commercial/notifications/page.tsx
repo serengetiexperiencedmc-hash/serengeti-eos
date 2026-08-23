@@ -61,6 +61,9 @@ export default function NotificationsPage() {
   const [error, setError] = useState<string | null>(null);
   const [dispatchMsg, setDispatchMsg] = useState<string | null>(null);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
+  const [staleAuditAction, setStaleAuditAction] = useState("");
+  const [staleAuditSince, setStaleAuditSince] = useState("");
+  const [staleAuditUntil, setStaleAuditUntil] = useState("");
 
   const [selectedKey, setSelectedKey] = useState<string>("");
   const [editSubject, setEditSubject] = useState("");
@@ -249,7 +252,7 @@ export default function NotificationsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="I3 · I3.16 · Notifications"
+        eyebrow="I3 · I3.31 · Notifications"
         title="Action Inbox"
         subtitle={`Live alerts + email digest · adapter: ${adapter}`}
         actions={
@@ -505,11 +508,46 @@ export default function NotificationsPage() {
               >
                 Ack stale digest
               </Btn>
+              <label className="text-xs text-muted">
+                Action
+                <select
+                  className="ml-2 rounded-md border border-line bg-paper px-2 py-1 text-sm text-ink"
+                  value={staleAuditAction}
+                  onChange={(event) => setStaleAuditAction(event.target.value)}
+                >
+                  <option value="">All actions</option>
+                  <option value="snooze">Snooze</option>
+                  <option value="ack">Ack</option>
+                  <option value="cleared">Cleared</option>
+                </select>
+              </label>
+              <label className="text-xs text-muted">
+                Since
+                <input
+                  className="ml-2 rounded-md border border-line bg-paper px-2 py-1 text-sm text-ink"
+                  value={staleAuditSince}
+                  placeholder="2026-08-23T00:00:00Z"
+                  onChange={(event) => setStaleAuditSince(event.target.value)}
+                />
+              </label>
+              <label className="text-xs text-muted">
+                Until
+                <input
+                  className="ml-2 rounded-md border border-line bg-paper px-2 py-1 text-sm text-ink"
+                  value={staleAuditUntil}
+                  placeholder="2026-08-24T00:00:00Z"
+                  onChange={(event) => setStaleAuditUntil(event.target.value)}
+                />
+              </label>
               <Btn
                 variant="secondary"
                 size="sm"
                 onClick={() => {
-                  void exportAllowlistDualDigestStaleSuppression(token, "csv").then((res) => {
+                  void exportAllowlistDualDigestStaleSuppression(token, "csv", {
+                    ...(staleAuditAction ? { action: staleAuditAction } : {}),
+                    ...(staleAuditSince.trim() ? { since: staleAuditSince.trim() } : {}),
+                    ...(staleAuditUntil.trim() ? { until: staleAuditUntil.trim() } : {}),
+                  }).then((res) => {
                     const blob = new Blob([res.csv ?? ""], { type: "text/csv" });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement("a");

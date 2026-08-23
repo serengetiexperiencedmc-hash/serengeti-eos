@@ -267,3 +267,7 @@ export function filterNotifDlqSlaDigestStaleSuppressionAudits<T extends { action
     return true;
   });
 }
+
+/** I3.31 — same action/window parser as I4.28. */
+export const parseNotifAllowlistDualDigestStaleAuditExportFilter = parseNotifDlqSlaDigestStaleAuditExportFilter;
+export const filterNotifAllowlistDualDigestStaleSuppressionAudits = filterNotifDlqSlaDigestStaleSuppressionAudits;

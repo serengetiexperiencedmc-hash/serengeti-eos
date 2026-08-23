@@ -671,10 +671,18 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **I4.28** | Filter DLQ stale-audit export by action / since / until; tenant-scoped window |
 
+### 59:xx — I3.31 allowlist stale-audit filters ✅
+
+**Shipped:** server `0.92.0-i3.31`
+
+| Increment | Change |
+| --- | --- |
+| **I3.31** | Filter allowlist stale-audit export by action / since / until; tenant-scoped window |
+
 ### Recommended next increments
 
 1. I20.23 — (unnamed)
-2. I3.31 — allowlist stale-audit filters
+2. I3.32 — persist last-used allowlist stale-audit filter
 3. PG.30 — (optional ops follow-up)
 
 ### Issues resolved
