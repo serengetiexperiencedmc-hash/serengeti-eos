@@ -1,6 +1,8 @@
 import {
   authorize,
   createDevRulesRecommendProvider,
+  filterAiRecommendLastRunKeys,
+  formatAiRecommendLastRunCsv,
   hasPermission,
   sanitizeAiRecommendLastRun,
   type AiRecommendLastRun,
@@ -18,7 +20,7 @@ import {
 import { getDlqSlaDigestStatus, isDlqSlaDigestStaleSuppressed } from "../notifications/dlq-sla-digest.js";
 import { persistAiRecommendRun } from "../persistence/ai-recommend-runs.js";
 
-const INCREMENT = "I20.9" as const;
+const INCREMENT = "I20.10" as const;
 const provider = createDevRulesRecommendProvider();
 
 function ensureAiRecommendRuns(store: Store): void {
@@ -165,7 +167,7 @@ export async function listAiRecommendations(store: Store, principal: Principal, 
   };
 }
 
-export function getAiRecommendLastRun(store: Store, principal: Principal) {
+function lastRunView(store: Store, principal: Principal, key?: string) {
   ensureAiRecommendRuns(store);
   const decision = authorize({
     principal,
@@ -176,8 +178,45 @@ export function getAiRecommendLastRun(store: Store, principal: Principal) {
   const run = store.aiRecommendRuns.find(
     (row) => row.tenantId === principal.tenantId && row.principalId === principal.id,
   );
+  const lastRun = run ? sanitizeAiRecommendLastRun(run) : null;
+  const keys = filterAiRecommendLastRunKeys(lastRun?.keys ?? [], key);
   return {
-    lastRun: run ? sanitizeAiRecommendLastRun(run) : null,
+    lastRun,
+    keys,
+    matchCount: keys.length,
+    filter: { key: key?.trim() ? key.trim() : null },
     increment: INCREMENT,
   };
+}
+
+export function getAiRecommendLastRun(store: Store, principal: Principal, query?: { key?: string }) {
+  return lastRunView(store, principal, query?.key);
+}
+
+export function exportAiRecommendLastRun(
+  store: Store,
+  principal: Principal,
+  query?: { key?: string; format?: string },
+) {
+  if (query?.format && query.format !== "json" && query.format !== "csv") {
+    return { error: "invalid_request" as const, reason: "invalid_format" };
+  }
+  const viewed = lastRunView(store, principal, query?.key);
+  if ("error" in viewed) return viewed;
+  const format = query?.format === "csv" ? "csv" : "json";
+  const generatedAt = new Date().toISOString();
+  if (format === "csv") {
+    return {
+      ...viewed,
+      format: "csv" as const,
+      generatedAt,
+      csv: formatAiRecommendLastRunCsv({
+        occurredAt: viewed.lastRun?.occurredAt ?? "",
+        provider: viewed.lastRun?.provider ?? "",
+        count: viewed.lastRun?.count ?? 0,
+        keys: viewed.keys,
+      }),
+    };
+  }
+  return { ...viewed, format: "json" as const, generatedAt };
 }

@@ -7,6 +7,7 @@ import { Btn, Card, PageHeader } from "@/components/commercial/ui";
 import {
   acceptAiDraft,
   discardAiDraft,
+  exportAiRecommendLastRun,
   getAiRecommendLastRun,
   listAiDrafts,
   type AiDraft,
@@ -38,6 +39,8 @@ export default function AiDraftsPage() {
   const [drafts, setDrafts] = useState<AiDraft[] | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
   const [lastRun, setLastRun] = useState<AiRecommendLastRun | null>(null);
+  const [runKeys, setRunKeys] = useState<string[]>([]);
+  const [keyFilter, setKeyFilter] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -64,13 +67,20 @@ export default function AiDraftsPage() {
     if (!token) {
       setDrafts(null);
       setLastRun(null);
+      setRunKeys([]);
       return;
     }
     reload(token);
-    void getAiRecommendLastRun(token)
-      .then((res) => setLastRun(res.lastRun))
-      .catch(() => setLastRun(null));
-  }, [token, reload]);
+    void getAiRecommendLastRun(token, keyFilter || undefined)
+      .then((res) => {
+        setLastRun(res.lastRun);
+        setRunKeys(res.keys);
+      })
+      .catch(() => {
+        setLastRun(null);
+        setRunKeys([]);
+      });
+  }, [token, reload, keyFilter]);
 
   if (ready && !token) {
     return <p className="text-sm text-muted">Sign in to review AI drafts. Nothing is applied until you accept.</p>;
@@ -79,9 +89,9 @@ export default function AiDraftsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="I20.9 · Assistant"
+        eyebrow="I20.10 · Assistant"
         title="AI Drafts"
-        subtitle="Filter unpublished assistant drafts. Accept creates a CRM task or activity. Open an accepted draft in CRM. The assistant cannot merge, email, or approve."
+        subtitle="Filter unpublished assistant drafts. Export the last recommend snapshot. The assistant cannot merge, email, or approve."
       />
       <Card>
         <div className="mb-4 flex flex-wrap gap-3">
@@ -114,11 +124,50 @@ export default function AiDraftsPage() {
             </select>
           </label>
           <p className="self-end text-xs text-muted">{pendingCount} pending</p>
+          <label className="text-xs text-muted">
+            Last-run key
+            <input
+              className="ml-2 rounded-md border border-line bg-paper px-2 py-1 text-sm text-ink"
+              value={keyFilter}
+              placeholder="crm. or events."
+              onChange={(event) => setKeyFilter(event.target.value)}
+            />
+          </label>
           <p className="self-end text-xs text-muted">
             {lastRun
-              ? `Last recommend ${new Date(lastRun.occurredAt).toLocaleString()} · ${lastRun.count} key${lastRun.count === 1 ? "" : "s"} · ${lastRun.provider}`
+              ? `Last recommend ${new Date(lastRun.occurredAt).toLocaleString()} · ${runKeys.length}/${lastRun.count} keys · ${lastRun.provider}`
               : "No recommend run yet"}
           </p>
+          {token && (
+            <Btn
+              variant="secondary"
+              size="sm"
+              disabled={busy === "export"}
+              onClick={() => {
+                setBusy("export");
+                setError(null);
+                void exportAiRecommendLastRun(token, {
+                  format: "csv",
+                  ...(keyFilter ? { key: keyFilter } : {}),
+                })
+                  .then((res) => {
+                    const blob = new Blob([res.csv ?? ""], { type: "text/csv" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `ai-recommend-last-run-${res.generatedAt.slice(0, 10)}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  })
+                  .catch((err) => {
+                    setError(err instanceof EosApiError ? err.message : "Could not export last-run");
+                  })
+                  .finally(() => setBusy(null));
+              }}
+            >
+              {busy === "export" ? "Exporting…" : "Export last-run"}
+            </Btn>
+          )}
         </div>
         {error && <p className="mb-3 text-sm text-red-700">{error}</p>}
         {drafts === null ? (

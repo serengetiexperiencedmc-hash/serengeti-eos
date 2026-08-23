@@ -551,9 +551,17 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **I20.9** | Persist last recommend run; drafts page shows it without recording again |
 
+### 44:xx — I20.10 filter and export last-run ✅
+
+**Shipped:** server `0.77.0-i20.10`
+
+| Increment | Change |
+| --- | --- |
+| **I20.10** | Filter last-run keys; JSON/CSV export without recording a new run |
+
 ### Recommended next increments
 
-1. I20.10 — filter last-run keys / export recommend snapshot
+1. I20.11 — last-run freshness / stale recommend snapshot
 2. I3.30 — persist allowlist stale audit to Postgres
 3. I4.28 — stale-audit filters / tenant export window
 

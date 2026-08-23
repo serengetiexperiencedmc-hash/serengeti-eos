@@ -62,6 +62,24 @@ export function sanitizeAiRecommendLastRun(run: AiRecommendLastRun) {
   };
 }
 
+export function filterAiRecommendLastRunKeys(keys: readonly string[], query?: string): string[] {
+  const needle = query?.trim() ?? "";
+  if (!needle) return [...keys];
+  return keys.filter((key) => key === needle || key.startsWith(needle));
+}
+
+export function formatAiRecommendLastRunCsv(input: {
+  occurredAt: string;
+  provider: string;
+  count: number;
+  keys: readonly string[];
+}): string {
+  const header = "occurredAt,provider,count,key";
+  if (input.keys.length === 0) return `${header}\n`;
+  const rows = input.keys.map((key) => [input.occurredAt, input.provider, String(input.count), key].join(","));
+  return [header, ...rows].join("\n");
+}
+
 const INTERNAL_HREF = /^\/commercial\/(crm|notifications|events)(\/|\?|$)/;
 
 export function isAllowedAiRecommendHref(href: string): boolean {

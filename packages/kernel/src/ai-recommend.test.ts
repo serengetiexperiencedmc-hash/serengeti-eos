@@ -4,6 +4,8 @@ import {
   AI_RECOMMEND_AUTONOMY_CEILING,
   assertSafeAiRecommendations,
   createDevRulesRecommendProvider,
+  filterAiRecommendLastRunKeys,
+  formatAiRecommendLastRunCsv,
   isAllowedAiRecommendHref,
   sanitizeAiRecommendLastRun,
 } from "./ai-recommend.js";
@@ -60,5 +62,17 @@ describe("I20.1 AI recommend port", () => {
     });
     expect(view).not.toHaveProperty("tenantId");
     expect(view).not.toHaveProperty("principalId");
+  });
+
+  it("filters and formats last-run keys", () => {
+    const keys = ["crm.duplicate.review", "crm.task.overdue", "events.dlq_digest.stale"];
+    expect(filterAiRecommendLastRunKeys(keys, "crm.")).toEqual(["crm.duplicate.review", "crm.task.overdue"]);
+    expect(filterAiRecommendLastRunKeys(keys, "events.dlq_digest.stale")).toEqual(["events.dlq_digest.stale"]);
+    expect(formatAiRecommendLastRunCsv({
+      occurredAt: "2026-08-23T09:00:00.000Z",
+      provider: "dev-rules",
+      count: 3,
+      keys: ["crm.task.overdue"],
+    })).toContain("crm.task.overdue");
   });
 });

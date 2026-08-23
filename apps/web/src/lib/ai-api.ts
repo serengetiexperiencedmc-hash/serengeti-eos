@@ -48,11 +48,33 @@ export async function listAiRecommendations(token: string) {
   }>("/v1/ai/recommendations", { token });
 }
 
-export async function getAiRecommendLastRun(token: string) {
-  return eosFetch<{ lastRun: AiRecommendLastRun | null; increment: string }>(
-    "/v1/ai/recommendations/last-run",
-    { token },
-  );
+export async function getAiRecommendLastRun(token: string, key?: string) {
+  const params = new URLSearchParams();
+  if (key) params.set("key", key);
+  const q = params.toString() ? `?${params.toString()}` : "";
+  return eosFetch<{
+    lastRun: AiRecommendLastRun | null;
+    keys: string[];
+    matchCount: number;
+    filter: { key: string | null };
+    increment: string;
+  }>(`/v1/ai/recommendations/last-run${q}`, { token });
+}
+
+export async function exportAiRecommendLastRun(token: string, query?: { key?: string; format?: "json" | "csv" }) {
+  const params = new URLSearchParams();
+  if (query?.key) params.set("key", query.key);
+  if (query?.format) params.set("format", query.format);
+  const q = params.toString() ? `?${params.toString()}` : "";
+  return eosFetch<{
+    lastRun: AiRecommendLastRun | null;
+    keys: string[];
+    matchCount: number;
+    format: "json" | "csv";
+    csv?: string;
+    generatedAt: string;
+    increment: string;
+  }>(`/v1/ai/recommendations/last-run/export${q}`, { token });
 }
 
 export async function listAiDrafts(token: string, query?: string | AiDraftListQuery) {

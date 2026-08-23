@@ -3,7 +3,7 @@ import { principalFromAuthHeader } from "../app.js";
 import { getCorrelationId } from "../observability.js";
 import type { Store } from "../store.js";
 import { acceptAiDraft, createAiDraft, discardAiDraft, getAiDraftSummary, listAiDrafts } from "./drafts.js";
-import { getAiRecommendLastRun, listAiRecommendations } from "./recommend.js";
+import { exportAiRecommendLastRun, getAiRecommendLastRun, listAiRecommendations } from "./recommend.js";
 
 function sendError(
   reply: { code: (n: number) => { send: (b: unknown) => unknown } },
@@ -31,10 +31,20 @@ export function registerAiRoutes(app: FastifyInstance, store: Store): void {
     return result;
   });
 
+  app.get("/v1/ai/recommendations/last-run/export", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const query = req.query as { key?: string; format?: string };
+    const result = exportAiRecommendLastRun(store, principal, query);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
   app.get("/v1/ai/recommendations/last-run", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const result = getAiRecommendLastRun(store, principal);
+    const query = req.query as { key?: string };
+    const result = getAiRecommendLastRun(store, principal, query);
     if ("error" in result) return sendError(reply, result);
     return result;
   });
