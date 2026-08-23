@@ -11,6 +11,9 @@ export function ensureNotificationCollections(store: Store): void {
   if (!store.notifDlqSlaDigestLastRuns) store.notifDlqSlaDigestLastRuns = [];
   if (!store.notifDlqSlaDigestStaleSuppressions) store.notifDlqSlaDigestStaleSuppressions = [];
   if (!store.notifDlqSlaDigestStaleSuppressionAudits) store.notifDlqSlaDigestStaleSuppressionAudits = [];
+  if (!store.notifDlqSlaDigestStaleAuditExportLastFilters) {
+    store.notifDlqSlaDigestStaleAuditExportLastFilters = [];
+  }
   if (!store.notifAllowlistDualDigestRecipients) store.notifAllowlistDualDigestRecipients = [];
   if (!store.notifAllowlistDualDigestLastRuns) store.notifAllowlistDualDigestLastRuns = [];
   if (!store.notifAllowlistDualDigestStaleSuppressions) store.notifAllowlistDualDigestStaleSuppressions = [];

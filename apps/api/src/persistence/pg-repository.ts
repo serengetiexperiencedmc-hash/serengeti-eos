@@ -2328,6 +2328,44 @@ export async function loadNotifDlqSlaDigestStaleSuppressionAudits(
   }));
 }
 
+/** I4.29 — upsert last-used DLQ SLA digest stale-audit export filter. */
+export async function upsertNotifDlqSlaDigestStaleAuditExportLastFilter(
+  pool: DbPool,
+  row: import("@sedmc/kernel").NotifDlqSlaDigestStaleAuditExportLastFilter,
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO notif_dlq_sla_digest_stale_audit_export_last_filter (
+      tenant_id, principal_id, action, since_text, until_text, updated_at
+    ) VALUES ($1,$2,$3,$4,$5,$6)
+     ON CONFLICT (tenant_id, principal_id) DO UPDATE SET
+       action = EXCLUDED.action,
+       since_text = EXCLUDED.since_text,
+       until_text = EXCLUDED.until_text,
+       updated_at = EXCLUDED.updated_at`,
+    [row.tenantId, row.principalId, row.action ?? null, row.since ?? null, row.until ?? null, row.updatedAt],
+  );
+}
+
+export async function loadNotifDlqSlaDigestStaleAuditExportLastFilters(
+  pool: DbPool,
+): Promise<import("@sedmc/kernel").NotifDlqSlaDigestStaleAuditExportLastFilter[]> {
+  const result = await pool.query(
+    `SELECT tenant_id, principal_id, action, since_text, until_text, updated_at
+     FROM notif_dlq_sla_digest_stale_audit_export_last_filter`,
+  );
+  return result.rows.map((row) => {
+    const updatedAt = row.updated_at instanceof Date ? row.updated_at.toISOString() : String(row.updated_at);
+    return {
+      tenantId: row.tenant_id as string,
+      principalId: row.principal_id as string,
+      ...(row.action ? { action: row.action as "snooze" | "ack" | "cleared" } : {}),
+      ...(row.since_text ? { since: String(row.since_text) } : {}),
+      ...(row.until_text ? { until: String(row.until_text) } : {}),
+      updatedAt,
+    };
+  });
+}
+
 /** I3.28 — upsert stale allowlist dual digest snooze/ack (one row per tenant). */
 export async function upsertNotifAllowlistDualDigestStaleSuppression(
   pool: DbPool,

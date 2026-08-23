@@ -687,11 +687,18 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **I3.32** | Dual-write last-used allowlist stale-audit export filter; hydrate on startup |
 
+### 61:xx — I4.29 persist last-used DLQ stale-audit filter ✅
+
+**Shipped:** server `0.94.0-i4.29`
+
+| Increment | Change |
+| --- | --- |
+| **I4.29** | Dual-write last-used DLQ stale-audit export filter; hydrate on startup |
+
 ### Recommended next increments
 
 1. I20.23 — (unnamed)
-2. I4.29 — persist last-used DLQ stale-audit filter
-3. PG.30 — (optional ops follow-up)
+2. PG.30 — (optional ops follow-up)
 
 ### Issues resolved
 

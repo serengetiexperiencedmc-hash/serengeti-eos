@@ -6,6 +6,7 @@ import type {
   NotifEmailSuppression,
   NotifEmailAllowlistEntry,
   NotifDlqSlaDigestLastRun,
+  NotifDlqSlaDigestStaleAuditExportLastFilter,
   NotifDlqSlaDigestStaleSuppression,
   NotifDlqSlaDigestStaleSuppressionAudit,
   NotifAllowlistDualDigestLastRun,
@@ -27,8 +28,10 @@ import {
   upsertNotifAllowlistDualDigestStaleAuditExportLastFilter,
   loadNotifDlqSlaDigestLastRuns,
   insertNotifDlqSlaDigestStaleSuppressionAudit,
+  loadNotifDlqSlaDigestStaleAuditExportLastFilters,
   loadNotifDlqSlaDigestStaleSuppressionAudits,
   loadNotifDlqSlaDigestStaleSuppressions,
+  upsertNotifDlqSlaDigestStaleAuditExportLastFilter,
   loadNotifEmailAllowlist,
   loadNotifEmailSuppressions,
   loadNotifEmailTemplates,
@@ -270,6 +273,39 @@ export async function hydrateNotifDlqSlaDigestStaleSuppressionAudits(pool: DbPoo
       store.notifDlqSlaDigestStaleSuppressionAudits[idx] = row;
     } else {
       store.notifDlqSlaDigestStaleSuppressionAudits.push(row);
+      merged += 1;
+    }
+  }
+  return merged;
+}
+
+export async function persistNotifDlqSlaDigestStaleAuditExportLastFilter(
+  pool: DbPool | undefined,
+  row: NotifDlqSlaDigestStaleAuditExportLastFilter,
+): Promise<void> {
+  if (!pool) return;
+  try {
+    await upsertNotifDlqSlaDigestStaleAuditExportLastFilter(pool, row);
+  } catch {
+    // Fire-and-forget dual-write.
+  }
+}
+
+export async function hydrateNotifDlqSlaDigestStaleAuditExportLastFilters(
+  pool: DbPool,
+  store: Store,
+): Promise<number> {
+  ensureNotificationCollections(store);
+  const rows = await loadNotifDlqSlaDigestStaleAuditExportLastFilters(pool);
+  let merged = 0;
+  for (const row of rows) {
+    const idx = store.notifDlqSlaDigestStaleAuditExportLastFilters.findIndex(
+      (f) => f.tenantId === row.tenantId && f.principalId === row.principalId,
+    );
+    if (idx >= 0) {
+      store.notifDlqSlaDigestStaleAuditExportLastFilters[idx] = row;
+    } else {
+      store.notifDlqSlaDigestStaleAuditExportLastFilters.push(row);
       merged += 1;
     }
   }

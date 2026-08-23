@@ -72,6 +72,7 @@ export default function EventsInfrastructurePage() {
   const [staleAuditAction, setStaleAuditAction] = useState("");
   const [staleAuditSince, setStaleAuditSince] = useState("");
   const [staleAuditUntil, setStaleAuditUntil] = useState("");
+  const [staleAuditHydrated, setStaleAuditHydrated] = useState(false);
 
   const reload = useCallback(async () => {
     if (!token) return;
@@ -96,7 +97,13 @@ export default function EventsInfrastructurePage() {
     setDigestLastRun(digest?.lastRun ?? null);
     setDigestOutboxCount(digest?.analytics.outboxDigestCount ?? 0);
     setDigestFreshness(digest?.freshness ?? null);
-  }, [token, ownerFilter, statusFilter, slaOnly]);
+    if (digest?.lastFilter && !staleAuditHydrated) {
+      setStaleAuditAction(digest.lastFilter.action ?? "");
+      setStaleAuditSince(digest.lastFilter.since ?? "");
+      setStaleAuditUntil(digest.lastFilter.until ?? "");
+      setStaleAuditHydrated(true);
+    }
+  }, [token, ownerFilter, statusFilter, slaOnly, staleAuditHydrated]);
 
   useEffect(() => {
     if (!token) return;
@@ -225,7 +232,7 @@ export default function EventsInfrastructurePage() {
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <PageHeader
-        eyebrow="I4 · I4.28 · Events"
+        eyebrow="I4 · I4.29 · Events"
         title="Event Infrastructure"
         subtitle="NATS lag, DLQ SLA ack/snooze, bulk owner assign, and controlled replay"
         actions={

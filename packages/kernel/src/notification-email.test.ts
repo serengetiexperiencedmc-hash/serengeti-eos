@@ -4,6 +4,7 @@ import {
   filterNotifDlqSlaDigestStaleSuppressionAudits,
   parseNotifDlqSlaDigestStaleAuditExportFilter,
   sanitizeNotifAllowlistDualDigestStaleAuditExportLastFilter,
+  sanitizeNotifDlqSlaDigestStaleAuditExportLastFilter,
   shouldEmailNotification,
 } from "./notification-email.js";
 import type { NotifItem } from "./notification.js";
@@ -61,6 +62,19 @@ describe("notification email kernel", () => {
 
   it("sanitizes last-used allowlist stale-audit export filter", () => {
     const view = sanitizeNotifAllowlistDualDigestStaleAuditExportLastFilter({
+      tenantId: "t1",
+      principalId: "p1",
+      action: "snooze",
+      since: "2026-08-23T00:00:00.000Z",
+      updatedAt: "2026-08-23T12:00:00.000Z",
+    });
+    expect(view.action).toBe("snooze");
+    expect(view.since).toBe("2026-08-23T00:00:00.000Z");
+    expect(view).not.toHaveProperty("tenantId");
+  });
+
+  it("sanitizes last-used DLQ stale-audit export filter", () => {
+    const view = sanitizeNotifDlqSlaDigestStaleAuditExportLastFilter({
       tenantId: "t1",
       principalId: "p1",
       action: "snooze",

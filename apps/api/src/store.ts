@@ -84,6 +84,7 @@ import {
   type NotifEmailAllowlistEntry,
   type NotifDlqSlaDigestRecipient,
   type NotifDlqSlaDigestLastRun,
+  type NotifDlqSlaDigestStaleAuditExportLastFilter,
   type NotifDlqSlaDigestStaleSuppression,
   type NotifDlqSlaDigestStaleSuppressionAudit,
   type NotifAllowlistDualDigestRecipient,
@@ -231,6 +232,8 @@ export type Store = {
   notifDlqSlaDigestStaleSuppressions: NotifDlqSlaDigestStaleSuppression[];
   /** I4.26 — snooze/ack/clear audit for stale DLQ SLA digest. */
   notifDlqSlaDigestStaleSuppressionAudits: NotifDlqSlaDigestStaleSuppressionAudit[];
+  /** I4.29 — last-used DLQ stale-audit export filter (persisted). */
+  notifDlqSlaDigestStaleAuditExportLastFilters: NotifDlqSlaDigestStaleAuditExportLastFilter[];
   /** I3.22 — allowlist dual-control digest ops aliases. */
   notifAllowlistDualDigestRecipients: NotifAllowlistDualDigestRecipient[];
   /** I3.23 — last allowlist dual-control digest run per tenant. */
@@ -880,6 +883,7 @@ export function seedStore(
     notifDlqSlaDigestLastRuns: [],
     notifDlqSlaDigestStaleSuppressions: [],
     notifDlqSlaDigestStaleSuppressionAudits: [],
+    notifDlqSlaDigestStaleAuditExportLastFilters: [],
     notifAllowlistDualDigestRecipients: [],
     notifAllowlistDualDigestLastRuns: [],
     notifAllowlistDualDigestStaleSuppressions: [],

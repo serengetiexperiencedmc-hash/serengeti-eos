@@ -234,6 +234,27 @@ export function shouldEmailNotification(item: NotifItem): boolean {
   return item.severity === "urgent" || item.severity === "warning";
 }
 
+/** I4.29 — last-used DLQ SLA digest stale-audit export filter per tenant + principal. */
+export type NotifDlqSlaDigestStaleAuditExportLastFilter = {
+  tenantId: string;
+  principalId: string;
+  action?: "snooze" | "ack" | "cleared";
+  since?: string;
+  until?: string;
+  updatedAt: string;
+};
+
+export function sanitizeNotifDlqSlaDigestStaleAuditExportLastFilter(
+  row: NotifDlqSlaDigestStaleAuditExportLastFilter,
+) {
+  return {
+    ...(row.action ? { action: row.action } : {}),
+    ...(row.since ? { since: row.since } : {}),
+    ...(row.until ? { until: row.until } : {}),
+    updatedAt: row.updatedAt,
+  };
+}
+
 /** I4.28 — filter stale DLQ SLA digest audit export by action and createdAt window. */
 export const NOTIF_DLQ_SLA_DIGEST_STALE_AUDIT_ACTIONS = ["snooze", "ack", "cleared"] as const;
 export type NotifDlqSlaDigestStaleAuditAction = (typeof NOTIF_DLQ_SLA_DIGEST_STALE_AUDIT_ACTIONS)[number];

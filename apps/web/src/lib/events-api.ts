@@ -208,6 +208,7 @@ export async function getDlqSlaDigestStatus(token: string) {
     lastRun: DlqSlaDigestLastRun | null;
     analytics: { outboxDigestCount: number; outboxByStatus: Record<string, number> };
     freshness: DigestFreshness;
+    lastFilter: { action?: string; since?: string; until?: string; updatedAt: string } | null;
     increment: string;
   }>("/v1/notifications/email/dlq-sla-digest-status", { token });
 }
