@@ -107,7 +107,7 @@ describe("I3.35 rename and delete stale allowlist audit export presets", () => {
       payload: { name: "  Last  snoozes " },
     });
     expect(renamed.statusCode).toBe(200);
-    expect(renamed.json().increment).toBe("I3.35");
+    expect(renamed.json().increment).toBe("I3.36");
     expect(renamed.json().preset.id).toBe(firstId);
     expect(renamed.json().preset.name).toBe("Last snoozes");
     expect(renamed.json().preset).not.toHaveProperty("tenantId");
@@ -120,7 +120,7 @@ describe("I3.35 rename and delete stale allowlist audit export presets", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(statusAfterRename.statusCode).toBe(200);
-    expect(statusAfterRename.json().increment).toBe("I3.35");
+    expect(statusAfterRename.json().increment).toBe("I3.36");
     expect(statusAfterRename.json().presets.map((row: { name: string }) => row.name)).toEqual([
       "Acks only",
       "Last snoozes",
@@ -161,7 +161,7 @@ describe("I3.35 rename and delete stale allowlist audit export presets", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(removed.statusCode).toBe(200);
-    expect(removed.json().increment).toBe("I3.35");
+    expect(removed.json().increment).toBe("I3.36");
     expect(removed.json().presets.map((row: { name: string }) => row.name)).toEqual(["Last snoozes"]);
     expect(deleted).toContain(secondId);
 

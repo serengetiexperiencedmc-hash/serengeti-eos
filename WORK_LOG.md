@@ -771,17 +771,23 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 ### I3.36 defined — architecture preview only
 
 **Preview:** `docs/architecture/i3.36-allowlist-preset-usage-last-used-preview.md`  
-**Implementation:** NOT AUTHORIZED. Current API remains `1.02.0-i4.34`. Proposed after implementation: `1.03.0-i3.36`.
+**Implementation:** later authorized and shipped below. Historical preview state remains in the architecture contract.
 
-This assignment supersedes the prior I3.36 placeholder. I3.36 is in-memory allowlist last-used preset / usage echo only. Persist / hydrate / I3 usage tables are not authorized. I3.37 remains undefined.
+### 70:xx — I3.36 allowlist preset usage / last-used preset echo ✅
+
+**Shipped:** server `1.03.0-i3.36`
+
+| Increment | Change |
+| --- | --- |
+| **I3.36** | In-memory last-used allowlist stale-audit preset + usage audit on named-preset export; Notifications last-preset line and usage export |
+| Docs | `i3.36-allowlist-preset-usage-last-used-preview.md` recorded after ship |
 
 ### Recommended next increments
 
-1. I3.36 — architecture preview only; implementation not authorized
-2. I20.23 — (unnamed / undefined)
-3. PG.30 — (undefined / not authorized)
-4. I4.35 — (undefined / not authorized)
-5. I3.37 — (undefined / not authorized)
+1. I20.23 — (unnamed / undefined)
+2. PG.30 — (undefined / not authorized)
+3. I4.35 — (undefined / not authorized)
+4. I3.37 — (undefined / not authorized)
 
 ### Issues resolved
 

@@ -33,7 +33,7 @@ describe("I3.21 allowlist dual-control digest email", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(first.statusCode).toBe(200);
-    expect(first.json().increment).toBe("I3.35");
+    expect(first.json().increment).toBe("I3.36");
     expect(first.json().pendingCount).toBe(1);
     expect(first.json().dispatched[0]).toMatch(/^allowlist-dual-digest:\d{4}-\d{2}-\d{2}:/);
 

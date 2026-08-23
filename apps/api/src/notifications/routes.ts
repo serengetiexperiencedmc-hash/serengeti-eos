@@ -20,6 +20,7 @@ import {
   acknowledgeAllowlistDualDigestStale,
   dispatchAllowlistDualDigest,
   dispatchAllowlistDualDigestStaleAlert,
+  exportAllowlistDualDigestStaleAuditExportPresetUsage,
   exportAllowlistDualDigestStaleSuppression,
   getAllowlistDualDigestStatus,
   listAllowlistDualDigestStaleAuditExportPresets,
@@ -286,6 +287,16 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = acknowledgeAllowlistDualDigestStale(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.get("/v1/notifications/email/allowlist-dual-digest-stale/export/presets/usage", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = exportAllowlistDualDigestStaleAuditExportPresetUsage(store, principal, {
+      format: (req.query as { format?: string }).format,
+    });
     if ("error" in result) return sendError(reply, result);
     return result;
   });

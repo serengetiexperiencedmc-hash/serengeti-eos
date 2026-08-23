@@ -33,9 +33,11 @@ import {
   snoozeAllowlistDualDigestStale,
   acknowledgeAllowlistDualDigestStale,
   exportAllowlistDualDigestStaleSuppression,
+  exportAllowlistDualDigestStaleAuditExportPresetUsage,
   upsertAllowlistDualDigestStaleAuditExportPreset,
   renameAllowlistDualDigestStaleAuditExportPreset,
   deleteAllowlistDualDigestStaleAuditExportPreset,
+  type AllowlistStaleAuditExportLastPreset,
   type AllowlistStaleAuditExportPreset,
   type DigestLastRun,
   type EmailDeliveryAnalytics,
@@ -72,7 +74,10 @@ export default function NotificationsPage() {
   const [staleAuditPresets, setStaleAuditPresets] = useState<AllowlistStaleAuditExportPreset[]>([]);
   const [staleAuditPresetId, setStaleAuditPresetId] = useState("");
   const [staleAuditPresetName, setStaleAuditPresetName] = useState("");
-  const [presetBusy, setPresetBusy] = useState<"save-preset" | "rename-preset" | "delete-preset" | null>(null);
+  const [lastPreset, setLastPreset] = useState<AllowlistStaleAuditExportLastPreset | null>(null);
+  const [presetBusy, setPresetBusy] = useState<
+    "save-preset" | "rename-preset" | "delete-preset" | "export-usage" | null
+  >(null);
 
   const [selectedKey, setSelectedKey] = useState<string>("");
   const [editSubject, setEditSubject] = useState("");
@@ -124,10 +129,17 @@ export default function NotificationsPage() {
           : null,
     );
     if (dualStatus?.presets) setStaleAuditPresets(dualStatus.presets);
-    if (dualStatus?.lastFilter && !staleAuditHydrated) {
-      setStaleAuditAction(dualStatus.lastFilter.action ?? "");
-      setStaleAuditSince(dualStatus.lastFilter.since ?? "");
-      setStaleAuditUntil(dualStatus.lastFilter.until ?? "");
+    setLastPreset(dualStatus?.lastPreset ?? null);
+    if (!staleAuditHydrated) {
+      if (dualStatus?.lastFilter) {
+        setStaleAuditAction(dualStatus.lastFilter.action ?? "");
+        setStaleAuditSince(dualStatus.lastFilter.since ?? "");
+        setStaleAuditUntil(dualStatus.lastFilter.until ?? "");
+      }
+      if (dualStatus?.lastPreset && (dualStatus.presets ?? []).some((row) => row.id === dualStatus.lastPreset!.presetId)) {
+        setStaleAuditPresetId(dualStatus.lastPreset.presetId);
+        setStaleAuditPresetName(dualStatus.lastPreset.presetName);
+      }
       setStaleAuditHydrated(true);
     }
     if (tmpl.items.length > 0 && !selectedKey) {
@@ -268,7 +280,7 @@ export default function NotificationsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="I3 · I3.35 · Notifications"
+        eyebrow="I3 · I3.36 · Notifications"
         title="Action Inbox"
         subtitle={`Live alerts + email digest · adapter: ${adapter}`}
         actions={
@@ -464,6 +476,7 @@ export default function NotificationsPage() {
                 ? `${allowlistDigest.lastRun.day} · pending ${allowlistDigest.lastRun.pendingCount ?? 0} · sent ${allowlistDigest.lastRun.dispatchedCount} · outbox ${allowlistDigest.outboxDigestCount}`
                 : "never"}
               {allowlistDigest.freshness?.stale ? " · stale" : ""}
+              {lastPreset ? ` · Last preset ${lastPreset.presetName}` : ""}
             </p>
           )}
           {allowlistDigest?.freshness?.stale && (
@@ -625,6 +638,30 @@ export default function NotificationsPage() {
                 }}
               >
                 {presetBusy === "delete-preset" ? "Deleting…" : "Delete preset"}
+              </Btn>
+              <Btn
+                variant="secondary"
+                size="sm"
+                disabled={presetBusy !== null}
+                onClick={() => {
+                  setPresetBusy("export-usage");
+                  setError(null);
+                  void exportAllowlistDualDigestStaleAuditExportPresetUsage(token, "csv")
+                    .then((res) => {
+                      const blob = new Blob([res.csv ?? ""], { type: "text/csv" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `allowlist-preset-usage-${res.generatedAt.slice(0, 10)}.csv`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                      setSyncMsg(`Exported preset usage (${res.count} row${res.count === 1 ? "" : "s"})`);
+                    })
+                    .catch((err) => setError(err instanceof Error ? err.message : "Could not export preset usage"))
+                    .finally(() => setPresetBusy(null));
+                }}
+              >
+                {presetBusy === "export-usage" ? "Exporting…" : "Export preset usage"}
               </Btn>
               <label className="text-xs text-muted">
                 Action

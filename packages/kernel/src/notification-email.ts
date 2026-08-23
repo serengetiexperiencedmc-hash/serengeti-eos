@@ -200,6 +200,55 @@ export function normalizeNotifAllowlistDualDigestStaleAuditExportPresetName(name
   return trimmed;
 }
 
+/** I3.36 — in-memory usage row when a named allowlist stale-audit export preset is applied. */
+export type NotifAllowlistDualDigestStaleAuditExportPresetUsage = {
+  id: string;
+  tenantId: string;
+  principalId: string;
+  presetId: string;
+  presetName: string;
+  createdAt: string;
+  createdByPrincipalId: string;
+};
+
+export function sanitizeNotifAllowlistDualDigestStaleAuditExportPresetUsage(
+  row: NotifAllowlistDualDigestStaleAuditExportPresetUsage,
+) {
+  return {
+    id: row.id,
+    presetId: row.presetId,
+    presetName: row.presetName,
+    createdAt: row.createdAt,
+  };
+}
+
+export function formatNotifAllowlistDualDigestStaleAuditExportPresetUsageCsv(
+  rows: ReadonlyArray<ReturnType<typeof sanitizeNotifAllowlistDualDigestStaleAuditExportPresetUsage>>,
+): string {
+  const header = "presetId,presetName,createdAt";
+  const lines = rows.map((row) => [row.presetId, row.presetName, row.createdAt].join(","));
+  return [header, ...lines].join("\n");
+}
+
+/** I3.36 — last-used allowlist stale-audit export preset per tenant + principal (in-memory). */
+export type NotifAllowlistDualDigestStaleAuditExportLastPreset = {
+  tenantId: string;
+  principalId: string;
+  presetId: string;
+  presetName: string;
+  usedAt: string;
+};
+
+export function sanitizeNotifAllowlistDualDigestStaleAuditExportLastPreset(
+  row: NotifAllowlistDualDigestStaleAuditExportLastPreset,
+) {
+  return {
+    presetId: row.presetId,
+    presetName: row.presetName,
+    usedAt: row.usedAt,
+  };
+}
+
 /** I3.29 — audit trail for stale allowlist dual digest snooze/ack/clear. */
 export type NotifAllowlistDualDigestStaleSuppressionAudit = {
   id: string;

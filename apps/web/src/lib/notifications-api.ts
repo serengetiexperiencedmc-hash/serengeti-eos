@@ -118,6 +118,19 @@ export type AllowlistStaleAuditExportPreset = {
   updatedAt: string;
 };
 
+export type AllowlistStaleAuditExportLastPreset = {
+  presetId: string;
+  presetName: string;
+  usedAt: string;
+};
+
+export type AllowlistStaleAuditExportPresetUsage = {
+  id: string;
+  presetId: string;
+  presetName: string;
+  createdAt: string;
+};
+
 export async function getAllowlistDualDigestStatus(token: string) {
   return eosFetch<{
     lastRun: DigestLastRun | null;
@@ -125,9 +138,26 @@ export async function getAllowlistDualDigestStatus(token: string) {
     analytics: { outboxDigestCount: number; outboxByStatus: Record<string, number> };
     suppression: { snoozedUntil?: string; acknowledgedAt?: string } | null;
     lastFilter: { action?: string; since?: string; until?: string; updatedAt: string } | null;
+    lastPreset: AllowlistStaleAuditExportLastPreset | null;
+    usages: AllowlistStaleAuditExportPresetUsage[];
     presets: AllowlistStaleAuditExportPreset[];
     increment: string;
   }>("/v1/notifications/email/allowlist-dual-digest-status", { token });
+}
+
+export async function exportAllowlistDualDigestStaleAuditExportPresetUsage(
+  token: string,
+  format: "json" | "csv" = "csv",
+) {
+  return eosFetch<{
+    format: "json" | "csv";
+    csv?: string;
+    lastPreset: AllowlistStaleAuditExportLastPreset | null;
+    usages: AllowlistStaleAuditExportPresetUsage[];
+    count: number;
+    generatedAt: string;
+    increment: string;
+  }>(`/v1/notifications/email/allowlist-dual-digest-stale/export/presets/usage?format=${format}`, { token });
 }
 
 export async function upsertAllowlistDualDigestStaleAuditExportPreset(

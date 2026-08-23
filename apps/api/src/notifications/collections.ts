@@ -33,4 +33,10 @@ export function ensureNotificationCollections(store: Store): void {
   if (!store.notifAllowlistDualDigestStaleAuditExportPresets) {
     store.notifAllowlistDualDigestStaleAuditExportPresets = [];
   }
+  if (!store.notifAllowlistDualDigestStaleAuditExportLastPresets) {
+    store.notifAllowlistDualDigestStaleAuditExportLastPresets = [];
+  }
+  if (!store.notifAllowlistDualDigestStaleAuditExportPresetUsages) {
+    store.notifAllowlistDualDigestStaleAuditExportPresetUsages = [];
+  }
 }

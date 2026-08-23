@@ -93,7 +93,9 @@ import {
   type NotifAllowlistDualDigestRecipient,
   type NotifAllowlistDualDigestLastRun,
   type NotifAllowlistDualDigestStaleAuditExportLastFilter,
+  type NotifAllowlistDualDigestStaleAuditExportLastPreset,
   type NotifAllowlistDualDigestStaleAuditExportPreset,
+  type NotifAllowlistDualDigestStaleAuditExportPresetUsage,
   type NotifAllowlistDualDigestStaleSuppression,
   type NotifAllowlistDualDigestStaleSuppressionAudit,
   type AiDraft,
@@ -256,6 +258,10 @@ export type Store = {
   notifAllowlistDualDigestStaleAuditExportLastFilters: NotifAllowlistDualDigestStaleAuditExportLastFilter[];
   /** I3.34 — named tenant allowlist stale-audit export presets (persisted). */
   notifAllowlistDualDigestStaleAuditExportPresets: NotifAllowlistDualDigestStaleAuditExportPreset[];
+  /** I3.36 — last-used allowlist stale-audit export preset (in-memory only). */
+  notifAllowlistDualDigestStaleAuditExportLastPresets: NotifAllowlistDualDigestStaleAuditExportLastPreset[];
+  /** I3.36 — allowlist stale-audit export preset usage rows (in-memory only). */
+  notifAllowlistDualDigestStaleAuditExportPresetUsages: NotifAllowlistDualDigestStaleAuditExportPresetUsage[];
   natsConsumerOffsets: NatsConsumerOffset[];
   /** I20.2 — unpublished AI drafts until human accept. */
   aiDrafts: AiDraft[];
@@ -905,6 +911,8 @@ export function seedStore(
     notifAllowlistDualDigestStaleSuppressionAudits: [],
     notifAllowlistDualDigestStaleAuditExportLastFilters: [],
     notifAllowlistDualDigestStaleAuditExportPresets: [],
+    notifAllowlistDualDigestStaleAuditExportLastPresets: [],
+    notifAllowlistDualDigestStaleAuditExportPresetUsages: [],
     natsConsumerOffsets: [],
     aiDrafts: [],
     aiRecommendRuns: [],

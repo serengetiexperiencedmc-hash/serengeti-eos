@@ -6,6 +6,9 @@ import {
   parseNotifDlqSlaDigestStaleAuditExportFilter,
   normalizeNotifAllowlistDualDigestStaleAuditExportPresetName,
   sanitizeNotifAllowlistDualDigestStaleAuditExportLastFilter,
+  sanitizeNotifAllowlistDualDigestStaleAuditExportLastPreset,
+  sanitizeNotifAllowlistDualDigestStaleAuditExportPresetUsage,
+  formatNotifAllowlistDualDigestStaleAuditExportPresetUsageCsv,
   sanitizeNotifAllowlistDualDigestStaleAuditExportPreset,
   formatNotifDlqSlaDigestStaleAuditExportPresetUsageCsv,
   sanitizeNotifDlqSlaDigestStaleAuditExportLastFilter,
@@ -65,6 +68,33 @@ describe("notification email kernel", () => {
     expect(
       filterNotifDlqSlaDigestStaleSuppressionAudits(rows, parsed as Extract<typeof parsed, { action: unknown }>),
     ).toEqual([{ action: "ack", createdAt: "2026-08-23T11:00:00.000Z" }]);
+  });
+
+  it("sanitizes allowlist stale-audit export last preset and usage CSV", () => {
+    const last = sanitizeNotifAllowlistDualDigestStaleAuditExportLastPreset({
+      tenantId: "t1",
+      principalId: "p1",
+      presetId: "preset-1",
+      presetName: "Snoozes only",
+      usedAt: "2026-08-23T12:00:00.000Z",
+    });
+    expect(last.presetName).toBe("Snoozes only");
+    expect(last).not.toHaveProperty("tenantId");
+    expect(last).not.toHaveProperty("principalId");
+    const usage = sanitizeNotifAllowlistDualDigestStaleAuditExportPresetUsage({
+      id: "u1",
+      tenantId: "t1",
+      principalId: "p1",
+      presetId: "preset-1",
+      presetName: "Snoozes only",
+      createdAt: "2026-08-23T12:00:00.000Z",
+      createdByPrincipalId: "p1",
+    });
+    expect(usage).not.toHaveProperty("tenantId");
+    expect(usage).not.toHaveProperty("principalId");
+    expect(formatNotifAllowlistDualDigestStaleAuditExportPresetUsageCsv([usage])).toContain(
+      "presetId,presetName,createdAt",
+    );
   });
 
   it("sanitizes last-used allowlist stale-audit export filter", () => {
