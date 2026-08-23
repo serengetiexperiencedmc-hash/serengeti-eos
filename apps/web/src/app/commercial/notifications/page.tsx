@@ -34,6 +34,8 @@ import {
   acknowledgeAllowlistDualDigestStale,
   exportAllowlistDualDigestStaleSuppression,
   upsertAllowlistDualDigestStaleAuditExportPreset,
+  renameAllowlistDualDigestStaleAuditExportPreset,
+  deleteAllowlistDualDigestStaleAuditExportPreset,
   type AllowlistStaleAuditExportPreset,
   type DigestLastRun,
   type EmailDeliveryAnalytics,
@@ -70,7 +72,7 @@ export default function NotificationsPage() {
   const [staleAuditPresets, setStaleAuditPresets] = useState<AllowlistStaleAuditExportPreset[]>([]);
   const [staleAuditPresetId, setStaleAuditPresetId] = useState("");
   const [staleAuditPresetName, setStaleAuditPresetName] = useState("");
-  const [presetBusy, setPresetBusy] = useState(false);
+  const [presetBusy, setPresetBusy] = useState<"save-preset" | "rename-preset" | "delete-preset" | null>(null);
 
   const [selectedKey, setSelectedKey] = useState<string>("");
   const [editSubject, setEditSubject] = useState("");
@@ -266,7 +268,7 @@ export default function NotificationsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="I3 · I3.34 · Notifications"
+        eyebrow="I3 · I3.35 · Notifications"
         title="Action Inbox"
         subtitle={`Live alerts + email digest · adapter: ${adapter}`}
         actions={
@@ -558,9 +560,10 @@ export default function NotificationsPage() {
               <Btn
                 variant="secondary"
                 size="sm"
-                disabled={presetBusy || !staleAuditPresetName.trim()}
+                disabled={presetBusy !== null || !staleAuditPresetName.trim()}
                 onClick={() => {
-                  setPresetBusy(true);
+                  setPresetBusy("save-preset");
+                  setError(null);
                   void upsertAllowlistDualDigestStaleAuditExportPreset(token, {
                     name: staleAuditPresetName.trim(),
                     ...(staleAuditAction ? { action: staleAuditAction } : {}),
@@ -574,10 +577,54 @@ export default function NotificationsPage() {
                       setSyncMsg(`Saved preset ${res.preset.name}`);
                     })
                     .catch((err) => setError(err instanceof Error ? err.message : "Could not save audit preset"))
-                    .finally(() => setPresetBusy(false));
+                    .finally(() => setPresetBusy(null));
                 }}
               >
-                {presetBusy ? "Saving…" : "Save preset"}
+                {presetBusy === "save-preset" ? "Saving…" : "Save preset"}
+              </Btn>
+              <Btn
+                variant="secondary"
+                size="sm"
+                disabled={presetBusy !== null || !staleAuditPresetId || !staleAuditPresetName.trim()}
+                onClick={() => {
+                  setPresetBusy("rename-preset");
+                  setError(null);
+                  void renameAllowlistDualDigestStaleAuditExportPreset(
+                    token,
+                    staleAuditPresetId,
+                    staleAuditPresetName.trim(),
+                  )
+                    .then((res) => {
+                      setStaleAuditPresets(res.presets);
+                      setStaleAuditPresetId(res.preset.id);
+                      setStaleAuditPresetName(res.preset.name);
+                      setSyncMsg(`Renamed preset ${res.preset.name}`);
+                    })
+                    .catch((err) => setError(err instanceof Error ? err.message : "Could not rename audit preset"))
+                    .finally(() => setPresetBusy(null));
+                }}
+              >
+                {presetBusy === "rename-preset" ? "Renaming…" : "Rename preset"}
+              </Btn>
+              <Btn
+                variant="secondary"
+                size="sm"
+                disabled={presetBusy !== null || !staleAuditPresetId}
+                onClick={() => {
+                  setPresetBusy("delete-preset");
+                  setError(null);
+                  void deleteAllowlistDualDigestStaleAuditExportPreset(token, staleAuditPresetId)
+                    .then((res) => {
+                      setStaleAuditPresets(res.presets);
+                      setStaleAuditPresetId("");
+                      setStaleAuditPresetName("");
+                      setSyncMsg("Deleted preset");
+                    })
+                    .catch((err) => setError(err instanceof Error ? err.message : "Could not delete audit preset"))
+                    .finally(() => setPresetBusy(null));
+                }}
+              >
+                {presetBusy === "delete-preset" ? "Deleting…" : "Delete preset"}
               </Btn>
               <label className="text-xs text-muted">
                 Action

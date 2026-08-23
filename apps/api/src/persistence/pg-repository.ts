@@ -2613,6 +2613,11 @@ export async function loadNotifAllowlistDualDigestStaleAuditExportPresets(
   });
 }
 
+/** I3.35 — hard-delete allowlist stale-audit export preset by id. */
+export async function deleteNotifAllowlistDualDigestStaleAuditExportPreset(pool: DbPool, id: string): Promise<void> {
+  await pool.query(`DELETE FROM notif_allowlist_dual_digest_stale_audit_export_preset WHERE id = $1`, [id]);
+}
+
 /** PG.27 — upsert last heatmap supplier rollup snapshot (one row per tenant). */
 export async function upsertSupHeatmapRollupSnapshot(
   pool: DbPool,

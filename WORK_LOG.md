@@ -727,6 +727,14 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **I4.31** | Dual-write named tenant DLQ stale-audit export presets; hydrate on startup |
 
+### 66:xx — I3.35 rename/delete allowlist stale-audit export presets ✅
+
+**Shipped:** server `0.99.0-i3.35`
+
+| Increment | Change |
+| --- | --- |
+| **I3.35** | Rename/delete named tenant allowlist stale-audit export presets; persist-delete; `conflict` → 409 |
+
 ### Recommended next increments
 
 1. I20.23 — (unnamed)

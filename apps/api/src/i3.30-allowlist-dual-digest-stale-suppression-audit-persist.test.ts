@@ -83,7 +83,7 @@ describe("I3.30 stale allowlist dual digest suppression audit persistence", () =
       payload: { hours: 24 },
     });
     expect(snoozed.statusCode).toBe(200);
-    expect(snoozed.json().increment).toBe("I3.34");
+    expect(snoozed.json().increment).toBe("I3.35");
     expect(writes.some((row) => row.action === "snooze")).toBe(true);
 
     await app.inject({

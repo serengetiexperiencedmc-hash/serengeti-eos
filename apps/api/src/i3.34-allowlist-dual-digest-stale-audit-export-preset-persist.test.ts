@@ -77,7 +77,7 @@ describe("I3.34 persist named stale allowlist audit export presets", () => {
       url: "/v1/notifications/email/allowlist-dual-digest-status",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(empty.json().increment).toBe("I3.34");
+    expect(empty.json().increment).toBe("I3.35");
     expect(empty.json().presets).toEqual([]);
     expect(writes.length).toBe(0);
 
@@ -97,7 +97,7 @@ describe("I3.34 persist named stale allowlist audit export presets", () => {
       payload: { name: "Snoozes only", action: "snooze" },
     });
     expect(saved.statusCode).toBe(200);
-    expect(saved.json().increment).toBe("I3.34");
+    expect(saved.json().increment).toBe("I3.35");
     expect(saved.json().preset.name).toBe("Snoozes only");
     expect(saved.json().preset).not.toHaveProperty("tenantId");
     expect(writes.length).toBeGreaterThanOrEqual(1);

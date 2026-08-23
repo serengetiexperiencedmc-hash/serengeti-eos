@@ -145,6 +145,28 @@ export async function upsertAllowlistDualDigestStaleAuditExportPreset(
   });
 }
 
+export async function renameAllowlistDualDigestStaleAuditExportPreset(token: string, id: string, name: string) {
+  return eosFetch<{
+    preset: AllowlistStaleAuditExportPreset;
+    presets: AllowlistStaleAuditExportPreset[];
+    increment: string;
+  }>(`/v1/notifications/email/allowlist-dual-digest-stale/export/presets/${id}/rename`, {
+    token,
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function deleteAllowlistDualDigestStaleAuditExportPreset(token: string, id: string) {
+  return eosFetch<{
+    presets: AllowlistStaleAuditExportPreset[];
+    increment: string;
+  }>(`/v1/notifications/email/allowlist-dual-digest-stale/export/presets/${id}`, {
+    token,
+    method: "DELETE",
+  });
+}
+
 export async function snoozeAllowlistDualDigestStale(token: string, hours = 24) {
   return eosFetch<{ suppression: { snoozedUntil?: string; acknowledgedAt?: string }; increment: string }>(
     "/v1/notifications/email/allowlist-dual-digest-stale/snooze",

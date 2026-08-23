@@ -20,8 +20,10 @@ import {
   exportAllowlistDualDigestStaleSuppression,
   getAllowlistDualDigestStatus,
   listAllowlistDualDigestStaleAuditExportPresets,
+  renameAllowlistDualDigestStaleAuditExportPreset,
   snoozeAllowlistDualDigestStale,
   upsertAllowlistDualDigestStaleAuditExportPreset,
+  deleteAllowlistDualDigestStaleAuditExportPreset,
 } from "./allowlist-dual-digest.js";
 import {
   addAllowlistDualDigestRecipient,
@@ -57,6 +59,8 @@ function sendError(
       return reply.code(403).send(result);
     case "not_found":
       return reply.code(404).send(result);
+    case "conflict":
+      return reply.code(409).send(result);
     default:
       return reply.code(400).send(result);
   }
@@ -260,6 +264,32 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const body = (req.body ?? {}) as { name?: string; action?: string; since?: string; until?: string };
     const result = await upsertAllowlistDualDigestStaleAuditExportPreset(store, principal, body);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/notifications/email/allowlist-dual-digest-stale/export/presets/:id/rename", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const body = (req.body ?? {}) as { name?: string };
+    const result = await renameAllowlistDualDigestStaleAuditExportPreset(
+      store,
+      principal,
+      (req.params as { id: string }).id,
+      body,
+    );
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.delete("/v1/notifications/email/allowlist-dual-digest-stale/export/presets/:id", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = await deleteAllowlistDualDigestStaleAuditExportPreset(
+      store,
+      principal,
+      (req.params as { id: string }).id,
+    );
     if ("error" in result) return sendError(reply, result);
     return result;
   });

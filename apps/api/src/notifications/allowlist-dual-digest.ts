@@ -19,6 +19,7 @@ import { ensureNotificationCollections } from "./collections.js";
 import { resolveAllowlistDualDigestRecipientEmails } from "./allowlist-dual-digest-recipients.js";
 import {
   persistDeleteNotifAllowlistDualDigestStaleSuppression,
+  persistDeleteNotifAllowlistDualDigestStaleAuditExportPreset,
   persistNotifAllowlistDualDigestLastRun,
   persistNotifAllowlistDualDigestStaleAuditExportLastFilter,
   persistNotifAllowlistDualDigestStaleAuditExportPreset,
@@ -242,7 +243,7 @@ export async function dispatchAllowlistDualDigest(store: Store, principal: Princ
       pendingCount: 0,
       recipientCount: recipients.length,
       lastRun,
-      increment: "I3.34" as const,
+      increment: "I3.35" as const,
     };
   }
 
@@ -289,7 +290,7 @@ export async function dispatchAllowlistDualDigest(store: Store, principal: Princ
     pendingCount: pending.length,
     recipientCount: recipients.length,
     lastRun,
-    increment: "I3.34" as const,
+    increment: "I3.35" as const,
   };
 }
 
@@ -330,14 +331,14 @@ export function getAllowlistDualDigestStatus(store: Store, principal: Principal)
       return last ? sanitizeNotifAllowlistDualDigestStaleAuditExportLastFilter(last) : null;
     })(),
     presets: sanitizedTenantAllowlistPresets(store, principal.tenantId),
-    increment: "I3.34" as const,
+    increment: "I3.35" as const,
   };
 }
 
 export function listAllowlistDualDigestStaleAuditExportPresets(store: Store, principal: Principal) {
   const status = getAllowlistDualDigestStatus(store, principal);
   if ("error" in status) return status;
-  return { presets: status.presets, increment: "I3.34" as const };
+  return { presets: status.presets, increment: "I3.35" as const };
 }
 
 export async function upsertAllowlistDualDigestStaleAuditExportPreset(
@@ -390,7 +391,61 @@ export async function upsertAllowlistDualDigestStaleAuditExportPreset(
   return {
     preset: sanitizeNotifAllowlistDualDigestStaleAuditExportPreset(next),
     presets: sanitizedTenantAllowlistPresets(store, principal.tenantId),
-    increment: "I3.34" as const,
+    increment: "I3.35" as const,
+  };
+}
+
+export async function renameAllowlistDualDigestStaleAuditExportPreset(
+  store: Store,
+  principal: Principal,
+  id: string,
+  input: { name?: string } = {},
+) {
+  const decision = authorize({
+    principal,
+    permission: "notification:dispatch:email",
+    action: "rename:allowlist_dual_digest_stale_audit_export_preset",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+  const name = normalizeNotifAllowlistDualDigestStaleAuditExportPresetName(input.name);
+  if (!name) return { error: "invalid_request" as const, reason: "invalid_name" };
+  ensureNotificationCollections(store);
+  const existing = findAllowlistStaleAuditExportPreset(store, principal.tenantId, { presetId: id });
+  if (!existing) return { error: "not_found" as const, reason: "preset_not_found" };
+  const clash = findAllowlistStaleAuditExportPreset(store, principal.tenantId, { preset: name });
+  if (clash && clash.id !== existing.id) return { error: "conflict" as const, reason: "name_taken" };
+  const next = { ...existing, name, updatedAt: new Date().toISOString() };
+  const idx = store.notifAllowlistDualDigestStaleAuditExportPresets.findIndex((row) => row.id === existing.id);
+  store.notifAllowlistDualDigestStaleAuditExportPresets[idx] = next;
+  await persistNotifAllowlistDualDigestStaleAuditExportPreset(store.dbPool, next);
+  return {
+    preset: sanitizeNotifAllowlistDualDigestStaleAuditExportPreset(next),
+    presets: sanitizedTenantAllowlistPresets(store, principal.tenantId),
+    increment: "I3.35" as const,
+  };
+}
+
+export async function deleteAllowlistDualDigestStaleAuditExportPreset(
+  store: Store,
+  principal: Principal,
+  id: string,
+) {
+  const decision = authorize({
+    principal,
+    permission: "notification:dispatch:email",
+    action: "delete:allowlist_dual_digest_stale_audit_export_preset",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+  ensureNotificationCollections(store);
+  const existing = findAllowlistStaleAuditExportPreset(store, principal.tenantId, { presetId: id });
+  if (!existing) return { error: "not_found" as const, reason: "preset_not_found" };
+  store.notifAllowlistDualDigestStaleAuditExportPresets = store.notifAllowlistDualDigestStaleAuditExportPresets.filter(
+    (row) => row.id !== existing.id,
+  );
+  await persistDeleteNotifAllowlistDualDigestStaleAuditExportPreset(store.dbPool, existing.id);
+  return {
+    presets: sanitizedTenantAllowlistPresets(store, principal.tenantId),
+    increment: "I3.35" as const,
   };
 }
 
@@ -425,7 +480,7 @@ export async function dispatchAllowlistDualDigestStaleAlert(store: Store, princi
       adapter: adapter.name,
       freshness: status.freshness,
       inboxKey,
-      increment: "I3.34" as const,
+      increment: "I3.35" as const,
     };
   }
 
@@ -442,7 +497,7 @@ export async function dispatchAllowlistDualDigestStaleAlert(store: Store, princi
       adapter: adapter.name,
       freshness: status.freshness,
       inboxKey,
-      increment: "I3.34" as const,
+      increment: "I3.35" as const,
     };
   }
 
@@ -480,7 +535,7 @@ export async function dispatchAllowlistDualDigestStaleAlert(store: Store, princi
     adapter: adapter.name,
     freshness: status.freshness,
     inboxKey,
-    increment: "I3.34" as const,
+    increment: "I3.35" as const,
   };
 }
 
@@ -504,7 +559,7 @@ export function snoozeAllowlistDualDigestStale(store: Store, principal: Principa
     snoozedUntil,
     acknowledgedAt: undefined,
   });
-  return { suppression, increment: "I3.34" as const };
+  return { suppression, increment: "I3.35" as const };
 }
 
 /** I3.27 — acknowledge stale-digest inbox until the next last-run stamp. */
@@ -522,10 +577,10 @@ export function acknowledgeAllowlistDualDigestStale(store: Store, principal: Pri
     acknowledgedAt: new Date().toISOString(),
     snoozedUntil: undefined,
   });
-  return { suppression, increment: "I3.34" as const };
+  return { suppression, increment: "I3.35" as const };
 }
 
-/** I3.29 / I3.31 / I3.32 / I3.33 / I3.34 — CSV/JSON export of current suppression + snooze/ack/clear audit. */
+/** I3.29 / I3.31 / I3.32 / I3.33 / I3.34 / I3.35 — CSV/JSON export of current suppression + snooze/ack/clear audit. */
 export async function exportAllowlistDualDigestStaleSuppression(
   store: Store,
   principal: Principal,
@@ -598,7 +653,7 @@ export async function exportAllowlistDualDigestStaleSuppression(
       lastFilter,
       preset: sanitizedPreset,
       generatedAt,
-      increment: "I3.34" as const,
+      increment: "I3.35" as const,
     };
   }
 
@@ -611,6 +666,6 @@ export async function exportAllowlistDualDigestStaleSuppression(
     lastFilter,
     preset: sanitizedPreset,
     generatedAt,
-    increment: "I3.34" as const,
+    increment: "I3.35" as const,
   };
 }
