@@ -52,7 +52,7 @@ describe("I20.3 typed AI draft artefacts", () => {
       payload: { recommendationKey: "crm.task.overdue" },
     });
     expect(created.statusCode).toBe(201);
-    expect(created.json().increment).toBe("I20.21");
+    expect(created.json().increment).toBe("I20.22");
     expect(created.json().draft.artefactType).toBe("crm_activity");
     expect(created.json().draft.title).toMatch(/^Log follow-up:/);
     const draftId = created.json().draft.id as string;

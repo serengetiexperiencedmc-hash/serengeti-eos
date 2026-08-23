@@ -76,7 +76,7 @@ describe("I20.17 last-used stale recommend audit export filter", () => {
       url: "/v1/ai/recommendations/last-run",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(empty.json().increment).toBe("I20.21");
+    expect(empty.json().increment).toBe("I20.22");
     expect(empty.json().lastFilter).toBeNull();
     expect(store.aiRecommendRuns.length).toBe(0);
 
@@ -94,7 +94,7 @@ describe("I20.17 last-used stale recommend audit export filter", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(exported.statusCode).toBe(200);
-    expect(exported.json().increment).toBe("I20.21");
+    expect(exported.json().increment).toBe("I20.22");
     expect(exported.json().lastFilter.action).toBe("snooze");
     expect(exported.json().lastFilter.since).toBe("2026-08-23T00:00:00.000Z");
     expect(exported.json().lastFilter).not.toHaveProperty("tenantId");

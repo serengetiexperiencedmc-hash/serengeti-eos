@@ -2785,3 +2785,74 @@ export async function loadAiRecommendStaleAuditExportPresets(
 export async function deleteAiRecommendStaleAuditExportPreset(pool: DbPool, id: string): Promise<void> {
   await pool.query(`DELETE FROM ai_recommend_stale_audit_export_preset WHERE id = $1`, [id]);
 }
+
+/** I20.22 — append preset-apply usage. */
+export async function insertAiRecommendStaleAuditExportPresetUsage(
+  pool: DbPool,
+  row: import("@sedmc/kernel").AiRecommendStaleAuditExportPresetUsage,
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO ai_recommend_stale_audit_export_preset_usage (
+      id, tenant_id, principal_id, preset_id, preset_name, created_at, created_by_principal_id
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+    [row.id, row.tenantId, row.principalId, row.presetId, row.presetName, row.createdAt, row.createdByPrincipalId],
+  );
+}
+
+export async function loadAiRecommendStaleAuditExportPresetUsages(
+  pool: DbPool,
+): Promise<import("@sedmc/kernel").AiRecommendStaleAuditExportPresetUsage[]> {
+  const result = await pool.query(
+    `SELECT id, tenant_id, principal_id, preset_id, preset_name, created_at, created_by_principal_id
+     FROM ai_recommend_stale_audit_export_preset_usage
+     ORDER BY created_at ASC`,
+  );
+  return result.rows.map((row) => {
+    const createdAt = row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at);
+    return {
+      id: row.id as string,
+      tenantId: row.tenant_id as string,
+      principalId: row.principal_id as string,
+      presetId: row.preset_id as string,
+      presetName: String(row.preset_name),
+      createdAt,
+      createdByPrincipalId: row.created_by_principal_id as string,
+    };
+  });
+}
+
+/** I20.22 — upsert last-used stale recommend audit export preset. */
+export async function upsertAiRecommendStaleAuditExportLastPreset(
+  pool: DbPool,
+  row: import("@sedmc/kernel").AiRecommendStaleAuditExportLastPreset,
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO ai_recommend_stale_audit_export_last_preset (
+      tenant_id, principal_id, preset_id, preset_name, used_at
+    ) VALUES ($1,$2,$3,$4,$5)
+     ON CONFLICT (tenant_id, principal_id) DO UPDATE SET
+       preset_id = EXCLUDED.preset_id,
+       preset_name = EXCLUDED.preset_name,
+       used_at = EXCLUDED.used_at`,
+    [row.tenantId, row.principalId, row.presetId, row.presetName, row.usedAt],
+  );
+}
+
+export async function loadAiRecommendStaleAuditExportLastPresets(
+  pool: DbPool,
+): Promise<import("@sedmc/kernel").AiRecommendStaleAuditExportLastPreset[]> {
+  const result = await pool.query(
+    `SELECT tenant_id, principal_id, preset_id, preset_name, used_at
+     FROM ai_recommend_stale_audit_export_last_preset`,
+  );
+  return result.rows.map((row) => {
+    const usedAt = row.used_at instanceof Date ? row.used_at.toISOString() : String(row.used_at);
+    return {
+      tenantId: row.tenant_id as string,
+      principalId: row.principal_id as string,
+      presetId: row.preset_id as string,
+      presetName: String(row.preset_name),
+      usedAt,
+    };
+  });
+}

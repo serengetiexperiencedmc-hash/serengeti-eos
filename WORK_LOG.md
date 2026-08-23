@@ -647,11 +647,19 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **I20.21** | Record preset apply usage; last-run echoes `lastPreset`; **Export preset usage** |
 
+### 56:xx — I20.22 persist preset usage / last-used preset ✅
+
+**Shipped:** server `0.89.0-i20.22`
+
+| Increment | Change |
+| --- | --- |
+| **I20.22** | Dual-write preset usage and last-used preset; hydrate on startup |
+
 ### Recommended next increments
 
 1. I3.30 — persist allowlist stale audit to Postgres
 2. I4.28 — stale-audit filters / tenant export window
-3. I20.22 — persist preset usage / last-used preset
+3. I20.23 — (unnamed)
 
 ### Issues resolved
 

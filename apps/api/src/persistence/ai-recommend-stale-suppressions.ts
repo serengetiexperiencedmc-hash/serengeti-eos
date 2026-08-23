@@ -1,7 +1,9 @@
 import type { DbPool } from "@sedmc/db";
 import type {
   AiRecommendStaleAuditExportLastFilter,
+  AiRecommendStaleAuditExportLastPreset,
   AiRecommendStaleAuditExportPreset,
+  AiRecommendStaleAuditExportPresetUsage,
   AiRecommendStaleSuppression,
   AiRecommendStaleSuppressionAudit,
 } from "@sedmc/kernel";
@@ -9,12 +11,16 @@ import type { Store } from "../store.js";
 import {
   deleteAiRecommendStaleAuditExportPreset,
   deleteAiRecommendStaleSuppression,
+  insertAiRecommendStaleAuditExportPresetUsage,
   insertAiRecommendStaleSuppressionAudit,
   loadAiRecommendStaleAuditExportLastFilters,
+  loadAiRecommendStaleAuditExportLastPresets,
   loadAiRecommendStaleAuditExportPresets,
+  loadAiRecommendStaleAuditExportPresetUsages,
   loadAiRecommendStaleSuppressionAudits,
   loadAiRecommendStaleSuppressions,
   upsertAiRecommendStaleAuditExportLastFilter,
+  upsertAiRecommendStaleAuditExportLastPreset,
   upsertAiRecommendStaleAuditExportPreset,
   upsertAiRecommendStaleSuppression,
 } from "./pg-repository.js";
@@ -112,6 +118,64 @@ export async function persistDeleteAiRecommendStaleAuditExportPreset(
   } catch {
     // Fire-and-forget dual-write.
   }
+}
+
+export async function persistAiRecommendStaleAuditExportPresetUsage(
+  pool: DbPool | undefined,
+  row: AiRecommendStaleAuditExportPresetUsage,
+): Promise<void> {
+  if (!pool) return;
+  try {
+    await insertAiRecommendStaleAuditExportPresetUsage(pool, row);
+  } catch {
+    // Fire-and-forget dual-write.
+  }
+}
+
+export async function persistAiRecommendStaleAuditExportLastPreset(
+  pool: DbPool | undefined,
+  row: AiRecommendStaleAuditExportLastPreset,
+): Promise<void> {
+  if (!pool) return;
+  try {
+    await upsertAiRecommendStaleAuditExportLastPreset(pool, row);
+  } catch {
+    // Fire-and-forget dual-write.
+  }
+}
+
+export async function hydrateAiRecommendStaleAuditExportPresetUsages(pool: DbPool, store: Store): Promise<number> {
+  if (!store.aiRecommendStaleAuditExportPresetUsages) store.aiRecommendStaleAuditExportPresetUsages = [];
+  const rows = await loadAiRecommendStaleAuditExportPresetUsages(pool);
+  let merged = 0;
+  for (const row of rows) {
+    const idx = store.aiRecommendStaleAuditExportPresetUsages.findIndex((u) => u.id === row.id);
+    if (idx >= 0) {
+      store.aiRecommendStaleAuditExportPresetUsages[idx] = row;
+    } else {
+      store.aiRecommendStaleAuditExportPresetUsages.push(row);
+      merged += 1;
+    }
+  }
+  return merged;
+}
+
+export async function hydrateAiRecommendStaleAuditExportLastPresets(pool: DbPool, store: Store): Promise<number> {
+  if (!store.aiRecommendStaleAuditExportLastPresets) store.aiRecommendStaleAuditExportLastPresets = [];
+  const rows = await loadAiRecommendStaleAuditExportLastPresets(pool);
+  let merged = 0;
+  for (const row of rows) {
+    const idx = store.aiRecommendStaleAuditExportLastPresets.findIndex(
+      (p) => p.tenantId === row.tenantId && p.principalId === row.principalId,
+    );
+    if (idx >= 0) {
+      store.aiRecommendStaleAuditExportLastPresets[idx] = row;
+    } else {
+      store.aiRecommendStaleAuditExportLastPresets.push(row);
+      merged += 1;
+    }
+  }
+  return merged;
 }
 
 export async function persistAiRecommendStaleAuditExportPreset(

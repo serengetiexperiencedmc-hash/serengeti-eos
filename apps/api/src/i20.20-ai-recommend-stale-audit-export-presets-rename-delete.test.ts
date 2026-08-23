@@ -94,7 +94,7 @@ describe("I20.20 rename and delete stale recommend audit export presets", () => 
       payload: { name: "  Last  snoozes " },
     });
     expect(renamed.statusCode).toBe(200);
-    expect(renamed.json().increment).toBe("I20.21");
+    expect(renamed.json().increment).toBe("I20.22");
     expect(renamed.json().preset.id).toBe(firstId);
     expect(renamed.json().preset.name).toBe("Last snoozes");
     expect(renamed.json().preset).not.toHaveProperty("tenantId");
@@ -113,7 +113,7 @@ describe("I20.20 rename and delete stale recommend audit export presets", () => 
       headers: { authorization: `Bearer ${token}` },
     });
     expect(removed.statusCode).toBe(200);
-    expect(removed.json().increment).toBe("I20.21");
+    expect(removed.json().increment).toBe("I20.22");
     expect(removed.json().presets.map((row: { name: string }) => row.name)).toEqual(["Last snoozes"]);
     expect(deleted).toContain(secondId);
     expect(store.aiRecommendRuns.length).toBe(0);

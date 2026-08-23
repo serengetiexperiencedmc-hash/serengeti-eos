@@ -35,7 +35,7 @@ describe("I20.21 preset usage audit and last-used preset echo", () => {
       url: "/v1/ai/recommendations/last-run",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(empty.json().increment).toBe("I20.21");
+    expect(empty.json().increment).toBe("I20.22");
     expect(empty.json().lastPreset).toBeNull();
     expect(empty.json().usages).toEqual([]);
     expect(store.aiRecommendRuns.length).toBe(0);
@@ -62,7 +62,7 @@ describe("I20.21 preset usage audit and last-used preset echo", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(exported.statusCode).toBe(200);
-    expect(exported.json().increment).toBe("I20.21");
+    expect(exported.json().increment).toBe("I20.22");
     expect(exported.json().lastPreset.presetName).toBe("Snoozes only");
     expect(exported.json().lastPreset).not.toHaveProperty("tenantId");
     expect(store.aiRecommendRuns.length).toBe(0);

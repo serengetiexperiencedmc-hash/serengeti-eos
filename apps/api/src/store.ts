@@ -251,9 +251,9 @@ export type Store = {
   aiRecommendStaleAuditExportLastFilters: AiRecommendStaleAuditExportLastFilter[];
   /** I20.18 — named tenant stale-recommend audit export presets. */
   aiRecommendStaleAuditExportPresets: AiRecommendStaleAuditExportPreset[];
-  /** I20.21 — last-used stale-recommend audit export preset. */
+  /** I20.21 / I20.22 — last-used stale-recommend audit export preset (persisted). */
   aiRecommendStaleAuditExportLastPresets: AiRecommendStaleAuditExportLastPreset[];
-  /** I20.21 — preset-apply usage audit. */
+  /** I20.21 / I20.22 — preset-apply usage audit (persisted). */
   aiRecommendStaleAuditExportPresetUsages: AiRecommendStaleAuditExportPresetUsage[];
   /** Optional PostgreSQL pool for dual-write persistence (PG.1+) */
   dbPool?: DbPool;

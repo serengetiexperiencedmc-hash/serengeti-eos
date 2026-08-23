@@ -38,7 +38,7 @@ function findOverdueAssociation(store: Store, tenantId: string) {
   return undefined;
 }
 
-const INCREMENT = "I20.21" as const;
+const INCREMENT = "I20.22" as const;
 
 export function ensureAiCollections(store: Store): void {
   if (!store.aiDrafts) store.aiDrafts = [];

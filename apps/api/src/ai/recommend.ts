@@ -41,14 +41,16 @@ import { getDlqSlaDigestStatus, isDlqSlaDigestStaleSuppressed } from "../notific
 import { persistAiRecommendRun } from "../persistence/ai-recommend-runs.js";
 import {
   persistAiRecommendStaleAuditExportLastFilter,
+  persistAiRecommendStaleAuditExportLastPreset,
   persistAiRecommendStaleAuditExportPreset,
+  persistAiRecommendStaleAuditExportPresetUsage,
   persistDeleteAiRecommendStaleAuditExportPreset,
   persistAiRecommendStaleSuppression,
   persistAiRecommendStaleSuppressionAudit,
   persistDeleteAiRecommendStaleSuppression,
 } from "../persistence/ai-recommend-stale-suppressions.js";
 
-const INCREMENT = "I20.21" as const;
+const INCREMENT = "I20.22" as const;
 
 function recommendStaleThresholdHours(): number {
   const raw = Number(process.env.EOS_AI_RECOMMEND_STALE_HOURS);
@@ -142,7 +144,7 @@ function principalPresetUsages(store: Store, principal: Principal) {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-function recordAiRecommendStaleAuditExportPresetUsage(
+async function recordAiRecommendStaleAuditExportPresetUsage(
   store: Store,
   principal: Principal,
   preset: AiRecommendStaleAuditExportPreset,
@@ -172,6 +174,8 @@ function recordAiRecommendStaleAuditExportPresetUsage(
   );
   if (idx >= 0) store.aiRecommendStaleAuditExportLastPresets[idx] = last;
   else store.aiRecommendStaleAuditExportLastPresets.push(last);
+  await persistAiRecommendStaleAuditExportPresetUsage(store.dbPool, usage);
+  await persistAiRecommendStaleAuditExportLastPreset(store.dbPool, last);
   return { usage, last };
 }
 
@@ -635,7 +639,7 @@ export async function exportAiRecommendStaleSuppression(
   const filter = { action: parsed.action, since: parsed.since, until: parsed.until };
   const last = await upsertAiRecommendStaleAuditExportLastFilter(store, principal, filter);
   const lastFilter = sanitizeAiRecommendStaleAuditExportLastFilter(last);
-  const recorded = preset ? recordAiRecommendStaleAuditExportPresetUsage(store, principal, preset) : null;
+  const recorded = preset ? await recordAiRecommendStaleAuditExportPresetUsage(store, principal, preset) : null;
   const lastPreset = recorded
     ? sanitizeAiRecommendStaleAuditExportLastPreset(recorded.last)
     : (() => {
