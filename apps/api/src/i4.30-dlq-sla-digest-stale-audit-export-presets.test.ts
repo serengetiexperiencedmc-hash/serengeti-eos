@@ -37,7 +37,7 @@ describe("I4.30 named tenant stale DLQ audit export presets", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(empty.statusCode).toBe(200);
-    expect(empty.json().increment).toBe("I4.31");
+    expect(empty.json().increment).toBe("I4.32");
     expect(empty.json().presets).toEqual([]);
 
     const nameless = await app.inject({
@@ -56,7 +56,7 @@ describe("I4.30 named tenant stale DLQ audit export presets", () => {
       payload: { name: "  Last  24h ", action: "snooze", since: "2026-08-23T00:00:00.000Z" },
     });
     expect(created.statusCode).toBe(200);
-    expect(created.json().increment).toBe("I4.31");
+    expect(created.json().increment).toBe("I4.32");
     expect(created.json().preset.name).toBe("Last 24h");
     expect(created.json().preset.action).toBe("snooze");
     expect(created.json().preset).not.toHaveProperty("tenantId");
@@ -113,7 +113,7 @@ describe("I4.30 named tenant stale DLQ audit export presets", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(exported.statusCode).toBe(200);
-    expect(exported.json().increment).toBe("I4.31");
+    expect(exported.json().increment).toBe("I4.32");
     expect(exported.json().filter.action).toBe("snooze");
     expect(exported.json().preset.name).toBe("Snoozes only");
     expect(exported.json().audits.every((row: { action: string }) => row.action === "snooze")).toBe(true);

@@ -10,8 +10,10 @@ import {
   exportDlqSlaDigestStaleSuppression,
   getDlqSlaDigestStatus,
   listDlqSlaDigestStaleAuditExportPresets,
+  renameDlqSlaDigestStaleAuditExportPreset,
   snoozeDlqSlaDigestStale,
   upsertDlqSlaDigestStaleAuditExportPreset,
+  deleteDlqSlaDigestStaleAuditExportPreset,
 } from "./dlq-sla-digest.js";
 import {
   acknowledgeAllowlistDualDigestStale,
@@ -180,6 +182,32 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const body = (req.body ?? {}) as { name?: string; action?: string; since?: string; until?: string };
     const result = await upsertDlqSlaDigestStaleAuditExportPreset(store, principal, body);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/notifications/email/dlq-sla-digest-stale/export/presets/:id/rename", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const body = (req.body ?? {}) as { name?: string };
+    const result = await renameDlqSlaDigestStaleAuditExportPreset(
+      store,
+      principal,
+      (req.params as { id: string }).id,
+      body,
+    );
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.delete("/v1/notifications/email/dlq-sla-digest-stale/export/presets/:id", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = await deleteDlqSlaDigestStaleAuditExportPreset(
+      store,
+      principal,
+      (req.params as { id: string }).id,
+    );
     if ("error" in result) return sendError(reply, result);
     return result;
   });

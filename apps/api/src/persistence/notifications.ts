@@ -39,6 +39,7 @@ import {
   loadNotifDlqSlaDigestStaleSuppressions,
   upsertNotifDlqSlaDigestStaleAuditExportLastFilter,
   upsertNotifDlqSlaDigestStaleAuditExportPreset,
+  deleteNotifDlqSlaDigestStaleAuditExportPreset,
   loadNotifEmailAllowlist,
   loadNotifEmailSuppressions,
   loadNotifEmailTemplates,
@@ -326,6 +327,18 @@ export async function persistNotifDlqSlaDigestStaleAuditExportPreset(
   if (!pool) return;
   try {
     await upsertNotifDlqSlaDigestStaleAuditExportPreset(pool, row);
+  } catch {
+    // Fire-and-forget dual-write.
+  }
+}
+
+export async function persistDeleteNotifDlqSlaDigestStaleAuditExportPreset(
+  pool: DbPool | undefined,
+  id: string,
+): Promise<void> {
+  if (!pool) return;
+  try {
+    await deleteNotifDlqSlaDigestStaleAuditExportPreset(pool, id);
   } catch {
     // Fire-and-forget dual-write.
   }

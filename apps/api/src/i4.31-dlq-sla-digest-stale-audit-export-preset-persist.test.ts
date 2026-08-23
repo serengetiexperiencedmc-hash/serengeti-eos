@@ -75,7 +75,7 @@ describe("I4.31 persist named stale DLQ audit export presets", () => {
       url: "/v1/notifications/email/dlq-sla-digest-status",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(empty.json().increment).toBe("I4.31");
+    expect(empty.json().increment).toBe("I4.32");
     expect(empty.json().presets).toEqual([]);
     expect(writes.length).toBe(0);
 
@@ -95,7 +95,7 @@ describe("I4.31 persist named stale DLQ audit export presets", () => {
       payload: { name: "Snoozes only", action: "snooze" },
     });
     expect(saved.statusCode).toBe(200);
-    expect(saved.json().increment).toBe("I4.31");
+    expect(saved.json().increment).toBe("I4.32");
     expect(saved.json().preset.name).toBe("Snoozes only");
     expect(saved.json().preset).not.toHaveProperty("tenantId");
     expect(writes.length).toBeGreaterThanOrEqual(1);

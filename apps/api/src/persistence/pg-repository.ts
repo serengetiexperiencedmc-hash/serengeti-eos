@@ -2421,6 +2421,11 @@ export async function loadNotifDlqSlaDigestStaleAuditExportPresets(
   });
 }
 
+/** I4.32 — hard-delete DLQ stale-audit export preset by id. */
+export async function deleteNotifDlqSlaDigestStaleAuditExportPreset(pool: DbPool, id: string): Promise<void> {
+  await pool.query(`DELETE FROM notif_dlq_sla_digest_stale_audit_export_preset WHERE id = $1`, [id]);
+}
+
 /** I3.28 — upsert stale allowlist dual digest snooze/ack (one row per tenant). */
 export async function upsertNotifAllowlistDualDigestStaleSuppression(
   pool: DbPool,

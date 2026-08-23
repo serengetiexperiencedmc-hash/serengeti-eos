@@ -26,7 +26,7 @@ describe("I4.26 stale DLQ SLA digest suppression export / audit", () => {
       payload: { hours: 24 },
     });
     expect(snoozed.statusCode).toBe(200);
-    expect(snoozed.json().increment).toBe("I4.31");
+    expect(snoozed.json().increment).toBe("I4.32");
 
     await app.inject({
       method: "POST",
@@ -40,7 +40,7 @@ describe("I4.26 stale DLQ SLA digest suppression export / audit", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(json.statusCode).toBe(200);
-    expect(json.json().increment).toBe("I4.31");
+    expect(json.json().increment).toBe("I4.32");
     expect(json.json().count).toBeGreaterThanOrEqual(2);
     expect(json.json().audits.map((a: { action: string }) => a.action)).toEqual(
       expect.arrayContaining(["snooze", "ack"]),

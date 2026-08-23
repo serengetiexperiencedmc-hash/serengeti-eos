@@ -239,6 +239,28 @@ export async function upsertDlqSlaDigestStaleAuditExportPreset(
   });
 }
 
+export async function renameDlqSlaDigestStaleAuditExportPreset(token: string, id: string, name: string) {
+  return eosFetch<{
+    preset: DlqStaleAuditExportPreset;
+    presets: DlqStaleAuditExportPreset[];
+    increment: string;
+  }>(`/v1/notifications/email/dlq-sla-digest-stale/export/presets/${id}/rename`, {
+    token,
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function deleteDlqSlaDigestStaleAuditExportPreset(token: string, id: string) {
+  return eosFetch<{
+    presets: DlqStaleAuditExportPreset[];
+    increment: string;
+  }>(`/v1/notifications/email/dlq-sla-digest-stale/export/presets/${id}`, {
+    token,
+    method: "DELETE",
+  });
+}
+
 export async function exportDlqSlaDigestLastRun(token: string, format: "json" | "csv" = "json") {
   return eosFetch<{
     format: "json" | "csv";

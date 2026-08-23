@@ -15,6 +15,8 @@ import {
   updateDeadLetterRemediation,
   getDlqSlaDigestStatus,
   upsertDlqSlaDigestStaleAuditExportPreset,
+  renameDlqSlaDigestStaleAuditExportPreset,
+  deleteDlqSlaDigestStaleAuditExportPreset,
   exportDlqSlaDigestLastRun,
   exportDlqSlaDigestStaleSuppression,
   dispatchDlqSlaDigest,
@@ -78,7 +80,7 @@ export default function EventsInfrastructurePage() {
   const [staleAuditPresets, setStaleAuditPresets] = useState<DlqStaleAuditExportPreset[]>([]);
   const [staleAuditPresetId, setStaleAuditPresetId] = useState("");
   const [staleAuditPresetName, setStaleAuditPresetName] = useState("");
-  const [presetBusy, setPresetBusy] = useState(false);
+  const [presetBusy, setPresetBusy] = useState<"save-preset" | "rename-preset" | "delete-preset" | null>(null);
 
   const reload = useCallback(async () => {
     if (!token) return;
@@ -239,7 +241,7 @@ export default function EventsInfrastructurePage() {
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <PageHeader
-        eyebrow="I4 · I4.31 · Events"
+        eyebrow="I4 · I4.32 · Events"
         title="Event Infrastructure"
         subtitle="NATS lag, DLQ SLA ack/snooze, bulk owner assign, and controlled replay"
         actions={
@@ -365,9 +367,10 @@ export default function EventsInfrastructurePage() {
               </label>
               <Btn
                 variant="secondary"
-                disabled={presetBusy || !staleAuditPresetName.trim()}
+                disabled={presetBusy !== null || !staleAuditPresetName.trim()}
                 onClick={() => {
-                  setPresetBusy(true);
+                  setPresetBusy("save-preset");
+                  setError(null);
                   void upsertDlqSlaDigestStaleAuditExportPreset(token, {
                     name: staleAuditPresetName.trim(),
                     ...(staleAuditAction ? { action: staleAuditAction } : {}),
@@ -381,10 +384,52 @@ export default function EventsInfrastructurePage() {
                       setMsg(`Saved preset ${res.preset.name}`);
                     })
                     .catch((err) => setError(err instanceof Error ? err.message : "Could not save audit preset"))
-                    .finally(() => setPresetBusy(false));
+                    .finally(() => setPresetBusy(null));
                 }}
               >
-                {presetBusy ? "Saving…" : "Save preset"}
+                {presetBusy === "save-preset" ? "Saving…" : "Save preset"}
+              </Btn>
+              <Btn
+                variant="secondary"
+                disabled={presetBusy !== null || !staleAuditPresetId || !staleAuditPresetName.trim()}
+                onClick={() => {
+                  setPresetBusy("rename-preset");
+                  setError(null);
+                  void renameDlqSlaDigestStaleAuditExportPreset(
+                    token,
+                    staleAuditPresetId,
+                    staleAuditPresetName.trim(),
+                  )
+                    .then((res) => {
+                      setStaleAuditPresets(res.presets);
+                      setStaleAuditPresetId(res.preset.id);
+                      setStaleAuditPresetName(res.preset.name);
+                      setMsg(`Renamed preset ${res.preset.name}`);
+                    })
+                    .catch((err) => setError(err instanceof Error ? err.message : "Could not rename audit preset"))
+                    .finally(() => setPresetBusy(null));
+                }}
+              >
+                {presetBusy === "rename-preset" ? "Renaming…" : "Rename preset"}
+              </Btn>
+              <Btn
+                variant="secondary"
+                disabled={presetBusy !== null || !staleAuditPresetId}
+                onClick={() => {
+                  setPresetBusy("delete-preset");
+                  setError(null);
+                  void deleteDlqSlaDigestStaleAuditExportPreset(token, staleAuditPresetId)
+                    .then((res) => {
+                      setStaleAuditPresets(res.presets);
+                      setStaleAuditPresetId("");
+                      setStaleAuditPresetName("");
+                      setMsg("Deleted preset");
+                    })
+                    .catch((err) => setError(err instanceof Error ? err.message : "Could not delete audit preset"))
+                    .finally(() => setPresetBusy(null));
+                }}
+              >
+                {presetBusy === "delete-preset" ? "Deleting…" : "Delete preset"}
               </Btn>
               <label className="text-xs text-muted">
                 Action
