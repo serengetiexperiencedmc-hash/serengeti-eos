@@ -2288,6 +2288,46 @@ export async function deleteNotifDlqSlaDigestStaleSuppression(pool: DbPool, tena
   await pool.query(`DELETE FROM notif_dlq_sla_digest_stale_suppression WHERE tenant_id = $1`, [tenantId]);
 }
 
+/** I4.27 — append-only stale DLQ SLA digest snooze/ack/clear audit. */
+export async function insertNotifDlqSlaDigestStaleSuppressionAudit(
+  pool: DbPool,
+  entry: import("@sedmc/kernel").NotifDlqSlaDigestStaleSuppressionAudit,
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO notif_dlq_sla_digest_stale_suppression_audit (
+      id, tenant_id, action, snoozed_until, acknowledged_at, created_at, created_by_principal_id
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+    [
+      entry.id,
+      entry.tenantId,
+      entry.action,
+      entry.snoozedUntil ?? null,
+      entry.acknowledgedAt ?? null,
+      entry.createdAt,
+      entry.createdByPrincipalId,
+    ],
+  );
+}
+
+export async function loadNotifDlqSlaDigestStaleSuppressionAudits(
+  pool: DbPool,
+): Promise<import("@sedmc/kernel").NotifDlqSlaDigestStaleSuppressionAudit[]> {
+  const result = await pool.query(
+    `SELECT id, tenant_id, action, snoozed_until, acknowledged_at, created_at, created_by_principal_id
+     FROM notif_dlq_sla_digest_stale_suppression_audit
+     ORDER BY created_at ASC`,
+  );
+  return result.rows.map((row) => ({
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    action: row.action as import("@sedmc/kernel").NotifDlqSlaDigestStaleSuppressionAudit["action"],
+    ...(row.snoozed_until ? { snoozedUntil: (row.snoozed_until as Date).toISOString() } : {}),
+    ...(row.acknowledged_at ? { acknowledgedAt: (row.acknowledged_at as Date).toISOString() } : {}),
+    createdAt: (row.created_at as Date).toISOString(),
+    createdByPrincipalId: row.created_by_principal_id as string,
+  }));
+}
+
 /** I3.28 — upsert stale allowlist dual digest snooze/ack (one row per tenant). */
 export async function upsertNotifAllowlistDualDigestStaleSuppression(
   pool: DbPool,

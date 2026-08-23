@@ -8,6 +8,7 @@ import {
   validateSupplierContentBlockImportRow,
   validateSupplierImportRow,
   validateSupplierRateImportRow,
+  validateSupplierSeasonImportRow,
 } from "./supplier-import.js";
 
 describe("supplier-import", () => {
@@ -113,6 +114,29 @@ describe("supplier-import", () => {
     if ("errors" in row) throw new Error("expected valid row");
     const key = supplierImportRowDuplicateKey("supplier", row);
     expect(key).toBe("LOD-SERONERA-SOP");
+  });
+
+  it("validates a season catalogue row and rejects inverted dates", () => {
+    const result = validateSupplierSeasonImportRow({
+      seasonCode: "high-2029",
+      label: "High Season 2029",
+      validFrom: "2029-07-01",
+      validTo: "2029-10-31",
+    });
+    expect(result).toMatchObject({
+      seasonCode: "HIGH-2029",
+      label: "High Season 2029",
+      validFrom: "2029-07-01",
+      validTo: "2029-10-31",
+    });
+
+    const badDates = validateSupplierSeasonImportRow({
+      seasonCode: "HIGH-2029",
+      label: "High Season 2029",
+      validFrom: "2029-12-01",
+      validTo: "2029-01-01",
+    });
+    expect(badDates).toEqual({ errors: ["validTo_before_validFrom"] });
   });
 
   it("parses sample suppliers csv header", () => {

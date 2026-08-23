@@ -16,9 +16,9 @@ async function loginCarol(app: ReturnType<typeof buildServer>) {
   return res.json().accessToken as string;
 }
 
-describe("I3.27 stale allowlist dual digest snooze / ack", () => {
-  it("hides inbox after snooze or ack and skips stale email until digest restamps", async () => {
-    const store = seedStore("i327-snooze", TEST_BOOTSTRAP_SECRETS);
+describe("I3.29 stale allowlist dual digest suppression export / audit", () => {
+  it("records snooze/ack/clear audit and exports CSV", async () => {
+    const store = seedStore("i329-export", TEST_BOOTSTRAP_SECRETS);
     ensureNotificationCollections(store);
     const carol = allPrincipals(store).find((p) => p.email === "carol.admin@sedmc.local")!;
     await addEmailAllowlistEntry(store, carol, { email: "vip@example.com", note: "VIP" });
@@ -26,7 +26,6 @@ describe("I3.27 stale allowlist dual digest snooze / ack", () => {
 
     const app = buildServer({ store });
     const token = await loginCarol(app);
-    const day = new Date().toISOString().slice(0, 10);
 
     const snoozed = await app.inject({
       method: "POST",
@@ -36,28 +35,24 @@ describe("I3.27 stale allowlist dual digest snooze / ack", () => {
     });
     expect(snoozed.statusCode).toBe(200);
     expect(snoozed.json().increment).toBe("I3.29");
-    expect(snoozed.json().suppression.snoozedUntil).toBeTruthy();
 
-    const inbox = await app.inject({
-      method: "GET",
-      url: "/v1/notifications",
-      headers: { authorization: `Bearer ${token}` },
-    });
-    expect(inbox.json().items.some((i: { key: string }) => i.key === `allowlist-dual-digest-stale:${day}`)).toBe(false);
-
-    const alerted = await app.inject({
-      method: "POST",
-      url: "/v1/notifications/email/dispatch-allowlist-dual-digest-stale",
-      headers: { authorization: `Bearer ${token}` },
-    });
-    expect(alerted.json().skipped[0].reason).toBe("snoozed");
-
-    const acked = await app.inject({
+    await app.inject({
       method: "POST",
       url: "/v1/notifications/email/allowlist-dual-digest-stale/ack",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(acked.json().suppression.acknowledgedAt).toBeTruthy();
+
+    const json = await app.inject({
+      method: "GET",
+      url: "/v1/notifications/email/allowlist-dual-digest-stale/export",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(json.statusCode).toBe(200);
+    expect(json.json().increment).toBe("I3.29");
+    expect(json.json().count).toBeGreaterThanOrEqual(2);
+    expect(json.json().audits.map((a: { action: string }) => a.action)).toEqual(
+      expect.arrayContaining(["snooze", "ack"]),
+    );
 
     await app.inject({
       method: "POST",
@@ -65,13 +60,16 @@ describe("I3.27 stale allowlist dual digest snooze / ack", () => {
       headers: { authorization: `Bearer ${token}` },
     });
 
-    const status = await app.inject({
+    const csv = await app.inject({
       method: "GET",
-      url: "/v1/notifications/email/allowlist-dual-digest-status",
+      url: "/v1/notifications/email/allowlist-dual-digest-stale/export?format=csv",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(status.json().increment).toBe("I3.29");
-    expect(status.json().freshness.stale).toBe(false);
-    expect(status.json().suppression).toBeNull();
+    expect(csv.json().format).toBe("csv");
+    expect(csv.json().csv).toContain("action,snoozedUntil,acknowledgedAt,createdAt,createdByPrincipalId");
+    expect(csv.json().csv).toContain("snooze");
+    expect(csv.json().csv).toContain("ack");
+    expect(csv.json().csv).toContain("cleared");
+    expect(csv.json().suppression).toBeNull();
   });
 });

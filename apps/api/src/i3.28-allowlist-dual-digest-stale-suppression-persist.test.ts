@@ -67,7 +67,7 @@ describe("I3.28 stale allowlist dual digest suppression persistence", () => {
       payload: { hours: 24 },
     });
     expect(snoozed.statusCode).toBe(200);
-    expect(snoozed.json().increment).toBe("I3.28");
+    expect(snoozed.json().increment).toBe("I3.29");
     expect(writes.length).toBeGreaterThanOrEqual(1);
     expect(writes[0]!.snoozedUntil).toBeTruthy();
 

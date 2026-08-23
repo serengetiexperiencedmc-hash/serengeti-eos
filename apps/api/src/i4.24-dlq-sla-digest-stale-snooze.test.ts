@@ -27,7 +27,7 @@ describe("I4.24 stale DLQ SLA digest snooze / ack", () => {
       payload: { hours: 24 },
     });
     expect(snoozed.statusCode).toBe(200);
-    expect(snoozed.json().increment).toBe("I4.26");
+    expect(snoozed.json().increment).toBe("I4.27");
     expect(snoozed.json().suppression.snoozedUntil).toBeTruthy();
 
     const inbox = await app.inject({
@@ -62,7 +62,7 @@ describe("I4.24 stale DLQ SLA digest snooze / ack", () => {
       url: "/v1/notifications/email/dlq-sla-digest-status",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(status.json().increment).toBe("I4.26");
+    expect(status.json().increment).toBe("I4.27");
     expect(status.json().freshness.stale).toBe(false);
     expect(status.json().suppression).toBeNull();
   });

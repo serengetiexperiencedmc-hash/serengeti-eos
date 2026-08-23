@@ -56,7 +56,12 @@ export function SupplierImportModal({
     setBusy(true);
     setError(null);
     try {
-      const created = await createImportBatch(token, { sourceSystem, entityType, csv });
+      const created = await createImportBatch(token, {
+        sourceSystem,
+        entityType,
+        csv,
+        ...(entityType === "supplier_season" ? { mode: "upsert" } : {}),
+      });
       setBatch(created.batch);
       const validated = await validateImportBatch(token, created.batch.id);
       setBatch(validated.batch);
@@ -104,7 +109,7 @@ export function SupplierImportModal({
           {step === "configure" && (
             <>
               <p className="text-sm text-ink-soft">
-                Import one entity type per batch. Load suppliers first, then contacts, rates, and content blocks.
+                Import one entity type per batch. Load seasons and suppliers first, then contacts, rates, and content blocks.
               </p>
               <label className="block text-sm">
                 <span className="mb-1 block text-muted">Entity type</span>

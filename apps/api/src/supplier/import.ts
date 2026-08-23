@@ -111,7 +111,7 @@ function sanitizeBatch(batch: SupImportBatch) {
     committedAt: batch.committedAt,
     createdByPrincipalId: batch.createdByPrincipalId,
     committedByPrincipalId: batch.committedByPrincipalId,
-    increment: "PG.21" as const,
+    increment: (batch.entityType === "supplier_season" ? "PG.29" : "PG.21") as "PG.29" | "PG.21",
   };
 }
 
@@ -297,6 +297,18 @@ function existingRecordConflict(
     return undefined;
   }
 
+  if (batch.entityType === "supplier_season") {
+    const seasonRow = row as { seasonCode: string };
+    const exists = (store.supSeasons ?? []).some(
+      (s) =>
+        s.tenantId === batch.tenantId &&
+        !s.archivedAt &&
+        s.seasonCode.toUpperCase() === seasonRow.seasonCode.toUpperCase(),
+    );
+    if (exists && batch.mode !== "upsert") return "existing_record_conflict";
+    return undefined;
+  }
+
   const blockRow = row as { supplierCode: string; blockCode: string };
   const supplier = findSupplierByCode(store, batch.tenantId, blockRow.supplierCode);
   if (!supplier) return undefined;
@@ -316,6 +328,7 @@ function missingSupplierReference(
   row: ReturnType<typeof validateSupplierImportRowByEntityType>,
 ): string | undefined {
   if (batch.entityType === "supplier") return undefined;
+  if (batch.entityType === "supplier_season") return undefined;
   if ("errors" in row) return undefined;
   const supplierCode = (row as { supplierCode: string }).supplierCode;
   const supplier = findSupplierByCode(store, batch.tenantId, supplierCode);
@@ -431,6 +444,11 @@ export function executeSupplierImportBatch(
   const now = new Date().toISOString();
   const committedResults: SupImportRowResult[] = [];
   const createdIds: string[] = [];
+  const preexistingSeasonIds = new Set(
+    (store.supSeasons ?? [])
+      .filter((s) => s.tenantId === batch.tenantId)
+      .map((s) => s.id),
+  );
 
   try {
     for (let i = 0; i < parsed.rows.length; i++) {
@@ -440,7 +458,9 @@ export function executeSupplierImportBatch(
       if ("errors" in validated) throw new Error("validation_failed");
 
       const entityId = commitImportRow(store, principal, batch, validated, now);
-      createdIds.push(entityId);
+      if (batch.entityType !== "supplier_season" || !preexistingSeasonIds.has(entityId)) {
+        createdIds.push(entityId);
+      }
       committedResults.push({ rowNumber, status: "committed", entityId });
     }
 
@@ -531,6 +551,50 @@ function commitImportRow(
     store.supSuppliers.push(supplier);
     void persistSupEntityAfterCommit(store.dbPool, store, "supplier", supplier.id);
     return supplier.id;
+  }
+
+  if (batch.entityType === "supplier_season") {
+    const row = validated as import("@sedmc/kernel").SupplierSeasonImportRow;
+    const existing = (store.supSeasons ?? []).find(
+      (s) =>
+        s.tenantId === batch.tenantId &&
+        !s.archivedAt &&
+        s.seasonCode.toUpperCase() === row.seasonCode.toUpperCase(),
+    );
+    if (existing) {
+      existing.label = row.label;
+      existing.updatedAt = now;
+      existing.updatedByPrincipalId = principal.id;
+      existing.version += 1;
+      if (row.validFrom !== undefined) existing.validFrom = row.validFrom;
+      else delete existing.validFrom;
+      if (row.validTo !== undefined) existing.validTo = row.validTo;
+      else delete existing.validTo;
+      if (row.monthFrom !== undefined) existing.monthFrom = row.monthFrom;
+      else delete existing.monthFrom;
+      if (row.monthTo !== undefined) existing.monthTo = row.monthTo;
+      else delete existing.monthTo;
+      void persistSupEntityAfterCommit(store.dbPool, store, "supplier_season", existing.id);
+      return existing.id;
+    }
+    const season = {
+      id: newId(),
+      tenantId: batch.tenantId,
+      seasonCode: row.seasonCode,
+      label: row.label,
+      ...(row.validFrom !== undefined ? { validFrom: row.validFrom } : {}),
+      ...(row.validTo !== undefined ? { validTo: row.validTo } : {}),
+      ...(row.monthFrom !== undefined ? { monthFrom: row.monthFrom } : {}),
+      ...(row.monthTo !== undefined ? { monthTo: row.monthTo } : {}),
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      createdByPrincipalId: principal.id,
+      updatedByPrincipalId: principal.id,
+    };
+    store.supSeasons.push(season);
+    void persistSupEntityAfterCommit(store.dbPool, store, "supplier_season", season.id);
+    return season.id;
   }
 
   const supplierCode = (validated as { supplierCode: string }).supplierCode;
@@ -649,6 +713,10 @@ function rollbackCreatedRows(store: Store, batch: SupImportBatch, createdIds: st
   }
   if (batch.entityType === "supplier_rate") {
     store.supRates = store.supRates.filter((r) => !createdIds.includes(r.id));
+    return;
+  }
+  if (batch.entityType === "supplier_season") {
+    store.supSeasons = (store.supSeasons ?? []).filter((s) => !createdIds.includes(s.id));
     return;
   }
   store.supContentBlocks = store.supContentBlocks.filter((b) => !createdIds.includes(b.id));

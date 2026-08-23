@@ -469,11 +469,21 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **I3.28** | Persist allowlist stale snooze/ack to Postgres |
 | **I4.26** | Stale-digest suppression export / audit |
 
+### 34:xx — PG.29 + I3.29 + I4.27 ✅
+
+**Shipped:** server `0.67.0-pg29-i3.29-i4.27`
+
+| Increment | Change |
+| --- | --- |
+| **PG.29** | Season catalogue CSV import with idempotent upsert |
+| **I3.29** | Allowlist stale-digest suppression export / audit |
+| **I4.27** | Persist stale-digest suppression audit to Postgres |
+
 ### Recommended next increments
 
-1. PG.29 — season catalogue import / idempotent upsert
-2. I3.29 — allowlist stale suppression export / audit (mirror I4.26)
-3. I4.27 — persist stale-digest suppression audit to Postgres
+1. PG.30 — season import dry-run / archive-via-import
+2. I3.30 — persist allowlist stale audit to Postgres (mirror I4.27)
+3. I4.28 — stale-audit filters / tenant export window
 
 ### Issues resolved
 

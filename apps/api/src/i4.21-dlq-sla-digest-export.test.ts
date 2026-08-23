@@ -44,7 +44,7 @@ describe("I4.21 DLQ SLA digest last-run export", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(dispatched.statusCode).toBe(200);
-    expect(dispatched.json().increment).toBe("I4.26");
+    expect(dispatched.json().increment).toBe("I4.27");
     expect(dispatched.json().lastRun.breachedCount).toBe(1);
 
     const json = await app.inject({
@@ -53,7 +53,7 @@ describe("I4.21 DLQ SLA digest last-run export", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(json.statusCode).toBe(200);
-    expect(json.json().increment).toBe("I4.26");
+    expect(json.json().increment).toBe("I4.27");
     expect(json.json().format).toBe("json");
     expect(json.json().lastRun.breachedCount).toBe(1);
     expect(json.json().row.outboxDigestCount).toBeGreaterThanOrEqual(1);

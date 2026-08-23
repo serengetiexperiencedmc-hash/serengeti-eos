@@ -7,6 +7,7 @@ import type {
   NotifEmailAllowlistEntry,
   NotifDlqSlaDigestLastRun,
   NotifDlqSlaDigestStaleSuppression,
+  NotifDlqSlaDigestStaleSuppressionAudit,
   NotifAllowlistDualDigestLastRun,
   NotifAllowlistDualDigestStaleSuppression,
 } from "@sedmc/kernel";
@@ -19,6 +20,8 @@ import {
   loadNotifAllowlistDualDigestLastRuns,
   loadNotifAllowlistDualDigestStaleSuppressions,
   loadNotifDlqSlaDigestLastRuns,
+  insertNotifDlqSlaDigestStaleSuppressionAudit,
+  loadNotifDlqSlaDigestStaleSuppressionAudits,
   loadNotifDlqSlaDigestStaleSuppressions,
   loadNotifEmailAllowlist,
   loadNotifEmailSuppressions,
@@ -233,6 +236,34 @@ export async function hydrateNotifDlqSlaDigestStaleSuppressions(pool: DbPool, st
       store.notifDlqSlaDigestStaleSuppressions[idx] = row;
     } else {
       store.notifDlqSlaDigestStaleSuppressions.push(row);
+      merged += 1;
+    }
+  }
+  return merged;
+}
+
+export async function persistNotifDlqSlaDigestStaleSuppressionAudit(
+  pool: DbPool | undefined,
+  entry: NotifDlqSlaDigestStaleSuppressionAudit,
+): Promise<void> {
+  if (!pool) return;
+  try {
+    await insertNotifDlqSlaDigestStaleSuppressionAudit(pool, entry);
+  } catch {
+    // Fire-and-forget dual-write.
+  }
+}
+
+export async function hydrateNotifDlqSlaDigestStaleSuppressionAudits(pool: DbPool, store: Store): Promise<number> {
+  ensureNotificationCollections(store);
+  const rows = await loadNotifDlqSlaDigestStaleSuppressionAudits(pool);
+  let merged = 0;
+  for (const row of rows) {
+    const idx = store.notifDlqSlaDigestStaleSuppressionAudits.findIndex((a) => a.id === row.id);
+    if (idx >= 0) {
+      store.notifDlqSlaDigestStaleSuppressionAudits[idx] = row;
+    } else {
+      store.notifDlqSlaDigestStaleSuppressionAudits.push(row);
       merged += 1;
     }
   }

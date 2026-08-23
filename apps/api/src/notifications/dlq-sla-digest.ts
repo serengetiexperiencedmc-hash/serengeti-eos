@@ -15,6 +15,7 @@ import {
   persistDeleteNotifDlqSlaDigestStaleSuppression,
   persistNotifDlqSlaDigestLastRun,
   persistNotifDlqSlaDigestStaleSuppression,
+  persistNotifDlqSlaDigestStaleSuppressionAudit,
 } from "../persistence/notifications.js";
 import { digestLastRunFreshness } from "./digest-freshness.js";
 
@@ -71,7 +72,7 @@ function appendStaleSuppressionAudit(
   suppression?: NotifDlqSlaDigestStaleSuppression | null,
 ) {
   ensureNotificationCollections(store);
-  store.notifDlqSlaDigestStaleSuppressionAudits.push({
+  const entry: NotifDlqSlaDigestStaleSuppressionAudit = {
     id: newId(),
     tenantId: principal.tenantId,
     action,
@@ -79,7 +80,9 @@ function appendStaleSuppressionAudit(
     ...(suppression?.acknowledgedAt ? { acknowledgedAt: suppression.acknowledgedAt } : {}),
     createdAt: new Date().toISOString(),
     createdByPrincipalId: principal.id,
-  });
+  };
+  store.notifDlqSlaDigestStaleSuppressionAudits.push(entry);
+  void persistNotifDlqSlaDigestStaleSuppressionAudit(store.dbPool, entry);
 }
 
 function upsertStaleSuppression(
@@ -158,7 +161,7 @@ export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
       thresholdHours: listed.sla.thresholdHours,
       recipientCount: recipients.length,
       lastRun,
-      increment: "I4.26" as const,
+      increment: "I4.27" as const,
     };
   }
 
@@ -206,7 +209,7 @@ export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
     thresholdHours: listed.sla.thresholdHours,
     recipientCount: recipients.length,
     lastRun,
-    increment: "I4.26" as const,
+    increment: "I4.27" as const,
   };
 }
 
@@ -242,7 +245,7 @@ export function getDlqSlaDigestStatus(store: Store, principal: Principal) {
     },
     freshness: digestLastRunFreshness(lastRun?.lastRunAt),
     suppression: getDlqSlaDigestStaleSuppression(store, principal.tenantId),
-    increment: "I4.26" as const,
+    increment: "I4.27" as const,
   };
 }
 
@@ -315,7 +318,7 @@ export function exportDlqSlaDigestLastRun(
       analytics: status.analytics,
       freshness: status.freshness,
       generatedAt,
-      increment: "I4.26" as const,
+      increment: "I4.27" as const,
     };
   }
 
@@ -326,7 +329,7 @@ export function exportDlqSlaDigestLastRun(
     freshness: status.freshness,
     row,
     generatedAt,
-    increment: "I4.26" as const,
+    increment: "I4.27" as const,
   };
 }
 
@@ -361,7 +364,7 @@ export async function dispatchDlqSlaDigestStaleAlert(store: Store, principal: Pr
       adapter: adapter.name,
       freshness: status.freshness,
       inboxKey,
-      increment: "I4.26" as const,
+      increment: "I4.27" as const,
     };
   }
 
@@ -379,7 +382,7 @@ export async function dispatchDlqSlaDigestStaleAlert(store: Store, principal: Pr
       freshness: status.freshness,
       suppression,
       inboxKey,
-      increment: "I4.26" as const,
+      increment: "I4.27" as const,
     };
   }
 
@@ -417,7 +420,7 @@ export async function dispatchDlqSlaDigestStaleAlert(store: Store, principal: Pr
     adapter: adapter.name,
     freshness: status.freshness,
     inboxKey,
-    increment: "I4.26" as const,
+    increment: "I4.27" as const,
   };
 }
 
@@ -441,7 +444,7 @@ export function snoozeDlqSlaDigestStale(store: Store, principal: Principal, inpu
     snoozedUntil,
     acknowledgedAt: undefined,
   });
-  return { suppression, increment: "I4.26" as const };
+  return { suppression, increment: "I4.27" as const };
 }
 
 /** I4.24 — acknowledge stale-digest inbox until the next last-run stamp. */
@@ -459,7 +462,7 @@ export function acknowledgeDlqSlaDigestStale(store: Store, principal: Principal)
     acknowledgedAt: new Date().toISOString(),
     snoozedUntil: undefined,
   });
-  return { suppression, increment: "I4.26" as const };
+  return { suppression, increment: "I4.27" as const };
 }
 
 /** I4.26 — CSV/JSON export of current suppression + snooze/ack/clear audit. */
@@ -501,7 +504,7 @@ export function exportDlqSlaDigestStaleSuppression(
       audits,
       count: audits.length,
       generatedAt,
-      increment: "I4.26" as const,
+      increment: "I4.27" as const,
     };
   }
 
@@ -511,6 +514,6 @@ export function exportDlqSlaDigestStaleSuppression(
     audits,
     count: audits.length,
     generatedAt,
-    increment: "I4.26" as const,
+    increment: "I4.27" as const,
   };
 }

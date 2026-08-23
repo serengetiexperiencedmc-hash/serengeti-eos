@@ -5,7 +5,7 @@ import { createLogger } from "./observability.js";
 import { createEnvSecretsProvider } from "./ports/secrets.js";
 import { syncStoreToPostgres } from "./persistence/sync.js";
 import { hydrateCrmFromPostgres } from "./persistence/crm.js";
-import { hydrateNotifEmailTemplates, hydrateNotifEmailSuppressions, hydrateNotifEmailAllowlist, hydrateNotifDlqSlaDigestLastRuns, hydrateNotifAllowlistDualDigestLastRuns, hydrateNotifDlqSlaDigestStaleSuppressions, hydrateNotifAllowlistDualDigestStaleSuppressions } from "./persistence/notifications.js";
+import { hydrateNotifEmailTemplates, hydrateNotifEmailSuppressions, hydrateNotifEmailAllowlist, hydrateNotifDlqSlaDigestLastRuns, hydrateNotifAllowlistDualDigestLastRuns, hydrateNotifDlqSlaDigestStaleSuppressions, hydrateNotifDlqSlaDigestStaleSuppressionAudits, hydrateNotifAllowlistDualDigestStaleSuppressions } from "./persistence/notifications.js";
 import { hydratePendingOutbox } from "./persistence/outbox.js";
 import { hydrateProcessedEvents } from "./persistence/processed-events.js";
 import { hydrateNatsConsumerOffsets } from "./persistence/nats-offsets.js";
@@ -60,6 +60,7 @@ if (databaseUrl) {
   const digestLastRunsHydrated = await hydrateNotifDlqSlaDigestLastRuns(pool, store);
   const allowlistDigestLastRunsHydrated = await hydrateNotifAllowlistDualDigestLastRuns(pool, store);
   const digestStaleSuppressionsHydrated = await hydrateNotifDlqSlaDigestStaleSuppressions(pool, store);
+  const digestStaleSuppressionAuditsHydrated = await hydrateNotifDlqSlaDigestStaleSuppressionAudits(pool, store);
   const allowlistStaleSuppressionsHydrated = await hydrateNotifAllowlistDualDigestStaleSuppressions(pool, store);
   const heatmapRollupsHydrated = await hydrateSupHeatmapRollupSnapshots(pool, store);
   logger.info("pg3_crm_hydrate", crmHydrated);
@@ -69,6 +70,7 @@ if (databaseUrl) {
   logger.info("i420_dlq_sla_digest_last_run_hydrate", { merged: digestLastRunsHydrated });
   logger.info("i324_allowlist_dual_digest_last_run_hydrate", { merged: allowlistDigestLastRunsHydrated });
   logger.info("i425_dlq_sla_digest_stale_suppression_hydrate", { merged: digestStaleSuppressionsHydrated });
+  logger.info("i427_dlq_sla_digest_stale_suppression_audit_hydrate", { merged: digestStaleSuppressionAuditsHydrated });
   logger.info("i328_allowlist_dual_digest_stale_suppression_hydrate", { merged: allowlistStaleSuppressionsHydrated });
   logger.info("pg27_heatmap_rollup_snapshot_hydrate", { merged: heatmapRollupsHydrated });
   const merged = await hydratePendingOutbox(pool, store);

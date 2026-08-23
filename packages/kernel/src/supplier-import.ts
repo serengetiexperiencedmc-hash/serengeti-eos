@@ -8,6 +8,7 @@ export const SUPPLIER_IMPORT_ENTITY_TYPES = [
   "supplier_contact",
   "supplier_rate",
   "supplier_content_block",
+  "supplier_season",
 ] as const;
 
 export type SupplierImportEntityType = (typeof SUPPLIER_IMPORT_ENTITY_TYPES)[number];
@@ -185,6 +186,16 @@ export type SupplierRateImportRow = {
   status: (typeof SUPPLIER_RATE_STATUSES)[number];
 };
 
+/** PG.29 — season catalogue import (idempotent on seasonCode). */
+export type SupplierSeasonImportRow = {
+  seasonCode: string;
+  label: string;
+  validFrom?: string;
+  validTo?: string;
+  monthFrom?: number;
+  monthTo?: number;
+};
+
 export type SupplierContentBlockImportRow = {
   supplierCode: string;
   blockCode: string;
@@ -279,6 +290,8 @@ export function supplierImportHeaders(entityType: SupplierImportEntityType): str
         "isDefault",
         "status",
       ];
+    case "supplier_season":
+      return ["seasonCode", "label", "validFrom", "validTo", "monthFrom", "monthTo"];
   }
 }
 
@@ -524,13 +537,56 @@ export function validateSupplierContentBlockImportRow(
   };
 }
 
+export function validateSupplierSeasonImportRow(row: ParsedCsvRow): SupplierSeasonImportRow | { errors: string[] } {
+  const errors: string[] = [];
+
+  const seasonCodeRaw = row.seasonCode?.trim();
+  if (!seasonCodeRaw) errors.push("seasonCode_required");
+  else if (!SUPPLIER_CODE_PATTERN.test(normalizeSupplierCode(seasonCodeRaw))) {
+    errors.push("invalid_seasonCode");
+  }
+
+  const label = row.label?.trim();
+  if (!label) errors.push("label_required");
+
+  const validFrom = row.validFrom?.trim();
+  const validTo = row.validTo?.trim();
+  if (validFrom && !ISO_DATE_PATTERN.test(validFrom)) errors.push("invalid_validFrom");
+  if (validTo && !ISO_DATE_PATTERN.test(validTo)) errors.push("invalid_validTo");
+  if (validFrom && validTo && validTo < validFrom) errors.push("validTo_before_validFrom");
+
+  const monthFromResult = parseOptionalInt(row.monthFrom);
+  if (monthFromResult && typeof monthFromResult === "object") errors.push("invalid_monthFrom");
+  else if (typeof monthFromResult === "number" && (monthFromResult < 1 || monthFromResult > 12)) {
+    errors.push("invalid_monthFrom");
+  }
+
+  const monthToResult = parseOptionalInt(row.monthTo);
+  if (monthToResult && typeof monthToResult === "object") errors.push("invalid_monthTo");
+  else if (typeof monthToResult === "number" && (monthToResult < 1 || monthToResult > 12)) {
+    errors.push("invalid_monthTo");
+  }
+
+  if (errors.length > 0) return { errors };
+
+  return {
+    seasonCode: normalizeSupplierCode(seasonCodeRaw!),
+    label: label!,
+    ...(validFrom ? { validFrom } : {}),
+    ...(validTo ? { validTo } : {}),
+    ...(typeof monthFromResult === "number" ? { monthFrom: monthFromResult } : {}),
+    ...(typeof monthToResult === "number" ? { monthTo: monthToResult } : {}),
+  };
+}
+
 export function supplierImportRowDuplicateKey(
   entityType: SupplierImportEntityType,
   row:
     | SupplierImportRow
     | SupplierContactImportRow
     | SupplierRateImportRow
-    | SupplierContentBlockImportRow,
+    | SupplierContentBlockImportRow
+    | SupplierSeasonImportRow,
 ): string {
   switch (entityType) {
     case "supplier":
@@ -541,6 +597,8 @@ export function supplierImportRowDuplicateKey(
       return `${(row as SupplierRateImportRow).supplierCode}|${(row as SupplierRateImportRow).rateCode}`;
     case "supplier_content_block":
       return `${(row as SupplierContentBlockImportRow).supplierCode}|${(row as SupplierContentBlockImportRow).blockCode}`;
+    case "supplier_season":
+      return (row as SupplierSeasonImportRow).seasonCode;
   }
 }
 
@@ -552,6 +610,7 @@ export function validateSupplierImportRowByEntityType(
   | SupplierContactImportRow
   | SupplierRateImportRow
   | SupplierContentBlockImportRow
+  | SupplierSeasonImportRow
   | { errors: string[] } {
   switch (entityType) {
     case "supplier":
@@ -562,6 +621,8 @@ export function validateSupplierImportRowByEntityType(
       return validateSupplierRateImportRow(row);
     case "supplier_content_block":
       return validateSupplierContentBlockImportRow(row);
+    case "supplier_season":
+      return validateSupplierSeasonImportRow(row);
   }
 }
 
@@ -585,5 +646,7 @@ export function requiredSupplierImportHeaders(entityType: SupplierImportEntityTy
       ];
     case "supplier_content_block":
       return ["supplierCode", "blockCode", "blockType", "body", "status"];
+    case "supplier_season":
+      return ["seasonCode", "label"];
   }
 }

@@ -32,6 +32,7 @@ import {
   getAllowlistDualDigestStatus,
   snoozeAllowlistDualDigestStale,
   acknowledgeAllowlistDualDigestStale,
+  exportAllowlistDualDigestStaleSuppression,
   type DigestLastRun,
   type EmailDeliveryAnalytics,
   type EmailDeliveryEventItem,
@@ -503,6 +504,24 @@ export default function NotificationsPage() {
                 }
               >
                 Ack stale digest
+              </Btn>
+              <Btn
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  void exportAllowlistDualDigestStaleSuppression(token, "csv").then((res) => {
+                    const blob = new Blob([res.csv ?? ""], { type: "text/csv" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `allowlist-dual-digest-stale-${res.generatedAt.slice(0, 10)}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    setSyncMsg(`Exported stale-digest audit (${res.count} row${res.count === 1 ? "" : "s"})`);
+                  });
+                }}
+              >
+                Export stale audit
               </Btn>
               <Btn
                 variant="secondary"

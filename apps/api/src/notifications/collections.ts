@@ -14,4 +14,5 @@ export function ensureNotificationCollections(store: Store): void {
   if (!store.notifAllowlistDualDigestRecipients) store.notifAllowlistDualDigestRecipients = [];
   if (!store.notifAllowlistDualDigestLastRuns) store.notifAllowlistDualDigestLastRuns = [];
   if (!store.notifAllowlistDualDigestStaleSuppressions) store.notifAllowlistDualDigestStaleSuppressions = [];
+  if (!store.notifAllowlistDualDigestStaleSuppressionAudits) store.notifAllowlistDualDigestStaleSuppressionAudits = [];
 }

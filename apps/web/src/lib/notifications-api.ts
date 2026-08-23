@@ -132,6 +132,16 @@ export async function acknowledgeAllowlistDualDigestStale(token: string) {
   );
 }
 
+export async function exportAllowlistDualDigestStaleSuppression(token: string, format: "json" | "csv" = "csv") {
+  return eosFetch<{
+    format: "json" | "csv";
+    csv?: string;
+    count: number;
+    generatedAt: string;
+    increment: string;
+  }>(`/v1/notifications/email/allowlist-dual-digest-stale/export?format=${format}`, { token });
+}
+
 export type EmailSuppressionItem = {
   id: string;
   email: string;

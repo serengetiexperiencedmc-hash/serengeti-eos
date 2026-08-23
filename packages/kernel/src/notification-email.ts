@@ -146,6 +146,17 @@ export type NotifAllowlistDualDigestRecipient = {
   revokedAt?: string;
 };
 
+/** I3.29 — audit trail for stale allowlist dual digest snooze/ack/clear. */
+export type NotifAllowlistDualDigestStaleSuppressionAudit = {
+  id: string;
+  tenantId: string;
+  action: "snooze" | "ack" | "cleared";
+  snoozedUntil?: string;
+  acknowledgedAt?: string;
+  createdAt: string;
+  createdByPrincipalId: string;
+};
+
 /** I3.27 — tenant-level snooze/ack for stale allowlist dual digest inbox. */
 export type NotifAllowlistDualDigestStaleSuppression = {
   tenantId: string;

@@ -89,6 +89,7 @@ import {
   type NotifAllowlistDualDigestRecipient,
   type NotifAllowlistDualDigestLastRun,
   type NotifAllowlistDualDigestStaleSuppression,
+  type NotifAllowlistDualDigestStaleSuppressionAudit,
   type EmailTemplate,
   type NatsConsumerOffset,
 } from "@sedmc/kernel";
@@ -227,6 +228,8 @@ export type Store = {
   notifAllowlistDualDigestLastRuns: NotifAllowlistDualDigestLastRun[];
   /** I3.27 — snooze/ack for stale allowlist dual digest inbox. */
   notifAllowlistDualDigestStaleSuppressions: NotifAllowlistDualDigestStaleSuppression[];
+  /** I3.29 — snooze/ack/clear audit for stale allowlist dual digest. */
+  notifAllowlistDualDigestStaleSuppressionAudits: NotifAllowlistDualDigestStaleSuppressionAudit[];
   natsConsumerOffsets: NatsConsumerOffset[];
   /** Optional PostgreSQL pool for dual-write persistence (PG.1+) */
   dbPool?: DbPool;
@@ -849,6 +852,7 @@ export function seedStore(
     notifAllowlistDualDigestRecipients: [],
     notifAllowlistDualDigestLastRuns: [],
     notifAllowlistDualDigestStaleSuppressions: [],
+    notifAllowlistDualDigestStaleSuppressionAudits: [],
     natsConsumerOffsets: [],
   };
   seedCrmCatalogues(store, tenantId);
