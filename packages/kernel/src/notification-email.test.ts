@@ -3,7 +3,9 @@ import {
   buildEmailFromNotification,
   filterNotifDlqSlaDigestStaleSuppressionAudits,
   parseNotifDlqSlaDigestStaleAuditExportFilter,
+  normalizeNotifAllowlistDualDigestStaleAuditExportPresetName,
   sanitizeNotifAllowlistDualDigestStaleAuditExportLastFilter,
+  sanitizeNotifAllowlistDualDigestStaleAuditExportPreset,
   sanitizeNotifDlqSlaDigestStaleAuditExportLastFilter,
   shouldEmailNotification,
 } from "./notification-email.js";
@@ -83,6 +85,23 @@ describe("notification email kernel", () => {
     });
     expect(view.action).toBe("snooze");
     expect(view.since).toBe("2026-08-23T00:00:00.000Z");
+    expect(view).not.toHaveProperty("tenantId");
+  });
+
+  it("normalizes and sanitizes allowlist stale-audit export presets", () => {
+    expect(normalizeNotifAllowlistDualDigestStaleAuditExportPresetName("  Last  24h ")).toBe("Last 24h");
+    expect(normalizeNotifAllowlistDualDigestStaleAuditExportPresetName("")).toBeNull();
+    expect(normalizeNotifAllowlistDualDigestStaleAuditExportPresetName("x".repeat(81))).toBeNull();
+    const view = sanitizeNotifAllowlistDualDigestStaleAuditExportPreset({
+      id: "p1",
+      tenantId: "t1",
+      name: "Snoozes only",
+      action: "snooze",
+      createdAt: "2026-08-23T12:00:00.000Z",
+      createdByPrincipalId: "p1",
+      updatedAt: "2026-08-23T12:00:00.000Z",
+    });
+    expect(view.name).toBe("Snoozes only");
     expect(view).not.toHaveProperty("tenantId");
   });
 });

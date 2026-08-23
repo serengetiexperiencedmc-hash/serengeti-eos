@@ -46,7 +46,7 @@ describe("I3.26 stale allowlist dual digest inbox / email escalation", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(alerted.statusCode).toBe(200);
-    expect(alerted.json().increment).toBe("I3.32");
+    expect(alerted.json().increment).toBe("I3.33");
     expect(alerted.json().freshness.neverRun).toBe(true);
     expect(alerted.json().dispatched[0]).toMatch(/^allowlist-dual-digest-stale:\d{4}-\d{2}-\d{2}:/);
 

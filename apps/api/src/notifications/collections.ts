@@ -21,4 +21,7 @@ export function ensureNotificationCollections(store: Store): void {
   if (!store.notifAllowlistDualDigestStaleAuditExportLastFilters) {
     store.notifAllowlistDualDigestStaleAuditExportLastFilters = [];
   }
+  if (!store.notifAllowlistDualDigestStaleAuditExportPresets) {
+    store.notifAllowlistDualDigestStaleAuditExportPresets = [];
+  }
 }

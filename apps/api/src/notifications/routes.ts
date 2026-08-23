@@ -17,7 +17,9 @@ import {
   dispatchAllowlistDualDigestStaleAlert,
   exportAllowlistDualDigestStaleSuppression,
   getAllowlistDualDigestStatus,
+  listAllowlistDualDigestStaleAuditExportPresets,
   snoozeAllowlistDualDigestStale,
+  upsertAllowlistDualDigestStaleAuditExportPreset,
 } from "./allowlist-dual-digest.js";
 import {
   addAllowlistDualDigestRecipient,
@@ -217,15 +219,41 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     return result;
   });
 
+  app.get("/v1/notifications/email/allowlist-dual-digest-stale/export/presets", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = listAllowlistDualDigestStaleAuditExportPresets(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/notifications/email/allowlist-dual-digest-stale/export/presets", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const body = (req.body ?? {}) as { name?: string; action?: string; since?: string; until?: string };
+    const result = upsertAllowlistDualDigestStaleAuditExportPreset(store, principal, body);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
   app.get("/v1/notifications/email/allowlist-dual-digest-stale/export", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const query = req.query as { format?: string; action?: string; since?: string; until?: string };
+    const query = req.query as {
+      format?: string;
+      action?: string;
+      since?: string;
+      until?: string;
+      preset?: string;
+      presetId?: string;
+    };
     const result = await exportAllowlistDualDigestStaleSuppression(store, principal, {
       format: query.format === "csv" ? "csv" : "json",
       action: query.action,
       since: query.since,
       until: query.until,
+      preset: query.preset,
+      presetId: query.presetId,
     });
     if ("error" in result) return sendError(reply, result);
     return result;

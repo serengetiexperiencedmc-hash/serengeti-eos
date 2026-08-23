@@ -34,7 +34,7 @@ describe("I3.25 allowlist dual digest last-run freshness", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(before.statusCode).toBe(200);
-    expect(before.json().increment).toBe("I3.32");
+    expect(before.json().increment).toBe("I3.33");
     expect(before.json().freshness.neverRun).toBe(true);
     expect(before.json().freshness.stale).toBe(true);
 
@@ -43,7 +43,7 @@ describe("I3.25 allowlist dual digest last-run freshness", () => {
       url: "/v1/notifications/email/dispatch-allowlist-dual-digest",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(dispatched.json().increment).toBe("I3.32");
+    expect(dispatched.json().increment).toBe("I3.33");
 
     const after = await app.inject({
       method: "GET",

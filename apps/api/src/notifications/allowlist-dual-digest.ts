@@ -2,10 +2,13 @@ import {
   authorize,
   filterNotifAllowlistDualDigestStaleSuppressionAudits,
   newId,
+  normalizeNotifAllowlistDualDigestStaleAuditExportPresetName,
   parseNotifAllowlistDualDigestStaleAuditExportFilter,
   sanitizeNotifAllowlistDualDigestStaleAuditExportLastFilter,
+  sanitizeNotifAllowlistDualDigestStaleAuditExportPreset,
   type NotifAllowlistDualDigestLastRun,
   type NotifAllowlistDualDigestStaleAuditExportLastFilter,
+  type NotifAllowlistDualDigestStaleAuditExportPreset,
   type NotifAllowlistDualDigestStaleSuppression,
   type NotifAllowlistDualDigestStaleSuppressionAudit,
   type Principal,
@@ -149,6 +152,44 @@ async function upsertAllowlistStaleAuditExportLastFilter(
   return next;
 }
 
+function listTenantAllowlistStaleAuditExportPresets(store: Store, tenantId: string) {
+  ensureNotificationCollections(store);
+  return store.notifAllowlistDualDigestStaleAuditExportPresets
+    .filter((row) => row.tenantId === tenantId)
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function sanitizedTenantAllowlistPresets(store: Store, tenantId: string) {
+  return listTenantAllowlistStaleAuditExportPresets(store, tenantId).map(
+    sanitizeNotifAllowlistDualDigestStaleAuditExportPreset,
+  );
+}
+
+function findAllowlistStaleAuditExportPreset(
+  store: Store,
+  tenantId: string,
+  query: { presetId?: string; preset?: string },
+) {
+  ensureNotificationCollections(store);
+  const presetId = query.presetId?.trim();
+  if (presetId) {
+    return (
+      store.notifAllowlistDualDigestStaleAuditExportPresets.find(
+        (row) => row.tenantId === tenantId && row.id === presetId,
+      ) ?? null
+    );
+  }
+  const name = normalizeNotifAllowlistDualDigestStaleAuditExportPresetName(query.preset);
+  if (!name) return null;
+  const lowered = name.toLowerCase();
+  return (
+    store.notifAllowlistDualDigestStaleAuditExportPresets.find(
+      (row) => row.tenantId === tenantId && row.name.toLowerCase() === lowered,
+    ) ?? null
+  );
+}
+
 /**
  * I3.21–I3.23 — batched email summarizing pending SES allowlist dual-control approvals.
  * Fans out to caller + store/env ops aliases; respects I3.20 snooze/dismiss.
@@ -200,7 +241,7 @@ export async function dispatchAllowlistDualDigest(store: Store, principal: Princ
       pendingCount: 0,
       recipientCount: recipients.length,
       lastRun,
-      increment: "I3.32" as const,
+      increment: "I3.33" as const,
     };
   }
 
@@ -247,7 +288,7 @@ export async function dispatchAllowlistDualDigest(store: Store, principal: Princ
     pendingCount: pending.length,
     recipientCount: recipients.length,
     lastRun,
-    increment: "I3.32" as const,
+    increment: "I3.33" as const,
   };
 }
 
@@ -287,7 +328,67 @@ export function getAllowlistDualDigestStatus(store: Store, principal: Principal)
       const last = findAllowlistStaleAuditExportLastFilter(store, principal);
       return last ? sanitizeNotifAllowlistDualDigestStaleAuditExportLastFilter(last) : null;
     })(),
-    increment: "I3.32" as const,
+    presets: sanitizedTenantAllowlistPresets(store, principal.tenantId),
+    increment: "I3.33" as const,
+  };
+}
+
+export function listAllowlistDualDigestStaleAuditExportPresets(store: Store, principal: Principal) {
+  const status = getAllowlistDualDigestStatus(store, principal);
+  if ("error" in status) return status;
+  return { presets: status.presets, increment: "I3.33" as const };
+}
+
+export function upsertAllowlistDualDigestStaleAuditExportPreset(
+  store: Store,
+  principal: Principal,
+  input: { name?: string; action?: string; since?: string; until?: string } = {},
+) {
+  const decision = authorize({
+    principal,
+    permission: "notification:dispatch:email",
+    action: "write:allowlist_dual_digest_stale_audit_export_preset",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+  const name = normalizeNotifAllowlistDualDigestStaleAuditExportPresetName(input.name);
+  if (!name) return { error: "invalid_request" as const, reason: "invalid_name" };
+  const parsed = parseNotifAllowlistDualDigestStaleAuditExportFilter(input);
+  if ("error" in parsed) return { error: "invalid_request" as const, reason: parsed.error };
+  ensureNotificationCollections(store);
+  const now = new Date().toISOString();
+  const existing = findAllowlistStaleAuditExportPreset(store, principal.tenantId, { preset: name });
+  const next: NotifAllowlistDualDigestStaleAuditExportPreset = existing
+    ? {
+        ...existing,
+        name,
+        action: parsed.action ?? undefined,
+        since: parsed.since ?? undefined,
+        until: parsed.until ?? undefined,
+        updatedAt: now,
+      }
+    : {
+        id: newId(),
+        tenantId: principal.tenantId,
+        name,
+        ...(parsed.action ? { action: parsed.action } : {}),
+        ...(parsed.since ? { since: parsed.since } : {}),
+        ...(parsed.until ? { until: parsed.until } : {}),
+        createdAt: now,
+        createdByPrincipalId: principal.id,
+        updatedAt: now,
+      };
+  if (!parsed.action) delete next.action;
+  if (!parsed.since) delete next.since;
+  if (!parsed.until) delete next.until;
+  const idx = existing
+    ? store.notifAllowlistDualDigestStaleAuditExportPresets.findIndex((row) => row.id === existing.id)
+    : -1;
+  if (idx >= 0) store.notifAllowlistDualDigestStaleAuditExportPresets[idx] = next;
+  else store.notifAllowlistDualDigestStaleAuditExportPresets.push(next);
+  return {
+    preset: sanitizeNotifAllowlistDualDigestStaleAuditExportPreset(next),
+    presets: sanitizedTenantAllowlistPresets(store, principal.tenantId),
+    increment: "I3.33" as const,
   };
 }
 
@@ -322,7 +423,7 @@ export async function dispatchAllowlistDualDigestStaleAlert(store: Store, princi
       adapter: adapter.name,
       freshness: status.freshness,
       inboxKey,
-      increment: "I3.32" as const,
+      increment: "I3.33" as const,
     };
   }
 
@@ -339,7 +440,7 @@ export async function dispatchAllowlistDualDigestStaleAlert(store: Store, princi
       adapter: adapter.name,
       freshness: status.freshness,
       inboxKey,
-      increment: "I3.32" as const,
+      increment: "I3.33" as const,
     };
   }
 
@@ -377,7 +478,7 @@ export async function dispatchAllowlistDualDigestStaleAlert(store: Store, princi
     adapter: adapter.name,
     freshness: status.freshness,
     inboxKey,
-    increment: "I3.32" as const,
+    increment: "I3.33" as const,
   };
 }
 
@@ -401,7 +502,7 @@ export function snoozeAllowlistDualDigestStale(store: Store, principal: Principa
     snoozedUntil,
     acknowledgedAt: undefined,
   });
-  return { suppression, increment: "I3.32" as const };
+  return { suppression, increment: "I3.33" as const };
 }
 
 /** I3.27 — acknowledge stale-digest inbox until the next last-run stamp. */
@@ -419,16 +520,40 @@ export function acknowledgeAllowlistDualDigestStale(store: Store, principal: Pri
     acknowledgedAt: new Date().toISOString(),
     snoozedUntil: undefined,
   });
-  return { suppression, increment: "I3.32" as const };
+  return { suppression, increment: "I3.33" as const };
 }
 
-/** I3.29 / I3.31 / I3.32 — CSV/JSON export of current suppression + snooze/ack/clear audit. */
+/** I3.29 / I3.31 / I3.32 / I3.33 — CSV/JSON export of current suppression + snooze/ack/clear audit. */
 export async function exportAllowlistDualDigestStaleSuppression(
   store: Store,
   principal: Principal,
-  options: { format?: "json" | "csv"; action?: string; since?: string; until?: string } = {},
+  options: {
+    format?: "json" | "csv";
+    action?: string;
+    since?: string;
+    until?: string;
+    preset?: string;
+    presetId?: string;
+  } = {},
 ) {
-  const parsed = parseNotifAllowlistDualDigestStaleAuditExportFilter(options);
+  const presetId = options.presetId?.trim();
+  const presetName = options.preset?.trim();
+  let preset: NotifAllowlistDualDigestStaleAuditExportPreset | null = null;
+  if (presetId || presetName) {
+    if (presetName && !presetId && !normalizeNotifAllowlistDualDigestStaleAuditExportPresetName(presetName)) {
+      return { error: "invalid_request" as const, reason: "invalid_name" };
+    }
+    preset = findAllowlistStaleAuditExportPreset(store, principal.tenantId, {
+      ...(presetId ? { presetId } : {}),
+      ...(presetName ? { preset: presetName } : {}),
+    });
+    if (!preset) return { error: "not_found" as const, reason: "preset_not_found" };
+  }
+  const parsed = parseNotifAllowlistDualDigestStaleAuditExportFilter({
+    action: options.action || preset?.action,
+    since: options.since || preset?.since,
+    until: options.until || preset?.until,
+  });
   if ("error" in parsed) return { error: "invalid_request" as const, reason: parsed.error };
   const status = getAllowlistDualDigestStatus(store, principal);
   if ("error" in status) return status;
@@ -444,6 +569,7 @@ export async function exportAllowlistDualDigestStaleSuppression(
     (store.notifAllowlistDualDigestStaleSuppressionAudits ?? []).filter((a) => a.tenantId === principal.tenantId),
     parsed,
   );
+  const sanitizedPreset = preset ? sanitizeNotifAllowlistDualDigestStaleAuditExportPreset(preset) : null;
 
   if (format === "csv") {
     const csv = [
@@ -468,8 +594,9 @@ export async function exportAllowlistDualDigestStaleSuppression(
       count: audits.length,
       filter,
       lastFilter,
+      preset: sanitizedPreset,
       generatedAt,
-      increment: "I3.32" as const,
+      increment: "I3.33" as const,
     };
   }
 
@@ -480,7 +607,8 @@ export async function exportAllowlistDualDigestStaleSuppression(
     count: audits.length,
     filter,
     lastFilter,
+    preset: sanitizedPreset,
     generatedAt,
-    increment: "I3.32" as const,
+    increment: "I3.33" as const,
   };
 }

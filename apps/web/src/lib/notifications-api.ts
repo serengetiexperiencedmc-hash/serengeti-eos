@@ -108,6 +108,16 @@ export async function dispatchAllowlistDualDigestStaleAlert(token: string) {
   }>("/v1/notifications/email/dispatch-allowlist-dual-digest-stale", { token, method: "POST", body: "{}" });
 }
 
+export type AllowlistStaleAuditExportPreset = {
+  id: string;
+  name: string;
+  action?: string;
+  since?: string;
+  until?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export async function getAllowlistDualDigestStatus(token: string) {
   return eosFetch<{
     lastRun: DigestLastRun | null;
@@ -115,8 +125,24 @@ export async function getAllowlistDualDigestStatus(token: string) {
     analytics: { outboxDigestCount: number; outboxByStatus: Record<string, number> };
     suppression: { snoozedUntil?: string; acknowledgedAt?: string } | null;
     lastFilter: { action?: string; since?: string; until?: string; updatedAt: string } | null;
+    presets: AllowlistStaleAuditExportPreset[];
     increment: string;
   }>("/v1/notifications/email/allowlist-dual-digest-status", { token });
+}
+
+export async function upsertAllowlistDualDigestStaleAuditExportPreset(
+  token: string,
+  input: { name: string; action?: string; since?: string; until?: string },
+) {
+  return eosFetch<{
+    preset: AllowlistStaleAuditExportPreset;
+    presets: AllowlistStaleAuditExportPreset[];
+    increment: string;
+  }>("/v1/notifications/email/allowlist-dual-digest-stale/export/presets", {
+    token,
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
 
 export async function snoozeAllowlistDualDigestStale(token: string, hours = 24) {
@@ -136,12 +162,14 @@ export async function acknowledgeAllowlistDualDigestStale(token: string) {
 export async function exportAllowlistDualDigestStaleSuppression(
   token: string,
   format: "json" | "csv" = "csv",
-  query: { action?: string; since?: string; until?: string } = {},
+  query: { action?: string; since?: string; until?: string; preset?: string; presetId?: string } = {},
 ) {
   const params = new URLSearchParams({ format });
   if (query.action) params.set("action", query.action);
   if (query.since) params.set("since", query.since);
   if (query.until) params.set("until", query.until);
+  if (query.preset) params.set("preset", query.preset);
+  if (query.presetId) params.set("presetId", query.presetId);
   return eosFetch<{
     format: "json" | "csv";
     csv?: string;
