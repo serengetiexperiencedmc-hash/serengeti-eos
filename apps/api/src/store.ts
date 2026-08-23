@@ -245,7 +245,7 @@ export type Store = {
   notifAllowlistDualDigestStaleSuppressionAudits: NotifAllowlistDualDigestStaleSuppressionAudit[];
   /** I3.32 — last-used allowlist stale-audit export filter (persisted). */
   notifAllowlistDualDigestStaleAuditExportLastFilters: NotifAllowlistDualDigestStaleAuditExportLastFilter[];
-  /** I3.33 — named tenant allowlist stale-audit export presets (in-memory). */
+  /** I3.34 — named tenant allowlist stale-audit export presets (persisted). */
   notifAllowlistDualDigestStaleAuditExportPresets: NotifAllowlistDualDigestStaleAuditExportPreset[];
   natsConsumerOffsets: NatsConsumerOffset[];
   /** I20.2 — unpublished AI drafts until human accept. */

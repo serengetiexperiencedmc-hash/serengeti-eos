@@ -33,7 +33,7 @@ describe("I3.23 allowlist dual digest last-run status", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(before.statusCode).toBe(200);
-    expect(before.json().increment).toBe("I3.33");
+    expect(before.json().increment).toBe("I3.34");
     expect(before.json().lastRun).toBeNull();
 
     const dispatched = await app.inject({
@@ -42,7 +42,7 @@ describe("I3.23 allowlist dual digest last-run status", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(dispatched.statusCode).toBe(200);
-    expect(dispatched.json().increment).toBe("I3.33");
+    expect(dispatched.json().increment).toBe("I3.34");
     expect(dispatched.json().lastRun.pendingCount).toBe(1);
     expect(dispatched.json().lastRun.dispatchedCount).toBeGreaterThanOrEqual(1);
 

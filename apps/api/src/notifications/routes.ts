@@ -231,7 +231,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const body = (req.body ?? {}) as { name?: string; action?: string; since?: string; until?: string };
-    const result = upsertAllowlistDualDigestStaleAuditExportPreset(store, principal, body);
+    const result = await upsertAllowlistDualDigestStaleAuditExportPreset(store, principal, body);
     if ("error" in result) return sendError(reply, result);
     return result;
   });

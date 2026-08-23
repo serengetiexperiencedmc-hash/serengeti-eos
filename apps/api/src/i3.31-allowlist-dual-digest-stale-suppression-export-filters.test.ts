@@ -75,7 +75,7 @@ describe("I3.31 stale allowlist dual digest suppression export filters", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(snoozeOnly.statusCode).toBe(200);
-    expect(snoozeOnly.json().increment).toBe("I3.33");
+    expect(snoozeOnly.json().increment).toBe("I3.34");
     expect(snoozeOnly.json().filter.action).toBe("snooze");
     expect(snoozeOnly.json().audits.every((a: { action: string }) => a.action === "snooze")).toBe(true);
     expect(snoozeOnly.json().count).toBe(1);

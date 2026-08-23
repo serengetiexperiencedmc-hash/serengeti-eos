@@ -167,7 +167,7 @@ export function sanitizeNotifAllowlistDualDigestStaleAuditExportLastFilter(
   };
 }
 
-/** I3.33 — named tenant allowlist stale-audit export preset. Persist is I3.34. */
+/** I3.33 / I3.34 — named tenant allowlist stale-audit export preset. */
 export type NotifAllowlistDualDigestStaleAuditExportPreset = {
   id: string;
   tenantId: string;

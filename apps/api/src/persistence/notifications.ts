@@ -11,6 +11,7 @@ import type {
   NotifDlqSlaDigestStaleSuppressionAudit,
   NotifAllowlistDualDigestLastRun,
   NotifAllowlistDualDigestStaleAuditExportLastFilter,
+  NotifAllowlistDualDigestStaleAuditExportPreset,
   NotifAllowlistDualDigestStaleSuppression,
   NotifAllowlistDualDigestStaleSuppressionAudit,
 } from "@sedmc/kernel";
@@ -23,9 +24,11 @@ import {
   insertNotifAllowlistDualDigestStaleSuppressionAudit,
   loadNotifAllowlistDualDigestLastRuns,
   loadNotifAllowlistDualDigestStaleAuditExportLastFilters,
+  loadNotifAllowlistDualDigestStaleAuditExportPresets,
   loadNotifAllowlistDualDigestStaleSuppressionAudits,
   loadNotifAllowlistDualDigestStaleSuppressions,
   upsertNotifAllowlistDualDigestStaleAuditExportLastFilter,
+  upsertNotifAllowlistDualDigestStaleAuditExportPreset,
   loadNotifDlqSlaDigestLastRuns,
   insertNotifDlqSlaDigestStaleSuppressionAudit,
   loadNotifDlqSlaDigestStaleAuditExportLastFilters,
@@ -375,6 +378,37 @@ export async function hydrateNotifAllowlistDualDigestStaleAuditExportLastFilters
       store.notifAllowlistDualDigestStaleAuditExportLastFilters[idx] = row;
     } else {
       store.notifAllowlistDualDigestStaleAuditExportLastFilters.push(row);
+      merged += 1;
+    }
+  }
+  return merged;
+}
+
+export async function persistNotifAllowlistDualDigestStaleAuditExportPreset(
+  pool: DbPool | undefined,
+  row: NotifAllowlistDualDigestStaleAuditExportPreset,
+): Promise<void> {
+  if (!pool) return;
+  try {
+    await upsertNotifAllowlistDualDigestStaleAuditExportPreset(pool, row);
+  } catch {
+    // Fire-and-forget dual-write.
+  }
+}
+
+export async function hydrateNotifAllowlistDualDigestStaleAuditExportPresets(
+  pool: DbPool,
+  store: Store,
+): Promise<number> {
+  ensureNotificationCollections(store);
+  const rows = await loadNotifAllowlistDualDigestStaleAuditExportPresets(pool);
+  let merged = 0;
+  for (const row of rows) {
+    const idx = store.notifAllowlistDualDigestStaleAuditExportPresets.findIndex((p) => p.id === row.id);
+    if (idx >= 0) {
+      store.notifAllowlistDualDigestStaleAuditExportPresets[idx] = row;
+    } else {
+      store.notifAllowlistDualDigestStaleAuditExportPresets.push(row);
       merged += 1;
     }
   }

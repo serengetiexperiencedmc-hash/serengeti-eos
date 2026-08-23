@@ -21,6 +21,7 @@ import {
   persistDeleteNotifAllowlistDualDigestStaleSuppression,
   persistNotifAllowlistDualDigestLastRun,
   persistNotifAllowlistDualDigestStaleAuditExportLastFilter,
+  persistNotifAllowlistDualDigestStaleAuditExportPreset,
   persistNotifAllowlistDualDigestStaleSuppression,
   persistNotifAllowlistDualDigestStaleSuppressionAudit,
 } from "../persistence/notifications.js";
@@ -241,7 +242,7 @@ export async function dispatchAllowlistDualDigest(store: Store, principal: Princ
       pendingCount: 0,
       recipientCount: recipients.length,
       lastRun,
-      increment: "I3.33" as const,
+      increment: "I3.34" as const,
     };
   }
 
@@ -288,7 +289,7 @@ export async function dispatchAllowlistDualDigest(store: Store, principal: Princ
     pendingCount: pending.length,
     recipientCount: recipients.length,
     lastRun,
-    increment: "I3.33" as const,
+    increment: "I3.34" as const,
   };
 }
 
@@ -329,17 +330,17 @@ export function getAllowlistDualDigestStatus(store: Store, principal: Principal)
       return last ? sanitizeNotifAllowlistDualDigestStaleAuditExportLastFilter(last) : null;
     })(),
     presets: sanitizedTenantAllowlistPresets(store, principal.tenantId),
-    increment: "I3.33" as const,
+    increment: "I3.34" as const,
   };
 }
 
 export function listAllowlistDualDigestStaleAuditExportPresets(store: Store, principal: Principal) {
   const status = getAllowlistDualDigestStatus(store, principal);
   if ("error" in status) return status;
-  return { presets: status.presets, increment: "I3.33" as const };
+  return { presets: status.presets, increment: "I3.34" as const };
 }
 
-export function upsertAllowlistDualDigestStaleAuditExportPreset(
+export async function upsertAllowlistDualDigestStaleAuditExportPreset(
   store: Store,
   principal: Principal,
   input: { name?: string; action?: string; since?: string; until?: string } = {},
@@ -385,10 +386,11 @@ export function upsertAllowlistDualDigestStaleAuditExportPreset(
     : -1;
   if (idx >= 0) store.notifAllowlistDualDigestStaleAuditExportPresets[idx] = next;
   else store.notifAllowlistDualDigestStaleAuditExportPresets.push(next);
+  await persistNotifAllowlistDualDigestStaleAuditExportPreset(store.dbPool, next);
   return {
     preset: sanitizeNotifAllowlistDualDigestStaleAuditExportPreset(next),
     presets: sanitizedTenantAllowlistPresets(store, principal.tenantId),
-    increment: "I3.33" as const,
+    increment: "I3.34" as const,
   };
 }
 
@@ -423,7 +425,7 @@ export async function dispatchAllowlistDualDigestStaleAlert(store: Store, princi
       adapter: adapter.name,
       freshness: status.freshness,
       inboxKey,
-      increment: "I3.33" as const,
+      increment: "I3.34" as const,
     };
   }
 
@@ -440,7 +442,7 @@ export async function dispatchAllowlistDualDigestStaleAlert(store: Store, princi
       adapter: adapter.name,
       freshness: status.freshness,
       inboxKey,
-      increment: "I3.33" as const,
+      increment: "I3.34" as const,
     };
   }
 
@@ -478,7 +480,7 @@ export async function dispatchAllowlistDualDigestStaleAlert(store: Store, princi
     adapter: adapter.name,
     freshness: status.freshness,
     inboxKey,
-    increment: "I3.33" as const,
+    increment: "I3.34" as const,
   };
 }
 
@@ -502,7 +504,7 @@ export function snoozeAllowlistDualDigestStale(store: Store, principal: Principa
     snoozedUntil,
     acknowledgedAt: undefined,
   });
-  return { suppression, increment: "I3.33" as const };
+  return { suppression, increment: "I3.34" as const };
 }
 
 /** I3.27 — acknowledge stale-digest inbox until the next last-run stamp. */
@@ -520,10 +522,10 @@ export function acknowledgeAllowlistDualDigestStale(store: Store, principal: Pri
     acknowledgedAt: new Date().toISOString(),
     snoozedUntil: undefined,
   });
-  return { suppression, increment: "I3.33" as const };
+  return { suppression, increment: "I3.34" as const };
 }
 
-/** I3.29 / I3.31 / I3.32 / I3.33 — CSV/JSON export of current suppression + snooze/ack/clear audit. */
+/** I3.29 / I3.31 / I3.32 / I3.33 / I3.34 — CSV/JSON export of current suppression + snooze/ack/clear audit. */
 export async function exportAllowlistDualDigestStaleSuppression(
   store: Store,
   principal: Principal,
@@ -596,7 +598,7 @@ export async function exportAllowlistDualDigestStaleSuppression(
       lastFilter,
       preset: sanitizedPreset,
       generatedAt,
-      increment: "I3.33" as const,
+      increment: "I3.34" as const,
     };
   }
 
@@ -609,6 +611,6 @@ export async function exportAllowlistDualDigestStaleSuppression(
     lastFilter,
     preset: sanitizedPreset,
     generatedAt,
-    increment: "I3.33" as const,
+    increment: "I3.34" as const,
   };
 }
