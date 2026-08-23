@@ -14,6 +14,7 @@ import {
   persistDeleteNotifAllowlistDualDigestStaleSuppression,
   persistNotifAllowlistDualDigestLastRun,
   persistNotifAllowlistDualDigestStaleSuppression,
+  persistNotifAllowlistDualDigestStaleSuppressionAudit,
 } from "../persistence/notifications.js";
 import { digestLastRunFreshness } from "./digest-freshness.js";
 
@@ -93,7 +94,7 @@ function appendStaleSuppressionAudit(
   suppression?: NotifAllowlistDualDigestStaleSuppression | null,
 ) {
   ensureNotificationCollections(store);
-  store.notifAllowlistDualDigestStaleSuppressionAudits.push({
+  const entry: NotifAllowlistDualDigestStaleSuppressionAudit = {
     id: newId(),
     tenantId: principal.tenantId,
     action,
@@ -101,7 +102,9 @@ function appendStaleSuppressionAudit(
     ...(suppression?.acknowledgedAt ? { acknowledgedAt: suppression.acknowledgedAt } : {}),
     createdAt: new Date().toISOString(),
     createdByPrincipalId: principal.id,
-  });
+  };
+  store.notifAllowlistDualDigestStaleSuppressionAudits.push(entry);
+  void persistNotifAllowlistDualDigestStaleSuppressionAudit(store.dbPool, entry);
 }
 
 function csvEscape(value: string): string {
@@ -160,7 +163,7 @@ export async function dispatchAllowlistDualDigest(store: Store, principal: Princ
       pendingCount: 0,
       recipientCount: recipients.length,
       lastRun,
-      increment: "I3.29" as const,
+      increment: "I3.30" as const,
     };
   }
 
@@ -207,7 +210,7 @@ export async function dispatchAllowlistDualDigest(store: Store, principal: Princ
     pendingCount: pending.length,
     recipientCount: recipients.length,
     lastRun,
-    increment: "I3.29" as const,
+    increment: "I3.30" as const,
   };
 }
 
@@ -243,7 +246,7 @@ export function getAllowlistDualDigestStatus(store: Store, principal: Principal)
     },
     freshness: digestLastRunFreshness(lastRun?.lastRunAt, Date.now(), "EOS_ALLOWLIST_DUAL_DIGEST_STALE_HOURS"),
     suppression: getAllowlistDualDigestStaleSuppression(store, principal.tenantId),
-    increment: "I3.29" as const,
+    increment: "I3.30" as const,
   };
 }
 
@@ -278,7 +281,7 @@ export async function dispatchAllowlistDualDigestStaleAlert(store: Store, princi
       adapter: adapter.name,
       freshness: status.freshness,
       inboxKey,
-      increment: "I3.29" as const,
+      increment: "I3.30" as const,
     };
   }
 
@@ -295,7 +298,7 @@ export async function dispatchAllowlistDualDigestStaleAlert(store: Store, princi
       adapter: adapter.name,
       freshness: status.freshness,
       inboxKey,
-      increment: "I3.29" as const,
+      increment: "I3.30" as const,
     };
   }
 
@@ -333,7 +336,7 @@ export async function dispatchAllowlistDualDigestStaleAlert(store: Store, princi
     adapter: adapter.name,
     freshness: status.freshness,
     inboxKey,
-    increment: "I3.29" as const,
+    increment: "I3.30" as const,
   };
 }
 
@@ -357,7 +360,7 @@ export function snoozeAllowlistDualDigestStale(store: Store, principal: Principa
     snoozedUntil,
     acknowledgedAt: undefined,
   });
-  return { suppression, increment: "I3.29" as const };
+  return { suppression, increment: "I3.30" as const };
 }
 
 /** I3.27 — acknowledge stale-digest inbox until the next last-run stamp. */
@@ -375,7 +378,7 @@ export function acknowledgeAllowlistDualDigestStale(store: Store, principal: Pri
     acknowledgedAt: new Date().toISOString(),
     snoozedUntil: undefined,
   });
-  return { suppression, increment: "I3.29" as const };
+  return { suppression, increment: "I3.30" as const };
 }
 
 /** I3.29 — CSV/JSON export of current suppression + snooze/ack/clear audit. */
@@ -417,7 +420,7 @@ export function exportAllowlistDualDigestStaleSuppression(
       audits,
       count: audits.length,
       generatedAt,
-      increment: "I3.29" as const,
+      increment: "I3.30" as const,
     };
   }
 
@@ -427,6 +430,6 @@ export function exportAllowlistDualDigestStaleSuppression(
     audits,
     count: audits.length,
     generatedAt,
-    increment: "I3.29" as const,
+    increment: "I3.30" as const,
   };
 }

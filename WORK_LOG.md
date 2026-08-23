@@ -655,11 +655,19 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **I20.22** | Dual-write preset usage and last-used preset; hydrate on startup |
 
+### 57:xx — I3.30 persist allowlist stale audit ✅
+
+**Shipped:** server `0.90.0-i3.30`
+
+| Increment | Change |
+| --- | --- |
+| **I3.30** | Dual-write allowlist stale snooze/ack/clear audit; hydrate on startup |
+
 ### Recommended next increments
 
-1. I3.30 — persist allowlist stale audit to Postgres
-2. I4.28 — stale-audit filters / tenant export window
-3. I20.23 — (unnamed)
+1. I4.28 — stale-audit filters / tenant export window
+2. I20.23 — (unnamed)
+3. PG.30 — (optional ops follow-up)
 
 ### Issues resolved
 

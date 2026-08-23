@@ -236,7 +236,7 @@ export type Store = {
   notifAllowlistDualDigestLastRuns: NotifAllowlistDualDigestLastRun[];
   /** I3.27 — snooze/ack for stale allowlist dual digest inbox. */
   notifAllowlistDualDigestStaleSuppressions: NotifAllowlistDualDigestStaleSuppression[];
-  /** I3.29 — snooze/ack/clear audit for stale allowlist dual digest. */
+  /** I3.29 / I3.30 — snooze/ack/clear audit for stale allowlist dual digest (persisted). */
   notifAllowlistDualDigestStaleSuppressionAudits: NotifAllowlistDualDigestStaleSuppressionAudit[];
   natsConsumerOffsets: NatsConsumerOffset[];
   /** I20.2 — unpublished AI drafts until human accept. */

@@ -2372,6 +2372,61 @@ export async function deleteNotifAllowlistDualDigestStaleSuppression(pool: DbPoo
   await pool.query(`DELETE FROM notif_allowlist_dual_digest_stale_suppression WHERE tenant_id = $1`, [tenantId]);
 }
 
+/** I3.30 — append-only stale allowlist dual digest snooze/ack/clear audit. */
+export async function insertNotifAllowlistDualDigestStaleSuppressionAudit(
+  pool: DbPool,
+  entry: import("@sedmc/kernel").NotifAllowlistDualDigestStaleSuppressionAudit,
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO notif_allowlist_dual_digest_stale_suppression_audit (
+      id, tenant_id, action, snoozed_until, acknowledged_at, created_at, created_by_principal_id
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+    [
+      entry.id,
+      entry.tenantId,
+      entry.action,
+      entry.snoozedUntil ?? null,
+      entry.acknowledgedAt ?? null,
+      entry.createdAt,
+      entry.createdByPrincipalId,
+    ],
+  );
+}
+
+export async function loadNotifAllowlistDualDigestStaleSuppressionAudits(
+  pool: DbPool,
+): Promise<import("@sedmc/kernel").NotifAllowlistDualDigestStaleSuppressionAudit[]> {
+  const result = await pool.query(
+    `SELECT id, tenant_id, action, snoozed_until, acknowledged_at, created_at, created_by_principal_id
+     FROM notif_allowlist_dual_digest_stale_suppression_audit
+     ORDER BY created_at ASC`,
+  );
+  return result.rows.map((row) => {
+    const createdAt = row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at);
+    return {
+      id: row.id as string,
+      tenantId: row.tenant_id as string,
+      action: row.action as import("@sedmc/kernel").NotifAllowlistDualDigestStaleSuppressionAudit["action"],
+      ...(row.snoozed_until
+        ? {
+            snoozedUntil:
+              row.snoozed_until instanceof Date ? row.snoozed_until.toISOString() : String(row.snoozed_until),
+          }
+        : {}),
+      ...(row.acknowledged_at
+        ? {
+            acknowledgedAt:
+              row.acknowledged_at instanceof Date
+                ? row.acknowledged_at.toISOString()
+                : String(row.acknowledged_at),
+          }
+        : {}),
+      createdAt,
+      createdByPrincipalId: row.created_by_principal_id as string,
+    };
+  });
+}
+
 /** PG.27 — upsert last heatmap supplier rollup snapshot (one row per tenant). */
 export async function upsertSupHeatmapRollupSnapshot(
   pool: DbPool,

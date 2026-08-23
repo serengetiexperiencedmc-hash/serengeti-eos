@@ -15,7 +15,7 @@ import {
   hydrateAiRecommendStaleSuppressions,
 } from "./persistence/ai-recommend-stale-suppressions.js";
 import { hydrateCrmFromPostgres } from "./persistence/crm.js";
-import { hydrateNotifEmailTemplates, hydrateNotifEmailSuppressions, hydrateNotifEmailAllowlist, hydrateNotifDlqSlaDigestLastRuns, hydrateNotifAllowlistDualDigestLastRuns, hydrateNotifDlqSlaDigestStaleSuppressions, hydrateNotifDlqSlaDigestStaleSuppressionAudits, hydrateNotifAllowlistDualDigestStaleSuppressions } from "./persistence/notifications.js";
+import { hydrateNotifEmailTemplates, hydrateNotifEmailSuppressions, hydrateNotifEmailAllowlist, hydrateNotifDlqSlaDigestLastRuns, hydrateNotifAllowlistDualDigestLastRuns, hydrateNotifDlqSlaDigestStaleSuppressions, hydrateNotifDlqSlaDigestStaleSuppressionAudits, hydrateNotifAllowlistDualDigestStaleSuppressions, hydrateNotifAllowlistDualDigestStaleSuppressionAudits } from "./persistence/notifications.js";
 import { hydratePendingOutbox } from "./persistence/outbox.js";
 import { hydrateProcessedEvents } from "./persistence/processed-events.js";
 import { hydrateNatsConsumerOffsets } from "./persistence/nats-offsets.js";
@@ -72,6 +72,7 @@ if (databaseUrl) {
   const digestStaleSuppressionsHydrated = await hydrateNotifDlqSlaDigestStaleSuppressions(pool, store);
   const digestStaleSuppressionAuditsHydrated = await hydrateNotifDlqSlaDigestStaleSuppressionAudits(pool, store);
   const allowlistStaleSuppressionsHydrated = await hydrateNotifAllowlistDualDigestStaleSuppressions(pool, store);
+  const allowlistStaleSuppressionAuditsHydrated = await hydrateNotifAllowlistDualDigestStaleSuppressionAudits(pool, store);
   const heatmapRollupsHydrated = await hydrateSupHeatmapRollupSnapshots(pool, store);
   const aiDraftsHydrated = await hydrateAiDrafts(pool, store);
   const aiRecommendRunsHydrated = await hydrateAiRecommendRuns(pool, store);
@@ -90,6 +91,7 @@ if (databaseUrl) {
   logger.info("i425_dlq_sla_digest_stale_suppression_hydrate", { merged: digestStaleSuppressionsHydrated });
   logger.info("i427_dlq_sla_digest_stale_suppression_audit_hydrate", { merged: digestStaleSuppressionAuditsHydrated });
   logger.info("i328_allowlist_dual_digest_stale_suppression_hydrate", { merged: allowlistStaleSuppressionsHydrated });
+  logger.info("i330_allowlist_dual_digest_stale_suppression_audit_hydrate", { merged: allowlistStaleSuppressionAuditsHydrated });
   logger.info("pg27_heatmap_rollup_snapshot_hydrate", { merged: heatmapRollupsHydrated });
   logger.info("i204_ai_drafts_hydrate", { merged: aiDraftsHydrated });
   logger.info("i209_ai_recommend_runs_hydrate", { merged: aiRecommendRunsHydrated });
