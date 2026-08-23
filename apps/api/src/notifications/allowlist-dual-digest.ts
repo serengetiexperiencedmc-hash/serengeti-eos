@@ -3,6 +3,7 @@ import type { Store } from "../store.js";
 import { createEmailAdapter } from "./email.js";
 import { ensureNotificationCollections } from "./collections.js";
 import { resolveAllowlistDualDigestRecipientEmails } from "./allowlist-dual-digest-recipients.js";
+import { persistNotifAllowlistDualDigestLastRun } from "../persistence/notifications.js";
 
 function stampLastRun(
   store: Store,
@@ -29,13 +30,14 @@ function stampLastRun(
   const idx = (store.notifAllowlistDualDigestLastRuns ?? []).findIndex((r) => r.tenantId === principal.tenantId);
   if (idx >= 0) store.notifAllowlistDualDigestLastRuns[idx] = run;
   else store.notifAllowlistDualDigestLastRuns.push(run);
+  void persistNotifAllowlistDualDigestLastRun(store.dbPool, run);
   return run;
 }
 
 /**
  * I3.21–I3.23 — batched email summarizing pending SES allowlist dual-control approvals.
  * Fans out to caller + store/env ops aliases; respects I3.20 snooze/dismiss.
- * I3.23 stamps last-run metadata (in-memory; dual-write later).
+ * I3.23/I3.24 stamps last-run metadata (Postgres dual-write when pool set).
  */
 export async function dispatchAllowlistDualDigest(store: Store, principal: Principal) {
   const decision = authorize({
@@ -83,7 +85,7 @@ export async function dispatchAllowlistDualDigest(store: Store, principal: Princ
       pendingCount: 0,
       recipientCount: recipients.length,
       lastRun,
-      increment: "I3.23" as const,
+      increment: "I3.24" as const,
     };
   }
 
@@ -130,7 +132,7 @@ export async function dispatchAllowlistDualDigest(store: Store, principal: Princ
     pendingCount: pending.length,
     recipientCount: recipients.length,
     lastRun,
-    increment: "I3.23" as const,
+    increment: "I3.24" as const,
   };
 }
 
@@ -164,6 +166,6 @@ export function getAllowlistDualDigestStatus(store: Store, principal: Principal)
       outboxDigestCount,
       outboxByStatus: byStatus,
     },
-    increment: "I3.23" as const,
+    increment: "I3.24" as const,
   };
 }

@@ -76,7 +76,7 @@ describe("PG.17 rate conflict prefer", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(before.statusCode).toBe(200);
-    expect(before.json().increment).toBe("PG.23");
+    expect(before.json().increment).toBe("PG.24");
     expect(before.json().count).toBe(1);
     expect(before.json().conflicts[0].resolved).toBe(false);
 

@@ -138,6 +138,8 @@ function SupplierDetailDrawer({
   });
   const [calendarFrom, setCalendarFrom] = useState("2026-01-01");
   const [calendarTo, setCalendarTo] = useState("2026-12-31");
+  const [heatmapUnresolvedOnly, setHeatmapUnresolvedOnly] = useState(false);
+  const [heatmapSeasonLabel, setHeatmapSeasonLabel] = useState("");
   const [calendar, setCalendar] = useState<{
     seasons: Array<{ label: string; count: number }>;
     months: Array<{ month: string; count: number }>;
@@ -173,6 +175,8 @@ function SupplierDetailDrawer({
         from: calendarFrom,
         to: calendarTo,
         supplierId: supplier.id,
+        ...(heatmapUnresolvedOnly ? { unresolvedOnly: true } : {}),
+        ...(heatmapSeasonLabel.trim() ? { seasonLabel: heatmapSeasonLabel.trim() } : {}),
       });
       setCalendar({
         seasons: res.seasons.map((s) => ({ label: s.label, count: s.count })),
@@ -200,7 +204,7 @@ function SupplierDetailDrawer({
     if (!supplier) return;
     void loadCalendar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, supplier?.id, calendarFrom, calendarTo, detail?.rates.length]);
+  }, [token, supplier?.id, calendarFrom, calendarTo, heatmapUnresolvedOnly, heatmapSeasonLabel, detail?.rates.length]);
 
   async function handleAddContact(e: React.FormEvent) {
     e.preventDefault();
@@ -543,7 +547,7 @@ function SupplierDetailDrawer({
               )}
               {calendar && (
                 <div className="mb-3 rounded-md border border-line bg-ivory p-3">
-                  <div className="mb-2 text-xs uppercase tracking-wide text-muted">Rate calendar (PG.23)</div>
+                  <div className="mb-2 text-xs uppercase tracking-wide text-muted">Rate calendar (PG.24)</div>
                   <div className="mb-2 grid grid-cols-2 gap-2">
                     <input
                       type="date"
@@ -557,6 +561,21 @@ function SupplierDetailDrawer({
                       onChange={(e) => setCalendarTo(e.target.value)}
                       className="rounded-md border border-line bg-paper px-2 py-1 text-xs"
                     />
+                    <input
+                      type="text"
+                      placeholder="Season filter"
+                      value={heatmapSeasonLabel}
+                      onChange={(e) => setHeatmapSeasonLabel(e.target.value)}
+                      className="rounded-md border border-line bg-paper px-2 py-1 text-xs"
+                    />
+                    <label className="flex items-center gap-1.5 text-xs text-ink">
+                      <input
+                        type="checkbox"
+                        checked={heatmapUnresolvedOnly}
+                        onChange={(e) => setHeatmapUnresolvedOnly(e.target.checked)}
+                      />
+                      Unresolved only
+                    </label>
                   </div>
                   <div className="mb-2 flex flex-wrap gap-2">
                     {calendar.seasons.map((s) => (

@@ -6,6 +6,7 @@ import type {
   NotifEmailSuppression,
   NotifEmailAllowlistEntry,
   NotifDlqSlaDigestLastRun,
+  NotifAllowlistDualDigestLastRun,
 } from "@sedmc/kernel";
 import { ensureNotificationCollections } from "../notifications/collections.js";
 import type { Store } from "../store.js";
@@ -13,10 +14,12 @@ import {
   insertNotifDismissal,
   insertNotifEmailDeliveryEvent,
   insertNotifEmailOutbox,
+  loadNotifAllowlistDualDigestLastRuns,
   loadNotifDlqSlaDigestLastRuns,
   loadNotifEmailAllowlist,
   loadNotifEmailSuppressions,
   loadNotifEmailTemplates,
+  upsertNotifAllowlistDualDigestLastRun,
   upsertNotifDlqSlaDigestLastRun,
   upsertNotifEmailAllowlist,
   upsertNotifEmailSuppression,
@@ -142,6 +145,34 @@ export async function persistNotifDlqSlaDigestLastRun(
   } catch {
     // Fire-and-forget dual-write.
   }
+}
+
+export async function persistNotifAllowlistDualDigestLastRun(
+  pool: DbPool | undefined,
+  run: NotifAllowlistDualDigestLastRun,
+): Promise<void> {
+  if (!pool) return;
+  try {
+    await upsertNotifAllowlistDualDigestLastRun(pool, run);
+  } catch {
+    // Fire-and-forget dual-write.
+  }
+}
+
+export async function hydrateNotifAllowlistDualDigestLastRuns(pool: DbPool, store: Store): Promise<number> {
+  ensureNotificationCollections(store);
+  const rows = await loadNotifAllowlistDualDigestLastRuns(pool);
+  let merged = 0;
+  for (const row of rows) {
+    const idx = store.notifAllowlistDualDigestLastRuns.findIndex((r) => r.tenantId === row.tenantId);
+    if (idx >= 0) {
+      store.notifAllowlistDualDigestLastRuns[idx] = row;
+    } else {
+      store.notifAllowlistDualDigestLastRuns.push(row);
+      merged += 1;
+    }
+  }
+  return merged;
 }
 
 export async function hydrateNotifDlqSlaDigestLastRuns(pool: DbPool, store: Store): Promise<number> {

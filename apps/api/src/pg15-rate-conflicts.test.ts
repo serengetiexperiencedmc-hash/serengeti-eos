@@ -71,7 +71,7 @@ describe("PG.17 supplier rate conflicts", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(conflicts.statusCode).toBe(200);
-    expect(conflicts.json().increment).toBe("PG.23");
+    expect(conflicts.json().increment).toBe("PG.24");
     expect(conflicts.json().count).toBe(1);
     expect(conflicts.json().conflicts[0].overlapFrom).toBe("2026-07-01");
     expect(conflicts.json().conflicts[0].overlapTo).toBe("2026-08-31");
@@ -81,7 +81,7 @@ describe("PG.17 supplier rate conflicts", () => {
       url: `/v1/suppliers/rates/calendar?from=2026-01-01&to=2026-12-31&supplierId=${supplierId}`,
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(calendar.json().increment).toBe("PG.23");
+    expect(calendar.json().increment).toBe("PG.24");
     expect(calendar.json().conflicts).toHaveLength(1);
 
     const health = await app.inject({

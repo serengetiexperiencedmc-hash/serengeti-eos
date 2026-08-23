@@ -238,6 +238,8 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       to?: string;
       supplierId?: string;
       seasonLabel?: string;
+      seasonId?: string;
+      unresolvedOnly?: string;
     };
     if (!query.from || !query.to) {
       return reply.code(400).send({ error: "invalid_request", reason: "from_and_to_required" });
@@ -247,6 +249,8 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       to: query.to,
       ...(query.supplierId ? { supplierId: query.supplierId } : {}),
       ...(query.seasonLabel ? { seasonLabel: query.seasonLabel } : {}),
+      ...(query.seasonId ? { seasonId: query.seasonId } : {}),
+      ...(query.unresolvedOnly === "1" || query.unresolvedOnly === "true" ? { unresolvedOnly: true } : {}),
     });
     if ("error" in result) return sendSupplierError(reply, result);
     return result;
@@ -260,12 +264,16 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       from?: string;
       to?: string;
       unresolvedOnly?: string;
+      seasonLabel?: string;
+      seasonId?: string;
     };
     const result = getSupplierRateConflictHeatmap(store, principal, {
       ...(query.supplierId ? { supplierId: query.supplierId } : {}),
       ...(query.from ? { from: query.from } : {}),
       ...(query.to ? { to: query.to } : {}),
       ...(query.unresolvedOnly === "1" || query.unresolvedOnly === "true" ? { unresolvedOnly: true } : {}),
+      ...(query.seasonLabel ? { seasonLabel: query.seasonLabel } : {}),
+      ...(query.seasonId ? { seasonId: query.seasonId } : {}),
     });
     if ("error" in result) return sendSupplierError(reply, result);
     return result;
@@ -279,12 +287,16 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       from?: string;
       to?: string;
       unresolvedOnly?: string;
+      seasonLabel?: string;
+      seasonId?: string;
     };
     const result = getSupplierRateConflicts(store, principal, {
       ...(query.supplierId ? { supplierId: query.supplierId } : {}),
       ...(query.from ? { from: query.from } : {}),
       ...(query.to ? { to: query.to } : {}),
       ...(query.unresolvedOnly === "1" || query.unresolvedOnly === "true" ? { unresolvedOnly: true } : {}),
+      ...(query.seasonLabel ? { seasonLabel: query.seasonLabel } : {}),
+      ...(query.seasonId ? { seasonId: query.seasonId } : {}),
     });
     if ("error" in result) return sendSupplierError(reply, result);
     return result;

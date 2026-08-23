@@ -5,6 +5,7 @@ import { createEmailAdapter } from "./email.js";
 import { ensureNotificationCollections } from "./collections.js";
 import { resolveDlqSlaDigestRecipientEmails } from "./dlq-sla-digest-recipients.js";
 import { persistNotifDlqSlaDigestLastRun } from "../persistence/notifications.js";
+import { digestLastRunFreshness } from "./digest-freshness.js";
 
 function stampLastRun(
   store: Store,
@@ -88,7 +89,7 @@ export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
       thresholdHours: listed.sla.thresholdHours,
       recipientCount: recipients.length,
       lastRun,
-      increment: "I4.21" as const,
+      increment: "I4.22" as const,
     };
   }
 
@@ -136,7 +137,7 @@ export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
     thresholdHours: listed.sla.thresholdHours,
     recipientCount: recipients.length,
     lastRun,
-    increment: "I4.21" as const,
+    increment: "I4.22" as const,
   };
 }
 
@@ -170,7 +171,8 @@ export function getDlqSlaDigestStatus(store: Store, principal: Principal) {
       outboxDigestCount,
       outboxByStatus: byStatus,
     },
-    increment: "I4.21" as const,
+    freshness: digestLastRunFreshness(lastRun?.lastRunAt),
+    increment: "I4.22" as const,
   };
 }
 
@@ -204,11 +206,15 @@ export function exportDlqSlaDigestLastRun(
     outboxSent: status.analytics.outboxByStatus.sent ?? 0,
     outboxQueued: status.analytics.outboxByStatus.queued ?? 0,
     outboxFailed: status.analytics.outboxByStatus.failed ?? 0,
+    stale: status.freshness.stale,
+    neverRun: status.freshness.neverRun,
+    ageHours: status.freshness.ageHours ?? "",
+    thresholdHours: status.freshness.thresholdHours,
   };
 
   if (format === "csv") {
     const header =
-      "tenantId,day,lastRunAt,lastRunByPrincipalId,breachedCount,dispatchedCount,skippedCount,recipientCount,outboxDigestCount,outboxSent,outboxQueued,outboxFailed";
+      "tenantId,day,lastRunAt,lastRunByPrincipalId,breachedCount,dispatchedCount,skippedCount,recipientCount,outboxDigestCount,outboxSent,outboxQueued,outboxFailed,stale,neverRun,ageHours,thresholdHours";
     const csv = [
       header,
       [
@@ -224,6 +230,10 @@ export function exportDlqSlaDigestLastRun(
         String(row.outboxSent),
         String(row.outboxQueued),
         String(row.outboxFailed),
+        String(row.stale),
+        String(row.neverRun),
+        String(row.ageHours),
+        String(row.thresholdHours),
       ]
         .map(csvEscape)
         .join(","),
@@ -233,8 +243,9 @@ export function exportDlqSlaDigestLastRun(
       csv,
       lastRun,
       analytics: status.analytics,
+      freshness: status.freshness,
       generatedAt,
-      increment: "I4.21" as const,
+      increment: "I4.22" as const,
     };
   }
 
@@ -242,8 +253,9 @@ export function exportDlqSlaDigestLastRun(
     format,
     lastRun,
     analytics: status.analytics,
+    freshness: status.freshness,
     row,
     generatedAt,
-    increment: "I4.21" as const,
+    increment: "I4.22" as const,
   };
 }

@@ -45,7 +45,7 @@ describe("I4.19 DLQ SLA digest last-run status", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(before.statusCode).toBe(200);
-    expect(before.json().increment).toBe("I4.21");
+    expect(before.json().increment).toBe("I4.22");
     expect(before.json().lastRun).toBeNull();
 
     const dispatched = await app.inject({
@@ -54,7 +54,7 @@ describe("I4.19 DLQ SLA digest last-run status", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(dispatched.statusCode).toBe(200);
-    expect(dispatched.json().increment).toBe("I4.21");
+    expect(dispatched.json().increment).toBe("I4.22");
     expect(dispatched.json().lastRun.breachedCount).toBe(1);
     expect(dispatched.json().lastRun.dispatchedCount).toBeGreaterThanOrEqual(1);
 

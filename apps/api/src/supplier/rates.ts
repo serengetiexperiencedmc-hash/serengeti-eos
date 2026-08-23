@@ -301,11 +301,43 @@ export function updateSupplierRate(
 
 const ISO_DATE_PATTERN_CAL = /^\d{4}-\d{2}-\d{2}$/;
 
+type HeatmapFilters = {
+  unresolvedOnly?: boolean;
+  seasonLabel?: string;
+  seasonId?: string;
+};
+
+function seasonMatchesRate(
+  rate: { seasonLabel?: string; seasonId?: string },
+  query: HeatmapFilters,
+  catalogue: Array<{ id: string; label: string }>,
+): boolean {
+  if (query.seasonId) {
+    if (rate.seasonId === query.seasonId) return true;
+    const season = catalogue.find((s) => s.id === query.seasonId);
+    if (season && (rate.seasonLabel ?? "").toLowerCase() === season.label.toLowerCase()) return true;
+    return false;
+  }
+  if (query.seasonLabel) {
+    return (rate.seasonLabel ?? "").toLowerCase() === query.seasonLabel.trim().toLowerCase();
+  }
+  return true;
+}
+
+function conflictMatchesSeason(
+  conflict: { a: { seasonLabel?: string; seasonId?: string }; b: { seasonLabel?: string; seasonId?: string } },
+  query: HeatmapFilters,
+  catalogue: Array<{ id: string; label: string }>,
+): boolean {
+  if (!query.seasonId && !query.seasonLabel) return true;
+  return seasonMatchesRate(conflict.a, query, catalogue) || seasonMatchesRate(conflict.b, query, catalogue);
+}
+
 /** PG.14 — rates overlapping a date window, grouped by season and month. */
 export function getSupplierRateCalendar(
   store: Store,
   principal: Principal,
-  query: { from: string; to: string; supplierId?: string; seasonLabel?: string },
+  query: { from: string; to: string; supplierId?: string; seasonLabel?: string; seasonId?: string; unresolvedOnly?: boolean },
 ) {
   ensureSupplierCollections(store);
   const decision = authorize({
@@ -323,14 +355,16 @@ export function getSupplierRateCalendar(
     return { error: "invalid_request" as const, reason: "from_after_to" };
   }
 
-  const seasonFilter = query.seasonLabel?.trim().toLowerCase();
-  const overlapping = store.supRates.filter((r) => {
+  const catalogue = (store.supSeasons ?? [])
+    .filter((s) => s.tenantId === principal.tenantId && !s.archivedAt)
+    .map((s) => ({ id: s.id, label: s.label }));
+  const windowRates = store.supRates.filter((r) => {
     if (r.tenantId !== principal.tenantId || r.archivedAt) return false;
     if (query.supplierId && r.supplierId !== query.supplierId) return false;
     if (r.validTo < query.from || r.validFrom > query.to) return false;
-    if (seasonFilter && (r.seasonLabel ?? "").toLowerCase() !== seasonFilter) return false;
     return true;
   });
+  const overlapping = windowRates.filter((r) => seasonMatchesRate(r, query, catalogue));
 
   const items = overlapping.map(sanitizeRate);
   const seasonMap = new Map<string, typeof items>();
@@ -363,7 +397,9 @@ export function getSupplierRateCalendar(
     .map(([month, rates]) => ({ month, count: rates.length, rates }))
     .sort((a, b) => a.month.localeCompare(b.month));
 
-  const conflicts = mapConflictViews(detectRateConflictsAmong(overlapping));
+  let conflicts = mapConflictViews(detectRateConflictsAmong(windowRates));
+  if (query.unresolvedOnly) conflicts = conflicts.filter((c) => !c.resolved);
+  conflicts = conflicts.filter((c) => conflictMatchesSeason(c, query, catalogue));
   const heatmap = buildConflictHeatmap(conflicts, query.from, query.to);
   return {
     from: query.from,
@@ -374,7 +410,12 @@ export function getSupplierRateCalendar(
     conflicts,
     heatmap,
     unresolvedConflictCount: conflicts.filter((c) => !c.resolved).length,
-    increment: "PG.23" as const,
+    filters: {
+      unresolvedOnly: Boolean(query.unresolvedOnly),
+      ...(query.seasonLabel ? { seasonLabel: query.seasonLabel } : {}),
+      ...(query.seasonId ? { seasonId: query.seasonId } : {}),
+    },
+    increment: "PG.24" as const,
   };
 }
 
@@ -445,7 +486,7 @@ function detectRateConflictsAmong(rates: import("@sedmc/kernel").SupRate[]) {
 export function getSupplierRateConflicts(
   store: Store,
   principal: Principal,
-  query: { supplierId?: string; from?: string; to?: string; unresolvedOnly?: boolean } = {},
+  query: { supplierId?: string; from?: string; to?: string; unresolvedOnly?: boolean; seasonLabel?: string; seasonId?: string } = {},
 ) {
   ensureSupplierCollections(store);
   const decision = authorize({
@@ -473,8 +514,13 @@ export function getSupplierRateConflicts(
     return true;
   });
 
+  const catalogue = (store.supSeasons ?? [])
+    .filter((s) => s.tenantId === principal.tenantId && !s.archivedAt)
+    .map((s) => ({ id: s.id, label: s.label }));
+
   let conflicts = mapConflictViews(detectRateConflictsAmong(candidates));
   if (query.unresolvedOnly) conflicts = conflicts.filter((c) => !c.resolved);
+  conflicts = conflicts.filter((c) => conflictMatchesSeason(c, query, catalogue));
 
   const windowFrom = query.from ?? (conflicts.length ? minDate(conflicts.map((c) => c.overlapFrom)) : undefined);
   const windowTo = query.to ?? (conflicts.length ? maxDate(conflicts.map((c) => c.overlapTo)) : undefined);
@@ -486,7 +532,12 @@ export function getSupplierRateConflicts(
     count: conflicts.length,
     unresolvedCount: conflicts.filter((c) => !c.resolved).length,
     heatmap,
-    increment: "PG.23" as const,
+    filters: {
+      unresolvedOnly: Boolean(query.unresolvedOnly),
+      ...(query.seasonLabel ? { seasonLabel: query.seasonLabel } : {}),
+      ...(query.seasonId ? { seasonId: query.seasonId } : {}),
+    },
+    increment: "PG.24" as const,
   };
 }
 
@@ -589,7 +640,7 @@ function buildConflictHeatmap(
 export function getSupplierRateConflictHeatmap(
   store: Store,
   principal: Principal,
-  query: { supplierId?: string; from?: string; to?: string; unresolvedOnly?: boolean } = {},
+  query: { supplierId?: string; from?: string; to?: string; unresolvedOnly?: boolean; seasonLabel?: string; seasonId?: string } = {},
 ) {
   const listed = getSupplierRateConflicts(store, principal, query);
   if ("error" in listed) return listed;
@@ -599,7 +650,8 @@ export function getSupplierRateConflictHeatmap(
     heatmap: listed.heatmap,
     conflictCount: listed.count,
     unresolvedCount: listed.unresolvedCount,
-    increment: "PG.23" as const,
+    filters: listed.filters,
+    increment: "PG.24" as const,
   };
 }
 

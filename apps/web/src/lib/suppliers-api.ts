@@ -350,11 +350,20 @@ export async function archiveSupplierContentBlock(token: string, supplierId: str
 
 export async function getSupplierRateCalendar(
   token: string,
-  query: { from: string; to: string; supplierId?: string; seasonLabel?: string },
+  query: {
+    from: string;
+    to: string;
+    supplierId?: string;
+    seasonLabel?: string;
+    seasonId?: string;
+    unresolvedOnly?: boolean;
+  },
 ) {
   const params = new URLSearchParams({ from: query.from, to: query.to });
   if (query.supplierId) params.set("supplierId", query.supplierId);
   if (query.seasonLabel) params.set("seasonLabel", query.seasonLabel);
+  if (query.seasonId) params.set("seasonId", query.seasonId);
+  if (query.unresolvedOnly) params.set("unresolvedOnly", "1");
   return eosFetch<{
     from: string;
     to: string;

@@ -17,6 +17,7 @@ import {
   exportDlqSlaDigestLastRun,
   dispatchDlqSlaDigest,
   type DeadLetterItem,
+  type DigestFreshness,
   type DlqSlaDigestLastRun,
   type NatsLagMetrics,
 } from "@/lib/events-api";
@@ -63,6 +64,7 @@ export default function EventsInfrastructurePage() {
   const [busy, setBusy] = useState(false);
   const [digestLastRun, setDigestLastRun] = useState<DlqSlaDigestLastRun | null>(null);
   const [digestOutboxCount, setDigestOutboxCount] = useState(0);
+  const [digestFreshness, setDigestFreshness] = useState<DigestFreshness | null>(null);
 
   const reload = useCallback(async () => {
     if (!token) return;
@@ -86,6 +88,7 @@ export default function EventsInfrastructurePage() {
     setSlaSummary(letters.sla ?? null);
     setDigestLastRun(digest?.lastRun ?? null);
     setDigestOutboxCount(digest?.analytics.outboxDigestCount ?? 0);
+    setDigestFreshness(digest?.freshness ?? null);
   }, [token, ownerFilter, statusFilter, slaOnly]);
 
   useEffect(() => {
@@ -255,6 +258,13 @@ export default function EventsInfrastructurePage() {
               : " · digest never run"}
             {digestOutboxCount > 0 ? ` · outbox ${digestOutboxCount}` : ""}
           </p>
+          {digestFreshness?.stale && (
+            <p className="mb-3 rounded border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
+              {digestFreshness.neverRun
+                ? `DLQ SLA digest has never run (stale after ${digestFreshness.thresholdHours}h).`
+                : `DLQ SLA digest is stale (${digestFreshness.ageHours ?? "?"}h ≥ ${digestFreshness.thresholdHours}h).`}
+            </p>
+          )}
           {token && (
             <div className="mb-3 flex flex-wrap gap-2">
               <Btn

@@ -2133,3 +2133,54 @@ export async function loadNotifDlqSlaDigestLastRuns(
     recipientCount: Number(row.recipient_count ?? 0),
   }));
 }
+
+/** I3.24 — upsert allowlist dual digest last-run stamp (one row per tenant). */
+export async function upsertNotifAllowlistDualDigestLastRun(
+  pool: DbPool,
+  run: import("@sedmc/kernel").NotifAllowlistDualDigestLastRun,
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO notif_allowlist_dual_digest_last_run (
+      tenant_id, day, last_run_at, last_run_by_principal_id,
+      pending_count, dispatched_count, skipped_count, recipient_count
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+     ON CONFLICT (tenant_id) DO UPDATE SET
+       day = EXCLUDED.day,
+       last_run_at = EXCLUDED.last_run_at,
+       last_run_by_principal_id = EXCLUDED.last_run_by_principal_id,
+       pending_count = EXCLUDED.pending_count,
+       dispatched_count = EXCLUDED.dispatched_count,
+       skipped_count = EXCLUDED.skipped_count,
+       recipient_count = EXCLUDED.recipient_count`,
+    [
+      run.tenantId,
+      run.day,
+      run.lastRunAt,
+      run.lastRunByPrincipalId,
+      run.pendingCount,
+      run.dispatchedCount,
+      run.skippedCount,
+      run.recipientCount,
+    ],
+  );
+}
+
+export async function loadNotifAllowlistDualDigestLastRuns(
+  pool: DbPool,
+): Promise<import("@sedmc/kernel").NotifAllowlistDualDigestLastRun[]> {
+  const result = await pool.query(
+    `SELECT tenant_id, day, last_run_at, last_run_by_principal_id,
+            pending_count, dispatched_count, skipped_count, recipient_count
+     FROM notif_allowlist_dual_digest_last_run`,
+  );
+  return result.rows.map((row) => ({
+    tenantId: row.tenant_id as string,
+    day: row.day as string,
+    lastRunAt: (row.last_run_at as Date).toISOString(),
+    lastRunByPrincipalId: row.last_run_by_principal_id as string,
+    pendingCount: Number(row.pending_count ?? 0),
+    dispatchedCount: Number(row.dispatched_count ?? 0),
+    skippedCount: Number(row.skipped_count ?? 0),
+    recipientCount: Number(row.recipient_count ?? 0),
+  }));
+}

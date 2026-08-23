@@ -418,11 +418,21 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **I3.23** | Allowlist dual-control digest last-run stamp + status |
 | **I4.21** | DLQ SLA digest last-run CSV/JSON export + health fields |
 
+### 29:xx — PG.24 + I3.24 + I4.22 ✅
+
+**Shipped:** server `0.62.0-pg24-i3.24-i4.22`
+
+| Increment | Change |
+| --- | --- |
+| **PG.24** | Heatmap filter by unresolved / season catalogue |
+| **I3.24** | Persist allowlist dual digest last-run to Postgres |
+| **I4.22** | DLQ digest last-run freshness SLA / stale-run alert |
+
 ### Recommended next increments
 
-1. PG.24 — heatmap filter by unresolved / season catalogue
-2. I3.24 — persist allowlist dual digest last-run to Postgres
-3. I4.22 — digest last-run freshness SLA / stale-run alert
+1. PG.25 — heatmap CSV export
+2. I3.25 — allowlist digest last-run freshness (mirror I4.22)
+3. I4.23 — stale digest inbox / email escalation
 
 ### Issues resolved
 

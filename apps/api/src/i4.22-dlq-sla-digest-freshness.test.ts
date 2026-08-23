@@ -3,6 +3,7 @@ import { seedStore, TEST_BOOTSTRAP_SECRETS } from "./app.js";
 import { buildServer } from "./server.js";
 import { commitWithOutbox, publishPendingOutbox } from "./outbox.js";
 import { allPrincipals } from "./store.js";
+import { digestLastRunFreshness } from "./notifications/digest-freshness.js";
 
 const P = TEST_BOOTSTRAP_SECRETS;
 
@@ -15,15 +16,15 @@ async function loginCarol(app: ReturnType<typeof buildServer>) {
   return res.json().accessToken as string;
 }
 
-describe("I4.21 DLQ SLA digest last-run export", () => {
-  it("exports lastRun as JSON and CSV after dispatch", async () => {
-    const store = seedStore("i421-export", TEST_BOOTSTRAP_SECRETS);
+describe("I4.22 DLQ SLA digest last-run freshness", () => {
+  it("treats never-run as stale and clears after dispatch", async () => {
+    const store = seedStore("i422-fresh", TEST_BOOTSTRAP_SECRETS);
     const carol = allPrincipals(store).find((p) => p.email === "carol.admin@sedmc.local")!;
     commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",
-      correlationId: "i421-1",
+      correlationId: "i422-1",
       mutate: () => undefined,
     });
     const eventId = store.outboxEvents[0]!.envelope.eventId;
@@ -38,40 +39,54 @@ describe("I4.21 DLQ SLA digest last-run export", () => {
     const app = buildServer({ store });
     const token = await loginCarol(app);
 
+    const before = await app.inject({
+      method: "GET",
+      url: "/v1/notifications/email/dlq-sla-digest-status",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(before.statusCode).toBe(200);
+    expect(before.json().increment).toBe("I4.22");
+    expect(before.json().freshness.neverRun).toBe(true);
+    expect(before.json().freshness.stale).toBe(true);
+
     const dispatched = await app.inject({
       method: "POST",
       url: "/v1/notifications/email/dispatch-dlq-sla-digest",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(dispatched.statusCode).toBe(200);
     expect(dispatched.json().increment).toBe("I4.22");
-    expect(dispatched.json().lastRun.breachedCount).toBe(1);
 
-    const json = await app.inject({
+    const after = await app.inject({
       method: "GET",
-      url: "/v1/notifications/email/dlq-sla-digest-status/export",
+      url: "/v1/notifications/email/dlq-sla-digest-status",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(json.statusCode).toBe(200);
-    expect(json.json().increment).toBe("I4.22");
-    expect(json.json().format).toBe("json");
-    expect(json.json().lastRun.breachedCount).toBe(1);
-    expect(json.json().row.outboxDigestCount).toBeGreaterThanOrEqual(1);
+    expect(after.json().freshness.neverRun).toBe(false);
+    expect(after.json().freshness.stale).toBe(false);
+    expect(after.json().freshness.ageHours).toBeLessThan(1);
 
-    const csv = await app.inject({
+    const exported = await app.inject({
       method: "GET",
       url: "/v1/notifications/email/dlq-sla-digest-status/export?format=csv",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(csv.json().format).toBe("csv");
-    expect(csv.json().csv).toContain("breachedCount");
-    expect(csv.json().csv).toContain(",1,");
+    expect(exported.json().increment).toBe("I4.22");
+    expect(exported.json().freshness.stale).toBe(false);
+    expect(exported.json().csv).toContain("stale,neverRun,ageHours,thresholdHours");
 
     const health = await app.inject({
       method: "GET",
       url: "/v1/notifications/email/health",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(health.json().dlqSlaDigestLastRun.breachedCount).toBe(1);
+    expect(health.json().dlqSlaDigestFreshness.stale).toBe(false);
+  });
+
+  it("marks a last-run older than the threshold as stale", () => {
+    const old = new Date(Date.now() - 40 * 3_600_000).toISOString();
+    const freshness = digestLastRunFreshness(old);
+    expect(freshness.neverRun).toBe(false);
+    expect(freshness.stale).toBe(true);
+    expect(freshness.ageHours).toBeGreaterThanOrEqual(26);
   });
 });

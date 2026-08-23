@@ -18,6 +18,7 @@ import {
 } from "@sedmc/kernel";
 import type { Store } from "../store.js";
 import { persistNotifEmailOutbox, persistNotifEmailTemplate } from "../persistence/notifications.js";
+import { digestLastRunFreshness } from "./digest-freshness.js";
 import { ensureNotificationCollections } from "./collections.js";
 import { buildLiveNotifications } from "./notifications.js";
 import { resolveEmailAdapterName } from "./email-config.js";
@@ -344,6 +345,7 @@ export function getEmailAdapterHealth(store: Store, principal?: Principal) {
     outboxCount: (store.notifEmailOutbox ?? []).length,
     allowlistDualDigestLastRun,
     dlqSlaDigestLastRun,
+    dlqSlaDigestFreshness: digestLastRunFreshness(dlqSlaDigestLastRun?.lastRunAt),
     deliveryEventCount: (store.notifEmailDeliveryEvents ?? []).length,
     suppressionCount: (store.notifEmailSuppressions ?? []).filter((s) => !s.liftedAt).length,
     allowlistCount: (store.notifEmailAllowlist ?? []).filter((e) => !e.revokedAt && (!e.expiresAt || new Date(e.expiresAt).getTime() > Date.now())).length,

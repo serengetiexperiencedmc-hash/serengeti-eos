@@ -196,10 +196,18 @@ export type DlqSlaDigestLastRun = {
   recipientCount: number;
 };
 
+export type DigestFreshness = {
+  stale: boolean;
+  neverRun: boolean;
+  ageHours: number | null;
+  thresholdHours: number;
+};
+
 export async function getDlqSlaDigestStatus(token: string) {
   return eosFetch<{
     lastRun: DlqSlaDigestLastRun | null;
     analytics: { outboxDigestCount: number; outboxByStatus: Record<string, number> };
+    freshness: DigestFreshness;
     increment: string;
   }>("/v1/notifications/email/dlq-sla-digest-status", { token });
 }
