@@ -768,11 +768,20 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **I4.34** | Dual-write + hydrate I4.33 last-used DLQ preset and usage rows; I4.29 last-filter and I4.32 delete stay independent |
 | Docs | `i4.34-dlq-preset-usage-last-used-persist-preview.md` recorded after ship |
 
+### I3.36 defined — architecture preview only
+
+**Preview:** `docs/architecture/i3.36-allowlist-preset-usage-last-used-preview.md`  
+**Implementation:** NOT AUTHORIZED. Current API remains `1.02.0-i4.34`. Proposed after implementation: `1.03.0-i3.36`.
+
+This assignment supersedes the prior I3.36 placeholder. I3.36 is in-memory allowlist last-used preset / usage echo only. Persist / hydrate / I3 usage tables are not authorized. I3.37 remains undefined.
+
 ### Recommended next increments
 
-1. I3.36 — (undefined / not authorized)
+1. I3.36 — architecture preview only; implementation not authorized
 2. I20.23 — (unnamed / undefined)
 3. PG.30 — (undefined / not authorized)
+4. I4.35 — (undefined / not authorized)
+5. I3.37 — (undefined / not authorized)
 
 ### Issues resolved
 
