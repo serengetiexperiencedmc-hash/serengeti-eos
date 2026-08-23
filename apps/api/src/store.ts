@@ -413,6 +413,7 @@ const PERMS = {
     "finance:create:payment",
     "finance:read:payment",
     ...NOTIFICATION_PERMS,
+    "ai:read:recommend",
   ],
   commercialManager: [
     "org:read:unit",
@@ -451,6 +452,7 @@ const PERMS = {
     "finance:create:payment",
     "finance:read:payment",
     ...NOTIFICATION_PERMS,
+    "ai:read:recommend",
   ],
 };
 

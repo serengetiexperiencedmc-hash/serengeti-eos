@@ -10,6 +10,7 @@ import { AiPanel, Btn, Card, PageHeader } from "@/components/commercial/ui";
 import { formatRelativeDate } from "@/lib/crm-api";
 import { formatCurrency, type CommercialAnalyticsSummary } from "@/lib/analytics-api";
 import { fetchCommercialLiveStats, type CommercialLiveStats } from "@/lib/commercial-stats";
+import { listAiRecommendations, type AiRecommendation } from "@/lib/ai-api";
 import { EosApiError } from "@/lib/eos-client";
 
 const activityIcons: Record<string, string> = {
@@ -30,6 +31,7 @@ function timeOfDayGreeting(now = new Date()): string {
 export default function CommercialDashboardPage() {
   const { token, ready } = useEosSession();
   const [live, setLive] = useState<CommercialLiveStats | null>(null);
+  const [recs, setRecs] = useState<AiRecommendation[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [greeting, setGreeting] = useState("Welcome");
 
@@ -40,6 +42,7 @@ export default function CommercialDashboardPage() {
   useEffect(() => {
     if (!token) {
       setLive(null);
+      setRecs(null);
       return;
     }
     void fetchCommercialLiveStats(token)
@@ -48,6 +51,9 @@ export default function CommercialDashboardPage() {
         setError(err instanceof EosApiError ? err.message : "Failed to load live stats");
         setLive(null);
       });
+    void listAiRecommendations(token)
+      .then((res) => setRecs(res.items))
+      .catch(() => setRecs([]));
   }, [token]);
 
   const statCards = token && live
@@ -290,28 +296,30 @@ export default function CommercialDashboardPage() {
           </Card>
 
           <AiPanel>
-            <div className="rounded-md bg-white/5 p-3 text-sm leading-relaxed">
-              {token && live && live.organizations > 0 ? (
-                <>
-                  Global Incentives RFP: Based on similar 60–70 pax incentive programmes, consider
-                  adding a bush dinner at Seronera on Day 3. Seronera Safari Lodge is in your
-                  supplier library with High Season rates from USD 450/night.
-                </>
-              ) : (
-                <>
-                  Sign in and load demo data to see AI suggestions grounded in your supplier library
-                  and CRM clients.
-                </>
-              )}
-              <div className="mt-2 flex gap-2">
-                <Btn variant="gold" size="sm" disabled>
-                  Add to programme
-                </Btn>
-                <Btn variant="ghost" size="sm" disabled>
-                  Dismiss
-                </Btn>
-              </div>
-            </div>
+            {!token ? (
+              <p className="text-sm leading-relaxed">
+                Sign in to see recommended next actions from your EOS records. The assistant can only
+                recommend — it cannot merge, email, or approve.
+              </p>
+            ) : recs === null ? (
+              <p className="text-sm text-muted">Loading recommendations…</p>
+            ) : recs.length === 0 ? (
+              <p className="text-sm leading-relaxed">No recommended actions right now.</p>
+            ) : (
+              <ul className="space-y-3">
+                {recs.map((item) => (
+                  <li key={item.id} className="rounded-md bg-white/5 p-3 text-sm leading-relaxed">
+                    <p className="font-medium text-sand">{item.title}</p>
+                    <p className="mt-1 text-xs text-muted">{item.reason}</p>
+                    <div className="mt-2">
+                      <Btn href={item.href} variant="gold" size="sm">
+                        Open
+                      </Btn>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </AiPanel>
         </div>
       </div>

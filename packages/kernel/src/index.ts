@@ -7,6 +7,7 @@ export * from "./approval.js";
 export * from "./authz.js";
 export * from "./token.js";
 export * from "./ports.js";
+export * from "./ai-recommend.js";
 export * from "./workflow.js";
 export * from "./execution-mode.js";
 export * from "./events.js";

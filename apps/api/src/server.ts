@@ -71,6 +71,7 @@ import { registerOpsRoutes } from "./ops/routes.js";
 import { registerProposalRoutes } from "./proposal/routes.js";
 import { registerRfpRoutes } from "./rfp/routes.js";
 import { registerSupplierRoutes } from "./supplier/routes.js";
+import { registerAiRoutes } from "./ai/routes.js";
 import type { EventCatalogueEntry } from "@sedmc/kernel";
 import {
   createLogger,
@@ -81,7 +82,7 @@ import {
   type Logger,
 } from "./observability.js";
 
-const VERSION = "0.67.0-pg29-i3.29-i4.27";
+const VERSION = "0.68.0-i20.1";
 
 export type ServerOptions = {
   store?: Store;
@@ -119,6 +120,7 @@ export function buildServer(options: ServerOptions | Store = {}) {
   registerFinanceRoutes(app, store);
   registerNotificationRoutes(app, store);
   registerAnalyticsRoutes(app, store);
+  registerAiRoutes(app, store);
 
   app.get("/health", async (_req, reply) => {
     setCorrelationHeader(reply, crypto.randomUUID());

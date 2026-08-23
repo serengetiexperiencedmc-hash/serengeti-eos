@@ -479,10 +479,18 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **I3.29** | Allowlist stale-digest suppression export / audit |
 | **I4.27** | Persist stale-digest suppression audit to Postgres |
 
+### 35:xx — I20.1 AI recommend ✅
+
+**Shipped:** server `0.68.0-i20.1`
+
+| Increment | Change |
+| --- | --- |
+| **I20.1** | Read-only EOS assistant (Recommend only) on the commercial dashboard |
+
 ### Recommended next increments
 
-1. PG.30 — season import dry-run / archive-via-import
-2. I3.30 — persist allowlist stale audit to Postgres (mirror I4.27)
+1. I20.2 — optional draft artefacts (L2) that stay unpublished until human accept
+2. I3.30 — persist allowlist stale audit to Postgres
 3. I4.28 — stale-audit filters / tenant export window
 
 ### Issues resolved
