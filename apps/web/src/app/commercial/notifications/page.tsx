@@ -30,6 +30,8 @@ import {
   dispatchAllowlistDualDigest,
   dispatchAllowlistDualDigestStaleAlert,
   getAllowlistDualDigestStatus,
+  snoozeAllowlistDualDigestStale,
+  acknowledgeAllowlistDualDigestStale,
   type DigestLastRun,
   type EmailDeliveryAnalytics,
   type EmailDeliveryEventItem,
@@ -471,6 +473,36 @@ export default function NotificationsPage() {
                 }
               >
                 Escalate stale digest
+              </Btn>
+              <Btn
+                variant="secondary"
+                size="sm"
+                disabled={!allowlistDigest?.freshness?.stale}
+                onClick={() =>
+                  void snoozeAllowlistDualDigestStale(token, 24)
+                    .then(() => {
+                      setSyncMsg("Stale allowlist digest snoozed 24h");
+                      return reload();
+                    })
+                    .catch((err) => setError(err instanceof Error ? err.message : "Snooze failed"))
+                }
+              >
+                Snooze stale 24h
+              </Btn>
+              <Btn
+                variant="secondary"
+                size="sm"
+                disabled={!allowlistDigest?.freshness?.stale}
+                onClick={() =>
+                  void acknowledgeAllowlistDualDigestStale(token)
+                    .then(() => {
+                      setSyncMsg("Stale allowlist digest acknowledged");
+                      return reload();
+                    })
+                    .catch((err) => setError(err instanceof Error ? err.message : "Ack failed"))
+                }
+              >
+                Ack stale digest
               </Btn>
               <Btn
                 variant="secondary"

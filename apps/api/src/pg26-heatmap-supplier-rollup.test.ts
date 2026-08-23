@@ -82,7 +82,7 @@ describe("PG.26 heatmap supplier rollup / multi-supplier export", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(heatmap.statusCode).toBe(200);
-    expect(heatmap.json().increment).toBe("PG.26");
+    expect(heatmap.json().increment).toBe("PG.27");
     const suppliers = heatmap.json().heatmap.suppliers as Array<{
       supplierCode: string;
       conflictCount: number;
@@ -95,7 +95,7 @@ describe("PG.26 heatmap supplier rollup / multi-supplier export", () => {
       url: "/v1/suppliers/rates/conflicts/heatmap/export?from=2026-01-01&to=2026-12-31&format=csv&view=suppliers",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(csv.json().increment).toBe("PG.26");
+    expect(csv.json().increment).toBe("PG.27");
     expect(csv.json().view).toBe("suppliers");
     expect(csv.json().csv).toContain("supplierId,supplierCode,legalName,conflictCount,unresolvedCount");
     expect(csv.json().csv).toContain("PG26-A");

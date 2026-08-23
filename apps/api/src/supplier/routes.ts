@@ -20,11 +20,12 @@ import {
   restoreSupplier,
 } from "./supplier.js";
 import { archiveSupplierContact, createSupplierContact, updateSupplierContact } from "./contacts.js";
-import { archiveSupplierRate, createSupplierRate, getSupplierRateCalendar, getSupplierRateConflicts, getSupplierRateConflictHeatmap, exportSupplierRateConflictHeatmap, preferSupplierRate, updateSupplierRate } from "./rates.js";
+import { archiveSupplierRate, createSupplierRate, getSupplierRateCalendar, getSupplierRateConflicts, getSupplierRateConflictHeatmap, exportSupplierRateConflictHeatmap, getHeatmapRollupStatus, preferSupplierRate, updateSupplierRate } from "./rates.js";
 import {
   archiveSupplierSeason,
   backfillSeasonRates,
   createSupplierSeason,
+  exportSupplierSeasons,
   listSupplierSeasons,
   previewSeasonExpandBackfill,
   previewSeasonShrinkImpact,
@@ -59,6 +60,18 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     void getCorrelationId(req);
     return getSupplierModuleHealth(store);
+  });
+
+  app.get("/v1/suppliers/seasons/export", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const query = req.query as { archived?: string; format?: string };
+    const result = exportSupplierSeasons(store, principal, {
+      ...(query.archived === "1" || query.archived === "true" ? { archived: true } : {}),
+      format: query.format === "csv" ? "csv" : "json",
+    });
+    if ("error" in result) return sendSupplierError(reply, result);
+    return result;
   });
 
   app.get("/v1/suppliers/seasons", async (req, reply) => {
@@ -252,6 +265,14 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       ...(query.seasonId ? { seasonId: query.seasonId } : {}),
       ...(query.unresolvedOnly === "1" || query.unresolvedOnly === "true" ? { unresolvedOnly: true } : {}),
     });
+    if ("error" in result) return sendSupplierError(reply, result);
+    return result;
+  });
+
+  app.get("/v1/suppliers/rates/conflicts/heatmap/rollup-status", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = getHeatmapRollupStatus(store, principal);
     if ("error" in result) return sendSupplierError(reply, result);
     return result;
   });

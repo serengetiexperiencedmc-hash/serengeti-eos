@@ -12,6 +12,7 @@ import { ensureNotificationCollections } from "./collections.js";
 import { resolveEmailAdapterName } from "./email-config.js";
 import { digestLastRunFreshness } from "./digest-freshness.js";
 import { isDlqSlaDigestStaleSuppressed } from "./dlq-sla-digest.js";
+import { isAllowlistDualDigestStaleSuppressed } from "./allowlist-dual-digest.js";
 
 function isDismissed(store: Store, principalId: string, key: string): boolean {
   return store.notifDismissals.some((d) => d.principalId === principalId && d.notificationKey === key);
@@ -194,7 +195,7 @@ export function buildLiveNotifications(store: Store, principal: Principal): Noti
       Date.now(),
       "EOS_ALLOWLIST_DUAL_DIGEST_STALE_HOURS",
     );
-    if (allowlistFreshness.stale) {
+    if (allowlistFreshness.stale && !isAllowlistDualDigestStaleSuppressed(store, tenantId)) {
       const day = now.slice(0, 10);
       items.push({
         key: `allowlist-dual-digest-stale:${day}`,

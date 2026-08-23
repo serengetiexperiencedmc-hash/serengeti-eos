@@ -2184,3 +2184,105 @@ export async function loadNotifAllowlistDualDigestLastRuns(
     recipientCount: Number(row.recipient_count ?? 0),
   }));
 }
+
+/** I4.25 — upsert stale DLQ SLA digest snooze/ack (one row per tenant). */
+export async function upsertNotifDlqSlaDigestStaleSuppression(
+  pool: DbPool,
+  suppression: import("@sedmc/kernel").NotifDlqSlaDigestStaleSuppression,
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO notif_dlq_sla_digest_stale_suppression (
+      tenant_id, acknowledged_at, snoozed_until, updated_at, updated_by_principal_id
+    ) VALUES ($1,$2,$3,$4,$5)
+     ON CONFLICT (tenant_id) DO UPDATE SET
+       acknowledged_at = EXCLUDED.acknowledged_at,
+       snoozed_until = EXCLUDED.snoozed_until,
+       updated_at = EXCLUDED.updated_at,
+       updated_by_principal_id = EXCLUDED.updated_by_principal_id`,
+    [
+      suppression.tenantId,
+      suppression.acknowledgedAt ?? null,
+      suppression.snoozedUntil ?? null,
+      suppression.updatedAt,
+      suppression.updatedByPrincipalId,
+    ],
+  );
+}
+
+export async function loadNotifDlqSlaDigestStaleSuppressions(
+  pool: DbPool,
+): Promise<import("@sedmc/kernel").NotifDlqSlaDigestStaleSuppression[]> {
+  const result = await pool.query(
+    `SELECT tenant_id, acknowledged_at, snoozed_until, updated_at, updated_by_principal_id
+     FROM notif_dlq_sla_digest_stale_suppression`,
+  );
+  return result.rows.map((row) => ({
+    tenantId: row.tenant_id as string,
+    ...(row.acknowledged_at ? { acknowledgedAt: (row.acknowledged_at as Date).toISOString() } : {}),
+    ...(row.snoozed_until ? { snoozedUntil: (row.snoozed_until as Date).toISOString() } : {}),
+    updatedAt: (row.updated_at as Date).toISOString(),
+    updatedByPrincipalId: row.updated_by_principal_id as string,
+  }));
+}
+
+export async function deleteNotifDlqSlaDigestStaleSuppression(pool: DbPool, tenantId: string): Promise<void> {
+  await pool.query(`DELETE FROM notif_dlq_sla_digest_stale_suppression WHERE tenant_id = $1`, [tenantId]);
+}
+
+/** PG.27 — upsert last heatmap supplier rollup snapshot (one row per tenant). */
+export async function upsertSupHeatmapRollupSnapshot(
+  pool: DbPool,
+  snapshot: import("@sedmc/kernel").SupHeatmapRollupSnapshot,
+): Promise<void> {
+  await pool.query(
+    `INSERT INTO sup_heatmap_rollup_snapshot (
+      tenant_id, generated_at, generated_by_principal_id, window_from, window_to,
+      conflict_count, unresolved_count, supplier_count, suppliers
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb)
+     ON CONFLICT (tenant_id) DO UPDATE SET
+       generated_at = EXCLUDED.generated_at,
+       generated_by_principal_id = EXCLUDED.generated_by_principal_id,
+       window_from = EXCLUDED.window_from,
+       window_to = EXCLUDED.window_to,
+       conflict_count = EXCLUDED.conflict_count,
+       unresolved_count = EXCLUDED.unresolved_count,
+       supplier_count = EXCLUDED.supplier_count,
+       suppliers = EXCLUDED.suppliers`,
+    [
+      snapshot.tenantId,
+      snapshot.generatedAt,
+      snapshot.generatedByPrincipalId,
+      snapshot.from ?? null,
+      snapshot.to ?? null,
+      snapshot.conflictCount,
+      snapshot.unresolvedCount,
+      snapshot.supplierCount,
+      JSON.stringify(snapshot.suppliers),
+    ],
+  );
+}
+
+export async function loadSupHeatmapRollupSnapshots(
+  pool: DbPool,
+): Promise<import("@sedmc/kernel").SupHeatmapRollupSnapshot[]> {
+  const result = await pool.query(
+    `SELECT tenant_id, generated_at, generated_by_principal_id, window_from, window_to,
+            conflict_count, unresolved_count, supplier_count, suppliers
+     FROM sup_heatmap_rollup_snapshot`,
+  );
+  return result.rows.map((row) => {
+    const raw = row.suppliers;
+    const suppliers = Array.isArray(raw) ? raw : JSON.parse(String(raw ?? "[]"));
+    return {
+      tenantId: row.tenant_id as string,
+      generatedAt: (row.generated_at as Date).toISOString(),
+      generatedByPrincipalId: row.generated_by_principal_id as string,
+      ...(row.window_from ? { from: String(row.window_from).slice(0, 10) } : {}),
+      ...(row.window_to ? { to: String(row.window_to).slice(0, 10) } : {}),
+      conflictCount: Number(row.conflict_count ?? 0),
+      unresolvedCount: Number(row.unresolved_count ?? 0),
+      supplierCount: Number(row.supplier_count ?? 0),
+      suppliers,
+    };
+  });
+}

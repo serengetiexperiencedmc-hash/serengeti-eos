@@ -4,13 +4,15 @@ import {
   SUPPLIER_EVENT_TYPES,
   SUPPLIER_RATE_STATUSES,
   SUPPLIER_RATE_TYPES,
+  type HeatmapSupplierRollup,
   type Principal,
+  type SupHeatmapRollupSnapshot,
   type SupRate,
 } from "@sedmc/kernel";
 import type { Store } from "../store.js";
 import { allowSupplierAudit, denySupplierAudit } from "./audit.js";
 import { ensureSupplierCollections } from "./collections.js";
-import { persistSupEntityAfterCommit } from "../persistence/supplier.js";
+import { persistSupEntityAfterCommit, persistSupHeatmapRollupSnapshot } from "../persistence/supplier.js";
 import { assertRateWithinSeason } from "./season-bounds.js";
 
 const ISO_CURRENCY_PATTERN = /^[A-Z]{3}$/;
@@ -416,7 +418,7 @@ export function getSupplierRateCalendar(
       ...(query.seasonLabel ? { seasonLabel: query.seasonLabel } : {}),
       ...(query.seasonId ? { seasonId: query.seasonId } : {}),
     },
-    increment: "PG.26" as const,
+    increment: "PG.27" as const,
   };
 }
 
@@ -539,7 +541,7 @@ export function getSupplierRateConflicts(
       ...(query.seasonLabel ? { seasonLabel: query.seasonLabel } : {}),
       ...(query.seasonId ? { seasonId: query.seasonId } : {}),
     },
-    increment: "PG.26" as const,
+    increment: "PG.27" as const,
   };
 }
 
@@ -550,14 +552,6 @@ function minDate(values: string[]): string {
 function maxDate(values: string[]): string {
   return values.reduce((max, v) => (v > max ? v : max));
 }
-
-type HeatmapSupplierRollup = {
-  supplierId: string;
-  supplierCode: string;
-  legalName: string;
-  conflictCount: number;
-  unresolvedCount: number;
-};
 
 function emptyHeatmap() {
   return {
@@ -674,6 +668,36 @@ function buildConflictHeatmap(
   return { months, seasons, cells, suppliers: [] as HeatmapSupplierRollup[], maxConflictCount };
 }
 
+function stampHeatmapRollupSnapshot(
+  store: Store,
+  principal: Principal,
+  input: {
+    from?: string;
+    to?: string;
+    conflictCount: number;
+    unresolvedCount: number;
+    suppliers: HeatmapSupplierRollup[];
+  },
+) {
+  ensureSupplierCollections(store);
+  const snapshot: SupHeatmapRollupSnapshot = {
+    tenantId: principal.tenantId,
+    generatedAt: new Date().toISOString(),
+    generatedByPrincipalId: principal.id,
+    ...(input.from ? { from: input.from } : {}),
+    ...(input.to ? { to: input.to } : {}),
+    conflictCount: input.conflictCount,
+    unresolvedCount: input.unresolvedCount,
+    supplierCount: input.suppliers.length,
+    suppliers: input.suppliers,
+  };
+  const idx = (store.supHeatmapRollupSnapshots ?? []).findIndex((s) => s.tenantId === principal.tenantId);
+  if (idx >= 0) store.supHeatmapRollupSnapshots[idx] = snapshot;
+  else store.supHeatmapRollupSnapshots.push(snapshot);
+  void persistSupHeatmapRollupSnapshot(store.dbPool, snapshot);
+  return snapshot;
+}
+
 /** PG.23 — dedicated heatmap endpoint (same filters as conflicts). */
 export function getSupplierRateConflictHeatmap(
   store: Store,
@@ -682,6 +706,13 @@ export function getSupplierRateConflictHeatmap(
 ) {
   const listed = getSupplierRateConflicts(store, principal, query);
   if ("error" in listed) return listed;
+  const lastSnapshot = stampHeatmapRollupSnapshot(store, principal, {
+    ...(query.from ? { from: query.from } : {}),
+    ...(query.to ? { to: query.to } : {}),
+    conflictCount: listed.count,
+    unresolvedCount: listed.unresolvedCount,
+    suppliers: listed.heatmap.suppliers,
+  });
   return {
     from: query.from ?? null,
     to: query.to ?? null,
@@ -689,8 +720,23 @@ export function getSupplierRateConflictHeatmap(
     conflictCount: listed.count,
     unresolvedCount: listed.unresolvedCount,
     filters: listed.filters,
-    increment: "PG.26" as const,
+    lastSnapshot,
+    increment: "PG.27" as const,
   };
+}
+
+/** PG.27 — last persisted heatmap supplier rollup snapshot for the tenant. */
+export function getHeatmapRollupStatus(store: Store, principal: Principal) {
+  ensureSupplierCollections(store);
+  const decision = authorize({
+    principal,
+    permission: "supplier:read:supplier",
+    action: "read:sup_heatmap_rollup",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+  const lastSnapshot =
+    (store.supHeatmapRollupSnapshots ?? []).find((s) => s.tenantId === principal.tenantId) ?? null;
+  return { lastSnapshot, increment: "PG.27" as const };
 }
 
 function csvEscape(value: string): string {
@@ -753,7 +799,8 @@ export function exportSupplierRateConflictHeatmap(
       unresolvedCount: listed.unresolvedCount,
       filters: listed.filters,
       generatedAt,
-      increment: "PG.26" as const,
+      lastSnapshot: listed.lastSnapshot,
+      increment: "PG.27" as const,
     };
   }
 
@@ -768,7 +815,8 @@ export function exportSupplierRateConflictHeatmap(
     unresolvedCount: listed.unresolvedCount,
     filters: listed.filters,
     generatedAt,
-    increment: "PG.26" as const,
+    lastSnapshot: listed.lastSnapshot,
+    increment: "PG.27" as const,
   };
 }
 

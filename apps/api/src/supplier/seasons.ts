@@ -105,6 +105,47 @@ export function listSupplierSeasons(
   return { items, count: items.length, increment: "PG.21" as const };
 }
 
+function csvEscape(value: string): string {
+  if (/[",\n]/.test(value)) return `"${value.replaceAll("\"", "\"\"")}"`;
+  return value;
+}
+
+/** PG.27 — CSV/JSON export of the season catalogue. */
+export function exportSupplierSeasons(
+  store: Store,
+  principal: Principal,
+  query: { archived?: boolean; format?: "json" | "csv" } = {},
+) {
+  const listed = listSupplierSeasons(store, principal, { archived: query.archived });
+  if ("error" in listed) return listed;
+  const generatedAt = new Date().toISOString();
+  const format = query.format === "csv" ? "csv" : "json";
+  if (format === "csv") {
+    const csv = [
+      "id,seasonCode,label,validFrom,validTo,monthFrom,monthTo,version,archivedAt,createdAt,updatedAt",
+      ...listed.items.map((row) =>
+        [
+          row.id,
+          row.seasonCode,
+          row.label,
+          row.validFrom ?? "",
+          row.validTo ?? "",
+          row.monthFrom === undefined ? "" : String(row.monthFrom),
+          row.monthTo === undefined ? "" : String(row.monthTo),
+          String(row.version),
+          row.archivedAt ?? "",
+          row.createdAt,
+          row.updatedAt,
+        ]
+          .map(csvEscape)
+          .join(","),
+      ),
+    ].join("\n");
+    return { format, csv, items: listed.items, count: listed.count, generatedAt, increment: "PG.27" as const };
+  }
+  return { format, items: listed.items, count: listed.count, generatedAt, increment: "PG.27" as const };
+}
+
 export function createSupplierSeason(
   store: Store,
   principal: Principal,

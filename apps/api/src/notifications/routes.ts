@@ -10,7 +10,13 @@ import {
   getDlqSlaDigestStatus,
   snoozeDlqSlaDigestStale,
 } from "./dlq-sla-digest.js";
-import { dispatchAllowlistDualDigest, dispatchAllowlistDualDigestStaleAlert, getAllowlistDualDigestStatus } from "./allowlist-dual-digest.js";
+import {
+  acknowledgeAllowlistDualDigestStale,
+  dispatchAllowlistDualDigest,
+  dispatchAllowlistDualDigestStaleAlert,
+  getAllowlistDualDigestStatus,
+  snoozeAllowlistDualDigestStale,
+} from "./allowlist-dual-digest.js";
 import {
   addAllowlistDualDigestRecipient,
   listAllowlistDualDigestRecipients,
@@ -174,6 +180,23 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = await dispatchAllowlistDualDigestStaleAlert(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/notifications/email/allowlist-dual-digest-stale/snooze", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const body = (req.body ?? {}) as { hours?: number };
+    const result = snoozeAllowlistDualDigestStale(store, principal, { hours: body.hours });
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/notifications/email/allowlist-dual-digest-stale/ack", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = acknowledgeAllowlistDualDigestStale(store, principal);
     if ("error" in result) return sendError(reply, result);
     return result;
   });

@@ -1,15 +1,18 @@
 import type { DbPool } from "@sedmc/db";
+import type { SupHeatmapRollupSnapshot } from "@sedmc/kernel";
 import { ensureSupplierCollections } from "../supplier/collections.js";
 import type { Store } from "../store.js";
 import {
   loadSupContacts,
   loadSupContentBlocks,
+  loadSupHeatmapRollupSnapshots,
   loadSupImportBatches,
   loadSupImportExecuteIdempotencies,
   loadSupRates,
   loadSupSuppliers,
   upsertSupContact,
   upsertSupContentBlock,
+  upsertSupHeatmapRollupSnapshot,
   upsertSupImportBatch,
   upsertSupImportExecuteIdempotency,
   upsertSupRate,
@@ -100,6 +103,34 @@ export async function hydrateSupImportExecuteIdempotenciesFromPostgres(pool: DbP
     if (store.supImportExecuteIdempotency[row.storeKey]) continue;
     store.supImportExecuteIdempotency[row.storeKey] = row.status;
     merged += 1;
+  }
+  return merged;
+}
+
+export async function persistSupHeatmapRollupSnapshot(
+  pool: DbPool | undefined,
+  snapshot: SupHeatmapRollupSnapshot,
+): Promise<void> {
+  if (!pool) return;
+  try {
+    await upsertSupHeatmapRollupSnapshot(pool, snapshot);
+  } catch {
+    // Fire-and-forget dual-write.
+  }
+}
+
+export async function hydrateSupHeatmapRollupSnapshots(pool: DbPool, store: Store): Promise<number> {
+  ensureSupplierCollections(store);
+  const rows = await loadSupHeatmapRollupSnapshots(pool);
+  let merged = 0;
+  for (const row of rows) {
+    const idx = store.supHeatmapRollupSnapshots.findIndex((s) => s.tenantId === row.tenantId);
+    if (idx >= 0) {
+      store.supHeatmapRollupSnapshots[idx] = row;
+    } else {
+      store.supHeatmapRollupSnapshots.push(row);
+      merged += 1;
+    }
   }
   return merged;
 }

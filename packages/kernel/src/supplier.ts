@@ -170,6 +170,28 @@ export const SUPPLIER_EVENT_TYPES = {
   CONTENT_BLOCK_ARCHIVED: "supplier.content_block.archived.v1",
 } as const;
 
+/** PG.26/PG.27 — conflict heatmap counts rolled up by supplier. */
+export type HeatmapSupplierRollup = {
+  supplierId: string;
+  supplierCode: string;
+  legalName: string;
+  conflictCount: number;
+  unresolvedCount: number;
+};
+
+/** PG.27 — last computed heatmap supplier rollup (one row per tenant). */
+export type SupHeatmapRollupSnapshot = {
+  tenantId: string;
+  generatedAt: string;
+  generatedByPrincipalId: string;
+  from?: string;
+  to?: string;
+  conflictCount: number;
+  unresolvedCount: number;
+  supplierCount: number;
+  suppliers: HeatmapSupplierRollup[];
+};
+
 /** PG.17 — named season catalogue for rate calendars. */
 export type SupSeason = {
   id: string;

@@ -456,6 +456,22 @@ export async function preferSupplierRate(token: string, supplierId: string, rate
   );
 }
 
+export async function exportSupplierSeasons(
+  token: string,
+  query: { format?: "json" | "csv"; archived?: boolean } = {},
+) {
+  const params = new URLSearchParams();
+  params.set("format", query.format ?? "csv");
+  if (query.archived) params.set("archived", "1");
+  return eosFetch<{
+    format: "json" | "csv";
+    csv?: string;
+    count: number;
+    generatedAt: string;
+    increment: string;
+  }>(`/v1/suppliers/seasons/export?${params.toString()}`, { token });
+}
+
 export async function listSupplierSeasons(token: string, archived = false) {
   const qs = archived ? "?archived=1" : "";
   return eosFetch<{

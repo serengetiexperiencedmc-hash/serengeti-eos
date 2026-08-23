@@ -449,11 +449,21 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **I3.26** | Allowlist dual digest stale inbox + email escalation |
 | **I4.24** | Stale DLQ digest snooze / ack |
 
+### 32:xx — PG.27 + I3.27 + I4.25 ✅
+
+**Shipped:** server `0.65.0-pg27-i3.27-i4.25`
+
+| Increment | Change |
+| --- | --- |
+| **PG.27** | Persist last heatmap supplier rollup + season catalogue export |
+| **I3.27** | Allowlist stale digest snooze / ack (mirror I4.24) |
+| **I4.25** | Persist stale DLQ digest snooze/ack to Postgres |
+
 ### Recommended next increments
 
-1. PG.27 — heatmap rollup persist / season catalogue export
-2. I3.27 — allowlist stale snooze / ack (mirror I4.24)
-3. I4.25 — persist stale-digest suppression to Postgres
+1. PG.28 — persist season catalogue dual-write (complete migration 055)
+2. I3.28 — persist allowlist stale snooze/ack to Postgres (mirror I4.25)
+3. I4.26 — stale-digest suppression export / audit
 
 ### Issues resolved
 

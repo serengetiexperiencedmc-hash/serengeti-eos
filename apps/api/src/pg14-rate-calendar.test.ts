@@ -72,7 +72,7 @@ describe("PG.14 supplier rate calendar", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(calendar.statusCode).toBe(200);
-    expect(calendar.json().increment).toBe("PG.26");
+    expect(calendar.json().increment).toBe("PG.27");
     expect(calendar.json().items).toHaveLength(2);
     expect(calendar.json().seasons.map((s: { label: string }) => s.label).sort()).toEqual([
       "High Season",

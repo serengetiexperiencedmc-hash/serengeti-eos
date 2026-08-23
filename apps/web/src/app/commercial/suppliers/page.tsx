@@ -19,6 +19,7 @@ import {
   getSupplier,
   getSupplierFacets,
   exportSupplierRateConflictHeatmap,
+  exportSupplierSeasons,
   getSupplierRateCalendar,
   listSuppliers,
   preferSupplierRate,
@@ -548,7 +549,7 @@ function SupplierDetailDrawer({
               )}
               {calendar && (
                 <div className="mb-3 rounded-md border border-line bg-ivory p-3">
-                  <div className="mb-2 text-xs uppercase tracking-wide text-muted">Rate calendar (PG.26)</div>
+                  <div className="mb-2 text-xs uppercase tracking-wide text-muted">Rate calendar (PG.27)</div>
                   <div className="mb-2 grid grid-cols-2 gap-2">
                     <input
                       type="date"
@@ -917,6 +918,26 @@ export default function SuppliersPage() {
                 }}
               >
                 Export heatmap rollup
+              </Btn>
+              <Btn
+                variant="secondary"
+                onClick={() => {
+                  void exportSupplierSeasons(token, { format: "csv" })
+                    .then((res) => {
+                      const blob = new Blob([res.csv ?? ""], { type: "text/csv" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `season-catalogue-${res.generatedAt.slice(0, 10)}.csv`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    })
+                    .catch((err) =>
+                      setError(err instanceof EosApiError ? err.message : "Failed to export season catalogue"),
+                    );
+                }}
+              >
+                Export season catalogue
               </Btn>
               <Btn variant="secondary" onClick={() => setImportOpen(true)}>
                 Import CSV

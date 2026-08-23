@@ -1,4 +1,9 @@
-import { authorize, type NotifAllowlistDualDigestLastRun, type Principal } from "@sedmc/kernel";
+import {
+  authorize,
+  type NotifAllowlistDualDigestLastRun,
+  type NotifAllowlistDualDigestStaleSuppression,
+  type Principal,
+} from "@sedmc/kernel";
 import type { Store } from "../store.js";
 import { createEmailAdapter } from "./email.js";
 import { ensureNotificationCollections } from "./collections.js";
@@ -32,7 +37,43 @@ function stampLastRun(
   if (idx >= 0) store.notifAllowlistDualDigestLastRuns[idx] = run;
   else store.notifAllowlistDualDigestLastRuns.push(run);
   void persistNotifAllowlistDualDigestLastRun(store.dbPool, run);
+  store.notifAllowlistDualDigestStaleSuppressions = (store.notifAllowlistDualDigestStaleSuppressions ?? []).filter(
+    (s) => s.tenantId !== principal.tenantId,
+  );
   return run;
+}
+
+export function getAllowlistDualDigestStaleSuppression(store: Store, tenantId: string) {
+  return (store.notifAllowlistDualDigestStaleSuppressions ?? []).find((s) => s.tenantId === tenantId) ?? null;
+}
+
+export function isAllowlistDualDigestStaleSuppressed(store: Store, tenantId: string, nowMs = Date.now()) {
+  const suppression = getAllowlistDualDigestStaleSuppression(store, tenantId);
+  if (!suppression) return false;
+  if (suppression.acknowledgedAt) return true;
+  if (suppression.snoozedUntil && new Date(suppression.snoozedUntil).getTime() > nowMs) return true;
+  return false;
+}
+
+function upsertStaleSuppression(
+  store: Store,
+  principal: Principal,
+  patch: Partial<Pick<NotifAllowlistDualDigestStaleSuppression, "acknowledgedAt" | "snoozedUntil">>,
+) {
+  ensureNotificationCollections(store);
+  const now = new Date().toISOString();
+  const existing = getAllowlistDualDigestStaleSuppression(store, principal.tenantId);
+  const next: NotifAllowlistDualDigestStaleSuppression = {
+    tenantId: principal.tenantId,
+    ...existing,
+    ...patch,
+    updatedAt: now,
+    updatedByPrincipalId: principal.id,
+  };
+  const idx = (store.notifAllowlistDualDigestStaleSuppressions ?? []).findIndex((s) => s.tenantId === principal.tenantId);
+  if (idx >= 0) store.notifAllowlistDualDigestStaleSuppressions[idx] = next;
+  else store.notifAllowlistDualDigestStaleSuppressions.push(next);
+  return next;
 }
 
 /**
@@ -86,7 +127,7 @@ export async function dispatchAllowlistDualDigest(store: Store, principal: Princ
       pendingCount: 0,
       recipientCount: recipients.length,
       lastRun,
-      increment: "I3.26" as const,
+      increment: "I3.27" as const,
     };
   }
 
@@ -133,7 +174,7 @@ export async function dispatchAllowlistDualDigest(store: Store, principal: Princ
     pendingCount: pending.length,
     recipientCount: recipients.length,
     lastRun,
-    increment: "I3.26" as const,
+    increment: "I3.27" as const,
   };
 }
 
@@ -168,7 +209,8 @@ export function getAllowlistDualDigestStatus(store: Store, principal: Principal)
       outboxByStatus: byStatus,
     },
     freshness: digestLastRunFreshness(lastRun?.lastRunAt, Date.now(), "EOS_ALLOWLIST_DUAL_DIGEST_STALE_HOURS"),
-    increment: "I3.26" as const,
+    suppression: getAllowlistDualDigestStaleSuppression(store, principal.tenantId),
+    increment: "I3.27" as const,
   };
 }
 
@@ -203,7 +245,24 @@ export async function dispatchAllowlistDualDigestStaleAlert(store: Store, princi
       adapter: adapter.name,
       freshness: status.freshness,
       inboxKey,
-      increment: "I3.26" as const,
+      increment: "I3.27" as const,
+    };
+  }
+
+  if (isAllowlistDualDigestStaleSuppressed(store, principal.tenantId)) {
+    const suppression = getAllowlistDualDigestStaleSuppression(store, principal.tenantId);
+    return {
+      dispatched: [] as string[],
+      skipped: [
+        {
+          key: inboxKey,
+          reason: suppression?.acknowledgedAt ? "acknowledged" : "snoozed",
+        },
+      ],
+      adapter: adapter.name,
+      freshness: status.freshness,
+      inboxKey,
+      increment: "I3.27" as const,
     };
   }
 
@@ -241,6 +300,47 @@ export async function dispatchAllowlistDualDigestStaleAlert(store: Store, princi
     adapter: adapter.name,
     freshness: status.freshness,
     inboxKey,
-    increment: "I3.26" as const,
+    increment: "I3.27" as const,
   };
+}
+
+/** I3.27 — snooze stale-digest inbox / email escalation. */
+export function snoozeAllowlistDualDigestStale(store: Store, principal: Principal, input: { hours?: number } = {}) {
+  const decision = authorize({
+    principal,
+    permission: "notification:dispatch:email",
+    action: "snooze:allowlist_dual_digest_stale",
+  });
+  if (decision.result === "deny") {
+    return { error: "forbidden" as const, reason: decision.reason };
+  }
+  const hours = Number(input.hours ?? 24);
+  if (!Number.isFinite(hours) || hours <= 0) {
+    return { error: "invalid_request" as const, reason: "invalid_hours" };
+  }
+  ensureNotificationCollections(store);
+  const snoozedUntil = new Date(Date.now() + hours * 3_600_000).toISOString();
+  const suppression = upsertStaleSuppression(store, principal, {
+    snoozedUntil,
+    acknowledgedAt: undefined,
+  });
+  return { suppression, increment: "I3.27" as const };
+}
+
+/** I3.27 — acknowledge stale-digest inbox until the next last-run stamp. */
+export function acknowledgeAllowlistDualDigestStale(store: Store, principal: Principal) {
+  const decision = authorize({
+    principal,
+    permission: "notification:dispatch:email",
+    action: "ack:allowlist_dual_digest_stale",
+  });
+  if (decision.result === "deny") {
+    return { error: "forbidden" as const, reason: decision.reason };
+  }
+  ensureNotificationCollections(store);
+  const suppression = upsertStaleSuppression(store, principal, {
+    acknowledgedAt: new Date().toISOString(),
+    snoozedUntil: undefined,
+  });
+  return { suppression, increment: "I3.27" as const };
 }

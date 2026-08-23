@@ -63,7 +63,7 @@ describe("I3.24 allowlist dual digest last-run persistence", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(res.statusCode).toBe(200);
-    expect(res.json().increment).toBe("I3.26");
+    expect(res.json().increment).toBe("I3.27");
     expect(res.json().lastRun.pendingCount).toBe(1);
     expect(writes.length).toBeGreaterThanOrEqual(1);
     expect(writes[0]!.tenantId).toBe(carol.tenantId);

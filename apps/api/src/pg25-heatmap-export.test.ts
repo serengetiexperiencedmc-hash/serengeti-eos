@@ -71,7 +71,7 @@ describe("PG.25 heatmap CSV/JSON export", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(json.statusCode).toBe(200);
-    expect(json.json().increment).toBe("PG.26");
+    expect(json.json().increment).toBe("PG.27");
     expect(json.json().format).toBe("json");
     expect(json.json().count).toBeGreaterThanOrEqual(1);
     expect(json.json().items.some((r: { month: string }) => r.month === "2026-07")).toBe(true);

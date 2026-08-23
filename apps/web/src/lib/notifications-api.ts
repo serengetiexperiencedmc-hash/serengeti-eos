@@ -113,8 +113,23 @@ export async function getAllowlistDualDigestStatus(token: string) {
     lastRun: DigestLastRun | null;
     freshness: DigestFreshness;
     analytics: { outboxDigestCount: number; outboxByStatus: Record<string, number> };
+    suppression: { snoozedUntil?: string; acknowledgedAt?: string } | null;
     increment: string;
   }>("/v1/notifications/email/allowlist-dual-digest-status", { token });
+}
+
+export async function snoozeAllowlistDualDigestStale(token: string, hours = 24) {
+  return eosFetch<{ suppression: { snoozedUntil?: string; acknowledgedAt?: string }; increment: string }>(
+    "/v1/notifications/email/allowlist-dual-digest-stale/snooze",
+    { token, method: "POST", body: JSON.stringify({ hours }) },
+  );
+}
+
+export async function acknowledgeAllowlistDualDigestStale(token: string) {
+  return eosFetch<{ suppression: { snoozedUntil?: string; acknowledgedAt?: string }; increment: string }>(
+    "/v1/notifications/email/allowlist-dual-digest-stale/ack",
+    { token, method: "POST", body: "{}" },
+  );
 }
 
 export type EmailSuppressionItem = {

@@ -6,6 +6,7 @@ export function ensureSupplierCollections(store: Store): void {
   if (!store.supContacts) store.supContacts = [];
   if (!store.supRates) store.supRates = [];
   if (!store.supSeasons) store.supSeasons = [];
+  if (!store.supHeatmapRollupSnapshots) store.supHeatmapRollupSnapshots = [];
   if (!store.supContentBlocks) store.supContentBlocks = [];
   if (!store.supImportExecuteIdempotency) store.supImportExecuteIdempotency = {};
 }

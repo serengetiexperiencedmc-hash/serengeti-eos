@@ -135,6 +135,15 @@ export type NotifAllowlistDualDigestRecipient = {
   revokedAt?: string;
 };
 
+/** I3.27 — tenant-level snooze/ack for stale allowlist dual digest inbox. */
+export type NotifAllowlistDualDigestStaleSuppression = {
+  tenantId: string;
+  acknowledgedAt?: string;
+  snoozedUntil?: string;
+  updatedAt: string;
+  updatedByPrincipalId: string;
+};
+
 /** I3.23 — last allowlist dual-control digest dispatch stamp (per tenant). */
 export type NotifAllowlistDualDigestLastRun = {
   tenantId: string;

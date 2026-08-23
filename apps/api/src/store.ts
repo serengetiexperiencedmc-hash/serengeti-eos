@@ -47,6 +47,7 @@ import {
   type SupContentBlock,
   type SupImportBatch,
   type SupRate,
+  type SupHeatmapRollupSnapshot,
   type SupSeason,
   type SupSupplier,
   type OppOpportunity,
@@ -86,6 +87,7 @@ import {
   type NotifDlqSlaDigestStaleSuppression,
   type NotifAllowlistDualDigestRecipient,
   type NotifAllowlistDualDigestLastRun,
+  type NotifAllowlistDualDigestStaleSuppression,
   type EmailTemplate,
   type NatsConsumerOffset,
 } from "@sedmc/kernel";
@@ -173,6 +175,8 @@ export type Store = {
   supRates: SupRate[];
   /** PG.17 — named season catalogue. */
   supSeasons: SupSeason[];
+  /** PG.27 — last heatmap supplier rollup snapshot per tenant. */
+  supHeatmapRollupSnapshots: SupHeatmapRollupSnapshot[];
   supContentBlocks: SupContentBlock[];
   supImportExecuteIdempotency: Record<string, string>;
   oppOpportunities: OppOpportunity[];
@@ -218,6 +222,8 @@ export type Store = {
   notifAllowlistDualDigestRecipients: NotifAllowlistDualDigestRecipient[];
   /** I3.23 — last allowlist dual-control digest run per tenant. */
   notifAllowlistDualDigestLastRuns: NotifAllowlistDualDigestLastRun[];
+  /** I3.27 — snooze/ack for stale allowlist dual digest inbox. */
+  notifAllowlistDualDigestStaleSuppressions: NotifAllowlistDualDigestStaleSuppression[];
   natsConsumerOffsets: NatsConsumerOffset[];
   /** Optional PostgreSQL pool for dual-write persistence (PG.1+) */
   dbPool?: DbPool;
@@ -796,6 +802,7 @@ export function seedStore(
     supContacts: [],
     supRates: [],
     supSeasons: [],
+    supHeatmapRollupSnapshots: [],
     supContentBlocks: [],
     supImportExecuteIdempotency: {},
     oppOpportunities: [],
@@ -837,6 +844,7 @@ export function seedStore(
     notifDlqSlaDigestStaleSuppressions: [],
     notifAllowlistDualDigestRecipients: [],
     notifAllowlistDualDigestLastRuns: [],
+    notifAllowlistDualDigestStaleSuppressions: [],
     natsConsumerOffsets: [],
   };
   seedCrmCatalogues(store, tenantId);

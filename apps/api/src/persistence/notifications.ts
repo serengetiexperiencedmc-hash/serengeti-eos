@@ -6,6 +6,7 @@ import type {
   NotifEmailSuppression,
   NotifEmailAllowlistEntry,
   NotifDlqSlaDigestLastRun,
+  NotifDlqSlaDigestStaleSuppression,
   NotifAllowlistDualDigestLastRun,
 } from "@sedmc/kernel";
 import { ensureNotificationCollections } from "../notifications/collections.js";
@@ -16,11 +17,14 @@ import {
   insertNotifEmailOutbox,
   loadNotifAllowlistDualDigestLastRuns,
   loadNotifDlqSlaDigestLastRuns,
+  loadNotifDlqSlaDigestStaleSuppressions,
   loadNotifEmailAllowlist,
   loadNotifEmailSuppressions,
   loadNotifEmailTemplates,
   upsertNotifAllowlistDualDigestLastRun,
   upsertNotifDlqSlaDigestLastRun,
+  upsertNotifDlqSlaDigestStaleSuppression,
+  deleteNotifDlqSlaDigestStaleSuppression,
   upsertNotifEmailAllowlist,
   upsertNotifEmailSuppression,
   upsertNotifEmailTemplate,
@@ -185,6 +189,46 @@ export async function hydrateNotifDlqSlaDigestLastRuns(pool: DbPool, store: Stor
       store.notifDlqSlaDigestLastRuns[idx] = row;
     } else {
       store.notifDlqSlaDigestLastRuns.push(row);
+      merged += 1;
+    }
+  }
+  return merged;
+}
+
+export async function persistNotifDlqSlaDigestStaleSuppression(
+  pool: DbPool | undefined,
+  suppression: NotifDlqSlaDigestStaleSuppression,
+): Promise<void> {
+  if (!pool) return;
+  try {
+    await upsertNotifDlqSlaDigestStaleSuppression(pool, suppression);
+  } catch {
+    // Fire-and-forget dual-write.
+  }
+}
+
+export async function persistDeleteNotifDlqSlaDigestStaleSuppression(
+  pool: DbPool | undefined,
+  tenantId: string,
+): Promise<void> {
+  if (!pool) return;
+  try {
+    await deleteNotifDlqSlaDigestStaleSuppression(pool, tenantId);
+  } catch {
+    // Fire-and-forget dual-write.
+  }
+}
+
+export async function hydrateNotifDlqSlaDigestStaleSuppressions(pool: DbPool, store: Store): Promise<number> {
+  ensureNotificationCollections(store);
+  const rows = await loadNotifDlqSlaDigestStaleSuppressions(pool);
+  let merged = 0;
+  for (const row of rows) {
+    const idx = store.notifDlqSlaDigestStaleSuppressions.findIndex((s) => s.tenantId === row.tenantId);
+    if (idx >= 0) {
+      store.notifDlqSlaDigestStaleSuppressions[idx] = row;
+    } else {
+      store.notifDlqSlaDigestStaleSuppressions.push(row);
       merged += 1;
     }
   }

@@ -4,7 +4,11 @@ import { listDeadLetters } from "../outbox.js";
 import { createEmailAdapter } from "./email.js";
 import { ensureNotificationCollections } from "./collections.js";
 import { resolveDlqSlaDigestRecipientEmails } from "./dlq-sla-digest-recipients.js";
-import { persistNotifDlqSlaDigestLastRun } from "../persistence/notifications.js";
+import {
+  persistDeleteNotifDlqSlaDigestStaleSuppression,
+  persistNotifDlqSlaDigestLastRun,
+  persistNotifDlqSlaDigestStaleSuppression,
+} from "../persistence/notifications.js";
 import { digestLastRunFreshness } from "./digest-freshness.js";
 
 function stampLastRun(
@@ -36,6 +40,7 @@ function stampLastRun(
   store.notifDlqSlaDigestStaleSuppressions = (store.notifDlqSlaDigestStaleSuppressions ?? []).filter(
     (s) => s.tenantId !== principal.tenantId,
   );
+  void persistDeleteNotifDlqSlaDigestStaleSuppression(store.dbPool, principal.tenantId);
   return run;
 }
 
@@ -69,6 +74,7 @@ function upsertStaleSuppression(
   const idx = (store.notifDlqSlaDigestStaleSuppressions ?? []).findIndex((s) => s.tenantId === principal.tenantId);
   if (idx >= 0) store.notifDlqSlaDigestStaleSuppressions[idx] = next;
   else store.notifDlqSlaDigestStaleSuppressions.push(next);
+  void persistNotifDlqSlaDigestStaleSuppression(store.dbPool, next);
   return next;
 }
 
@@ -125,7 +131,7 @@ export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
       thresholdHours: listed.sla.thresholdHours,
       recipientCount: recipients.length,
       lastRun,
-      increment: "I4.24" as const,
+      increment: "I4.25" as const,
     };
   }
 
@@ -173,7 +179,7 @@ export async function dispatchDlqSlaDigest(store: Store, principal: Principal) {
     thresholdHours: listed.sla.thresholdHours,
     recipientCount: recipients.length,
     lastRun,
-    increment: "I4.24" as const,
+    increment: "I4.25" as const,
   };
 }
 
@@ -209,7 +215,7 @@ export function getDlqSlaDigestStatus(store: Store, principal: Principal) {
     },
     freshness: digestLastRunFreshness(lastRun?.lastRunAt),
     suppression: getDlqSlaDigestStaleSuppression(store, principal.tenantId),
-    increment: "I4.24" as const,
+    increment: "I4.25" as const,
   };
 }
 
@@ -282,7 +288,7 @@ export function exportDlqSlaDigestLastRun(
       analytics: status.analytics,
       freshness: status.freshness,
       generatedAt,
-      increment: "I4.24" as const,
+      increment: "I4.25" as const,
     };
   }
 
@@ -293,7 +299,7 @@ export function exportDlqSlaDigestLastRun(
     freshness: status.freshness,
     row,
     generatedAt,
-    increment: "I4.24" as const,
+    increment: "I4.25" as const,
   };
 }
 
@@ -328,7 +334,7 @@ export async function dispatchDlqSlaDigestStaleAlert(store: Store, principal: Pr
       adapter: adapter.name,
       freshness: status.freshness,
       inboxKey,
-      increment: "I4.24" as const,
+      increment: "I4.25" as const,
     };
   }
 
@@ -346,7 +352,7 @@ export async function dispatchDlqSlaDigestStaleAlert(store: Store, principal: Pr
       freshness: status.freshness,
       suppression,
       inboxKey,
-      increment: "I4.24" as const,
+      increment: "I4.25" as const,
     };
   }
 
@@ -384,7 +390,7 @@ export async function dispatchDlqSlaDigestStaleAlert(store: Store, principal: Pr
     adapter: adapter.name,
     freshness: status.freshness,
     inboxKey,
-    increment: "I4.24" as const,
+    increment: "I4.25" as const,
   };
 }
 
@@ -408,7 +414,7 @@ export function snoozeDlqSlaDigestStale(store: Store, principal: Principal, inpu
     snoozedUntil,
     acknowledgedAt: undefined,
   });
-  return { suppression, increment: "I4.24" as const };
+  return { suppression, increment: "I4.25" as const };
 }
 
 /** I4.24 — acknowledge stale-digest inbox until the next last-run stamp. */
@@ -426,5 +432,5 @@ export function acknowledgeDlqSlaDigestStale(store: Store, principal: Principal)
     acknowledgedAt: new Date().toISOString(),
     snoozedUntil: undefined,
   });
-  return { suppression, increment: "I4.24" as const };
+  return { suppression, increment: "I4.25" as const };
 }
