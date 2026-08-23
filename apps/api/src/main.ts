@@ -8,6 +8,7 @@ import { hydrateAiDrafts } from "./persistence/ai-drafts.js";
 import { hydrateAiRecommendRuns } from "./persistence/ai-recommend-runs.js";
 import {
   hydrateAiRecommendStaleAuditExportLastFilters,
+  hydrateAiRecommendStaleAuditExportPresets,
   hydrateAiRecommendStaleSuppressionAudits,
   hydrateAiRecommendStaleSuppressions,
 } from "./persistence/ai-recommend-stale-suppressions.js";
@@ -75,6 +76,7 @@ if (databaseUrl) {
   const aiRecommendStaleSuppressionsHydrated = await hydrateAiRecommendStaleSuppressions(pool, store);
   const aiRecommendStaleSuppressionAuditsHydrated = await hydrateAiRecommendStaleSuppressionAudits(pool, store);
   const aiRecommendStaleAuditExportLastFiltersHydrated = await hydrateAiRecommendStaleAuditExportLastFilters(pool, store);
+  const aiRecommendStaleAuditExportPresetsHydrated = await hydrateAiRecommendStaleAuditExportPresets(pool, store);
   logger.info("pg3_crm_hydrate", crmHydrated);
   logger.info("i3_email_templates_hydrate", { merged: templatesHydrated });
   logger.info("i39_email_suppressions_hydrate", { merged: suppressionsHydrated });
@@ -91,6 +93,9 @@ if (databaseUrl) {
   logger.info("i2015_ai_recommend_stale_suppression_audit_hydrate", { merged: aiRecommendStaleSuppressionAuditsHydrated });
   logger.info("i2017_ai_recommend_stale_audit_export_last_filter_hydrate", {
     merged: aiRecommendStaleAuditExportLastFiltersHydrated,
+  });
+  logger.info("i2019_ai_recommend_stale_audit_export_preset_hydrate", {
+    merged: aiRecommendStaleAuditExportPresetsHydrated,
   });
   const merged = await hydratePendingOutbox(pool, store);
   const processedMerged = await hydrateProcessedEvents(pool, store);

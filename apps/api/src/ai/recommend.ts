@@ -36,12 +36,13 @@ import { getDlqSlaDigestStatus, isDlqSlaDigestStaleSuppressed } from "../notific
 import { persistAiRecommendRun } from "../persistence/ai-recommend-runs.js";
 import {
   persistAiRecommendStaleAuditExportLastFilter,
+  persistAiRecommendStaleAuditExportPreset,
   persistAiRecommendStaleSuppression,
   persistAiRecommendStaleSuppressionAudit,
   persistDeleteAiRecommendStaleSuppression,
 } from "../persistence/ai-recommend-stale-suppressions.js";
 
-const INCREMENT = "I20.18" as const;
+const INCREMENT = "I20.19" as const;
 
 function recommendStaleThresholdHours(): number {
   const raw = Number(process.env.EOS_AI_RECOMMEND_STALE_HOURS);
@@ -422,7 +423,7 @@ export function listAiRecommendStaleAuditExportPresets(store: Store, principal: 
   return { presets: viewed.presets, increment: INCREMENT };
 }
 
-export function upsertAiRecommendStaleAuditExportPreset(
+export async function upsertAiRecommendStaleAuditExportPreset(
   store: Store,
   principal: Principal,
   input: { name?: string; action?: string; since?: string; until?: string } = {},
@@ -468,6 +469,7 @@ export function upsertAiRecommendStaleAuditExportPreset(
     : -1;
   if (idx >= 0) store.aiRecommendStaleAuditExportPresets[idx] = next;
   else store.aiRecommendStaleAuditExportPresets.push(next);
+  await persistAiRecommendStaleAuditExportPreset(store.dbPool, next);
   return {
     preset: sanitizeAiRecommendStaleAuditExportPreset(next),
     presets: sanitizedTenantPresets(store, principal.tenantId),

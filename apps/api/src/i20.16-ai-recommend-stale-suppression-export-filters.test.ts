@@ -65,7 +65,7 @@ describe("I20.16 stale recommend suppression export filters", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(snoozeOnly.statusCode).toBe(200);
-    expect(snoozeOnly.json().increment).toBe("I20.18");
+    expect(snoozeOnly.json().increment).toBe("I20.19");
     expect(snoozeOnly.json().filter.action).toBe("snooze");
     expect(snoozeOnly.json().audits.every((a: { action: string }) => a.action === "snooze")).toBe(true);
     expect(snoozeOnly.json().count).toBe(1);

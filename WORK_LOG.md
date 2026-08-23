@@ -623,11 +623,19 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **I20.18** | Named tenant stale-audit export presets; last-run echoes `presets`; AI page save/select |
 
+### 53:xx — I20.19 persist named recommend audit export presets ✅
+
+**Shipped:** server `0.86.0-i20.19`
+
+| Increment | Change |
+| --- | --- |
+| **I20.19** | Dual-write named stale-audit export presets; hydrate on startup |
+
 ### Recommended next increments
 
 1. I3.30 — persist allowlist stale audit to Postgres
 2. I4.28 — stale-audit filters / tenant export window
-3. I20.19 — persist named recommend-audit export presets
+3. I20.20 — delete / rename recommend-audit export presets
 
 ### Issues resolved
 
