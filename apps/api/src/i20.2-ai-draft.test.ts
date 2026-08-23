@@ -66,7 +66,7 @@ describe("I20.2 AI draft accept / discard", () => {
       payload: { recommendationKey: "notifications.allowlist_digest.stale" },
     });
     expect(created.statusCode).toBe(201);
-    expect(created.json().increment).toBe("I20.19");
+    expect(created.json().increment).toBe("I20.20");
     expect(created.json().draft.status).toBe("pending");
     expect(created.json().draft.autonomyLevel).toBe(2);
     expect(created.json().draft.artefactType).toBe("crm_task");

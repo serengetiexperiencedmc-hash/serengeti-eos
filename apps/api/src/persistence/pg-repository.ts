@@ -2781,3 +2781,7 @@ export async function loadAiRecommendStaleAuditExportPresets(
     };
   });
 }
+
+export async function deleteAiRecommendStaleAuditExportPreset(pool: DbPool, id: string): Promise<void> {
+  await pool.query(`DELETE FROM ai_recommend_stale_audit_export_preset WHERE id = $1`, [id]);
+}

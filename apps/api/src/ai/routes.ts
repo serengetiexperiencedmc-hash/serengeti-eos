@@ -10,8 +10,10 @@ import {
   getAiRecommendLastRun,
   listAiRecommendations,
   listAiRecommendStaleAuditExportPresets,
+  renameAiRecommendStaleAuditExportPreset,
   snoozeAiRecommendStale,
   upsertAiRecommendStaleAuditExportPreset,
+  deleteAiRecommendStaleAuditExportPreset,
 } from "./recommend.js";
 
 function sendError(
@@ -53,6 +55,28 @@ export function registerAiRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const body = (req.body ?? {}) as { name?: string; action?: string; since?: string; until?: string };
     const result = await upsertAiRecommendStaleAuditExportPreset(store, principal, body);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/ai/recommendations/last-run/stale/export/presets/:id/rename", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const body = (req.body ?? {}) as { name?: string };
+    const result = await renameAiRecommendStaleAuditExportPreset(
+      store,
+      principal,
+      (req.params as { id: string }).id,
+      body,
+    );
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.delete("/v1/ai/recommendations/last-run/stale/export/presets/:id", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = await deleteAiRecommendStaleAuditExportPreset(store, principal, (req.params as { id: string }).id);
     if ("error" in result) return sendError(reply, result);
     return result;
   });

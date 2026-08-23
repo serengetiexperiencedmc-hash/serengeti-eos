@@ -13,6 +13,8 @@ import {
   getAiRecommendLastRun,
   listAiDrafts,
   snoozeAiRecommendStale,
+  deleteAiRecommendStaleAuditExportPreset,
+  renameAiRecommendStaleAuditExportPreset,
   upsertAiRecommendStaleAuditExportPreset,
   type AiDraft,
   type AiRecommendFreshness,
@@ -139,9 +141,9 @@ export default function AiDraftsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="I20.19 · Assistant"
+        eyebrow="I20.20 · Assistant"
         title="AI Drafts"
-        subtitle="Filter unpublished assistant drafts. Save named tenant audit-export presets. The assistant cannot merge, email, or approve."
+        subtitle="Filter unpublished assistant drafts. Save, rename, or delete named tenant audit-export presets. The assistant cannot merge, email, or approve."
       />
       <Card>
         <div className="mb-4 flex flex-wrap gap-3">
@@ -332,6 +334,51 @@ export default function AiDraftsPage() {
               }}
             >
               {busy === "save-preset" ? "Saving…" : "Save preset"}
+            </Btn>
+          )}
+          {token && (
+            <Btn
+              variant="secondary"
+              size="sm"
+              disabled={busy === "rename-preset" || !auditPresetId || !auditPresetName.trim()}
+              onClick={() => {
+                setBusy("rename-preset");
+                setError(null);
+                void renameAiRecommendStaleAuditExportPreset(token, auditPresetId, auditPresetName.trim())
+                  .then((res) => {
+                    setAuditPresets(res.presets);
+                    setAuditPresetId(res.preset.id);
+                    setAuditPresetName(res.preset.name);
+                  })
+                  .catch((err) => {
+                    setError(err instanceof EosApiError ? err.message : "Could not rename audit preset");
+                  })
+                  .finally(() => setBusy(null));
+              }}
+            >
+              {busy === "rename-preset" ? "Renaming…" : "Rename preset"}
+            </Btn>
+          )}
+          {token && (
+            <Btn
+              variant="secondary"
+              size="sm"
+              disabled={busy === "delete-preset" || !auditPresetId}
+              onClick={() => {
+                setBusy("delete-preset");
+                setError(null);
+                void deleteAiRecommendStaleAuditExportPreset(token, auditPresetId)
+                  .then((res) => {
+                    setAuditPresets(res.presets);
+                    setAuditPresetId("");
+                  })
+                  .catch((err) => {
+                    setError(err instanceof EosApiError ? err.message : "Could not delete audit preset");
+                  })
+                  .finally(() => setBusy(null));
+              }}
+            >
+              {busy === "delete-preset" ? "Deleting…" : "Delete preset"}
             </Btn>
           )}
           <label className="text-xs text-muted">

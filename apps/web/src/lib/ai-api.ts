@@ -114,6 +114,28 @@ export async function upsertAiRecommendStaleAuditExportPreset(
   });
 }
 
+export async function renameAiRecommendStaleAuditExportPreset(token: string, id: string, name: string) {
+  return eosFetch<{
+    preset: AiRecommendStaleAuditExportPreset;
+    presets: AiRecommendStaleAuditExportPreset[];
+    increment: string;
+  }>(`/v1/ai/recommendations/last-run/stale/export/presets/${id}/rename`, {
+    token,
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function deleteAiRecommendStaleAuditExportPreset(token: string, id: string) {
+  return eosFetch<{
+    presets: AiRecommendStaleAuditExportPreset[];
+    increment: string;
+  }>(`/v1/ai/recommendations/last-run/stale/export/presets/${id}`, {
+    token,
+    method: "DELETE",
+  });
+}
+
 export type AiRecommendStaleAudit = {
   id: string;
   action: "snooze" | "ack" | "cleared";

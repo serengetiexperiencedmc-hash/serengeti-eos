@@ -631,11 +631,19 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **I20.19** | Dual-write named stale-audit export presets; hydrate on startup |
 
+### 54:xx — I20.20 rename / delete recommend audit export presets ✅
+
+**Shipped:** server `0.87.0-i20.20`
+
+| Increment | Change |
+| --- | --- |
+| **I20.20** | Rename or delete named stale-audit export presets; persist delete |
+
 ### Recommended next increments
 
 1. I3.30 — persist allowlist stale audit to Postgres
 2. I4.28 — stale-audit filters / tenant export window
-3. I20.20 — delete / rename recommend-audit export presets
+3. I20.21 — preset-usage audit / last-used preset echo
 
 ### Issues resolved
 

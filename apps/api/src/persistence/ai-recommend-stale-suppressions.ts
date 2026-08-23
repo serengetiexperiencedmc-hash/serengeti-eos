@@ -7,6 +7,7 @@ import type {
 } from "@sedmc/kernel";
 import type { Store } from "../store.js";
 import {
+  deleteAiRecommendStaleAuditExportPreset,
   deleteAiRecommendStaleSuppression,
   insertAiRecommendStaleSuppressionAudit,
   loadAiRecommendStaleAuditExportLastFilters,
@@ -99,6 +100,18 @@ export async function hydrateAiRecommendStaleAuditExportLastFilters(pool: DbPool
     }
   }
   return merged;
+}
+
+export async function persistDeleteAiRecommendStaleAuditExportPreset(
+  pool: DbPool | undefined,
+  id: string,
+): Promise<void> {
+  if (!pool) return;
+  try {
+    await deleteAiRecommendStaleAuditExportPreset(pool, id);
+  } catch {
+    // Fire-and-forget dual-write.
+  }
 }
 
 export async function persistAiRecommendStaleAuditExportPreset(

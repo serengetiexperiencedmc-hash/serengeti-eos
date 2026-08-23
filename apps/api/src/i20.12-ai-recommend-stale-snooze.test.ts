@@ -51,7 +51,7 @@ describe("I20.12 AI recommend stale snooze / ack", () => {
       url: "/v1/ai/recommendations/last-run",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(empty.json().increment).toBe("I20.19");
+    expect(empty.json().increment).toBe("I20.20");
     expect(empty.json().freshness.stale).toBe(true);
     expect(empty.json().suppressed).toBe(false);
     expect(empty.json().suppression).toBeNull();
@@ -63,7 +63,7 @@ describe("I20.12 AI recommend stale snooze / ack", () => {
       payload: { hours: 24 },
     });
     expect(snoozed.statusCode).toBe(200);
-    expect(snoozed.json().increment).toBe("I20.19");
+    expect(snoozed.json().increment).toBe("I20.20");
     expect(snoozed.json().suppressed).toBe(true);
     expect(snoozed.json().suppression.snoozedUntil).toBeTruthy();
     expect(store.aiRecommendRuns.length).toBe(0);
