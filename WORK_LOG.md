@@ -495,9 +495,17 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **I20.2** | Draft CRM tasks from live recommendations; unpublished until a human accepts |
 
+### 37:xx — I20.3 typed AI drafts ✅
+
+**Shipped:** server `0.70.0-i20.3`
+
+| Increment | Change |
+| --- | --- |
+| **I20.3** | Overdue-task recs draft a CRM activity; other recs still draft a CRM task |
+
 ### Recommended next increments
 
-1. I20.3 — additional draft artefact types, or a real model behind the same ADR-0008 port
+1. I20.4 — persist drafts so they survive API restart
 2. I3.30 — persist allowlist stale audit to Postgres
 3. I4.28 — stale-audit filters / tenant export window
 

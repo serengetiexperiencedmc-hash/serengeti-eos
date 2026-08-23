@@ -45,10 +45,12 @@ export async function createAiDraft(token: string, recommendationKey: string) {
 }
 
 export async function acceptAiDraft(token: string, id: string) {
-  return eosFetch<{ draft: AiDraft; task?: { id: string; title: string }; increment: string }>(
-    `/v1/ai/drafts/${id}/accept`,
-    { token, method: "POST", body: "{}" },
-  );
+  return eosFetch<{
+    draft: AiDraft;
+    task?: { id: string; title: string };
+    activity?: { id: string; subject: string };
+    increment: string;
+  }>(`/v1/ai/drafts/${id}/accept`, { token, method: "POST", body: "{}" });
 }
 
 export async function discardAiDraft(token: string, id: string) {

@@ -368,6 +368,9 @@ export default function CommercialDashboardPage() {
                       {drafts.map((draft) => (
                         <li key={draft.id} className="rounded-md bg-white/5 p-3 text-sm leading-relaxed">
                           <p className="font-medium text-sand">{draft.title}</p>
+                          <p className="mt-1 text-[0.65rem] uppercase tracking-wider text-gold">
+                            {draft.artefactType === "crm_activity" ? "CRM activity draft" : "CRM task draft"}
+                          </p>
                           <p className="mt-1 whitespace-pre-wrap text-xs text-muted">{draft.body}</p>
                           <div className="mt-2 flex flex-wrap gap-2">
                             <Btn

@@ -82,7 +82,7 @@ import {
   type Logger,
 } from "./observability.js";
 
-const VERSION = "0.69.0-i20.2";
+const VERSION = "0.70.0-i20.3";
 
 export type ServerOptions = {
   store?: Store;

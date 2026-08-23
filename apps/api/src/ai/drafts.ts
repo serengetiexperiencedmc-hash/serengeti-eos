@@ -8,8 +8,33 @@ import {
 } from "@sedmc/kernel";
 import type { Store } from "../store.js";
 import { recordAudit } from "../store.js";
+import { createActivity } from "../crm/activity.js";
+import { ensureCrmCollections } from "../crm/collections.js";
 import { createTask } from "../crm/task.js";
 import { listAiRecommendations } from "./recommend.js";
+
+function findOverdueAssociation(store: Store, tenantId: string) {
+  ensureCrmCollections(store);
+  const now = new Date().toISOString();
+  const overdue = store.crmTasks.filter(
+    (t) =>
+      t.tenantId === tenantId &&
+      (t.status === "Open" || t.status === "InProgress") &&
+      t.dueAt !== undefined &&
+      t.dueAt < now,
+  );
+  for (const task of overdue) {
+    if (task.relatedOrganizationId || task.relatedContactId) {
+      return {
+        organizationId: task.relatedOrganizationId,
+        contactId: task.relatedContactId,
+      };
+    }
+  }
+  return undefined;
+}
+
+const INCREMENT = "I20.3" as const;
 
 export function ensureAiCollections(store: Store): void {
   if (!store.aiDrafts) store.aiDrafts = [];
@@ -78,7 +103,7 @@ export function createAiDraft(
       d.status === "pending",
   );
   if (existing) {
-    return { draft: sanitizeDraft(existing), replay: true as const, increment: "I20.2" as const };
+    return { draft: sanitizeDraft(existing), replay: true as const, increment: INCREMENT };
   }
 
   const artefact = buildAiDraftArtefact({
@@ -88,18 +113,42 @@ export function createAiDraft(
   });
   if ("error" in artefact) return { error: "invalid_request" as const, reason: artefact.error };
 
+  let artefactType = artefact.artefactType;
+  let title = artefact.title;
+  let body = artefact.body;
+  let relatedOrganizationId: string | undefined;
+  let relatedContactId: string | undefined;
+  if (artefactType === "crm_activity") {
+    const assoc = findOverdueAssociation(store, principal.tenantId);
+    if (!assoc) {
+      artefactType = "crm_task";
+      title = `Follow up: ${rec.title}`.slice(0, 200);
+      body = [
+        rec.reason,
+        "",
+        "Drafted as a CRM task (I20.3). Not applied until a human accepts.",
+        "This draft does not merge, email, assign an owner, or approve anything.",
+      ].join("\n");
+    } else {
+      relatedOrganizationId = assoc.organizationId;
+      relatedContactId = assoc.contactId;
+    }
+  }
+
   const now = new Date().toISOString();
   const draft: AiDraft = {
     id: newId(),
     tenantId: principal.tenantId,
     recommendationKey: key,
-    artefactType: artefact.artefactType,
-    title: artefact.title,
-    body: artefact.body,
+    artefactType,
+    title,
+    body,
     status: "pending",
     autonomyLevel: 2,
     createdAt: now,
     createdByPrincipalId: principal.id,
+    ...(relatedOrganizationId ? { relatedOrganizationId } : {}),
+    ...(relatedContactId ? { relatedContactId } : {}),
   };
   store.aiDrafts.push(draft);
   recordAudit(store, {
@@ -114,7 +163,7 @@ export function createAiDraft(
     authorization: "allow",
     evidence: { recommendationKey: key, artefactType: draft.artefactType },
   });
-  return { draft: sanitizeDraft(draft), increment: "I20.2" as const };
+  return { draft: sanitizeDraft(draft), increment: INCREMENT };
 }
 
 export function listAiDrafts(store: Store, principal: Principal, query?: { status?: string }) {
@@ -129,7 +178,7 @@ export function listAiDrafts(store: Store, principal: Principal, query?: { statu
   let items = store.aiDrafts.filter((d) => d.tenantId === principal.tenantId);
   if (query?.status) items = items.filter((d) => d.status === query.status);
   items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  return { items: items.map(sanitizeDraft), increment: "I20.2" as const };
+  return { items: items.map(sanitizeDraft), increment: INCREMENT };
 }
 
 export function discardAiDraft(store: Store, principal: Principal, draftId: string, correlationId: string) {
@@ -162,7 +211,7 @@ export function discardAiDraft(store: Store, principal: Principal, draftId: stri
     authorization: "allow",
     evidence: { recommendationKey: draft.recommendationKey },
   });
-  return { draft: sanitizeDraft(draft), increment: "I20.2" as const };
+  return { draft: sanitizeDraft(draft), increment: INCREMENT };
 }
 
 export function acceptAiDraft(store: Store, principal: Principal, draftId: string, correlationId: string) {
@@ -192,6 +241,46 @@ export function acceptAiDraft(store: Store, principal: Principal, draftId: strin
   }
   if (draft.status !== "pending") return { error: "conflict" as const, reason: "draft_not_pending" };
 
+  if (draft.artefactType === "crm_activity") {
+    const created = createActivity(
+      store,
+      principal,
+      {
+        activityType: "follow_up",
+        subject: draft.title,
+        occurredAt: new Date().toISOString(),
+        notes: draft.body,
+        ownerPrincipalId: principal.id,
+        ...(draft.relatedOrganizationId ? { organizationId: draft.relatedOrganizationId } : {}),
+        ...(draft.relatedContactId ? { contactId: draft.relatedContactId } : {}),
+      },
+      correlationId,
+    );
+    if ("error" in created) return created;
+    draft.status = "accepted";
+    draft.acceptedAt = new Date().toISOString();
+    draft.acceptedByPrincipalId = principal.id;
+    draft.appliedEntityType = "crm_activity";
+    draft.appliedEntityId = created.activity.id;
+    recordAudit(store, {
+      tenantId: principal.tenantId,
+      occurredAt: draft.acceptedAt,
+      actorType: principal.actorType,
+      actorPrincipalId: principal.id,
+      action: "accept:ai_draft",
+      resourceType: "ai_draft",
+      resourceId: draft.id,
+      correlationId,
+      authorization: "allow",
+      evidence: { appliedEntityType: "crm_activity", appliedEntityId: created.activity.id },
+    });
+    return {
+      draft: sanitizeDraft(draft),
+      activity: { id: created.activity.id, subject: created.activity.subject },
+      increment: INCREMENT,
+    };
+  }
+
   const created = createTask(
     store,
     principal,
@@ -217,5 +306,5 @@ export function acceptAiDraft(store: Store, principal: Principal, draftId: strin
     authorization: "allow",
     evidence: { appliedEntityType: "crm_task", appliedEntityId: created.task.id },
   });
-  return { draft: sanitizeDraft(draft), task: { id: created.task.id, title: created.task.title }, increment: "I20.2" as const };
+  return { draft: sanitizeDraft(draft), task: { id: created.task.id, title: created.task.title }, increment: INCREMENT };
 }

@@ -1,8 +1,8 @@
-/** I20.2 — draft artefacts stay unpublished until a human accepts. Autonomy 2. */
+/** I20.3 — typed draft artefacts stay unpublished until a human accepts. Autonomy 2. */
 
 export const AI_DRAFT_AUTONOMY_LEVEL = 2 as const;
 
-export const AI_DRAFT_ARTEFACT_TYPES = ["crm_task"] as const;
+export const AI_DRAFT_ARTEFACT_TYPES = ["crm_task", "crm_activity"] as const;
 export type AiDraftArtefactType = (typeof AI_DRAFT_ARTEFACT_TYPES)[number];
 
 export const AI_DRAFT_STATUSES = ["pending", "accepted", "discarded"] as const;
@@ -32,12 +32,18 @@ export type AiDraft = {
   acceptedByPrincipalId?: string;
   discardedAt?: string;
   discardedByPrincipalId?: string;
-  appliedEntityType?: "crm_task";
+  appliedEntityType?: AiDraftArtefactType;
   appliedEntityId?: string;
+  relatedOrganizationId?: string;
+  relatedContactId?: string;
 };
 
 export function isDraftableRecommendationKey(key: string): key is AiDraftableRecommendationKey {
   return (AI_DRAFTABLE_RECOMMENDATION_KEYS as readonly string[]).includes(key);
+}
+
+export function artefactTypeForRecommendation(key: AiDraftableRecommendationKey): AiDraftArtefactType {
+  return key === "crm.task.overdue" ? "crm_activity" : "crm_task";
 }
 
 export function buildAiDraftArtefact(input: {
@@ -48,14 +54,21 @@ export function buildAiDraftArtefact(input: {
   if (!isDraftableRecommendationKey(input.recommendationKey)) {
     return { error: "unknown_recommendation_key" };
   }
+  const artefactType = artefactTypeForRecommendation(input.recommendationKey);
+  const title =
+    artefactType === "crm_activity"
+      ? `Log follow-up: ${input.title}`.slice(0, 200)
+      : `Follow up: ${input.title}`.slice(0, 200);
   return {
-    artefactType: "crm_task",
-    title: `Follow up: ${input.title}`.slice(0, 200),
+    artefactType,
+    title,
     body: [
       input.reason,
       "",
-      "Drafted by EOS assistant (I20.2). Not applied until a human accepts.",
-      "This draft does not merge, email, or approve anything.",
+      artefactType === "crm_activity"
+        ? "Drafted as a CRM activity (I20.3). Not applied until a human accepts."
+        : "Drafted as a CRM task (I20.3). Not applied until a human accepts.",
+      "This draft does not merge, email, assign an owner, or approve anything.",
     ].join("\n"),
   };
 }
