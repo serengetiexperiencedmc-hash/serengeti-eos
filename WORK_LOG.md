@@ -799,6 +799,15 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **I3.37** | Dual-write + hydrate I3.36 last-used allowlist preset and usage rows; I3.32 last-filter and I3.35 delete stay independent |
 | Docs | `i3.37-allowlist-preset-usage-persistence-preview.md` recorded after ship |
 
+### 72:xx — C2 commercial opportunity / pipeline ✅
+
+**Shipped:** C2 complete against `docs/architecture/c2-opportunity-preview.md` (Dev/Test). API identity unchanged (`1.04.0-i3.37`); pipeline health increment remains `C2`.
+
+| Increment | Change |
+| --- | --- |
+| **C2** | Close remaining C2 contract gaps: tenant-scoped pipeline health, stage-transition map, dashboard live board totals, authorization on health/stages, C2 tests |
+| Docs | `c2-opportunity-preview.md` lifecycle status recorded after ship |
+
 ### Recommended next increments
 
 1. I20.23 — (unnamed / undefined)

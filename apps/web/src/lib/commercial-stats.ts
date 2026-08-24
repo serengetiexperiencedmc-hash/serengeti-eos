@@ -1,18 +1,14 @@
 import { eosFetch } from "./eos-client";
-
 import { getCommercialSummary, getOperationsSummary, type CommercialAnalyticsSummary, type OpsAnalyticsSummary } from "./analytics-api";
-
 import { listActivities } from "./crm-api";
-
+import { fetchPipelineBoard } from "./pipeline-api";
 import { listRfps, slaIndicatorStatus, slaLabel, type RfpSummary } from "./rfp-api";
 
-
-
 export type CommercialLiveStats = {
-
   analytics: CommercialAnalyticsSummary;
-
   opsAnalytics: OpsAnalyticsSummary;
+  pipelineBoardValue: number;
+  pipelineBoardCount: number;
 
   suppliers: number;
 
@@ -111,30 +107,25 @@ function mapActionRfp(rfp: RfpSummary, orgName: string): CommercialLiveStats["ac
 
 
 export async function fetchCommercialLiveStats(token: string): Promise<CommercialLiveStats> {
-
-  const [analyticsRes, opsAnalyticsRes, supHealth, crmHealth, activities, orgs, rfpList] = await Promise.all([
-
+  const [analyticsRes, opsAnalyticsRes, supHealth, crmHealth, activities, orgs, rfpList, board] = await Promise.all([
     getCommercialSummary(token),
-
     getOperationsSummary(token),
-
     eosFetch<{ suppliers: number }>("/v1/suppliers/health", { token }),
-
     eosFetch<{ entities: Record<string, number> }>("/v1/crm/health", { token }),
-
     listActivities(token, { limit: 5 }),
-
     eosFetch<{ items: Array<{ id: string; legalName: string; tradingName?: string }> }>(
-
       "/v1/crm/organizations",
-
       { token },
-
     ),
-
     listRfps(token, { status: "active" }),
-
+    fetchPipelineBoard(token).catch(() => ({ columns: [] as Array<{ items: Array<{ estimatedValue?: number }> }> })),
   ]);
+
+  const pipelineBoardCount = board.columns.reduce((sum, col) => sum + col.items.length, 0);
+  const pipelineBoardValue = board.columns.reduce(
+    (sum, col) => sum + col.items.reduce((s, o) => s + (o.estimatedValue ?? 0), 0),
+    0,
+  );
 
 
 
@@ -157,10 +148,10 @@ export async function fetchCommercialLiveStats(token: string): Promise<Commercia
 
 
   return {
-
     analytics: analyticsRes.summary,
-
     opsAnalytics: opsAnalyticsRes.summary,
+    pipelineBoardValue,
+    pipelineBoardCount,
 
     suppliers: supHealth.suppliers,
 

@@ -32,13 +32,17 @@ export function registerPipelineRoutes(app: FastifyInstance, store: Store): void
   app.get("/v1/pipeline/health", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    return getPipelineModuleHealth(store);
+    const result = getPipelineModuleHealth(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
   });
 
   app.get("/v1/pipeline/stages", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    return listPipelineStages();
+    const result = listPipelineStages(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
   });
 
   app.get("/v1/pipeline/board", async (req, reply) => {

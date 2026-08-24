@@ -35,22 +35,53 @@ function sanitize(o: OppOpportunity) {
   };
 }
 
+function sanitizeHistory(h: {
+  id: string;
+  opportunityId: string;
+  fromStage?: OpportunityStage;
+  toStage: OpportunityStage;
+  changedAt: string;
+  notes?: string;
+}) {
+  return {
+    id: h.id,
+    opportunityId: h.opportunityId,
+    toStage: h.toStage,
+    changedAt: h.changedAt,
+    ...(h.fromStage !== undefined ? { fromStage: h.fromStage } : {}),
+    ...(h.notes !== undefined ? { notes: h.notes } : {}),
+  };
+}
+
 function findOpportunity(store: Store, tenantId: string, id: string): OppOpportunity | undefined {
   const o = store.oppOpportunities.find((x) => x.id === id && x.tenantId === tenantId && !x.archivedAt);
   return o;
 }
 
-export function getPipelineModuleHealth(store: Store) {
+export function getPipelineModuleHealth(store: Store, principal: Principal) {
   ensurePipelineCollections(store);
+  const decision = authorize({
+    principal,
+    permission: "pipeline:read:opportunity",
+    action: "read:opp_opportunity",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
   return {
     module: "pipeline",
     increment: "C2",
     status: "ok" as const,
-    opportunities: store.oppOpportunities.filter((o) => !o.archivedAt).length,
+    opportunities: store.oppOpportunities.filter((o) => o.tenantId === principal.tenantId && !o.archivedAt).length,
   };
 }
 
-export function listPipelineStages() {
+export function listPipelineStages(store: Store, principal: Principal) {
+  ensurePipelineCollections(store);
+  const decision = authorize({
+    principal,
+    permission: "pipeline:read:opportunity",
+    action: "read:opp_opportunity",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
   return {
     items: OPPORTUNITY_STAGES.filter((s) => s !== "lost").map((stage) => ({
       key: stage,
@@ -122,10 +153,10 @@ export function getOpportunity(store: Store, principal: Principal, id: string) {
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
 
   const history = store.oppStageHistory
-    .filter((h) => h.opportunityId === id)
+    .filter((h) => h.opportunityId === id && h.tenantId === principal.tenantId)
     .sort((a, b) => b.changedAt.localeCompare(a.changedAt));
 
-  return { opportunity: sanitize(opp), stageHistory: history };
+  return { opportunity: sanitize(opp), stageHistory: history.map(sanitizeHistory) };
 }
 
 export type CreateOpportunityInput = {
@@ -163,6 +194,9 @@ export function createOpportunity(
   );
   if (!org) return { error: "invalid_request" as const, reason: "invalid_organization" };
 
+  const title = input.title?.trim();
+  if (!title) return { error: "invalid_request" as const, reason: "title_required" };
+
   const code = input.opportunityCode?.trim();
   if (!code) return { error: "invalid_request" as const, reason: "opportunity_code_required" };
   if (store.oppOpportunities.some((o) => o.tenantId === principal.tenantId && o.opportunityCode === code)) {
@@ -174,7 +208,7 @@ export function createOpportunity(
     id: newId(),
     tenantId: principal.tenantId,
     opportunityCode: code,
-    title: input.title.trim(),
+    title,
     organizationId: input.organizationId,
     ...(input.accountId !== undefined ? { accountId: input.accountId } : {}),
     stage: "new_qualified",

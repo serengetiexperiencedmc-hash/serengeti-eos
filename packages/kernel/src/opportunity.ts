@@ -44,8 +44,9 @@ export const OPPORTUNITY_STAGE_TRANSITIONS: Record<
 
 export function canTransitionOpportunityStage(from: OpportunityStage, to: OpportunityStage): boolean {
   if (from === "won" || from === "lost") return false;
-  if (to === "won" || to === "lost") return true;
-  return (OPPORTUNITY_STAGE_TRANSITIONS[from] as readonly string[]).includes(to);
+  const allowed = OPPORTUNITY_STAGE_TRANSITIONS[from];
+  if (!allowed) return false;
+  return (allowed as readonly string[]).includes(to);
 }
 
 export type OppOpportunity = {

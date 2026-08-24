@@ -93,8 +93,8 @@ export default function CommercialDashboardPage() {
     ? [
         {
           label: "Pipeline Value",
-          value: formatCurrency(live.analytics.pipelineValue, live.analytics.currency),
-          delta: `${live.analytics.totalOpportunities} opportunities · J1 Analytics`,
+          value: formatCurrency(live.pipelineBoardValue, live.analytics.currency),
+          delta: `${live.pipelineBoardCount} opportunities · live board`,
           trend: "up" as const,
         },
         {
@@ -120,7 +120,7 @@ export default function CommercialDashboardPage() {
         {
           label: "Pipeline Value",
           value: "—",
-          delta: "Sign in to load J1 analytics",
+          delta: "Sign in to load live pipeline",
           trend: "neutral" as const,
         },
         {

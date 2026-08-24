@@ -98,6 +98,25 @@ describe("C2 pipeline API", () => {
     });
     expect(transitioned.statusCode).toBe(200);
     expect(transitioned.json().opportunity.stage).toBe("rfp_received");
+
+    const detail = await app.inject({
+      method: "GET",
+      url: `/v1/pipeline/opportunities/${oppId}`,
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(detail.statusCode).toBe(200);
+    expect(detail.json().opportunity.id).toBe(oppId);
+    expect(detail.json().stageHistory.length).toBeGreaterThanOrEqual(2);
+    expect(detail.json().stageHistory[0]).not.toHaveProperty("tenantId");
+
+    const health = await app.inject({
+      method: "GET",
+      url: "/v1/pipeline/health",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(health.statusCode).toBe(200);
+    expect(health.json().increment).toBe("C2");
+    expect(health.json().opportunities).toBeGreaterThanOrEqual(1);
   });
 
   it("denies pipeline access without permission", async () => {
@@ -138,5 +157,90 @@ describe("C2 pipeline API", () => {
       payload: { toStage: "proposal_sent" },
     });
     expect(bad.statusCode).toBe(409);
+  });
+
+  it("rejects won skip and allows lost from new_qualified", async () => {
+    const store = seedStore("test-secret");
+    const app = buildServer({ store });
+    const token = await loginCarol(app);
+    const orgId = await seedCrmOrg(app, token);
+
+    const created = await app.inject({
+      method: "POST",
+      url: "/v1/pipeline/opportunities",
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        opportunityCode: "OPP-2026-003",
+        title: "Skip Won",
+        organizationId: orgId,
+      },
+    });
+    const oppId = created.json().opportunity.id as string;
+
+    const skipWon = await app.inject({
+      method: "POST",
+      url: `/v1/pipeline/opportunities/${oppId}/transitions`,
+      headers: { authorization: `Bearer ${token}` },
+      payload: { toStage: "won" },
+    });
+    expect(skipWon.statusCode).toBe(409);
+
+    const lost = await app.inject({
+      method: "POST",
+      url: `/v1/pipeline/opportunities/${oppId}/transitions`,
+      headers: { authorization: `Bearer ${token}` },
+      payload: { toStage: "lost" },
+    });
+    expect(lost.statusCode).toBe(200);
+    expect(lost.json().opportunity.status).toBe("lost");
+  });
+
+  it("isolates opportunities across tenants", async () => {
+    const store = seedStore("test-secret");
+    const app = buildServer({ store });
+    const token = await loginCarol(app);
+    const orgId = await seedCrmOrg(app, token);
+    const created = await app.inject({
+      method: "POST",
+      url: "/v1/pipeline/opportunities",
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        opportunityCode: "OPP-2026-004",
+        title: "Tenant A",
+        organizationId: orgId,
+      },
+    });
+    const oppId = created.json().opportunity.id as string;
+
+    const partnerLogin = await app.inject({
+      method: "POST",
+      url: "/v1/auth/login",
+      payload: { email: "partner@external.local", password: P.partnerPassword, tenantSlug: "partner-demo" },
+    });
+    const partnerToken = partnerLogin.json().accessToken as string;
+
+    const foreign = await app.inject({
+      method: "GET",
+      url: `/v1/pipeline/opportunities/${oppId}`,
+      headers: { authorization: `Bearer ${partnerToken}` },
+    });
+    expect(foreign.statusCode).toBe(404);
+
+    const health = await app.inject({
+      method: "GET",
+      url: "/v1/pipeline/health",
+      headers: { authorization: `Bearer ${partnerToken}` },
+    });
+    expect([403, 200]).toContain(health.statusCode);
+    if (health.statusCode === 200) {
+      expect(health.json().opportunities).toBe(0);
+    }
+  });
+
+  it("rejects unauthenticated pipeline reads", async () => {
+    const store = seedStore("test-secret");
+    const app = buildServer({ store });
+    const res = await app.inject({ method: "GET", url: "/v1/pipeline/board" });
+    expect(res.statusCode).toBe(401);
   });
 });

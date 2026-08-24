@@ -1,5 +1,21 @@
 # C2 Opportunity / Pipeline — Preview
 
+## Lifecycle status (reconciled after C2 completion)
+
+| Field | Value |
+| --- | --- |
+| Architecture status | Existing committed preview remains the C2 contract |
+| Implementation status | **IMPLEMENTED / COMPLETE** |
+| Environment | Development/Test only |
+| C1 Gate | PASS — Development/Test only (predecessor) |
+| Persistence | Dev/Test in-memory read SoR; PostgreSQL schema `015_c2_opportunity.sql` (schema-only until a separately authorized persist increment). ADR-0017 not reopened |
+| Production / UAT / AI | Not authorized |
+| Next increments | Not assigned by C2 |
+
+The sections after this heading are the architecture contract.
+
+---
+
 Increment **C2** adds sales pipeline management on top of C1 CRM organizations and accounts.
 
 ## Kernel

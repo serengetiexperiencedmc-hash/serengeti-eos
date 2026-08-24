@@ -22,6 +22,12 @@ describe("opportunity stage transitions", () => {
     expect(canTransitionOpportunityStage("lost", "new_qualified")).toBe(false);
   });
 
+  it("allows lost from open stages and won only from negotiation", () => {
+    expect(canTransitionOpportunityStage("new_qualified", "lost")).toBe(true);
+    expect(canTransitionOpportunityStage("new_qualified", "won")).toBe(false);
+    expect(canTransitionOpportunityStage("negotiation", "won")).toBe(true);
+  });
+
   it("validates opportunity codes", () => {
     expect(opportunityCodePattern("OPP-2026-0847")).toBe(true);
     expect(opportunityCodePattern("bad")).toBe(false);
