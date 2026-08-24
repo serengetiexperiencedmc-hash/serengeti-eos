@@ -53,6 +53,29 @@ export async function getCostSheetByProgramme(token: string, programmeId: string
   return eosFetch<CostSheetDetail>(`/v1/costing/sheets/by-programme/${programmeId}`, { token });
 }
 
+export async function createCostSheet(
+  token: string,
+  input: { programmeId: string; sellPrice?: number; paxCount?: number },
+) {
+  return eosFetch<CostSheetDetail>("/v1/costing/sheets", {
+    token,
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function addCostLineItem(
+  token: string,
+  sheetId: string,
+  input: { category: string; description: string; unitCost: number; quantity?: number },
+) {
+  return eosFetch<CostSheetDetail>(`/v1/costing/sheets/${sheetId}/line-items`, {
+    token,
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 export async function getCostSheetByRfp(token: string, rfpId: string) {
   const list = await eosFetch<{ items: CostSheetSummary[] }>(`/v1/costing/sheets?rfpId=${rfpId}`, { token });
   if (list.items.length === 0) throw new Error("no_cost_sheet");

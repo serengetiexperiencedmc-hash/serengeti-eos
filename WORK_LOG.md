@@ -835,6 +835,15 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **C5** | Tenant-scoped programme health, title-required day/item writes, builder UI (create programme, add day/item, attach supplier), C5 security tests |
 | Docs | `c5-programme-preview.md` lifecycle status recorded after ship |
 
+### 76:xx — C6 costing engine ✅
+
+**Shipped:** C6 complete against `docs/architecture/c6-costing-preview.md` (Dev/Test). API identity unchanged (`1.04.0-i3.37`); costing health increment remains `C6`.
+
+| Increment | Change |
+| --- | --- |
+| **C6** | Tenant-scoped costing health, create/add-line Live Costing UI, C6 security tests |
+| Docs | `c6-costing-preview.md` lifecycle status recorded after ship |
+
 ### Recommended next increments
 
 1. I20.23 — (unnamed / undefined)

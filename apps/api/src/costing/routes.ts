@@ -33,7 +33,9 @@ export function registerCostingRoutes(app: FastifyInstance, store: Store): void 
   app.get("/v1/costing/health", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    return getCostingModuleHealth(store);
+    const result = getCostingModuleHealth(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
   });
 
   app.get("/v1/costing/sheets", async (req, reply) => {

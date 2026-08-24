@@ -14,6 +14,15 @@ async function loginCarol(app: ReturnType<typeof buildServer>) {
   return res.json().accessToken as string;
 }
 
+async function loginAlice(app: ReturnType<typeof buildServer>) {
+  const res = await app.inject({
+    method: "POST",
+    url: "/v1/auth/login",
+    payload: { email: "alice.finance@sedmc.local", password: P.alicePassword, tenantSlug: "sedmc" },
+  });
+  return res.json().accessToken as string;
+}
+
 async function seedCrmOrg(app: ReturnType<typeof buildServer>, token: string) {
   const csv = ["legalName,organizationTypeKey,tradingName,country", "Costing Client Ltd,corporate,Costing Client,UK"].join("\n");
   const created = await app.inject({
@@ -138,5 +147,75 @@ describe("C6 costing API", () => {
     });
     expect(added.statusCode).toBe(201);
     expect(added.json().sheet.totalCost).toBe(80000);
+  });
+
+  it("scopes costing health and rejects unauthorized access", async () => {
+    const store = seedStore("test-secret");
+    const app = buildServer({ store });
+    const token = await loginCarol(app);
+    const orgId = await seedCrmOrg(app, token);
+    const programmeId = await createProgramme(app, token, orgId);
+
+    const created = await app.inject({
+      method: "POST",
+      url: "/v1/costing/sheets",
+      headers: { authorization: `Bearer ${token}` },
+      payload: { programmeId, sellPrice: 1000, lineItems: [{ category: "other", description: "Misc", unitCost: 100 }] },
+    });
+    expect(created.statusCode).toBe(201);
+    const sheetId = created.json().sheet.id as string;
+    expect(created.json().sheet).not.toHaveProperty("tenantId");
+
+    store.costSheets.push({
+      ...store.costSheets[0]!,
+      id: "99999999-9999-4999-8999-999999999999",
+      tenantId: "22222222-2222-4222-8222-222222222222",
+      sheetCode: "CST-FOREIGN",
+    });
+
+    const health = await app.inject({
+      method: "GET",
+      url: "/v1/costing/health",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(health.statusCode).toBe(200);
+    expect(health.json().increment).toBe("C6");
+    expect(health.json().sheets).toBe(1);
+
+    const blankLine = await app.inject({
+      method: "POST",
+      url: `/v1/costing/sheets/${sheetId}/line-items`,
+      headers: { authorization: `Bearer ${token}` },
+      payload: { category: "other", description: "  ", unitCost: 10 },
+    });
+    expect(blankLine.statusCode).toBe(400);
+
+    const aliceToken = await loginAlice(app);
+    const denied = await app.inject({
+      method: "GET",
+      url: "/v1/costing/health",
+      headers: { authorization: `Bearer ${aliceToken}` },
+    });
+    expect(denied.statusCode).toBe(403);
+
+    const partnerLogin = await app.inject({
+      method: "POST",
+      url: "/v1/auth/login",
+      payload: { email: "partner@external.local", password: P.partnerPassword, tenantSlug: "partner-demo" },
+    });
+    const partnerToken = partnerLogin.json().accessToken as string;
+    const foreign = await app.inject({
+      method: "GET",
+      url: `/v1/costing/sheets/${sheetId}`,
+      headers: { authorization: `Bearer ${partnerToken}` },
+    });
+    expect(foreign.statusCode).toBe(404);
+  });
+
+  it("rejects unauthenticated costing reads", async () => {
+    const store = seedStore("test-secret");
+    const app = buildServer({ store });
+    const res = await app.inject({ method: "GET", url: "/v1/costing/health" });
+    expect(res.statusCode).toBe(401);
   });
 });

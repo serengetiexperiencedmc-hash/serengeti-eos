@@ -29,7 +29,7 @@ function findSheetByProgramme(store: Store, tenantId: string, programmeId: strin
 }
 
 function recalculateSheet(store: Store, sheet: CostSheet): void {
-  const lines = store.costLineItems.filter((l) => l.costSheetId === sheet.id);
+  const lines = store.costLineItems.filter((l) => l.costSheetId === sheet.id && l.tenantId === sheet.tenantId);
   const totals = computeCostTotals({
     lines: lines.map((l) => ({ category: l.category, lineTotal: l.lineTotal })),
     ...(sheet.markupPercent !== undefined ? { markupPercent: sheet.markupPercent } : {}),
@@ -89,7 +89,7 @@ function sanitizeSheet(s: CostSheet, categoryTotals: Record<CostLineCategory, nu
 function sheetDetail(store: Store, sheet: CostSheet) {
   recalculateSheet(store, sheet);
   const lines = store.costLineItems
-    .filter((l) => l.costSheetId === sheet.id)
+    .filter((l) => l.costSheetId === sheet.id && l.tenantId === sheet.tenantId)
     .sort((a, b) => a.sortOrder - b.sortOrder);
   const totals = computeCostTotals({
     lines: lines.map((l) => ({ category: l.category, lineTotal: l.lineTotal })),
@@ -103,15 +103,24 @@ function sheetDetail(store: Store, sheet: CostSheet) {
   };
 }
 
-export function getCostingModuleHealth(store: Store) {
+export function getCostingModuleHealth(store: Store, principal: Principal) {
   ensureCostingCollections(store);
+  const decision = authorize({
+    principal,
+    permission: "costing:read:sheet",
+    action: "read:cost_sheet",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+  const tenantId = principal.tenantId;
+  const sheets = store.costSheets.filter((s) => s.tenantId === tenantId && !s.archivedAt);
+  const sheetIds = new Set(sheets.map((s) => s.id));
   return {
     module: "costing",
     increment: "C6",
     status: "ok" as const,
-    sheets: store.costSheets.filter((s) => !s.archivedAt).length,
-    lineItems: store.costLineItems.length,
-    versions: store.costSheetVersions.length,
+    sheets: sheets.length,
+    lineItems: store.costLineItems.filter((l) => l.tenantId === tenantId && sheetIds.has(l.costSheetId)).length,
+    versions: store.costSheetVersions.filter((v) => v.tenantId === tenantId && sheetIds.has(v.costSheetId)).length,
   };
 }
 
@@ -161,7 +170,7 @@ export function getCostSheet(store: Store, principal: Principal, id: string) {
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
 
   const versions = store.costSheetVersions
-    .filter((v) => v.costSheetId === id)
+    .filter((v) => v.costSheetId === id && v.tenantId === sheet.tenantId)
     .sort((a, b) => b.versionNumber - a.versionNumber);
 
   return { ...sheetDetail(store, sheet), versions };

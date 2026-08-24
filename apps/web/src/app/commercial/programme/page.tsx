@@ -13,7 +13,7 @@ import {
   getProgrammeByRfp,
   type ProgrammeDetail,
 } from "@/lib/programme-api";
-import { getCostSheetByProgramme, formatCost, COST_CATEGORY_LABELS, recalculateCostSheet, type CostSheetDetail } from "@/lib/costing-api";
+import { getCostSheetByProgramme, createCostSheet, addCostLineItem, formatCost, COST_CATEGORY_LABELS, recalculateCostSheet, type CostSheetDetail } from "@/lib/costing-api";
 import { listSuppliers, type SupplierSummary } from "@/lib/suppliers-api";
 
 function ProgrammeBuilderContent() {
@@ -36,6 +36,10 @@ function ProgrammeBuilderContent() {
   const [itemTitle, setItemTitle] = useState("");
   const [itemTime, setItemTime] = useState("");
   const [busy, setBusy] = useState(false);
+  const [creatingSheet, setCreatingSheet] = useState(false);
+  const [lineCategory, setLineCategory] = useState("accommodation");
+  const [lineDescription, setLineDescription] = useState("");
+  const [lineCost, setLineCost] = useState("");
 
   const loadProgramme = useCallback(async () => {
     if (!token || !rfpId) {
@@ -207,6 +211,53 @@ function ProgrammeBuilderContent() {
       supplierId: supplier.id,
       supplierLabel: supplier.tradingName ?? supplier.legalName,
     });
+  }
+
+  async function handleCreateCostSheet() {
+    if (!token || !detail) return;
+    setCreatingSheet(true);
+    setError(null);
+    try {
+      const sheet = await createCostSheet(token, {
+        programmeId: detail.programme.id,
+        ...(detail.programme.paxCount !== undefined ? { paxCount: detail.programme.paxCount } : {}),
+      });
+      setCosting(sheet);
+    } catch (err) {
+      setError(err instanceof EosApiError ? err.message : "Failed to create cost sheet");
+    } finally {
+      setCreatingSheet(false);
+    }
+  }
+
+  async function handleAddCostLine() {
+    if (!token || !costing) return;
+    const description = lineDescription.trim();
+    const unitCost = Number(lineCost);
+    if (!description) {
+      setError("Line description is required");
+      return;
+    }
+    if (!Number.isFinite(unitCost) || unitCost < 0) {
+      setError("Line unit cost must be a number");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const updated = await addCostLineItem(token, costing.sheet.id, {
+        category: lineCategory,
+        description,
+        unitCost,
+      });
+      setCosting(updated);
+      setLineDescription("");
+      setLineCost("");
+    } catch (err) {
+      setError(err instanceof EosApiError ? err.message : "Failed to add cost line");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -408,9 +459,43 @@ function ProgrammeBuilderContent() {
                     </div>
                   )}
                 </div>
+                <div className="mt-4 rounded-md border border-line bg-ivory p-3">
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Add line</div>
+                  <select
+                    value={lineCategory}
+                    onChange={(e) => setLineCategory(e.target.value)}
+                    className="mb-2 w-full rounded-md border border-line px-3 py-2 text-xs outline-none focus:border-gold"
+                  >
+                    {Object.entries(COST_CATEGORY_LABELS).map(([key, label]) => (
+                      <option key={key} value={key}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    value={lineDescription}
+                    onChange={(e) => setLineDescription(e.target.value)}
+                    placeholder="Description"
+                    className="mb-2 w-full rounded-md border border-line px-3 py-2 text-xs outline-none focus:border-gold"
+                  />
+                  <input
+                    value={lineCost}
+                    onChange={(e) => setLineCost(e.target.value)}
+                    placeholder="Unit cost"
+                    className="mb-2 w-full rounded-md border border-line px-3 py-2 text-xs outline-none focus:border-gold"
+                  />
+                  <Btn size="sm" disabled={busy} onClick={() => void handleAddCostLine()}>
+                    Add line
+                  </Btn>
+                </div>
               </>
             ) : (
-              <p className="text-sm text-muted">No cost sheet yet for this programme.</p>
+              <div>
+                <p className="mb-3 text-sm text-muted">No cost sheet yet for this programme.</p>
+                <Btn size="sm" disabled={creatingSheet} onClick={() => void handleCreateCostSheet()}>
+                  {creatingSheet ? "Creating…" : "Create cost sheet"}
+                </Btn>
+              </div>
             )}
             <AiPanel>
               <p className="text-sm leading-relaxed">
