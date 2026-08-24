@@ -999,9 +999,19 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 
 **Tests:** kernel crisis 2/2; API i18 3/3; regression I17 3/3; web typecheck clean.
 
+### 94:xx — G1 Compliance Obligations ✅
+
+**Shipped:** G1 complete against `docs/architecture/g1-compliance-obligations-preview.md` (Dev/Test). ID assigned by `docs/governance/g1-compliance-obligations-authorized.md` (COMP=A). API identity unchanged (`1.04.0-i3.37`); compliance health increment is `G1`. Obligation register only. Human-only mutate. Bob holds `compliance.member`. I15 not reopened. No I15.x. No controls, findings, RoPA, or DSR.
+
+| Increment | Change |
+| --- | --- |
+| **G1** | Obligations, activate/close, Compliance → Obligations, `/commercial/compliance` |
+
+**Tests:** kernel compliance 2/2; API g1 3/3 (401/403/400 title_required/cross-tenant 404/ai_actor/lifecycle); regression I15/I16/I13; web typecheck clean. Live preview restarted so `/v1/compliance` exists (memory_only). Carol registered **OBL-0003**, Activate → in force, Close. Live PostgreSQL UNVERIFIED.
+
 ### Recommended next increments
 
-I18=A does not unlock I21/I22/I23 or I15 remainder. I15 remaining compliance/privacy remain deferred. I21 remains undefined. I22 remains deferred. I20 stays within existing L0–L1.
+PRIV=D, I21=D, I22=D, I23=D, EMCOMMS=D, EXER=D remain deferred. No successor IDs.
 
 ### Issues resolved
 

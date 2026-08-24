@@ -74,3 +74,4 @@ export * from "./knowledge.js";
 export * from "./audit-ia.js";
 export * from "./bcm.js";
 export * from "./crisis.js";
+export * from "./compliance.js";
