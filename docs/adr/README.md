@@ -18,7 +18,7 @@ Status values: `proposed` (needs human approval), `accepted` (approved), `supers
 | [ADR-0008](ADR-0008-multi-provider-ai.md) | Multi-provider AI, no vendor lock | proposed (AI deferred until after I4) |
 | [ADR-0009](ADR-0009-logical-multitenancy.md) | Logical multi-tenancy | accepted for Development |
 | [ADR-0010](ADR-0010-transactional-outbox.md) | Transactional outbox | proposed |
-| [ADR-0011](ADR-0011-backup-1900-eat.md) | Daily 19:00 EAT backup + restore proof | proposed (requirement accepted) |
+| [ADR-0011](ADR-0011-backup-1900-eat.md) | Daily 19:00 EAT backup + restore proof | accepted for Development/Test (evidence-register; production product TBD) |
 | [ADR-0012](ADR-0012-secrets-platform.md) | Secrets platform | **OPEN — blocked for UAT+** |
 | [ADR-0013](ADR-0013-corporate-idp.md) | Corporate IdP product | **OPEN — blocked for Prod** |
 | [ADR-0014](ADR-0014-defensive-security-only.md) | Defensive security only | accepted for Development |

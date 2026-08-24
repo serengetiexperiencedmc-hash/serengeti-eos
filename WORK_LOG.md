@@ -979,9 +979,19 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 
 **Tests:** kernel audit-ia 2/2; API i16 3/3; regression I19 3/3; web typecheck clean.
 
+### 92:xx — I17 BCM Backup Evidence ✅
+
+**Shipped:** I17 complete against `docs/architecture/i17-bcm-backup-evidence-preview.md` (Dev/Test). API identity unchanged (`1.04.0-i3.37`); BCM health increment is `I17`. Evidence register only (19:00 EAT jobs + restore probes). Object-level SoD: job creator cannot record the probe. Bob holds `bcm.member`. No backup product, appliance, or hot site. ADR-0011 accepted for Development/Test (production product TBD).
+
+| Increment | Change |
+| --- | --- |
+| **I17** | Backup jobs, restore probes, SoD probe, BCM → Backup evidence, `/commercial/bcm` |
+
+**Tests:** kernel bcm 2/2; API i17 3/3; regression I16 3/3; web typecheck clean.
+
 ### Recommended next increments
 
-No remaining implementation-ready authorized capability. I17 remains deferred (ADR-0011). I15 remaining compliance/privacy remain deferred. I22 remains deferred. I20 stays within existing L0–L1.
+I18 Crisis remains undefined as an increment contract (blocked until a matured I18 preview). I15 remaining compliance/privacy remain deferred. I22 remains deferred. I20 stays within existing L0–L1.
 
 ### Issues resolved
 

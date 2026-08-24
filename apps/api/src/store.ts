@@ -121,6 +121,8 @@ import {
   type ErmRisk,
   type IaEngagement,
   type IaWorkpaper,
+  type BcmBackupJob,
+  type BcmRestoreProbe,
   type KnowledgeDocument,
   type PamJitGrant,
   type PamSecretRef,
@@ -133,6 +135,7 @@ import { seedDefaultPam } from "./pam/collections.js";
 import { seedDefaultErm } from "./erm/collections.js";
 import { seedDefaultKnowledge } from "./knowledge/collections.js";
 import { seedDefaultAuditIa } from "./audit-ia/collections.js";
+import { seedDefaultBcm } from "./bcm/collections.js";
 
 export type Payment = {
   id: string;
@@ -264,6 +267,8 @@ export type Store = {
   knowledgeDocuments: KnowledgeDocument[];
   iaEngagements: IaEngagement[];
   iaWorkpapers: IaWorkpaper[];
+  bcmBackupJobs: BcmBackupJob[];
+  bcmRestoreProbes: BcmRestoreProbe[];
   notifDismissals: NotifDismissal[];
   notifEmailOutbox: NotifEmailOutboxEntry[];
   notifEmailDeliveryEvents: NotifEmailDeliveryEvent[];
@@ -496,6 +501,8 @@ const AUDIT_IA_PERMS = [
   "auditia:write:workpaper",
 ] as const;
 
+const BCM_PERMS = ["bcm:read:job", "bcm:write:job", "bcm:read:probe", "bcm:write:probe"] as const;
+
 const PERMS = {
   financeMember: [
     "finance:create:payment",
@@ -529,6 +536,7 @@ const PERMS = {
   securityAnalyst: [...SECURITY_ANALYST_PERMS],
   riskMember: [...ERM_PERMS],
   auditMember: [...AUDIT_IA_PERMS],
+  bcmMember: [...BCM_PERMS],
   platformAdmin: [
     "org:read:unit",
     "org:write:unit",
@@ -584,6 +592,7 @@ const PERMS = {
     ...ERM_PERMS,
     ...KNOWLEDGE_PERMS,
     ...AUDIT_IA_PERMS,
+    ...BCM_PERMS,
     ...NOTIFICATION_PERMS,
     "ai:read:recommend",
     "ai:write:draft",
@@ -701,8 +710,8 @@ export function seedStore(
     status: "active",
     orgUnitId: financeUnit,
     classificationClearance: "Confidential",
-    roles: ["finance.approver", "hr.approver", "audit.member"],
-    permissions: [...PERMS.financeApprover, ...PERMS.hrApprover, ...PERMS.auditMember],
+    roles: ["finance.approver", "hr.approver", "audit.member", "bcm.member"],
+    permissions: [...PERMS.financeApprover, ...PERMS.hrApprover, ...PERMS.auditMember, ...PERMS.bcmMember],
     passwordHash: hashPassword(bootstrap.bobPassword),
     attributes: { department: "finance" },
   };
@@ -828,6 +837,13 @@ export function seedStore(
       permissionKeys: [...PERMS.auditMember],
     },
     {
+      id: "role-bcm-member",
+      tenantId,
+      key: "bcm.member",
+      name: "BCM Member",
+      permissionKeys: [...PERMS.bcmMember],
+    },
+    {
       id: "role-ai-agent",
       tenantId,
       key: "ai.agent",
@@ -915,6 +931,14 @@ export function seedStore(
         tenantId,
         principalId: bobId,
         roleKey: "audit.member",
+        grantedAt: new Date().toISOString(),
+        grantedByPrincipalId: carolId,
+      },
+      {
+        id: "grant-bob-bcm",
+        tenantId,
+        principalId: bobId,
+        roleKey: "bcm.member",
         grantedAt: new Date().toISOString(),
         grantedByPrincipalId: carolId,
       },
@@ -1095,6 +1119,8 @@ export function seedStore(
     knowledgeDocuments: [],
     iaEngagements: [],
     iaWorkpapers: [],
+    bcmBackupJobs: [],
+    bcmRestoreProbes: [],
     notifDismissals: [],
     notifEmailOutbox: [],
     notifEmailDeliveryEvents: [],
@@ -1135,6 +1161,7 @@ export function seedStore(
   seedDefaultErm(store);
   seedDefaultKnowledge(store);
   seedDefaultAuditIa(store);
+  seedDefaultBcm(store);
   return store;
 }
 

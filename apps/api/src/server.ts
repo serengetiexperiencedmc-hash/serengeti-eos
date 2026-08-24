@@ -80,6 +80,7 @@ import { registerPamRoutes } from "./pam/routes.js";
 import { registerErmRoutes } from "./erm/routes.js";
 import { registerKnowledgeRoutes } from "./knowledge/routes.js";
 import { registerAuditIaRoutes } from "./audit-ia/routes.js";
+import { registerBcmRoutes } from "./bcm/routes.js";
 import type { EventCatalogueEntry } from "@sedmc/kernel";
 import {
   createLogger,
@@ -136,6 +137,7 @@ export function buildServer(options: ServerOptions | Store = {}) {
   registerErmRoutes(app, store);
   registerKnowledgeRoutes(app, store);
   registerAuditIaRoutes(app, store);
+  registerBcmRoutes(app, store);
   registerAiRoutes(app, store);
 
   app.get("/health", async (_req, reply) => {

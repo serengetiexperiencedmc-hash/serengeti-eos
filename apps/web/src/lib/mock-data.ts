@@ -83,6 +83,10 @@ export const navItems = [
     items: [{ href: "/commercial/audit-ia", label: "Engagements", icon: "audit" }],
   },
   {
+    section: "BCM",
+    items: [{ href: "/commercial/bcm", label: "Backup evidence", icon: "bcm" }],
+  },
+  {
     section: "Resources",
     items: [
       { href: "/commercial/suppliers", label: "Supplier Library", icon: "suppliers" },

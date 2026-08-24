@@ -72,3 +72,4 @@ export * from "./pam.js";
 export * from "./erm.js";
 export * from "./knowledge.js";
 export * from "./audit-ia.js";
+export * from "./bcm.js";
