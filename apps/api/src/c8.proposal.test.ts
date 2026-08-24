@@ -23,6 +23,15 @@ async function loginBob(app: ReturnType<typeof buildServer>) {
   return res.json().accessToken as string;
 }
 
+async function loginAlice(app: ReturnType<typeof buildServer>) {
+  const res = await app.inject({
+    method: "POST",
+    url: "/v1/auth/login",
+    payload: { email: "alice.finance@sedmc.local", password: P.alicePassword, tenantSlug: "sedmc" },
+  });
+  return res.json().accessToken as string;
+}
+
 async function seedCrmOrg(app: ReturnType<typeof buildServer>, token: string) {
   const csv = ["legalName,organizationTypeKey,tradingName,country", "Proposal Client Ltd,corporate,Proposal Client,UK"].join("\n");
   const created = await app.inject({
@@ -188,5 +197,62 @@ describe("C8 proposal API", () => {
       payload: { rfpId },
     });
     expect(fail.statusCode).toBe(409);
+  });
+
+  it("scopes proposal health and rejects unauthorized access", async () => {
+    const store = seedStore("test-secret");
+    const app = buildServer({ store });
+    const carolToken = await loginCarol(app);
+    const orgId = await seedCrmOrg(app, carolToken);
+    const { rfpId } = await createApprovedStack(app, carolToken, orgId);
+    const created = await app.inject({
+      method: "POST",
+      url: "/v1/proposals",
+      headers: { authorization: `Bearer ${carolToken}` },
+      payload: { rfpId },
+    });
+    expect(created.statusCode).toBe(201);
+    expect(created.json().proposal).not.toHaveProperty("tenantId");
+    const proposalId = created.json().proposal.id as string;
+
+    store.propProposals.push({
+      ...store.propProposals[0]!,
+      id: "99999999-9999-4999-8999-999999999999",
+      tenantId: "22222222-2222-4222-8222-222222222222",
+      proposalCode: "PROP-FOREIGN",
+    });
+
+    const health = await app.inject({
+      method: "GET",
+      url: "/v1/proposals/health",
+      headers: { authorization: `Bearer ${carolToken}` },
+    });
+    expect(health.statusCode).toBe(200);
+    expect(health.json().increment).toBe("C8");
+    expect(health.json().proposals).toBe(1);
+
+    const aliceToken = await loginAlice(app);
+    const denied = await app.inject({
+      method: "GET",
+      url: "/v1/proposals/health",
+      headers: { authorization: `Bearer ${aliceToken}` },
+    });
+    expect(denied.statusCode).toBe(403);
+
+    const partnerLogin = await app.inject({
+      method: "POST",
+      url: "/v1/auth/login",
+      payload: { email: "partner@external.local", password: P.partnerPassword, tenantSlug: "partner-demo" },
+    });
+    const partnerToken = partnerLogin.json().accessToken as string;
+    const foreign = await app.inject({
+      method: "GET",
+      url: `/v1/proposals/${proposalId}`,
+      headers: { authorization: `Bearer ${partnerToken}` },
+    });
+    expect(foreign.statusCode).toBe(404);
+
+    const unauth = await app.inject({ method: "GET", url: "/v1/proposals/health" });
+    expect(unauth.statusCode).toBe(401);
   });
 });

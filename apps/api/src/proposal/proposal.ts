@@ -77,14 +77,23 @@ function buildSnapshot(store: Store, programmeId: string, costSheetId: string): 
   };
 }
 
-export function getProposalModuleHealth(store: Store) {
+export function getProposalModuleHealth(store: Store, principal: Principal) {
   ensureProposalCollections(store);
+  const decision = authorize({
+    principal,
+    permission: "proposal:read:proposal",
+    action: "read:prop_proposal",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+  const tenantId = principal.tenantId;
+  const proposals = store.propProposals.filter((p) => p.tenantId === tenantId && !p.archivedAt);
+  const ids = new Set(proposals.map((p) => p.id));
   return {
     module: "proposal",
     increment: "C8",
     status: "ok" as const,
-    proposals: store.propProposals.filter((p) => !p.archivedAt).length,
-    versions: store.propProposalVersions.length,
+    proposals: proposals.length,
+    versions: store.propProposalVersions.filter((v) => v.tenantId === tenantId && ids.has(v.proposalId)).length,
   };
 }
 

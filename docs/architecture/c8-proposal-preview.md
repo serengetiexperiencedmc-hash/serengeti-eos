@@ -1,5 +1,18 @@
 # C8 Proposal Engine — Preview
 
+## Lifecycle status (reconciled for C8 completion)
+
+| Field | Value |
+| --- | --- |
+| Increment ID | **C8** |
+| Capability name | Proposal Engine |
+| Predecessor | C7 Commercial Approval |
+| Implementation status | **IMPLEMENTED / COMPLETE** |
+| Environment | Development/Test only |
+| Persistence | Dev/Test in-memory read SoR; PostgreSQL schema `020_c8_proposal.sql` (schema-only). ADR-0017 not reopened |
+
+---
+
 Increment **C8** generates structured commercial proposals from approved programme and costing data.
 
 ## Kernel
@@ -15,7 +28,7 @@ Increment **C8** generates structured commercial proposals from approved program
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/health` | Module health |
+| GET | `/health` | `proposal:read:proposal` (tenant-scoped) |
 | GET/POST | `/proposals` | List / generate from RFP |
 | GET | `/proposals/by-rfp/:rfpId` | Proposal for an RFP |
 | GET | `/proposals/:id` | Detail with programme, cost lines, versions |
