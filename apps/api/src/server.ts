@@ -88,6 +88,7 @@ import { registerGrcRoutes } from "./grc/routes.js";
 import { registerFindingsRoutes } from "./findings/routes.js";
 import { registerControlTestRoutes } from "./control-tests/routes.js";
 import { registerMappingRoutes } from "./mappings/routes.js";
+import { registerOperationalIssueRoutes } from "./operational-issues/routes.js";
 import type { EventCatalogueEntry } from "@sedmc/kernel";
 import {
   createLogger,
@@ -152,6 +153,7 @@ export function buildServer(options: ServerOptions | Store = {}) {
   registerFindingsRoutes(app, store);
   registerControlTestRoutes(app, store);
   registerMappingRoutes(app, store);
+  registerOperationalIssueRoutes(app, store);
   registerAiRoutes(app, store);
 
   app.get("/health", async (_req, reply) => {

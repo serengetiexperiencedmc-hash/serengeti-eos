@@ -1059,9 +1059,19 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 
 **Tests:** kernel mappings 2/2; API g5 3/3 (401/403/400 title_required/obligation_not_found/control_not_found/cross-tenant 404/ai_actor/lifecycle); regression G1/G2/G3/G4/P1/I15/I16/I13; web typecheck clean. Live preview restarted so `/v1/mappings` exists (memory_only). Carol registered **MAP-0002** referencing OBL-0001 and CTL-0001, Activate → active, Retire. G1 OBL-0001 remained listed (Open). G2 CTL-0001 remained Draft. G4 CTC-0001 remained Planned. Unauthenticated `/v1/mappings/health` is 401 live. Alice 403 covered by API. Live PostgreSQL UNVERIFIED.
 
+### 99:xx — O6 Operational Issues Register ✅
+
+**Shipped:** O6 complete against `docs/architecture/o6-operational-issues-preview.md` (Dev/Test). ID assigned by `docs/governance/o6-operational-issues-authorized.md`. API identity unchanged (`1.04.0-i3.37`); issues health increment is `O6`. Issue register only. Human-only mutate. Required C9 booking reference (no C9/O5/C10 mutation). Bob holds `ops.issue`. O1–O5, C9, C10, I15, and G1–G5 not reopened. SAMPLE remains deferred. No G6. No I15.x.
+
+| Increment | Change |
+| --- | --- |
+| **O6** | Issues, start/close, Operations → Issues, `/commercial/operations/issues` |
+
+**Tests:** kernel operational-issues; API o6 (401/403/400 title_required/booking_not_found/cross-tenant 404/ai_actor/lifecycle); regression O5/C9/C10/I9/I8.4/G1–G5/P1/I15/I16/I13; web typecheck. Live PostgreSQL UNVERIFIED.
+
 ### Recommended next increments
 
-PRIV=A shipped as P1. GRC=A shipped as G2. FIND=A shipped as G3. TEST=A shipped as G4. MAP=A shipped as G5. I21=D, I22=D, I23=D, EMCOMMS=D, EXER=D remain deferred. No successor IDs.
+PRIV=A shipped as P1. GRC=A shipped as G2. FIND=A shipped as G3. TEST=A shipped as G4. MAP=A shipped as G5. O6 shipped. I21=D, I22=D, I23=D, EMCOMMS=D, EXER=D remain deferred. No successor IDs.
 
 ### Issues resolved
 

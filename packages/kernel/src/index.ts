@@ -80,3 +80,4 @@ export * from "./grc.js";
 export * from "./findings.js";
 export * from "./control-tests.js";
 export * from "./mappings.js";
+export * from "./operational-issues.js";

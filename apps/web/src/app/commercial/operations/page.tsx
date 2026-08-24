@@ -73,9 +73,14 @@ export default function OperationsWorkbenchPage() {
             : "Queue of confirmed bookings ready for operational execution"
         }
         actions={
-          <Link href="/commercial/bookings">
-            <Btn variant="secondary">Bookings</Btn>
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/commercial/bookings">
+              <Btn variant="secondary">Bookings</Btn>
+            </Link>
+            <Btn variant="secondary" href="/commercial/operations/issues">
+              Issues
+            </Btn>
+          </div>
         }
       />
 

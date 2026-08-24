@@ -11,7 +11,7 @@ This record assigns **O6**. It is an operations-family identifier after O5. It i
 | Capability ID | **O6** |
 | Name | Operational Issues Register |
 | Environment | Development/Test only |
-| **IMPLEMENTATION_AUTHORIZED** | **NO** |
+| **IMPLEMENTATION_AUTHORIZED** | **YES** |
 | I15 ERM risk register | CLOSED — not reopened |
 | G1 / P1 / G2 / G3 / G4 / G5 | CLOSED — not reopened |
 | SAMPLE | **DEFER** — not reopened |
@@ -20,7 +20,7 @@ This record assigns **O6**. It is an operations-family identifier after O5. It i
 
 ## Authorized scope
 
-Tenant-scoped, human-maintained operational issue register against an existing same-tenant booking. Required `title`; optional `description` and `ownerLabel`; required booking reference; status. Lifecycle `open` → `in_progress` → `closed` (close also from `open`). Human-only mutation. Dedicated operational-issue read/write permissions (do not broaden existing Operations permissions or grant GRC permissions). API `/v1/ops/issues`. UI **Operations → Issues** at `/commercial/operations/issues`. Store key `operationalIssues`. Aggregate `operational_issues`. Runtime in-memory. Additive SQL only if implementation is later authorized.
+Tenant-scoped, human-maintained operational issue register against an existing same-tenant booking. Required `title`; optional `description` and `ownerLabel`; required booking reference; status. Lifecycle `open` → `in_progress` → `closed` (close also from `open`). Human-only mutation. Dedicated operational-issue read/write permissions (do not broaden existing Operations permissions or grant GRC permissions). API `/v1/ops/issues`. UI **Operations → Issues** at `/commercial/operations/issues`. Store key `operationalIssues`. Aggregate `operational_issues`. Runtime in-memory. Additive SQL `097_o6_operational_issues.sql`.
 
 ## Explicitly excluded
 
@@ -28,9 +28,9 @@ Automatic issue creation from O5 signals or sync conflicts; autonomous remediati
 
 ## Implementation
 
-**IMPLEMENTATION_AUTHORIZED=NO**
+**IMPLEMENTATION_AUTHORIZED=YES**
 
-This record plus the architecture preview authorize **preview/authorization artifacts only**. Implementation (kernel, API, RBAC, UI, tests, runtime store, migration) requires a **separate explicit execution instruction** after these records are committed.
+This record plus the architecture preview and a separate explicit execution instruction authorize kernel, API, RBAC, UI, tests, runtime store, and additive SQL for Development/Test.
 
 ## Contract
 

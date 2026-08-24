@@ -8,16 +8,16 @@
 | Capability name | Operational Issues Register |
 | Predecessor | I2 kernel (complete); O5 Operations Workbench complete and **not** reopened; C9/C10 complete and **not** reopened; I15 ERM complete and **not** reopened; G1–G5 complete and **not** reopened |
 | Architecture status | This document is the O6 contract |
-| Implementation status | **NOT AUTHORIZED** — preview only |
+| Implementation status | **IMPLEMENTED / COMPLETE** |
 | Environment | Development/Test only |
-| Persistence | In-memory at implementation time. Additive SQL only if implementation is later authorized. ADR-0017 not reopened. No migration file in this increment |
+| Persistence | In-memory store + additive SQL `097_o6_operational_issues.sql`. ADR-0017 not reopened |
 | Runtime health increment | `O6` |
 | Production / UAT / AI | Not authorized |
-| **IMPLEMENTATION_AUTHORIZED** | **NO** |
+| **IMPLEMENTATION_AUTHORIZED** | **YES** |
 
 Authority: 2026-08-24 governance **CANDIDATE=OPERATIONAL_ISSUES / DECISION=APPROVE / CAPABILITY_ID=O6** and [`o6-operational-issues-authorized.md`](../governance/o6-operational-issues-authorized.md). ID **O6** is assigned by that record. This is not G6, not I15, and not I15.x.
 
-The sections after this heading are the architecture contract. Implementation must not begin until a separate explicit execution instruction.
+The sections after this heading are the architecture contract.
 
 ---
 
@@ -65,7 +65,7 @@ JSON may include a read-only `bookingCode` resolved from C9 at response time. Bo
 
 ## Persistence / migration
 
-Runtime in-memory when implemented. Additive SQL only under a later implementation authorization. Live PostgreSQL not authorized. No migration is created in this preview-only commit.
+`097_o6_operational_issues.sql`. Runtime in-memory. Live PostgreSQL UNVERIFIED.
 
 ## Workflow
 
