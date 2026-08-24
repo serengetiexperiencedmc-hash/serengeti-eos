@@ -171,9 +171,14 @@ export default function HrPage() {
         title="HR"
         subtitle="Employee directory · skills · leave (no payroll)"
         actions={
-          <Btn variant="secondary" href="/commercial">
-            ← Dashboard
-          </Btn>
+          <div className="flex flex-wrap gap-2">
+            <Btn variant="secondary" href="/commercial/hr/certifications">
+              Certifications
+            </Btn>
+            <Btn variant="secondary" href="/commercial">
+              ← Dashboard
+            </Btn>
+          </div>
         }
       />
 
