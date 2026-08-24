@@ -121,6 +121,9 @@ export default function ItsmPage() {
             <Btn variant="secondary" href="/commercial/cmdb">
               CMDB
             </Btn>
+            <Btn variant="secondary" href="/commercial/itsm/changes">
+              Changes
+            </Btn>
             <Btn variant="secondary" href="/commercial">
               ← Dashboard
             </Btn>

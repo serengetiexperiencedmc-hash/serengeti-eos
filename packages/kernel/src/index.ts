@@ -65,6 +65,7 @@ export * from "./field-cache-crypto.js";
 export * from "./ops-voucher.js";
 export * from "./hr.js";
 export * from "./hr-certifications.js";
+export * from "./itsm-changes.js";
 export * from "./itsm.js";
 export * from "./cmdb.js";
 export * from "./observability.js";

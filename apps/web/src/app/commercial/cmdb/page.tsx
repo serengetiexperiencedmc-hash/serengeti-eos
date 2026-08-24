@@ -133,6 +133,9 @@ export default function CmdbPage() {
             <Btn variant="secondary" href="/commercial/itsm">
               Service Desk
             </Btn>
+            <Btn variant="secondary" href="/commercial/itsm/changes">
+              Changes
+            </Btn>
             <Btn variant="secondary" href="/commercial">
               ← Dashboard
             </Btn>
