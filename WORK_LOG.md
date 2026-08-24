@@ -939,9 +939,19 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 
 **Tests:** kernel security 2/2; API i13 3/3; regression I12 4/4, I11 4/4; web typecheck clean. Live preview **VERIFIED** after restarting `dev:preview`: Security → SOC, ingest ALT-0002, open I11 case TKT-0002. Live PostgreSQL UNVERIFIED.
 
+### 88:xx — I14 PAM ✅
+
+**Shipped:** I14 complete against `docs/architecture/i14-pam-preview.md` (Dev/Test). API identity unchanged (`1.04.0-i3.37`); PAM health increment is `I14`. Opaque `ref://` pointers only; in-memory JIT grants overlay RBAC. ADR-0012 not reopened; not a production vault.
+
+| Increment | Change |
+| --- | --- |
+| **I14** | Secret-ref catalogue, JIT grants, Security → PAM, `/commercial/pam` |
+
+**Tests:** kernel pam 2/2; API i14 3/3; regression I13 3/3; web typecheck clean. Live preview API UNVERIFIED (existing process predates I14; not restarted). Live PostgreSQL UNVERIFIED.
+
 ### Recommended next increments
 
-No implementation-ready increment remains after I13. I14 PAM/secrets/ZTNA is blocked on ADR-0012 (Vault vs cloud KMS). I15–I23, Calendar, and Procurement cannot be matured without material product or external-platform decisions (see governance package after this commit).
+I15 ERM risk register is authorized (governance I15=A). I17 remains deferred (ADR-0011). I19 Knowledge is authorized after I15.
 
 ### Issues resolved
 

@@ -118,11 +118,14 @@ import {
   type ItsmTicketCi,
   type OtelSpan,
   type SecurityAlert,
+  type PamJitGrant,
+  type PamSecretRef,
 } from "@sedmc/kernel";
 import { seedCrmCatalogues } from "./crm/collections.js";
 import { seedDefaultHr } from "./hr/collections.js";
 import { seedDefaultIt } from "./it/collections.js";
 import { seedDefaultSoc } from "./security/collections.js";
+import { seedDefaultPam } from "./pam/collections.js";
 
 export type Payment = {
   id: string;
@@ -248,6 +251,8 @@ export type Store = {
   itsmTicketCis: ItsmTicketCi[];
   otelSpans: OtelSpan[];
   securityAlerts: SecurityAlert[];
+  pamSecretRefs: PamSecretRef[];
+  pamJitGrants: PamJitGrant[];
   notifDismissals: NotifDismissal[];
   notifEmailOutbox: NotifEmailOutboxEntry[];
   notifEmailDeliveryEvents: NotifEmailDeliveryEvent[];
@@ -461,6 +466,14 @@ const SECURITY_ANALYST_PERMS = [
   "security:write:case",
 ] as const;
 
+const PAM_PERMS = [
+  "pam:read:ref",
+  "pam:write:ref",
+  "pam:read:grant",
+  "pam:write:grant",
+  "pam:revoke:grant",
+] as const;
+
 const PERMS = {
   financeMember: [
     "finance:create:payment",
@@ -543,6 +556,7 @@ const PERMS = {
     ...CMDB_PERMS,
     ...OBS_PERMS,
     ...SECURITY_PERMS,
+    ...PAM_PERMS,
     ...NOTIFICATION_PERMS,
     "ai:read:recommend",
     "ai:write:draft",
@@ -1026,6 +1040,8 @@ export function seedStore(
     itsmTicketCis: [],
     otelSpans: [],
     securityAlerts: [],
+    pamSecretRefs: [],
+    pamJitGrants: [],
     notifDismissals: [],
     notifEmailOutbox: [],
     notifEmailDeliveryEvents: [],
@@ -1062,6 +1078,7 @@ export function seedStore(
   seedDefaultHr(store);
   seedDefaultIt(store);
   seedDefaultSoc(store);
+  seedDefaultPam(store);
   return store;
 }
 

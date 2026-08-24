@@ -18,7 +18,7 @@ Each increment must be releasable to **Test** on its own (Production only after 
 | **I11** | ITSM + CMDB | I4 | Tickets, CIs — **IMPLEMENTED** (Dev/Test), [`i11-itsm-cmdb-preview.md`](../architecture/i11-itsm-cmdb-preview.md) | Discovery |
 | **I12** | Observability | I11 | OTel, health dependency map — **IMPLEMENTED** (Dev/Test), [`i12-observability-preview.md`](../architecture/i12-observability-preview.md) | Full AIOps |
 | **I13** | Defensive SOC integration | I12 | Alert ingest, IR casefile — **IMPLEMENTED** (Dev/Test), [`i13-defensive-soc-preview.md`](../architecture/i13-defensive-soc-preview.md) | Homegrown SIEM |
-| **I14** | PAM / secrets / ZTNA | I1, ADR-0012/13 | JIT, vault refs | Custom VPN |
+| **I14** | PAM / secrets / ZTNA | I1, ADR-0012/13 | JIT, vault refs — **IMPLEMENTED** bounded Dev/Test (opaque refs + in-memory JIT; not production vault), [`i14-pam-preview.md`](../architecture/i14-pam-preview.md) | Custom VPN |
 | **I15** | ERM + compliance + privacy | I2 | Registers, RoPA, DSR workflow | Legal opinion automation |
 | **I16** | Internal audit | I15 | Engagements, workpapers | |
 | **I17** | BCM + backup proof | ADR-0011 | 19:00 EAT job, restore probe evidence | Hot site unless ADR |

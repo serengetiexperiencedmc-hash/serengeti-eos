@@ -18,6 +18,7 @@ import {
   type Payment,
   type Store,
 } from "./store.js";
+import { withJitPermissions } from "./pam/service.js";
 
 export {
   seedStore,
@@ -101,7 +102,9 @@ export function principalFromAuthHeader(store: Store, header?: string): Principa
   const session = store.sessions.find((s) => s.tokenId === claims.jti);
   if (!session || session.revokedAt) return undefined;
   if (new Date(session.expiresAt).getTime() < Date.now()) return undefined;
-  return principalById(store, claims.sub);
+  const principal = principalById(store, claims.sub);
+  if (!principal) return undefined;
+  return withJitPermissions(store, principal);
 }
 
 export function listOrgUnits(store: Store, principal: Principal) {

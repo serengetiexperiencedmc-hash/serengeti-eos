@@ -65,7 +65,10 @@ export const navItems = [
   },
   {
     section: "Security",
-    items: [{ href: "/commercial/soc", label: "SOC", icon: "soc" }],
+    items: [
+      { href: "/commercial/soc", label: "SOC", icon: "soc" },
+      { href: "/commercial/pam", label: "PAM", icon: "pam" },
+    ],
   },
   {
     section: "Resources",
