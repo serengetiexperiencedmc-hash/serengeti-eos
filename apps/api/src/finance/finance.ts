@@ -107,21 +107,30 @@ function findBooking(store: Store, tenantId: string, bookingId: string) {
   return store.bkgBookings.find((b) => b.id === bookingId && b.tenantId === tenantId && !b.archivedAt);
 }
 
-export function getFinanceModuleHealth(store: Store) {
+export function getFinanceModuleHealth(store: Store, principal: Principal) {
   ensureFinanceCollections(store);
+  const decision = authorize({
+    principal,
+    permission: "finance:read:invoice",
+    action: "read:fin_health",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+
+  const tenantId = principal.tenantId;
   const pendingPayments = store.finPaymentLinks.filter((link) => {
     const payment = store.payments.get(link.paymentId);
-    return payment?.status === "pending_approval";
+    return payment?.status === "pending_approval" && payment.tenantId === tenantId;
   }).length;
   return {
     module: "finance",
-    increment: "I8.3",
+    increment: "I8.4",
     status: "ok" as const,
-    invoices: store.finInvoices.length,
-    quotes: store.finQuotes.length,
-    reconciliations: store.finReconciliations.length,
-    exceptions: store.finReconciliations.filter((r) => r.status === "exception").length,
+    invoices: store.finInvoices.filter((i) => i.tenantId === tenantId).length,
+    quotes: store.finQuotes.filter((q) => q.tenantId === tenantId).length,
+    reconciliations: store.finReconciliations.filter((r) => r.tenantId === tenantId).length,
+    exceptions: store.finReconciliations.filter((r) => r.tenantId === tenantId && r.status === "exception").length,
     pendingPaymentRequests: pendingPayments,
+    bookings: store.bkgBookings.filter((b) => b.tenantId === tenantId && !b.archivedAt && b.status !== "cancelled").length,
   };
 }
 

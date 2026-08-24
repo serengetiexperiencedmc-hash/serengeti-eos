@@ -885,10 +885,17 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **O5** | Tenant-scoped ops health, `/v1/ops/workbench` queue, Operations Workbench UI + nav, O5 security tests |
 
+### 82:xx — I8.4 booking financial control ✅
+
+**Shipped:** I8.4 complete against `docs/architecture/i8.4-booking-financial-control-preview.md` (Dev/Test). Finance health increment is `I8.4`.
+
+| Increment | Change |
+| --- | --- |
+| **I8.4** | Tenant-scoped finance health, booking financial control API/UI (revenue, supplier cost, margin, outstanding), booking picker |
+
 ### Recommended next increments
 
-1. I8.4 — Booking financial control (Finance family, this phase)
-2. J3 — Finance analytics (Analytics family, this phase)
+1. J3 — Finance analytics (Analytics family, this phase)
 
 ### Issues resolved
 

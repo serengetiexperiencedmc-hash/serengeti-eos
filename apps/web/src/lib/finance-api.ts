@@ -161,3 +161,33 @@ export async function applyApprovedPayment(token: string, invoiceId: string) {
     { token, method: "POST", body: "{}" },
   );
 }
+
+export type BookingFinancialControl = {
+  bookingId: string;
+  bookingCode: string;
+  title: string;
+  organizationId: string;
+  status: string;
+  currency: string;
+  clientRevenue: number;
+  supplierCost: number;
+  marginAmount: number;
+  marginPercent: number;
+  invoicedTotal: number;
+  paidTotal: number;
+  outstandingTotal: number;
+  quotesCount: number;
+  invoicesCount: number;
+  depositStatus?: string;
+  progressStatus?: string;
+  finalStatus?: string;
+  reconciliationExceptions: number;
+};
+
+export async function listFinanceControl(token: string) {
+  return eosFetch<{ items: BookingFinancialControl[] }>("/v1/finance/control", { token });
+}
+
+export async function getBookingFinancialControl(token: string, bookingId: string) {
+  return eosFetch<{ control: BookingFinancialControl }>(`/v1/finance/bookings/${bookingId}/control`, { token });
+}

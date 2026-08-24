@@ -23,6 +23,7 @@ import {
   resolveReconciliation,
   sendQuote,
 } from "./finance.js";
+import { getBookingFinancialControl, listFinanceControl } from "./control.js";
 
 function sendError(
   reply: { code: (n: number) => { send: (b: unknown) => unknown } },
@@ -44,7 +45,17 @@ export function registerFinanceRoutes(app: FastifyInstance, store: Store): void 
   app.get("/v1/finance/health", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    return getFinanceModuleHealth(store);
+    const result = getFinanceModuleHealth(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.get("/v1/finance/control", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = listFinanceControl(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
   });
 
   app.get("/v1/finance/quotes", async (req, reply) => {
@@ -125,6 +136,14 @@ export function registerFinanceRoutes(app: FastifyInstance, store: Store): void 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getFinalInvoiceEligibility(store, principal, (req.params as { bookingId: string }).bookingId);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.get("/v1/finance/bookings/:bookingId/control", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = getBookingFinancialControl(store, principal, (req.params as { bookingId: string }).bookingId);
     if ("error" in result) return sendError(reply, result);
     return result;
   });

@@ -171,7 +171,7 @@ export function Topbar() {
 export function MockupBanner() {
   return (
     <div className="bg-gold py-1.5 text-center text-[0.7rem] font-semibold uppercase tracking-wide text-ink">
-      Serengeti EOS · C1–C10 · O1–O5 · I3.37 · I4.34 · PG.29 · I20.22 · J1–J2
+      Serengeti EOS · C1–C10 · O1–O5 · I8.4 · I3.37 · I4.34 · PG.29 · I20.22 · J1–J2
     </div>
   );
 }

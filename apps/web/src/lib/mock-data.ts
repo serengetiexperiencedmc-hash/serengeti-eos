@@ -42,7 +42,7 @@ export const navItems = [
     items: [
       {
         href: "/commercial/finance",
-        label: "Reconciliation",
+        label: "Finance",
         icon: "finance",
         badgeKey: "reconciliationExceptions" as NavBadgeKey,
       },

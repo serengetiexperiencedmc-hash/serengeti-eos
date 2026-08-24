@@ -42,3 +42,34 @@ export type FinInvoice = {
   createdByPrincipalId: string;
   updatedByPrincipalId: string;
 };
+
+export type BookingFinancialControl = {
+  bookingId: string;
+  bookingCode: string;
+  title: string;
+  organizationId: string;
+  status: string;
+  currency: string;
+  clientRevenue: number;
+  supplierCost: number;
+  marginAmount: number;
+  marginPercent: number;
+  invoicedTotal: number;
+  paidTotal: number;
+  outstandingTotal: number;
+  quotesCount: number;
+  invoicesCount: number;
+  depositStatus?: string;
+  progressStatus?: string;
+  finalStatus?: string;
+  reconciliationExceptions: number;
+};
+
+export function computeMarginAmount(revenue: number, supplierCost: number): number {
+  return Math.round((revenue - supplierCost) * 100) / 100;
+}
+
+export function computeMarginPercent(revenue: number, supplierCost: number): number {
+  if (revenue <= 0) return 0;
+  return Math.round(((revenue - supplierCost) / revenue) * 1000) / 10;
+}

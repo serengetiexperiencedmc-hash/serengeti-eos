@@ -55,4 +55,6 @@ Issuing a deposit invoice auto-completes C9 handover task `deposit_invoice`.
 ## I8.3 — Final invoice automation
 
 See **`i8.3-finance-preview.md`** for eligibility gate, auto-create endpoint, and payment request queue.
+
+See **`i8.4-booking-financial-control-preview.md`** for booking-level revenue / cost / margin / outstanding control.
 

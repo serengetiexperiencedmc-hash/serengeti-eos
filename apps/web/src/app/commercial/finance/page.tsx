@@ -16,6 +16,7 @@ import {
   createQuote,
   getFinalInvoiceEligibility,
   issueInvoice,
+  listFinanceControl,
   listInvoices,
   listPaymentRequests,
   listQuotes,
@@ -23,6 +24,7 @@ import {
   requestInvoicePayment,
   resolveReconciliation,
   sendQuote,
+  type BookingFinancialControl,
   type FinInvoice,
   type FinQuote,
   type FinReconciliation,
@@ -34,6 +36,8 @@ type Tab = "quotes" | "invoices" | "payments" | "reconciliation";
 export default function FinancePage() {
   const { token, ready } = useEosSession();
   const [tab, setTab] = useState<Tab>("invoices");
+  const [controlItems, setControlItems] = useState<BookingFinancialControl[]>([]);
+  const [control, setControl] = useState<BookingFinancialControl | null>(null);
   const [quotes, setQuotes] = useState<FinQuote[]>([]);
   const [invoices, setInvoices] = useState<FinInvoice[]>([]);
   const [reconciliations, setReconciliations] = useState<FinReconciliation[]>([]);
@@ -45,18 +49,30 @@ export default function FinancePage() {
   const [bookingId, setBookingId] = useState("");
   const [pendingApproval, setPendingApproval] = useState<{ approvalId: string; invoiceId: string } | null>(null);
 
-  async function reload() {
+  async function reload(explicitId?: string) {
     if (!token) return;
-    const [q, inv, rec, pay] = await Promise.all([
-      listQuotes(token),
-      listInvoices(token),
-      listReconciliations(token),
-      listPaymentRequests(token),
+    const [controlList, pay] = await Promise.all([listFinanceControl(token), listPaymentRequests(token)]);
+    setControlItems(controlList.items);
+    const id = explicitId || bookingId || controlList.items[0]?.bookingId || "";
+    const selected = controlList.items.find((item) => item.bookingId === id) ?? null;
+    setControl(selected);
+    if (id !== bookingId) setBookingId(id);
+    if (!id) {
+      setQuotes([]);
+      setInvoices([]);
+      setReconciliations([]);
+      setPaymentRequests([]);
+      return;
+    }
+    const [q, inv, rec] = await Promise.all([
+      listQuotes(token, id),
+      listInvoices(token, id),
+      listReconciliations(token, id),
     ]);
     setQuotes(q.items);
     setInvoices(inv.items);
     setReconciliations(rec.items);
-    setPaymentRequests(pay.items);
+    setPaymentRequests(pay.items.filter((p) => p.bookingId === id));
   }
 
   useEffect(() => {
@@ -83,13 +99,25 @@ export default function FinancePage() {
   return (
     <>
       <PageHeader
-        eyebrow="I8 · I8.3 · Finance"
-        title="Quotes, Invoices & Reconciliation"
-        subtitle="Deposit / progress / final invoices · auto-final when paid · SoD payment queue"
+        eyebrow="I8 · I8.4 · Finance"
+        title="Booking Financial Control"
+        subtitle="Client revenue · supplier cost · margin · invoices · SoD payments"
         actions={
-          <Link href="/commercial">
-            <Btn variant="secondary">← Dashboard</Btn>
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            {bookingId && (
+              <>
+                <Link href={`/commercial/bookings/${bookingId}`}>
+                  <Btn variant="secondary">Command center</Btn>
+                </Link>
+                <Link href={`/commercial/operations/${bookingId}`}>
+                  <Btn variant="secondary">Operations</Btn>
+                </Link>
+              </>
+            )}
+            <Link href="/commercial">
+              <Btn variant="secondary">← Dashboard</Btn>
+            </Link>
+          </div>
         }
       />
 
@@ -97,12 +125,24 @@ export default function FinancePage() {
       {message && <p className="mb-4 text-sm text-success">{message}</p>}
 
       <div className="mb-5 flex flex-wrap gap-2">
-        <input
+        <select
           value={bookingId}
-          onChange={(e) => setBookingId(e.target.value)}
-          placeholder="Booking ID for create actions"
+          onChange={(e) => {
+            const next = e.target.value;
+            setBookingId(next);
+            setBusy(true);
+            setError(null);
+            void reload(next).finally(() => setBusy(false));
+          }}
           className="min-w-[280px] rounded-md border border-line bg-paper px-3 py-2 text-sm"
-        />
+        >
+          {controlItems.length === 0 && <option value="">No bookings</option>}
+          {controlItems.map((item) => (
+            <option key={item.bookingId} value={item.bookingId}>
+              {item.bookingCode} · {item.title}
+            </option>
+          ))}
+        </select>
         <Btn
           variant="secondary"
           size="sm"
@@ -186,6 +226,28 @@ export default function FinancePage() {
         </Btn>
       </div>
       {finalEligibility && <p className="mb-4 text-sm text-muted">{finalEligibility}</p>}
+
+      {control && (
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            { label: "Client revenue", value: formatCurrency(control.clientRevenue, control.currency) },
+            { label: "Supplier cost", value: formatCurrency(control.supplierCost, control.currency) },
+            { label: "Margin", value: `${formatCurrency(control.marginAmount, control.currency)} · ${control.marginPercent}%` },
+            { label: "Outstanding", value: formatCurrency(control.outstandingTotal, control.currency) },
+          ].map((stat) => (
+            <Card key={stat.label} title={stat.label}>
+              <div className="font-display text-2xl font-semibold text-ink">{stat.value}</div>
+              {stat.label === "Outstanding" && (
+                <p className="mt-1 text-xs text-muted">
+                  Invoiced {formatCurrency(control.invoicedTotal, control.currency)} · paid{" "}
+                  {formatCurrency(control.paidTotal, control.currency)}
+                  {control.reconciliationExceptions > 0 ? ` · ${control.reconciliationExceptions} recon exceptions` : ""}
+                </p>
+              )}
+            </Card>
+          ))}
+        </div>
+      )}
 
       <div className="mb-4 flex gap-2">
         {(["quotes", "invoices", "payments", "reconciliation"] as Tab[]).map((t) => (
