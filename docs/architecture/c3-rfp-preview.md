@@ -1,5 +1,21 @@
 # C3 RFP Management — Preview
 
+## Lifecycle status (reconciled after C3 completion)
+
+| Field | Value |
+| --- | --- |
+| Architecture status | Existing committed preview remains the C3 contract |
+| Implementation status | **IMPLEMENTED / COMPLETE** |
+| Environment | Development/Test only |
+| Predecessor | C2 Commercial Opportunity / Pipeline |
+| Persistence | Dev/Test in-memory read SoR; PostgreSQL schema `016_c3_rfp.sql` (schema-only). ADR-0017 not reopened |
+| Production / UAT / AI | Not authorized |
+| Next increments | Not assigned by C3 |
+
+The sections after this heading are the architecture contract.
+
+---
+
 Increment **C3** adds RFP workflow management linked to C2 opportunities and C1 CRM organizations.
 
 ## Kernel

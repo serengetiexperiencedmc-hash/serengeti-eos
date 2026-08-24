@@ -51,8 +51,9 @@ export const RFP_WORKFLOW_TRANSITIONS: Record<
 
 export function canTransitionRfpStage(from: RfpWorkflowStage, to: RfpWorkflowStage): boolean {
   if (from === "closed") return false;
-  if (to === "closed") return true;
-  return (RFP_WORKFLOW_TRANSITIONS[from] as readonly string[]).includes(to);
+  const allowed = RFP_WORKFLOW_TRANSITIONS[from];
+  if (!allowed) return false;
+  return (allowed as readonly string[]).includes(to);
 }
 
 export function computeSlaStatus(slaDueAt: string, now = new Date()): RfpSlaStatus {

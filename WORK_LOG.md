@@ -808,6 +808,15 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **C2** | Close remaining C2 contract gaps: tenant-scoped pipeline health, stage-transition map, dashboard live board totals, authorization on health/stages, C2 tests |
 | Docs | `c2-opportunity-preview.md` lifecycle status recorded after ship |
 
+### 73:xx — C3 RFP management ✅
+
+**Shipped:** C3 complete against `docs/architecture/c3-rfp-preview.md` (Dev/Test). API identity unchanged (`1.04.0-i3.37`); RFP health increment remains `C3`.
+
+| Increment | Change |
+| --- | --- |
+| **C3** | Close remaining C3 contract gaps: tenant-scoped RFP health, workflow-stage authz, close-transition map, sanitized versions, C3 security tests |
+| Docs | `c3-rfp-preview.md` lifecycle status recorded after ship |
+
 ### Recommended next increments
 
 1. I20.23 — (unnamed / undefined)

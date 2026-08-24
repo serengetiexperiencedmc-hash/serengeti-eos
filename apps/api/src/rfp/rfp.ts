@@ -44,22 +44,47 @@ function sanitizeRfp(r: RfpRecord) {
   };
 }
 
+function sanitizeVersion(v: RfpVersion) {
+  return {
+    id: v.id,
+    rfpId: v.rfpId,
+    versionNumber: v.versionNumber,
+    summary: v.summary,
+    createdAt: v.createdAt,
+    createdByPrincipalId: v.createdByPrincipalId,
+  };
+}
+
 function findRfp(store: Store, tenantId: string, id: string): RfpRecord | undefined {
   return store.rfpRfps.find((r) => r.id === id && r.tenantId === tenantId && !r.archivedAt);
 }
 
-export function getRfpModuleHealth(store: Store) {
+export function getRfpModuleHealth(store: Store, principal: Principal) {
   ensureRfpCollections(store);
+  const decision = authorize({
+    principal,
+    permission: "rfp:read:rfp",
+    action: "read:rfp",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+  const rfps = store.rfpRfps.filter((r) => r.tenantId === principal.tenantId && !r.archivedAt);
   return {
     module: "rfp",
     increment: "C3",
     status: "ok" as const,
-    rfps: store.rfpRfps.filter((r) => !r.archivedAt).length,
-    versions: store.rfpVersions.length,
+    rfps: rfps.length,
+    versions: store.rfpVersions.filter((v) => v.tenantId === principal.tenantId).length,
   };
 }
 
-export function listRfpWorkflowStages() {
+export function listRfpWorkflowStages(store: Store, principal: Principal) {
+  ensureRfpCollections(store);
+  const decision = authorize({
+    principal,
+    permission: "rfp:read:rfp",
+    action: "read:rfp",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
   return {
     items: RFP_WORKFLOW_STAGES.map((stage) => ({
       key: stage,
@@ -108,10 +133,10 @@ export function getRfp(store: Store, principal: Principal, id: string) {
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
 
   const versions = store.rfpVersions
-    .filter((v) => v.rfpId === id)
+    .filter((v) => v.rfpId === id && v.tenantId === principal.tenantId)
     .sort((a, b) => b.versionNumber - a.versionNumber);
 
-  return { rfp: sanitizeRfp(rfp), versions };
+  return { rfp: sanitizeRfp(rfp), versions: versions.map(sanitizeVersion) };
 }
 
 export type CreateRfpInput = {
@@ -148,6 +173,9 @@ export function createRfp(store: Store, principal: Principal, input: CreateRfpIn
   );
   if (!opp) return { error: "invalid_request" as const, reason: "invalid_opportunity" };
 
+  const title = input.title?.trim();
+  if (!title) return { error: "invalid_request" as const, reason: "title_required" };
+
   const code = input.rfpCode?.trim();
   if (!code) return { error: "invalid_request" as const, reason: "rfp_code_required" };
   if (store.rfpRfps.some((r) => r.tenantId === principal.tenantId && r.rfpCode === code)) {
@@ -163,7 +191,7 @@ export function createRfp(store: Store, principal: Principal, input: CreateRfpIn
     rfpCode: code,
     opportunityId: input.opportunityId,
     organizationId: opp.organizationId,
-    title: input.title.trim(),
+    title,
     workflowStage: "intake",
     status: "active",
     ...(input.programmeType !== undefined ? { programmeType: input.programmeType } : {}),
@@ -305,8 +333,8 @@ export function createRfpVersion(
   rfp.version += 1;
   store.rfpVersions.push(version);
 
-  allowRfpAudit(store, principal, "rfp:write:version", "rfp_version", version.id, correlationId, version);
-  return { version, rfp: sanitizeRfp(rfp) };
+  allowRfpAudit(store, principal, "rfp:write:version", "rfp_version", version.id, correlationId, sanitizeVersion(version));
+  return { version: sanitizeVersion(version), rfp: sanitizeRfp(rfp) };
 }
 
 export function refreshRfpSlaStatuses(store: Store, tenantId: string): void {

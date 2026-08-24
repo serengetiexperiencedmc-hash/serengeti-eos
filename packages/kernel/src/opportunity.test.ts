@@ -45,6 +45,13 @@ describe("rfp workflow", () => {
     expect(canTransitionRfpStage("proposal", "sent")).toBe(true);
   });
 
+  it("allows closed from intake or sent only", () => {
+    expect(canTransitionRfpStage("intake", "closed")).toBe(true);
+    expect(canTransitionRfpStage("sent", "closed")).toBe(true);
+    expect(canTransitionRfpStage("programme", "closed")).toBe(false);
+    expect(canTransitionRfpStage("closed", "intake")).toBe(false);
+  });
+
   it("computes SLA status", () => {
     const now = new Date("2026-08-22T12:00:00Z");
     expect(computeSlaStatus("2026-08-25T12:00:00Z", now)).toBe("on_track");

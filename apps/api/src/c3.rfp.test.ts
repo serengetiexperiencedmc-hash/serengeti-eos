@@ -135,6 +135,16 @@ describe("C3 RFP API", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(detail.json().versions).toHaveLength(2);
+    expect(detail.json().versions[0]).not.toHaveProperty("tenantId");
+
+    const health = await app.inject({
+      method: "GET",
+      url: "/v1/rfps/health",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(health.statusCode).toBe(200);
+    expect(health.json().increment).toBe("C3");
+    expect(health.json().rfps).toBeGreaterThanOrEqual(1);
   });
 
   it("denies RFP access without permission", async () => {
@@ -148,5 +158,81 @@ describe("C3 RFP API", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(res.statusCode).toBe(403);
+  });
+
+  it("rejects closing from programme and allows close from intake", async () => {
+    const store = seedStore("test-secret");
+    const app = buildServer({ store });
+    const token = await loginCarol(app);
+    const orgId = await seedCrmOrg(app, token);
+    const oppId = await createOpportunity(app, token, orgId);
+
+    const created = await app.inject({
+      method: "POST",
+      url: "/v1/rfps",
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        rfpCode: "RFP-2026-0900",
+        opportunityId: oppId,
+        title: "Close rules",
+      },
+    });
+    const rfpId = created.json().rfp.id as string;
+
+    const toProgramme = await app.inject({
+      method: "POST",
+      url: `/v1/rfps/${rfpId}/transitions`,
+      headers: { authorization: `Bearer ${token}` },
+      payload: { toStage: "programme" },
+    });
+    expect(toProgramme.statusCode).toBe(200);
+
+    const skipClose = await app.inject({
+      method: "POST",
+      url: `/v1/rfps/${rfpId}/transitions`,
+      headers: { authorization: `Bearer ${token}` },
+      payload: { toStage: "closed" },
+    });
+    expect(skipClose.statusCode).toBe(409);
+  });
+
+  it("isolates RFPs across tenants", async () => {
+    const store = seedStore("test-secret");
+    const app = buildServer({ store });
+    const token = await loginCarol(app);
+    const orgId = await seedCrmOrg(app, token);
+    const oppId = await createOpportunity(app, token, orgId);
+    const created = await app.inject({
+      method: "POST",
+      url: "/v1/rfps",
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        rfpCode: "RFP-2026-0901",
+        opportunityId: oppId,
+        title: "Tenant A RFP",
+      },
+    });
+    const rfpId = created.json().rfp.id as string;
+
+    const partnerLogin = await app.inject({
+      method: "POST",
+      url: "/v1/auth/login",
+      payload: { email: "partner@external.local", password: P.partnerPassword, tenantSlug: "partner-demo" },
+    });
+    const partnerToken = partnerLogin.json().accessToken as string;
+
+    const foreign = await app.inject({
+      method: "GET",
+      url: `/v1/rfps/${rfpId}`,
+      headers: { authorization: `Bearer ${partnerToken}` },
+    });
+    expect(foreign.statusCode).toBe(404);
+  });
+
+  it("rejects unauthenticated RFP reads", async () => {
+    const store = seedStore("test-secret");
+    const app = buildServer({ store });
+    const res = await app.inject({ method: "GET", url: "/v1/rfps" });
+    expect(res.statusCode).toBe(401);
   });
 });

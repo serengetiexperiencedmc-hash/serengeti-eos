@@ -32,13 +32,17 @@ export function registerRfpRoutes(app: FastifyInstance, store: Store): void {
   app.get("/v1/rfps/health", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    return getRfpModuleHealth(store);
+    const result = getRfpModuleHealth(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
   });
 
   app.get("/v1/rfps/workflow-stages", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    return listRfpWorkflowStages();
+    const result = listRfpWorkflowStages(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
   });
 
   app.get("/v1/rfps", async (req, reply) => {
