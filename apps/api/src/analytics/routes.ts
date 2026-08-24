@@ -7,6 +7,7 @@ import {
   getCommercialMarginRollup,
   getCommercialPipelineRollup,
 } from "./commercial.js";
+import { getFinanceAnalyticsSummary } from "./finance.js";
 import { getOperationsAnalyticsSummary, getOperationsBookingReadiness } from "./operations.js";
 
 function sendError(
@@ -21,7 +22,9 @@ export function registerAnalyticsRoutes(app: FastifyInstance, store: Store): voi
   app.get("/v1/analytics/health", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    return getAnalyticsModuleHealth(store);
+    const result = getAnalyticsModuleHealth(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
   });
 
   app.get("/v1/analytics/commercial/summary", async (req, reply) => {
@@ -60,6 +63,15 @@ export function registerAnalyticsRoutes(app: FastifyInstance, store: Store): voi
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getOperationsBookingReadiness(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.get("/v1/analytics/finance/summary", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const query = req.query as { from?: string; to?: string };
+    const result = getFinanceAnalyticsSummary(store, principal, query);
     if ("error" in result) return sendError(reply, result);
     return result;
   });

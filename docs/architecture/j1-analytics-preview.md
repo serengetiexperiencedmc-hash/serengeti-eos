@@ -32,4 +32,4 @@ Permission: `analytics:read:commercial`
 - Field sync conflicts (I9)
 - **Dashboard** (`/commercial`) stat cards wired to J1 summary
 
-See also: [J2 Operations Analytics preview](./j2-ops-analytics-preview.md)
+See also: [J2 Operations Analytics preview](./j2-ops-analytics-preview.md) · [J3 Finance Analytics preview](./j3-finance-analytics-preview.md)

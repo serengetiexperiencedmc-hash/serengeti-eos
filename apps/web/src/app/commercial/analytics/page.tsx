@@ -7,11 +7,13 @@ import { Card, PageHeader } from "@/components/commercial/ui";
 import {
   formatCurrency,
   getCommercialSummary,
+  getFinanceAnalyticsSummary,
   getMarginRollup,
   getOperationsBookingReadiness,
   getOperationsSummary,
   getPipelineRollup,
   type CommercialAnalyticsSummary,
+  type FinanceAnalyticsSummary,
   type MarginRollup,
   type OpsAnalyticsSummary,
   type OpsBookingReadinessRollup,
@@ -28,23 +30,27 @@ const STAGE_LABELS: Record<string, string> = {
   lost: "Lost",
 };
 
-type AnalyticsTab = "commercial" | "operations";
+type AnalyticsTab = "commercial" | "operations" | "finance";
 
 export default function AnalyticsPage() {
   const { token, ready } = useEosSession();
   const [tab, setTab] = useState<AnalyticsTab>("commercial");
   const [summary, setSummary] = useState<CommercialAnalyticsSummary | null>(null);
   const [opsSummary, setOpsSummary] = useState<OpsAnalyticsSummary | null>(null);
+  const [financeSummary, setFinanceSummary] = useState<FinanceAnalyticsSummary | null>(null);
   const [bookingReadiness, setBookingReadiness] = useState<OpsBookingReadinessRollup[]>([]);
   const [stages, setStages] = useState<PipelineStageRollup[]>([]);
   const [margins, setMargins] = useState<MarginRollup[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
 
   useEffect(() => {
     if (!token) {
       setSummary(null);
       setOpsSummary(null);
+      setFinanceSummary(null);
       return;
     }
     setLoading(true);
@@ -54,32 +60,39 @@ export default function AnalyticsPage() {
       getMarginRollup(token),
       getOperationsSummary(token),
       getOperationsBookingReadiness(token),
+      getFinanceAnalyticsSummary(token, { from: from || undefined, to: to || undefined }),
     ])
-      .then(([s, p, m, ops, readiness]) => {
+      .then(([s, p, m, ops, readiness, fin]) => {
         setSummary(s.summary);
         setStages(p.stages);
         setMargins(m.items);
         setOpsSummary(ops.summary);
         setBookingReadiness(readiness.items);
+        setFinanceSummary(fin.summary);
       })
       .catch((err) => setError(err instanceof EosApiError ? err.message : "Failed to load analytics"))
       .finally(() => setLoading(false));
-  }, [token]);
+  }, [token, from, to]);
 
   if (ready && !token) {
     return <p className="text-sm text-muted">Sign in to view analytics.</p>;
   }
   if (loading) return <p className="text-sm text-muted">Loading analytics…</p>;
-  if (error || !summary || !opsSummary) {
+  if (error || !summary || !opsSummary || !financeSummary) {
     return <p className="text-sm text-red-700">{error ?? "No analytics data"}</p>;
   }
+
+  const asOf =
+    tab === "commercial" ? summary.asOf : tab === "operations" ? opsSummary.asOf : financeSummary.asOf;
+  const title =
+    tab === "commercial" ? "Commercial Intelligence" : tab === "operations" ? "Operations Intelligence" : "Finance Intelligence";
 
   return (
     <>
       <PageHeader
         eyebrow="Domain J · Analytics"
-        title={tab === "commercial" ? "Commercial Intelligence" : "Operations Intelligence"}
-        subtitle={`Live OLTP rollups · as of ${new Date(tab === "commercial" ? summary.asOf : opsSummary.asOf).toLocaleString()}`}
+        title={title}
+        subtitle={`Live OLTP rollups · as of ${new Date(asOf).toLocaleString()}`}
         actions={
           <Link href="/commercial" className="text-sm text-gold-deep underline">
             ← Dashboard
@@ -87,8 +100,8 @@ export default function AnalyticsPage() {
         }
       />
 
-      <div className="mb-6 flex gap-2">
-        {(["commercial", "operations"] as const).map((key) => (
+      <div className="mb-6 flex flex-wrap gap-2">
+        {(["commercial", "operations", "finance"] as const).map((key) => (
           <button
             key={key}
             type="button"
@@ -97,7 +110,7 @@ export default function AnalyticsPage() {
               tab === key ? "border-ink bg-ink text-white" : "border-line bg-white text-ink hover:bg-sand/40"
             }`}
           >
-            {key === "commercial" ? "J1 Commercial" : "J2 Operations"}
+            {key === "commercial" ? "J1 Commercial" : key === "operations" ? "J2 Operations" : "J3 Finance"}
           </button>
         ))}
       </div>
@@ -179,7 +192,7 @@ export default function AnalyticsPage() {
             </Card>
           </div>
         </>
-      ) : (
+      ) : tab === "operations" ? (
         <>
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {[
@@ -257,6 +270,81 @@ export default function AnalyticsPage() {
                   </div>
                 ))}
                 {bookingReadiness.length === 0 && <p className="text-sm text-muted">No active bookings.</p>}
+              </div>
+            </Card>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="mb-4 flex flex-wrap items-end gap-3">
+            <label className="text-sm text-muted">
+              From
+              <input
+                type="date"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+                className="mt-1 block rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink"
+              />
+            </label>
+            <label className="text-sm text-muted">
+              To
+              <input
+                type="date"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+                className="mt-1 block rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink"
+              />
+            </label>
+            <Link href="/commercial/finance" className="text-sm text-gold-deep underline">
+              Open finance control
+            </Link>
+          </div>
+          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              { label: "Client revenue", value: formatCurrency(financeSummary.clientRevenue, financeSummary.currency) },
+              { label: "Supplier cost", value: formatCurrency(financeSummary.supplierCost, financeSummary.currency) },
+              { label: "Margin", value: `${financeSummary.marginPercent}%` },
+              { label: "Outstanding", value: formatCurrency(financeSummary.outstandingTotal, financeSummary.currency) },
+            ].map((stat) => (
+              <Card key={stat.label} title={stat.label}>
+                <div className="font-display text-2xl font-semibold text-ink">{stat.value}</div>
+              </Card>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+            <Card title="Collections">
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>Bookings in range</span>
+                  <span>{financeSummary.bookingCount}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Invoiced</span>
+                  <span>{formatCurrency(financeSummary.invoicedTotal, financeSummary.currency)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Paid</span>
+                  <span>{formatCurrency(financeSummary.paidTotal, financeSummary.currency)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Open invoices</span>
+                  <span>{financeSummary.outstandingInvoiceCount}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Recon exceptions</span>
+                  <span>{financeSummary.reconciliationExceptions}</span>
+                </div>
+              </div>
+            </Card>
+            <Card title="Margin">
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>Margin amount</span>
+                  <span>{formatCurrency(financeSummary.marginAmount, financeSummary.currency)}</span>
+                </div>
+                <p className="text-xs text-muted">
+                  Rolled from C9 booking sell prices and C6 cost sheets. Date range uses booking confirmation date.
+                </p>
               </div>
             </Card>
           </div>

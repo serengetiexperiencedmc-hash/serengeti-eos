@@ -893,9 +893,17 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **I8.4** | Tenant-scoped finance health, booking financial control API/UI (revenue, supplier cost, margin, outstanding), booking picker |
 
+### 83:xx — J3 finance analytics ✅
+
+**Shipped:** J3 complete against `docs/architecture/j3-finance-analytics-preview.md` (Dev/Test). Analytics health increment is `J3`.
+
+| Increment | Change |
+| --- | --- |
+| **J3** | Finance analytics summary with date range, Analytics nav section, tenant-scoped analytics health |
+
 ### Recommended next increments
 
-1. J3 — Finance analytics (Analytics family, this phase)
+None within Operations + Finance + Analytics — reassess after J3.
 
 ### Issues resolved
 

@@ -87,3 +87,28 @@ export async function getOperationsSummary(token: string) {
 export async function getOperationsBookingReadiness(token: string) {
   return eosFetch<{ items: OpsBookingReadinessRollup[] }>("/v1/analytics/operations/bookings", { token });
 }
+
+export type FinanceAnalyticsSummary = {
+  bookingCount: number;
+  clientRevenue: number;
+  supplierCost: number;
+  marginAmount: number;
+  marginPercent: number;
+  invoicedTotal: number;
+  paidTotal: number;
+  outstandingTotal: number;
+  outstandingInvoiceCount: number;
+  reconciliationExceptions: number;
+  currency: string;
+  asOf: string;
+  from?: string;
+  to?: string;
+};
+
+export async function getFinanceAnalyticsSummary(token: string, range?: { from?: string; to?: string }) {
+  const params = new URLSearchParams();
+  if (range?.from) params.set("from", range.from);
+  if (range?.to) params.set("to", range.to);
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  return eosFetch<{ summary: FinanceAnalyticsSummary }>(`/v1/analytics/finance/summary${suffix}`, { token });
+}

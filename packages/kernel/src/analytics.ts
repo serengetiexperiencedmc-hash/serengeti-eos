@@ -100,3 +100,20 @@ export function requiresOpsAttention(item: {
     item.syncConflicts > 0
   );
 }
+
+export type FinanceAnalyticsSummary = {
+  bookingCount: number;
+  clientRevenue: number;
+  supplierCost: number;
+  marginAmount: number;
+  marginPercent: number;
+  invoicedTotal: number;
+  paidTotal: number;
+  outstandingTotal: number;
+  outstandingInvoiceCount: number;
+  reconciliationExceptions: number;
+  currency: string;
+  asOf: string;
+  from?: string;
+  to?: string;
+};

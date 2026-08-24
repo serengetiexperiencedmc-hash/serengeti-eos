@@ -371,7 +371,7 @@ const OPS_PERMS = [
   "ops:publish:manifest",
 ] as const;
 
-const ANALYTICS_PERMS = ["analytics:read:commercial", "analytics:read:operations"] as const;
+const ANALYTICS_PERMS = ["analytics:read:commercial", "analytics:read:operations", "analytics:read:finance"] as const;
 
 const NOTIFICATION_PERMS = [
   "notification:read:inbox",

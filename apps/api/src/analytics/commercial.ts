@@ -107,14 +107,22 @@ export function getCommercialMarginRollup(store: Store, principal: Principal) {
   return { items };
 }
 
-export function getAnalyticsModuleHealth(store: Store) {
+export function getAnalyticsModuleHealth(store: Store, principal: Principal) {
+  const decision = authorize({
+    principal,
+    permission: "analytics:read:commercial",
+    action: "read:analytics_health",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+
+  const tenantId = principal.tenantId;
   return {
     module: "analytics",
-    increment: "J1-J2",
+    increment: "J3",
     status: "ok" as const,
-    costSheets: store.costSheets.length,
-    opportunities: store.oppOpportunities.length,
-    bookings: store.bkgBookings.length,
-    opsVouchers: (store.opsVouchers ?? []).length,
+    costSheets: store.costSheets.filter((s) => s.tenantId === tenantId && !s.archivedAt).length,
+    opportunities: store.oppOpportunities.filter((o) => o.tenantId === tenantId && !o.archivedAt).length,
+    bookings: store.bkgBookings.filter((b) => b.tenantId === tenantId && !b.archivedAt).length,
+    opsVouchers: (store.opsVouchers ?? []).filter((v) => v.tenantId === tenantId).length,
   };
 }
