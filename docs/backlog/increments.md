@@ -14,7 +14,7 @@ Each increment must be releasable to **Test** on its own (Production only after 
 | **I7** | MICE RFP → proposal | I5–I6 | RFP, programme, itinerary, costing, margin gates | Channel manager |
 | **I8** | Finance quotes/invoices | I7 | Quotes, invoices, SoD payments (no bank file until provider known) | GL replacement |
 | **I9** | Operations + field offline | I7 | Tasks, assignments, encrypted cache | UEM |
-| **I10** | HR core | I1 | Employee, leave, skills | Payroll engine |
+| **I10** | HR core | I1 | Employee, leave, skills — **IMPLEMENTED** (Dev/Test), [`i10-hr-core-preview.md`](../architecture/i10-hr-core-preview.md) | Payroll engine |
 | **I11** | ITSM + CMDB | I4 | Tickets, CIs | Discovery |
 | **I12** | Observability | I11 | OTel, health dependency map | Full AIOps |
 | **I13** | Defensive SOC integration | I12 | Alert ingest, IR casefile | Homegrown SIEM |

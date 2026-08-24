@@ -25,6 +25,12 @@ function NavIcon({ name }: { name: string }) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
         </svg>
       );
+    case "hr":
+      return (
+        <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17 20h5v-2a4 4 0 00-4-4h-1M9 20H4v-2a4 4 0 014-4h1m8-4a4 4 0 11-8 0 4 4 0 018 0zM7 8a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      );
     default:
       return (
         <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24">

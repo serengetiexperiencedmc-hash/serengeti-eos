@@ -52,6 +52,10 @@ export const navItems = [
     items: [{ href: "/commercial/analytics", label: "Analytics", icon: "analytics" }],
   },
   {
+    section: "People",
+    items: [{ href: "/commercial/hr", label: "HR", icon: "hr" }],
+  },
+  {
     section: "Resources",
     items: [
       { href: "/commercial/suppliers", label: "Supplier Library", icon: "suppliers" },

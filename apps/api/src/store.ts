@@ -108,8 +108,13 @@ import {
   type AiRecommendStaleAuditExportPresetUsage,
   type EmailTemplate,
   type NatsConsumerOffset,
+  type HrEmployee,
+  type HrEmployeeSkill,
+  type HrLeaveRequest,
+  type HrSkill,
 } from "@sedmc/kernel";
 import { seedCrmCatalogues } from "./crm/collections.js";
+import { seedDefaultHr } from "./hr/collections.js";
 
 export type Payment = {
   id: string;
@@ -225,6 +230,10 @@ export type Store = {
   opsFieldSyncSessions: OpsFieldSyncSession[];
   opsSyncConflicts: OpsSyncConflict[];
   opsVouchers: OpsVoucher[];
+  hrEmployees: HrEmployee[];
+  hrSkills: HrSkill[];
+  hrEmployeeSkills: HrEmployeeSkill[];
+  hrLeaveRequests: HrLeaveRequest[];
   notifDismissals: NotifDismissal[];
   notifEmailOutbox: NotifEmailOutboxEntry[];
   notifEmailDeliveryEvents: NotifEmailDeliveryEvent[];
@@ -387,6 +396,32 @@ const FINANCE_MODULE_PERMS = [
   "finance:reconcile:booking",
 ] as const;
 
+const HR_PERMS = [
+  "hr:read:employee",
+  "hr:write:employee",
+  "hr:read:leave",
+  "hr:write:leave",
+  "hr:approve:leave",
+  "hr:read:skill",
+  "hr:write:skill",
+] as const;
+
+const HR_MEMBER_PERMS = [
+  "hr:read:employee",
+  "hr:write:employee",
+  "hr:read:leave",
+  "hr:write:leave",
+  "hr:read:skill",
+  "hr:write:skill",
+] as const;
+
+const HR_APPROVER_PERMS = [
+  "hr:read:employee",
+  "hr:read:leave",
+  "hr:read:skill",
+  "hr:approve:leave",
+] as const;
+
 const PERMS = {
   financeMember: [
     "finance:create:payment",
@@ -414,6 +449,8 @@ const PERMS = {
     "commercial:read:approval",
     "commercial:decide:approval",
   ],
+  hrMember: [...HR_MEMBER_PERMS],
+  hrApprover: [...HR_APPROVER_PERMS],
   platformAdmin: [
     "org:read:unit",
     "org:write:unit",
@@ -460,6 +497,7 @@ const PERMS = {
     ...FINANCE_MODULE_PERMS,
     "finance:create:payment",
     "finance:read:payment",
+    ...HR_PERMS,
     ...NOTIFICATION_PERMS,
     "ai:read:recommend",
     "ai:write:draft",
@@ -577,8 +615,8 @@ export function seedStore(
     status: "active",
     orgUnitId: financeUnit,
     classificationClearance: "Confidential",
-    roles: ["finance.approver"],
-    permissions: [...PERMS.financeApprover],
+    roles: ["finance.approver", "hr.approver"],
+    permissions: [...PERMS.financeApprover, ...PERMS.hrApprover],
     passwordHash: hashPassword(bootstrap.bobPassword),
     attributes: { department: "finance" },
   };
@@ -662,6 +700,20 @@ export function seedStore(
       permissionKeys: [...PERMS.commercialManager],
     },
     {
+      id: "role-hr-member",
+      tenantId,
+      key: "hr.member",
+      name: "HR Member",
+      permissionKeys: [...PERMS.hrMember],
+    },
+    {
+      id: "role-hr-approver",
+      tenantId,
+      key: "hr.approver",
+      name: "HR Approver",
+      permissionKeys: [...PERMS.hrApprover],
+    },
+    {
       id: "role-ai-agent",
       tenantId,
       key: "ai.agent",
@@ -737,6 +789,14 @@ export function seedStore(
         grantedByPrincipalId: carolId,
       },
       {
+        id: "grant-bob-hr",
+        tenantId,
+        principalId: bobId,
+        roleKey: "hr.approver",
+        grantedAt: new Date().toISOString(),
+        grantedByPrincipalId: carolId,
+      },
+      {
         id: "grant-carol",
         tenantId,
         principalId: carolId,
@@ -787,6 +847,12 @@ export function seedStore(
         key: "workflow-start-approve",
         actionA: "workflow:execute:instance",
         actionB: "workflow:approve:task",
+        sameObject: true,
+      },
+      {
+        key: "leave-write-approve",
+        actionA: "hr:write:leave",
+        actionB: "hr:approve:leave",
         sameObject: true,
       },
     ],
@@ -891,6 +957,10 @@ export function seedStore(
     opsFieldSyncSessions: [],
     opsSyncConflicts: [],
     opsVouchers: [],
+    hrEmployees: [],
+    hrSkills: [],
+    hrEmployeeSkills: [],
+    hrLeaveRequests: [],
     notifDismissals: [],
     notifEmailOutbox: [],
     notifEmailDeliveryEvents: [],
@@ -924,6 +994,7 @@ export function seedStore(
     aiRecommendStaleAuditExportPresetUsages: [],
   };
   seedCrmCatalogues(store, tenantId);
+  seedDefaultHr(store);
   return store;
 }
 

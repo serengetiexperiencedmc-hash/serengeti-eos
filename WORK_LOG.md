@@ -901,9 +901,17 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **J3** | Finance analytics summary with date range, Analytics nav section, tenant-scoped analytics health |
 
+### 84:xx — I10 HR core ✅
+
+**Shipped:** I10 complete against `docs/architecture/i10-hr-core-preview.md` (Dev/Test). API identity unchanged (`1.04.0-i3.37`); HR health increment is `I10`.
+
+| Increment | Change |
+| --- | --- |
+| **I10** | Employee directory, skill catalogue, leave submit/approve SoD, People → HR nav, `/commercial/hr` workspace |
+
 ### Recommended next increments
 
-None within Operations + Finance + Analytics — reassess after J3.
+I11 ITSM + CMDB is the next numbered backlog increment (Phase 3). Remaining Phase 2 domain-map items (Calendar; Procurement request/PO) have no increment contract.
 
 ### Issues resolved
 
