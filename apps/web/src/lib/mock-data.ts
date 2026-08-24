@@ -81,6 +81,7 @@ export const navItems = [
       { href: "/commercial/controls", label: "Controls", icon: "controls" },
       { href: "/commercial/findings", label: "Findings", icon: "findings" },
       { href: "/commercial/control-tests", label: "Control tests", icon: "campaigns" },
+      { href: "/commercial/mappings", label: "Mappings", icon: "mappings" },
     ],
   },
   {

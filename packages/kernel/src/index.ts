@@ -79,3 +79,4 @@ export * from "./privacy.js";
 export * from "./grc.js";
 export * from "./findings.js";
 export * from "./control-tests.js";
+export * from "./mappings.js";

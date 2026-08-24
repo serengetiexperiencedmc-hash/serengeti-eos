@@ -1049,9 +1049,19 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 
 **Tests:** kernel control-tests 2/2; API g4 3/3 (401/403/400 title_required/control_not_found/cross-tenant 404/ai_actor/lifecycle); regression G1/G2/G3/P1/I15/I16/I13; web typecheck clean. Live preview restarted so `/v1/control-tests` exists (memory_only). Carol registered **CTC-0002** referencing CTL-0001, Start → in progress, Close. G2 CTL-0001 remained Draft. G3 FND-0001 remained Open. Unauthenticated `/v1/control-tests/health` is 401 live. Alice 403 covered by API. Live PostgreSQL UNVERIFIED.
 
+### 99:xx — G5 Regulation-to-Control Mapping Register ✅
+
+**Shipped:** G5 complete against `docs/architecture/g5-regulation-control-mapping-preview.md` (Dev/Test). ID assigned by `docs/governance/g5-regulation-control-mapping-authorized.md` (MAP=A). API identity unchanged (`1.04.0-i3.37`); mapping health increment is `G5`. Mapping register only. Human-only mutate. Optional G1 obligation and G2 control references (no G1–G4 mutation). Bob holds `grc.mapping`. I15, G1, P1, G2, G3, and G4 not reopened. No I15.x. No sampled execution or live feeds.
+
+| Increment | Change |
+| --- | --- |
+| **G5** | Mappings, activate/retire, Compliance → Mappings, `/commercial/mappings` |
+
+**Tests:** kernel mappings 2/2; API g5 3/3 (401/403/400 title_required/obligation_not_found/control_not_found/cross-tenant 404/ai_actor/lifecycle); regression G1/G2/G3/G4/P1/I15/I16/I13; web typecheck clean. Live preview restarted so `/v1/mappings` exists (memory_only). Carol registered **MAP-0002** referencing OBL-0001 and CTL-0001, Activate → active, Retire. G1 OBL-0001 remained listed (Open). G2 CTL-0001 remained Draft. G4 CTC-0001 remained Planned. Unauthenticated `/v1/mappings/health` is 401 live. Alice 403 covered by API. Live PostgreSQL UNVERIFIED.
+
 ### Recommended next increments
 
-PRIV=A shipped as P1. GRC=A shipped as G2. FIND=A shipped as G3. TEST=A shipped as G4. I21=D, I22=D, I23=D, EMCOMMS=D, EXER=D remain deferred. No successor IDs.
+PRIV=A shipped as P1. GRC=A shipped as G2. FIND=A shipped as G3. TEST=A shipped as G4. MAP=A shipped as G5. I21=D, I22=D, I23=D, EMCOMMS=D, EXER=D remain deferred. No successor IDs.
 
 ### Issues resolved
 

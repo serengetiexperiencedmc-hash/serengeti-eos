@@ -8,7 +8,7 @@
 | Capability name | Regulation-to-control mapping register |
 | Predecessor | I2 kernel (complete); I15 ERM complete and **not** reopened; G1, P1, G2, G3, and G4 complete and **not** reopened |
 | Architecture status | This document is the G5 contract |
-| Implementation status | **NOT STARTED** |
+| Implementation status | **IMPLEMENTED / COMPLETE** |
 | Environment | Development/Test only |
 | Persistence | In-memory store + additive SQL `096_g5_regulation_control_mapping.sql`. ADR-0017 not reopened |
 | Runtime health increment | `G5` |
