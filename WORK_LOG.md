@@ -853,6 +853,30 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **C7** | Tenant-scoped approval health, RFP Approve/Reject actions, C7 security tests |
 | Docs | `c7-commercial-approval-preview.md` lifecycle status recorded after ship |
 
+### 78:xx — C8 proposal engine ✅
+
+**Shipped:** C8 complete against `docs/architecture/c8-proposal-preview.md` (Dev/Test). Proposal health increment remains `C8`.
+
+| Increment | Change |
+| --- | --- |
+| **C8** | Tenant-scoped proposal health and C8 security tests. Existing list/detail send/accept UI unchanged |
+
+### 79:xx — C9 booking & handover ✅
+
+**Shipped:** C9 complete against `docs/architecture/c9-booking-preview.md` (Dev/Test). Booking health increment remains `C9-C10`.
+
+| Increment | Change |
+| --- | --- |
+| **C9** | Tenant-scoped booking health and C9 security tests. Existing booking list/handover UI unchanged |
+
+### 80:xx — C10 booking command center ✅
+
+**Shipped:** C10 complete against `docs/architecture/c10-booking-command-center-preview.md` (Dev/Test).
+
+| Increment | Change |
+| --- | --- |
+| **C10** | Command-center 401/403/404 security tests. Existing command-center UI unchanged |
+
 ### Recommended next increments
 
 1. I20.23 — (unnamed / undefined)

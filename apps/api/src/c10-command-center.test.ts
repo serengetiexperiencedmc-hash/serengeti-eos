@@ -15,6 +15,15 @@ async function loginCarol(app: ReturnType<typeof buildServer>) {
   return res.json().accessToken as string;
 }
 
+async function loginAlice(app: ReturnType<typeof buildServer>) {
+  const res = await app.inject({
+    method: "POST",
+    url: "/v1/auth/login",
+    payload: { email: "alice.finance@sedmc.local", password: P.alicePassword, tenantSlug: "sedmc" },
+  });
+  return res.json().accessToken as string;
+}
+
 describe("C10 booking command center", () => {
   it("lists C10 migration", () => {
     expect(listMigrationFiles().some((f) => f.includes("030_c10_command_center"))).toBe(true);
@@ -117,5 +126,65 @@ describe("C10 booking command center", () => {
     expect(body.snapshot.ops.manifestStatus).toBe("published");
     expect(body.invoices.length).toBe(1);
     expect(body.snapshot.timeline.some((t: { key: string; status: string }) => t.key === "confirmed" && t.status === "complete")).toBe(true);
+  });
+
+  it("rejects unauthorized and unauthenticated command-center reads", async () => {
+    const store = seedStore("test-secret");
+    const tenantId = "11111111-1111-4111-8111-111111111111";
+    const bookingId = newId();
+    const now = new Date().toISOString();
+    store.bkgBookings.push({
+      id: bookingId,
+      tenantId,
+      bookingCode: "BKG-CC-SEC",
+      proposalId: newId(),
+      rfpId: newId(),
+      programmeId: newId(),
+      opportunityId: newId(),
+      organizationId: newId(),
+      title: "Command Center Security",
+      status: "confirmed",
+      currency: "USD",
+      sellPrice: 1000,
+      confirmedAt: now,
+      classification: "Internal",
+      version: 1,
+      createdAt: now,
+      updatedAt: now,
+      createdByPrincipalId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+      updatedByPrincipalId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+    });
+    const app = buildServer({ store });
+    const carolToken = await loginCarol(app);
+    const ok = await app.inject({
+      method: "GET",
+      url: `/v1/bookings/${bookingId}/command-center`,
+      headers: { authorization: `Bearer ${carolToken}` },
+    });
+    expect(ok.statusCode).toBe(200);
+
+    const aliceToken = await loginAlice(app);
+    const denied = await app.inject({
+      method: "GET",
+      url: `/v1/bookings/${bookingId}/command-center`,
+      headers: { authorization: `Bearer ${aliceToken}` },
+    });
+    expect(denied.statusCode).toBe(403);
+
+    const partnerLogin = await app.inject({
+      method: "POST",
+      url: "/v1/auth/login",
+      payload: { email: "partner@external.local", password: P.partnerPassword, tenantSlug: "partner-demo" },
+    });
+    const partnerToken = partnerLogin.json().accessToken as string;
+    const foreign = await app.inject({
+      method: "GET",
+      url: `/v1/bookings/${bookingId}/command-center`,
+      headers: { authorization: `Bearer ${partnerToken}` },
+    });
+    expect(foreign.statusCode).toBe(404);
+
+    const unauth = await app.inject({ method: "GET", url: `/v1/bookings/${bookingId}/command-center` });
+    expect(unauth.statusCode).toBe(401);
   });
 });

@@ -1,5 +1,18 @@
 # C10 Booking Command Center — Preview
 
+## Lifecycle status (reconciled for C10 completion)
+
+| Field | Value |
+| --- | --- |
+| Increment ID | **C10** |
+| Capability name | Booking Command Center |
+| Predecessor | C9 Booking & Handover |
+| Implementation status | **IMPLEMENTED / COMPLETE** |
+| Environment | Development/Test only |
+| Persistence | Computed at runtime from C9 + O1–O4 + I8. Schema comment `030_c10_command_center.sql`. ADR-0017 not reopened |
+
+---
+
 Increment **C10** unifies a single booking's commercial, operations, and finance state into one **command center** snapshot (Dev/Test — computed at runtime).
 
 ## Kernel
