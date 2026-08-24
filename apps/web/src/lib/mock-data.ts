@@ -79,6 +79,13 @@ export const navItems = [
     items: [{ href: "/commercial/compliance", label: "Obligations", icon: "compliance" }],
   },
   {
+    section: "Privacy",
+    items: [
+      { href: "/commercial/privacy", label: "RoPA", icon: "privacy" },
+      { href: "/commercial/dsr", label: "DSR", icon: "privacy" },
+    ],
+  },
+  {
     section: "Knowledge",
     items: [{ href: "/commercial/knowledge", label: "Documents", icon: "knowledge" }],
   },

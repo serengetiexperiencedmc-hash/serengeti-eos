@@ -8,7 +8,7 @@
 | Capability name | Privacy RoPA + DSR register |
 | Predecessor | I2 kernel (complete); I15 ERM complete and **not** reopened; G1 complete and **not** reopened |
 | Architecture status | This document is the P1 contract |
-| Implementation status | **IMPLEMENTATION-READY** |
+| Implementation status | **IMPLEMENTED / COMPLETE** |
 | Environment | Development/Test only |
 | Persistence | In-memory store + additive SQL `092_p1_privacy_ropa_dsr.sql`. ADR-0017 not reopened |
 | Runtime health increment | `P1` |

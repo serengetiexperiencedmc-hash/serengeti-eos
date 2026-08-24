@@ -1009,9 +1009,19 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 
 **Tests:** kernel compliance 2/2; API g1 3/3 (401/403/400 title_required/cross-tenant 404/ai_actor/lifecycle); regression I15/I16/I13; web typecheck clean. Live preview restarted so `/v1/compliance` exists (memory_only). Carol registered **OBL-0003**, Activate → in force, Close. Live PostgreSQL UNVERIFIED.
 
+### 95:xx — P1 Privacy RoPA + DSR ✅
+
+**Shipped:** P1 complete against `docs/architecture/p1-privacy-ropa-dsr-preview.md` (Dev/Test). ID assigned by `docs/governance/p1-privacy-ropa-dsr-authorized.md` (PRIV=A). API identity unchanged (`1.04.0-i3.37`); privacy health increment is `P1`. RoPA + DSR registers only. Human-only mutate. DSR creator cannot close. Bob holds `dpo`. I15 and G1 not reopened. No I15.x. No consent, DPIA, DLP, or live erasure.
+
+| Increment | Change |
+| --- | --- |
+| **P1** | Processing activities, DSR cases, SoD close, Privacy → RoPA / DSR, `/commercial/privacy` + `/commercial/dsr` |
+
+**Tests:** kernel privacy 2/2; API p1 3/3 (401/403/400 title_required/cross-tenant 404/ai_actor/sod/lifecycle); regression G1/I15/I16/I13; web typecheck clean. Live preview restarted so `/v1/privacy` exists (memory_only). Carol registered **RPA-0002** and retired it; registered **DSR-0002** Access, Start → in progress, Close as creator → **sod**. Bob close covered by API. Live PostgreSQL UNVERIFIED.
+
 ### Recommended next increments
 
-PRIV=D, I21=D, I22=D, I23=D, EMCOMMS=D, EXER=D remain deferred. No successor IDs.
+PRIV=A shipped as P1. I21=D, I22=D, I23=D, EMCOMMS=D, EXER=D remain deferred. No successor IDs.
 
 ### Issues resolved
 
