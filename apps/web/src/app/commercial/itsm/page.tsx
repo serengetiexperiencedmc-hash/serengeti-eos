@@ -124,6 +124,9 @@ export default function ItsmPage() {
             <Btn variant="secondary" href="/commercial/itsm/changes">
               Changes
             </Btn>
+            <Btn variant="secondary" href="/commercial/itsm/problems">
+              Problems
+            </Btn>
             <Btn variant="secondary" href="/commercial">
               ← Dashboard
             </Btn>

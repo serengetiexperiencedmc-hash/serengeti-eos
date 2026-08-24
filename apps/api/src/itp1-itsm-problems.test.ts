@@ -27,24 +27,24 @@ function assertNoSecrets(body: unknown) {
   expect(raw).not.toContain("principalId");
 }
 
-describe("ITC1 IT change register", () => {
-  it("lists ITC1 migration", () => {
-    expect(listMigrationFiles().some((f) => f.includes("101_itc1_itsm_changes"))).toBe(true);
+describe("ITP1 IT problem register", () => {
+  it("lists ITP1 migration", () => {
+    expect(listMigrationFiles().some((f) => f.includes("102_itp1_itsm_problems"))).toBe(true);
   });
 
-  it("enforces auth and tenant isolation without reusing I11 permissions", async () => {
+  it("enforces auth and tenant isolation without reusing I11 or ITC1 permissions", async () => {
     const store = seedStore("test-secret");
     const app = buildServer({ store });
     const carolToken = await login(app, "carol.admin@sedmc.local", P.carolPassword, "sedmc");
     const aliceToken = await login(app, "alice.finance@sedmc.local", P.alicePassword, "sedmc");
     const partnerToken = await login(app, "partner@external.local", P.partnerPassword, "partner-demo");
 
-    expect((await app.inject({ method: "GET", url: "/v1/itsm/changes/health" })).statusCode).toBe(401);
+    expect((await app.inject({ method: "GET", url: "/v1/itsm/problems/health" })).statusCode).toBe(401);
     expect(
       (
         await app.inject({
           method: "GET",
-          url: "/v1/itsm/changes/health",
+          url: "/v1/itsm/problems/health",
           headers: { authorization: `Bearer ${aliceToken}` },
         })
       ).statusCode,
@@ -53,7 +53,7 @@ describe("ITC1 IT change register", () => {
       (
         await app.inject({
           method: "GET",
-          url: "/v1/itsm/changes",
+          url: "/v1/itsm/problems",
           headers: { authorization: `Bearer ${partnerToken}` },
         })
       ).statusCode,
@@ -61,12 +61,12 @@ describe("ITC1 IT change register", () => {
 
     const health = await app.inject({
       method: "GET",
-      url: "/v1/itsm/changes/health",
+      url: "/v1/itsm/problems/health",
       headers: { authorization: `Bearer ${carolToken}` },
     });
     expect(health.statusCode).toBe(200);
-    expect(health.json().increment).toBe("ITC1");
-    expect(health.json().changes).toBe(0);
+    expect(health.json().increment).toBe("ITP1");
+    expect(health.json().problems).toBe(0);
     assertNoSecrets(health.json());
 
     const i11Health = await app.inject({
@@ -77,24 +77,32 @@ describe("ITC1 IT change register", () => {
     expect(i11Health.statusCode).toBe(200);
     expect(i11Health.json().increment).toBe("I11");
 
+    const itc1Health = await app.inject({
+      method: "GET",
+      url: "/v1/itsm/changes/health",
+      headers: { authorization: `Bearer ${carolToken}` },
+    });
+    expect(itc1Health.statusCode).toBe(200);
+    expect(itc1Health.json().increment).toBe("ITC1");
+
     const missing = await app.inject({
       method: "GET",
-      url: `/v1/itsm/changes/${newId()}`,
+      url: `/v1/itsm/problems/${newId()}`,
       headers: { authorization: `Bearer ${carolToken}` },
     });
     expect(missing.statusCode).toBe(404);
 
-    expect(store.roles.find((r) => r.key === "itsm.change")?.permissionKeys).toEqual([
-      "itsm:read:change",
-      "itsm:write:change",
+    expect(store.roles.find((r) => r.key === "itsm.problem")?.permissionKeys).toEqual([
+      "itsm:read:problem",
+      "itsm:write:problem",
     ]);
-    expect(store.roles.find((r) => r.key === "it.agent")?.permissionKeys).not.toContain("itsm:read:change");
-    expect(store.roles.find((r) => r.key === "it.agent")?.permissionKeys).not.toContain("itsm:write:change");
-    expect(store.roles.find((r) => r.key === "hr.certification")?.permissionKeys).not.toContain("itsm:write:change");
-    expect(store.roles.find((r) => r.key === "crisis.action")?.permissionKeys).not.toContain("itsm:read:change");
+    expect(store.roles.find((r) => r.key === "it.agent")?.permissionKeys).not.toContain("itsm:read:problem");
+    expect(store.roles.find((r) => r.key === "it.agent")?.permissionKeys).not.toContain("itsm:write:problem");
+    expect(store.roles.find((r) => r.key === "itsm.change")?.permissionKeys).not.toContain("itsm:read:problem");
+    expect(store.roles.find((r) => r.key === "itsm.change")?.permissionKeys).not.toContain("itsm:write:problem");
   });
 
-  it("runs change lifecycle with human-only mutate, optional CI reference, and no I11 mutation", async () => {
+  it("runs problem lifecycle with human-only mutate, optional ticket/CI references, and no I11 or ITC1 mutation", async () => {
     const store = seedStore("test-secret");
     const app = buildServer({ store });
     const carolToken = await login(app, "carol.admin@sedmc.local", P.carolPassword, "sedmc");
@@ -105,7 +113,7 @@ describe("ITC1 IT change register", () => {
       (
         await app.inject({
           method: "POST",
-          url: "/v1/itsm/changes",
+          url: "/v1/itsm/problems",
           headers: { authorization: `Bearer ${aliceToken}` },
           payload: { title: "Alice must not record" },
         })
@@ -114,25 +122,25 @@ describe("ITC1 IT change register", () => {
 
     const missingTitle = await app.inject({
       method: "POST",
-      url: "/v1/itsm/changes",
+      url: "/v1/itsm/problems",
       headers: { authorization: `Bearer ${carolToken}` },
       payload: { title: "   " },
     });
     expect(missingTitle.statusCode).toBe(400);
     expect(missingTitle.json().reason).toBe("title_required");
 
-    const tooLong = await app.inject({
+    const unknownTicket = await app.inject({
       method: "POST",
-      url: "/v1/itsm/changes",
+      url: "/v1/itsm/problems",
       headers: { authorization: `Bearer ${carolToken}` },
-      payload: { title: "C".repeat(201) },
+      payload: { title: "Unknown ticket", ticketId: newId() },
     });
-    expect(tooLong.statusCode).toBe(400);
-    expect(tooLong.json().reason).toBe("title_too_long");
+    expect(unknownTicket.statusCode).toBe(400);
+    expect(unknownTicket.json().reason).toBe("ticket_not_found");
 
     const unknownCi = await app.inject({
       method: "POST",
-      url: "/v1/itsm/changes",
+      url: "/v1/itsm/problems",
       headers: { authorization: `Bearer ${carolToken}` },
       payload: { title: "Unknown CI", ciId: newId() },
     });
@@ -141,6 +149,20 @@ describe("ITC1 IT change register", () => {
 
     const partnerTenant = [...store.tenants.values()].find((t) => t.slug === "partner-demo");
     expect(partnerTenant).toBeDefined();
+    const foreignTicketId = "90909090-9090-4909-8909-909090909090";
+    store.itsmTickets.push({
+      id: foreignTicketId,
+      tenantId: partnerTenant!.id,
+      ticketCode: "TKT-9999",
+      title: "Other tenant ticket",
+      ticketType: "incident",
+      severity: "low",
+      status: "open",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdByPrincipalId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+      updatedByPrincipalId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+    });
     const foreignCiId = "91919191-9191-4919-8919-919191919191";
     store.cmdbCis.push({
       id: foreignCiId,
@@ -158,21 +180,29 @@ describe("ITC1 IT change register", () => {
       createdByPrincipalId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
       updatedByPrincipalId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
     });
+    const crossTicket = await app.inject({
+      method: "POST",
+      url: "/v1/itsm/problems",
+      headers: { authorization: `Bearer ${carolToken}` },
+      payload: { title: "Cross tenant ticket", ticketId: foreignTicketId },
+    });
+    expect(crossTicket.statusCode).toBe(400);
+    expect(crossTicket.json().reason).toBe("ticket_not_found");
     const crossCi = await app.inject({
       method: "POST",
-      url: "/v1/itsm/changes",
+      url: "/v1/itsm/problems",
       headers: { authorization: `Bearer ${carolToken}` },
       payload: { title: "Cross tenant CI", ciId: foreignCiId },
     });
     expect(crossCi.statusCode).toBe(400);
     expect(crossCi.json().reason).toBe("ci_not_found");
 
-    const foreignId = "92929292-9292-4929-8929-929292929292";
-    store.itsmChanges.push({
+    const foreignId = "93939393-9393-4939-8939-939393939393";
+    store.itsmProblems.push({
       id: foreignId,
       tenantId: partnerTenant!.id,
-      changeCode: "CHG-9999",
-      title: "Other tenant change",
+      problemCode: "PRB-9999",
+      title: "Other tenant problem",
       status: "open",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -181,7 +211,7 @@ describe("ITC1 IT change register", () => {
     });
     const crossTenant = await app.inject({
       method: "GET",
-      url: `/v1/itsm/changes/${foreignId}`,
+      url: `/v1/itsm/problems/${foreignId}`,
       headers: { authorization: `Bearer ${carolToken}` },
     });
     expect(crossTenant.statusCode).toBe(404);
@@ -190,7 +220,7 @@ describe("ITC1 IT change register", () => {
       (
         await app.inject({
           method: "GET",
-          url: "/v1/itsm/changes/health",
+          url: "/v1/itsm/problems/health",
           headers: { authorization: `Bearer ${bobToken}` },
         })
       ).statusCode,
@@ -210,53 +240,45 @@ describe("ITC1 IT change register", () => {
       headers: { authorization: `Bearer ${carolToken}` },
     });
     const cisBefore = cmdbBefore.json().cis as number;
-    const relationshipsBefore = cmdbBefore.json().relationships as number;
-    const seedCi = store.cmdbCis.find((c) => c.id === IT_SEED.webCiId);
-    expect(seedCi).toBeDefined();
-    const ciSnapshot = JSON.stringify(seedCi);
-    const ticketSnapshot = JSON.stringify(store.itsmTickets.filter((t) => t.tenantId === seedCi!.tenantId));
+    const itc1Before = await app.inject({
+      method: "GET",
+      url: "/v1/itsm/changes/health",
+      headers: { authorization: `Bearer ${carolToken}` },
+    });
+    const changesBefore = itc1Before.json().changes as number;
+    const seedTicket = store.itsmTickets.find((t) => t.id === IT_SEED.outageTicketId);
+    expect(seedTicket).toBeDefined();
+    const ticketSnapshot = JSON.stringify(seedTicket);
+    const ciSnapshot = JSON.stringify(store.cmdbCis.find((c) => c.id === IT_SEED.webCiId));
+    const changesSnapshot = JSON.stringify(store.itsmChanges);
 
     const created = await app.inject({
       method: "POST",
-      url: "/v1/itsm/changes",
+      url: "/v1/itsm/problems",
       headers: { authorization: `Bearer ${carolToken}` },
-      payload: {
-        title: "Rotate API certificates",
-        notes: "Register row only — not a CAB",
-        status: "cancelled",
-      },
+      payload: { title: "Recurring API timeouts", notes: "Register row only — not RCA", status: "cancelled" },
     });
     expect(created.statusCode).toBe(201);
-    expect(created.json().change.changeCode).toBe("CHG-0001");
-    expect(created.json().change.status).toBe("open");
-    expect(created.json().change.title).toBe("Rotate API certificates");
-    expect(created.json().change.ciId).toBeUndefined();
+    expect(created.json().problem.problemCode).toBe("PRB-0001");
+    expect(created.json().problem.status).toBe("open");
+    expect(created.json().problem.ticketId).toBeUndefined();
+    expect(created.json().problem.ciId).toBeUndefined();
     assertNoSecrets(created.json());
-    const id = created.json().change.id as string;
+    const id = created.json().problem.id as string;
 
-    const withCi = await app.inject({
+    const withRefs = await app.inject({
       method: "POST",
-      url: "/v1/itsm/changes",
+      url: "/v1/itsm/problems",
       headers: { authorization: `Bearer ${carolToken}` },
-      payload: { title: "Patch EOS Web", ciId: IT_SEED.webCiId },
+      payload: { title: "Web outage cluster", ticketId: IT_SEED.outageTicketId, ciId: IT_SEED.webCiId },
     });
-    expect(withCi.statusCode).toBe(201);
-    expect(withCi.json().change.changeCode).toBe("CHG-0002");
-    expect(withCi.json().change.ciId).toBe(IT_SEED.webCiId);
-    expect(withCi.json().change.ciCode).toBe("CI-0001");
-    const withCiId = withCi.json().change.id as string;
-
-    const retiredCi = store.cmdbCis.find((c) => c.id === IT_SEED.dbCiId);
-    expect(retiredCi).toBeDefined();
-    retiredCi!.lifecycle = "retired";
-    const retired = await app.inject({
-      method: "POST",
-      url: "/v1/itsm/changes",
-      headers: { authorization: `Bearer ${carolToken}` },
-      payload: { title: "Decommission retired DB label", ciId: IT_SEED.dbCiId },
-    });
-    expect(retired.statusCode).toBe(201);
-    expect(retired.json().change.ciId).toBe(IT_SEED.dbCiId);
+    expect(withRefs.statusCode).toBe(201);
+    expect(withRefs.json().problem.problemCode).toBe("PRB-0002");
+    expect(withRefs.json().problem.ticketId).toBe(IT_SEED.outageTicketId);
+    expect(withRefs.json().problem.ciId).toBe(IT_SEED.webCiId);
+    expect(withRefs.json().problem.ticketCode).toBeDefined();
+    expect(withRefs.json().problem.ciCode).toBe("CI-0001");
+    const withRefsId = withRefs.json().problem.id as string;
 
     const carol = [...store.principals.values()].find((p) => p.email === "carol.admin@sedmc.local");
     expect(carol).toBeDefined();
@@ -264,7 +286,7 @@ describe("ITC1 IT change register", () => {
     carol!.actorType = "AiAgent";
     const aiCreate = await app.inject({
       method: "POST",
-      url: "/v1/itsm/changes",
+      url: "/v1/itsm/problems",
       headers: { authorization: `Bearer ${carolToken}` },
       payload: { title: "AI must not record" },
     });
@@ -272,7 +294,7 @@ describe("ITC1 IT change register", () => {
     expect(aiCreate.json().reason).toBe("ai_actor");
     const aiPatch = await app.inject({
       method: "PATCH",
-      url: `/v1/itsm/changes/${id}`,
+      url: `/v1/itsm/problems/${id}`,
       headers: { authorization: `Bearer ${carolToken}` },
       payload: { status: "done" },
     });
@@ -282,103 +304,96 @@ describe("ITC1 IT change register", () => {
 
     const listed = await app.inject({
       method: "GET",
-      url: "/v1/itsm/changes",
+      url: "/v1/itsm/problems",
       headers: { authorization: `Bearer ${carolToken}` },
     });
     expect(listed.json().items.some((row: { id: string }) => row.id === id)).toBe(true);
 
     const got = await app.inject({
       method: "GET",
-      url: `/v1/itsm/changes/${id}`,
+      url: `/v1/itsm/problems/${id}`,
       headers: { authorization: `Bearer ${carolToken}` },
     });
     expect(got.statusCode).toBe(200);
-    expect(got.json().change.changeCode).toBe("CHG-0001");
+    expect(got.json().problem.problemCode).toBe("PRB-0001");
 
     const patched = await app.inject({
       method: "PATCH",
-      url: `/v1/itsm/changes/${id}`,
+      url: `/v1/itsm/problems/${id}`,
       headers: { authorization: `Bearer ${carolToken}` },
-      payload: { title: "Rotate API certificates — register only", ciId: newId() },
+      payload: { title: "Recurring API timeouts — register only", ticketId: newId(), ciId: newId() },
     });
-    expect(patched.json().change.title).toBe("Rotate API certificates — register only");
-    expect(patched.json().change.ciId).toBeUndefined();
+    expect(patched.json().problem.title).toBe("Recurring API timeouts — register only");
+    expect(patched.json().problem.ticketId).toBeUndefined();
+    expect(patched.json().problem.ciId).toBeUndefined();
 
-    const ciImmutable = await app.inject({
+    const refsImmutable = await app.inject({
       method: "PATCH",
-      url: `/v1/itsm/changes/${withCiId}`,
+      url: `/v1/itsm/problems/${withRefsId}`,
       headers: { authorization: `Bearer ${carolToken}` },
-      payload: { ciId: IT_SEED.apiCiId },
+      payload: { ticketId: newId(), ciId: IT_SEED.apiCiId },
     });
-    expect(ciImmutable.json().change.ciId).toBe(IT_SEED.webCiId);
+    expect(refsImmutable.json().problem.ticketId).toBe(IT_SEED.outageTicketId);
+    expect(refsImmutable.json().problem.ciId).toBe(IT_SEED.webCiId);
 
     const illegalStatus = await app.inject({
       method: "PATCH",
-      url: `/v1/itsm/changes/${id}`,
+      url: `/v1/itsm/problems/${id}`,
       headers: { authorization: `Bearer ${carolToken}` },
-      payload: { status: "approved" },
+      payload: { status: "known_error" },
     });
     expect(illegalStatus.statusCode).toBe(409);
     expect(illegalStatus.json().reason).toBe("invalid_transition");
 
     const done = await app.inject({
       method: "PATCH",
-      url: `/v1/itsm/changes/${id}`,
+      url: `/v1/itsm/problems/${id}`,
       headers: { authorization: `Bearer ${carolToken}` },
       payload: { status: "done" },
     });
-    expect(done.json().change.status).toBe("done");
+    expect(done.json().problem.status).toBe("done");
 
     const patchDone = await app.inject({
       method: "PATCH",
-      url: `/v1/itsm/changes/${id}`,
+      url: `/v1/itsm/problems/${id}`,
       headers: { authorization: `Bearer ${carolToken}` },
       payload: { title: "Nope" },
     });
     expect(patchDone.statusCode).toBe(409);
     expect(patchDone.json().reason).toBe("done");
 
-    const reopen = await app.inject({
-      method: "PATCH",
-      url: `/v1/itsm/changes/${id}`,
-      headers: { authorization: `Bearer ${carolToken}` },
-      payload: { status: "open" },
-    });
-    expect(reopen.statusCode).toBe(409);
-    expect(reopen.json().reason).toBe("done");
-
     const cancelled = await app.inject({
       method: "PATCH",
-      url: `/v1/itsm/changes/${withCiId}`,
+      url: `/v1/itsm/problems/${withRefsId}`,
       headers: { authorization: `Bearer ${carolToken}` },
       payload: { status: "cancelled" },
     });
-    expect(cancelled.json().change.status).toBe("cancelled");
+    expect(cancelled.json().problem.status).toBe("cancelled");
 
     const patchCancelled = await app.inject({
       method: "PATCH",
-      url: `/v1/itsm/changes/${withCiId}`,
+      url: `/v1/itsm/problems/${withRefsId}`,
       headers: { authorization: `Bearer ${carolToken}` },
-      payload: { notes: "Nope" },
+      payload: { status: "done" },
     });
     expect(patchCancelled.statusCode).toBe(409);
     expect(patchCancelled.json().reason).toBe("cancelled");
 
-    for (const path of ["approve", "reject", "execute", "schedule", "freeze", "cab", "emergency", "complete", "cancel"]) {
+    for (const path of ["root-cause", "known-error", "major", "approve", "execute", "schedule", "escalate", "sla"]) {
       expect(
         (
           await app.inject({
             method: "POST",
-            url: `/v1/itsm/changes/${id}/${path}`,
+            url: `/v1/itsm/problems/${id}/${path}`,
             headers: { authorization: `Bearer ${carolToken}` },
           })
         ).statusCode,
       ).toBe(404);
     }
 
+    expect(JSON.stringify(store.itsmTickets.find((t) => t.id === IT_SEED.outageTicketId))).toBe(ticketSnapshot);
     expect(JSON.stringify(store.cmdbCis.find((c) => c.id === IT_SEED.webCiId))).toBe(ciSnapshot);
-    expect(JSON.stringify(store.itsmTickets.filter((t) => t.tenantId === seedCi!.tenantId))).toBe(ticketSnapshot);
-    expect(store.cmdbCis.find((c) => c.id === IT_SEED.dbCiId)?.lifecycle).toBe("retired");
+    expect(JSON.stringify(store.itsmChanges)).toBe(changesSnapshot);
 
     const i11After = await app.inject({
       method: "GET",
@@ -396,7 +411,14 @@ describe("ITC1 IT change register", () => {
     });
     expect(cmdbAfter.json().increment).toBe("I11");
     expect(cmdbAfter.json().cis).toBe(cisBefore);
-    expect(cmdbAfter.json().relationships).toBe(relationshipsBefore);
+
+    const itc1After = await app.inject({
+      method: "GET",
+      url: "/v1/itsm/changes/health",
+      headers: { authorization: `Bearer ${carolToken}` },
+    });
+    expect(itc1After.json().increment).toBe("ITC1");
+    expect(itc1After.json().changes).toBe(changesBefore);
 
     const h1After = await app.inject({
       method: "GET",
@@ -504,7 +526,7 @@ describe("ITC1 IT change register", () => {
     expect(c9After.statusCode).toBe(200);
     expect(c9After.json().increment).toBe("C9-C10");
 
-    expect("itsmChanges" in store).toBe(true);
+    expect("itsmProblems" in store).toBe(true);
     expect("itsmReleases" in store).toBe(false);
   });
 });

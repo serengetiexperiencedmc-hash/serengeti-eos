@@ -5,27 +5,28 @@ import { Badge } from "@/components/commercial/Badge";
 import { useEosSession } from "@/components/commercial/EosSessionProvider";
 import { Btn, Card, PageHeader } from "@/components/commercial/ui";
 import { EosApiError } from "@/lib/eos-client";
-import { listCis, type CmdbCi } from "@/lib/it-api";
+import { listCis, listTickets, type CmdbCi, type ItsmTicket } from "@/lib/it-api";
 import {
-  ITSM_CHANGE_STATUS_LABELS,
-  createItsmChange,
-  getItsmChangesHealth,
-  listItsmChanges,
-  patchItsmChange,
-  type ItsmChange,
-} from "@/lib/itsm-changes-api";
+  ITSM_PROBLEM_STATUS_LABELS,
+  createItsmProblem,
+  getItsmProblemsHealth,
+  listItsmProblems,
+  patchItsmProblem,
+  type ItsmProblem,
+} from "@/lib/itsm-problems-api";
 
-function statusBadge(status: ItsmChange["status"]) {
+function statusBadge(status: ItsmProblem["status"]) {
   if (status === "open") return <Badge variant="review" label="Open" />;
   if (status === "done") return <Badge variant="won" label="Done" />;
   return <Badge variant="draft" label="Cancelled" />;
 }
 
-export default function ItsmChangesPage() {
+export default function ItsmProblemsPage() {
   const { token, ready } = useEosSession();
-  const [items, setItems] = useState<ItsmChange[]>([]);
+  const [items, setItems] = useState<ItsmProblem[]>([]);
+  const [tickets, setTickets] = useState<ItsmTicket[]>([]);
   const [cis, setCis] = useState<CmdbCi[]>([]);
-  const [health, setHealth] = useState<{ changes: number; openChanges: number } | null>(null);
+  const [health, setHealth] = useState<{ problems: number; openProblems: number } | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selectedIdRef = useRef<string | null>(null);
   selectedIdRef.current = selectedId;
@@ -36,6 +37,7 @@ export default function ItsmChangesPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [title, setTitle] = useState("");
+  const [ticketId, setTicketId] = useState("");
   const [ciId, setCiId] = useState("");
   const [notes, setNotes] = useState("");
   const [editTitle, setEditTitle] = useState("");
@@ -46,9 +48,15 @@ export default function ItsmChangesPage() {
     setLoading(true);
     setError(null);
     try {
-      const [list, h] = await Promise.all([listItsmChanges(token), getItsmChangesHealth(token)]);
+      const [list, h] = await Promise.all([listItsmProblems(token), getItsmProblemsHealth(token)]);
       setItems(list.items);
-      setHealth({ changes: h.changes, openChanges: h.openChanges });
+      setHealth({ problems: h.problems, openProblems: h.openProblems });
+      try {
+        const overlay = await listTickets(token);
+        setTickets(overlay.items);
+      } catch {
+        setTickets([]);
+      }
       try {
         const overlay = await listCis(token);
         setCis(overlay.items);
@@ -57,7 +65,7 @@ export default function ItsmChangesPage() {
       }
     } catch (err) {
       setItems([]);
-      setError(err instanceof EosApiError ? err.message : "Failed to load changes");
+      setError(err instanceof EosApiError ? err.message : "Failed to load problems");
     } finally {
       setLoading(false);
     }
@@ -96,28 +104,27 @@ export default function ItsmChangesPage() {
     return items.filter((row) => {
       if (statusFilter && row.status !== statusFilter) return false;
       if (!q) return true;
-      return `${row.changeCode} ${row.title} ${row.ciCode ?? ""} ${row.notes ?? ""}`.toLowerCase().includes(q);
+      return `${row.problemCode} ${row.title} ${row.ticketCode ?? ""} ${row.ciCode ?? ""} ${row.notes ?? ""}`
+        .toLowerCase()
+        .includes(q);
     });
   }, [items, query, statusFilter]);
 
-  if (ready && !token) return <p className="text-sm text-muted">Sign in to view the change register.</p>;
+  if (ready && !token) return <p className="text-sm text-muted">Sign in to view the problem register.</p>;
 
   return (
     <>
       <PageHeader
-        eyebrow="ITC1 · IT"
-        title="Changes"
-        subtitle="Change register only · not a CAB, not Problem, not Release, and not an I11 Service Desk or CMDB replacement"
+        eyebrow="ITP1 · IT"
+        title="Problems"
+        subtitle="Problem register only · not Problem Management ITIL, not RCA, not a known-error database, not Release, and not an I11 or ITC1 replacement"
         actions={
           <div className="flex gap-2">
             <Btn variant="secondary" href="/commercial/itsm">
               Service Desk
             </Btn>
-            <Btn variant="secondary" href="/commercial/cmdb">
-              CMDB
-            </Btn>
-            <Btn variant="secondary" href="/commercial/itsm/problems">
-              Problems
+            <Btn variant="secondary" href="/commercial/itsm/changes">
+              Changes
             </Btn>
           </div>
         }
@@ -125,47 +132,61 @@ export default function ItsmChangesPage() {
 
       {health && (
         <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Card title="Changes">
-            <div className="font-display text-2xl font-semibold text-ink">{health.changes}</div>
+          <Card title="Problems">
+            <div className="font-display text-2xl font-semibold text-ink">{health.problems}</div>
           </Card>
           <Card title="Open">
-            <div className="font-display text-2xl font-semibold text-ink">{health.openChanges}</div>
+            <div className="font-display text-2xl font-semibold text-ink">{health.openProblems}</div>
           </Card>
         </div>
       )}
 
       {error && <p className="mb-4 text-sm text-red-700">{error}</p>}
       {message && <p className="mb-4 text-sm text-green-800">{message}</p>}
-      {loading && <p className="mb-4 text-sm text-muted">Loading changes…</p>}
+      {loading && <p className="mb-4 text-sm text-muted">Loading problems…</p>}
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-5">
         <div className="space-y-5 xl:col-span-2">
-          <Card title="Register change">
+          <Card title="Register problem">
             <form
               className="space-y-3"
               onSubmit={(event) => {
                 event.preventDefault();
                 void run(async () => {
-                  const input: Parameters<typeof createItsmChange>[1] = { title };
+                  const input: Parameters<typeof createItsmProblem>[1] = { title };
+                  if (ticketId.trim()) input.ticketId = ticketId.trim();
                   if (ciId.trim()) input.ciId = ciId.trim();
                   if (notes.trim()) input.notes = notes.trim();
-                  const created = await createItsmChange(token!, input);
-                  selectedIdRef.current = created.change.id;
-                  setSelectedId(created.change.id);
+                  const created = await createItsmProblem(token!, input);
+                  selectedIdRef.current = created.problem.id;
+                  setSelectedId(created.problem.id);
                   setTitle("");
+                  setTicketId("");
                   setCiId("");
                   setNotes("");
-                  setMessage("Change registered");
+                  setMessage("Problem registered");
                 });
               }}
             >
               <input
                 className="w-full rounded-md border border-line px-3 py-2 text-sm"
-                placeholder="Change title"
+                placeholder="Problem title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
               />
+              <select
+                className="w-full rounded-md border border-line px-3 py-2 text-sm"
+                value={ticketId}
+                onChange={(e) => setTicketId(e.target.value)}
+              >
+                <option value="">No ticket</option>
+                {tickets.map((row) => (
+                  <option key={row.id} value={row.id}>
+                    {row.ticketCode} · {row.title}
+                  </option>
+                ))}
+              </select>
               <select
                 className="w-full rounded-md border border-line px-3 py-2 text-sm"
                 value={ciId}
@@ -207,7 +228,7 @@ export default function ItsmChangesPage() {
                   onChange={(e) => setStatusFilter(e.target.value)}
                 >
                   <option value="">All</option>
-                  {Object.entries(ITSM_CHANGE_STATUS_LABELS).map(([value, label]) => (
+                  {Object.entries(ITSM_PROBLEM_STATUS_LABELS).map(([value, label]) => (
                     <option key={value} value={value}>
                       {label}
                     </option>
@@ -217,7 +238,7 @@ export default function ItsmChangesPage() {
             }
           >
             {visible.length === 0 && !loading ? (
-              <p className="text-sm text-muted">No changes match the current filter.</p>
+              <p className="text-sm text-muted">No problems match the current filter.</p>
             ) : (
               <div className="divide-y divide-line">
                 {visible.map((row) => (
@@ -230,7 +251,8 @@ export default function ItsmChangesPage() {
                     <div>
                       <div className="font-medium text-ink">{row.title}</div>
                       <div className="text-xs text-muted">
-                        {row.changeCode}
+                        {row.problemCode}
+                        {row.ticketCode ? ` · ${row.ticketCode}` : ""}
                         {row.ciCode ? ` · ${row.ciCode}` : ""}
                       </div>
                     </div>
@@ -244,11 +266,14 @@ export default function ItsmChangesPage() {
 
         <div className="xl:col-span-3">
           {!selected ? (
-            <Card title="Change detail">
-              <p className="text-sm text-muted">Select a change to edit it while open, or mark it done or cancelled.</p>
+            <Card title="Problem detail">
+              <p className="text-sm text-muted">Select a problem to edit it while open, or mark it done or cancelled.</p>
             </Card>
           ) : (
-            <Card title={selected.changeCode} headerExtra={statusBadge(selected.status)}>
+            <Card title={selected.problemCode} headerExtra={statusBadge(selected.status)}>
+              {selected.ticketCode && (
+                <p className="mb-2 text-sm text-muted">References {selected.ticketCode} (I11 identifier only)</p>
+              )}
               {selected.ciCode && (
                 <p className="mb-4 text-sm text-muted">References {selected.ciCode} (I11 identifier only)</p>
               )}
@@ -258,11 +283,11 @@ export default function ItsmChangesPage() {
                   onSubmit={(event) => {
                     event.preventDefault();
                     void run(async () => {
-                      await patchItsmChange(token!, selected.id, {
+                      await patchItsmProblem(token!, selected.id, {
                         title: editTitle,
                         notes: editNotes,
                       });
-                      setMessage("Change updated");
+                      setMessage("Problem updated");
                     });
                   }}
                 >
@@ -290,8 +315,8 @@ export default function ItsmChangesPage() {
                       disabled={busy}
                       onClick={() =>
                         void run(async () => {
-                          await patchItsmChange(token!, selected.id, { status: "done" });
-                          setMessage("Change marked done");
+                          await patchItsmProblem(token!, selected.id, { status: "done" });
+                          setMessage("Problem marked done");
                         })
                       }
                     >
@@ -304,8 +329,8 @@ export default function ItsmChangesPage() {
                       disabled={busy}
                       onClick={() =>
                         void run(async () => {
-                          await patchItsmChange(token!, selected.id, { status: "cancelled" });
-                          setMessage("Change cancelled");
+                          await patchItsmProblem(token!, selected.id, { status: "cancelled" });
+                          setMessage("Problem cancelled");
                         })
                       }
                     >
@@ -319,8 +344,8 @@ export default function ItsmChangesPage() {
                   {selected.notes && <p className="mb-2 text-sm text-muted">Notes: {selected.notes}</p>}
                   <p className="text-sm text-muted">
                     {selected.status === "done"
-                      ? "Completed changes cannot be edited."
-                      : "Cancelled changes cannot be edited."}
+                      ? "Completed problems cannot be edited."
+                      : "Cancelled problems cannot be edited."}
                   </p>
                 </>
               )}
