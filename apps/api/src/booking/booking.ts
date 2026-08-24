@@ -2,8 +2,6 @@ import {
   authorize,
   buildBookingCode,
   canCreateBooking,
-  canTransitionOpportunityStage,
-  canTransitionRfpStage,
   DEFAULT_HANDOVER_TASKS,
   newId,
   type BkgBooking,
@@ -79,14 +77,23 @@ function refreshBookingHandoverStatus(store: Store, booking: BkgBooking, now: st
   booking.updatedAt = now;
 }
 
-export function getBookingModuleHealth(store: Store) {
+export function getBookingModuleHealth(store: Store, principal: Principal) {
   ensureBookingCollections(store);
+  const decision = authorize({
+    principal,
+    permission: "booking:read:booking",
+    action: "read:bkg_booking",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+  const tenantId = principal.tenantId;
+  const bookings = store.bkgBookings.filter((b) => b.tenantId === tenantId && !b.archivedAt);
+  const ids = new Set(bookings.map((b) => b.id));
   return {
     module: "booking",
     increment: "C9-C10",
     status: "ok" as const,
-    bookings: store.bkgBookings.filter((b) => !b.archivedAt).length,
-    handoverTasks: store.bkgHandoverTasks.length,
+    bookings: bookings.length,
+    handoverTasks: store.bkgHandoverTasks.filter((t) => t.tenantId === tenantId && ids.has(t.bookingId)).length,
   };
 }
 
@@ -231,7 +238,7 @@ export function createBooking(
   const opp = store.oppOpportunities.find(
     (o) => o.id === booking.opportunityId && o.tenantId === principal.tenantId && !o.archivedAt,
   );
-  if (opp && canTransitionOpportunityStage(opp.stage, "won")) {
+  if (opp && opp.stage !== "won" && opp.stage !== "lost") {
     const fromStage = opp.stage;
     opp.stage = "won";
     opp.status = "won";
@@ -249,7 +256,7 @@ export function createBooking(
     });
   }
 
-  if (rfp && canTransitionRfpStage(rfp.workflowStage, "closed")) {
+  if (rfp && rfp.workflowStage !== "closed") {
     rfp.workflowStage = "closed";
     rfp.status = "closed";
     rfp.updatedAt = now;

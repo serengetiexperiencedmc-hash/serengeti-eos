@@ -32,7 +32,9 @@ export function registerBookingRoutes(app: FastifyInstance, store: Store): void 
   app.get("/v1/bookings/health", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    return getBookingModuleHealth(store);
+    const result = getBookingModuleHealth(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
   });
 
   app.get("/v1/bookings", async (req, reply) => {
