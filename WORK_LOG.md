@@ -949,9 +949,19 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 
 **Tests:** kernel pam 2/2; API i14 3/3; regression I13 3/3; web typecheck clean. Live preview API UNVERIFIED (existing process predates I14; not restarted). Live PostgreSQL UNVERIFIED.
 
+### 89:xx — I15 ERM risk register ✅
+
+**Shipped:** I15 complete against `docs/architecture/i15-erm-risk-register-preview.md` (Dev/Test). API identity unchanged (`1.04.0-i3.37`); ERM health increment is `I15`. Residual risk register only. Compliance obligations and Privacy RoPA/DSR remain deferred.
+
+| Increment | Change |
+| --- | --- |
+| **I15** | ERM risk register, `risk.member`, Risk → Register, `/commercial/erm` |
+
+**Tests:** kernel erm 2/2; API i15 3/3; regression I14 3/3; web typecheck clean. Live preview API UNVERIFIED (existing process predates I15; not restarted). Live PostgreSQL UNVERIFIED.
+
 ### Recommended next increments
 
-I15 ERM risk register is authorized (governance I15=A). I17 remains deferred (ADR-0011). I19 Knowledge is authorized after I15.
+I19 Knowledge/Search is authorized (governance I19=B). I16 internal audit still needs its own engagement/workpaper contract. I17 remains deferred (ADR-0011). I22 remains deferred.
 
 ### Issues resolved
 

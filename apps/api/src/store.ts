@@ -118,6 +118,7 @@ import {
   type ItsmTicketCi,
   type OtelSpan,
   type SecurityAlert,
+  type ErmRisk,
   type PamJitGrant,
   type PamSecretRef,
 } from "@sedmc/kernel";
@@ -126,6 +127,7 @@ import { seedDefaultHr } from "./hr/collections.js";
 import { seedDefaultIt } from "./it/collections.js";
 import { seedDefaultSoc } from "./security/collections.js";
 import { seedDefaultPam } from "./pam/collections.js";
+import { seedDefaultErm } from "./erm/collections.js";
 
 export type Payment = {
   id: string;
@@ -253,6 +255,7 @@ export type Store = {
   securityAlerts: SecurityAlert[];
   pamSecretRefs: PamSecretRef[];
   pamJitGrants: PamJitGrant[];
+  ermRisks: ErmRisk[];
   notifDismissals: NotifDismissal[];
   notifEmailOutbox: NotifEmailOutboxEntry[];
   notifEmailDeliveryEvents: NotifEmailDeliveryEvent[];
@@ -474,6 +477,8 @@ const PAM_PERMS = [
   "pam:revoke:grant",
 ] as const;
 
+const ERM_PERMS = ["erm:read:risk", "erm:write:risk"] as const;
+
 const PERMS = {
   financeMember: [
     "finance:create:payment",
@@ -505,6 +510,7 @@ const PERMS = {
   hrApprover: [...HR_APPROVER_PERMS],
   itAgent: [...ITSM_PERMS, ...CMDB_PERMS, ...OBS_PERMS],
   securityAnalyst: [...SECURITY_ANALYST_PERMS],
+  riskMember: [...ERM_PERMS],
   platformAdmin: [
     "org:read:unit",
     "org:write:unit",
@@ -557,6 +563,7 @@ const PERMS = {
     ...OBS_PERMS,
     ...SECURITY_PERMS,
     ...PAM_PERMS,
+    ...ERM_PERMS,
     ...NOTIFICATION_PERMS,
     "ai:read:recommend",
     "ai:write:draft",
@@ -785,6 +792,13 @@ export function seedStore(
       key: "security.analyst",
       name: "Security Analyst",
       permissionKeys: [...PERMS.securityAnalyst],
+    },
+    {
+      id: "role-risk-member",
+      tenantId,
+      key: "risk.member",
+      name: "Risk Member",
+      permissionKeys: [...PERMS.riskMember],
     },
     {
       id: "role-ai-agent",
@@ -1042,6 +1056,7 @@ export function seedStore(
     securityAlerts: [],
     pamSecretRefs: [],
     pamJitGrants: [],
+    ermRisks: [],
     notifDismissals: [],
     notifEmailOutbox: [],
     notifEmailDeliveryEvents: [],
@@ -1079,6 +1094,7 @@ export function seedStore(
   seedDefaultIt(store);
   seedDefaultSoc(store);
   seedDefaultPam(store);
+  seedDefaultErm(store);
   return store;
 }
 
