@@ -8,7 +8,7 @@
 | Capability name | Control-test campaign register |
 | Predecessor | I2 kernel (complete); I15 ERM complete and **not** reopened; G1, P1, G2, and G3 complete and **not** reopened |
 | Architecture status | This document is the G4 contract |
-| Implementation status | **NOT STARTED** |
+| Implementation status | **IMPLEMENTED / COMPLETE** |
 | Environment | Development/Test only |
 | Persistence | In-memory store + additive SQL `095_g4_control_test_campaigns.sql`. ADR-0017 not reopened |
 | Runtime health increment | `G4` |

@@ -1039,9 +1039,19 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 
 **Tests:** kernel findings 2/2; API g3 3/3 (401/403/400 title_required/control_not_found/cross-tenant 404/ai_actor/lifecycle); regression G1/G2/P1/I15/I16/I13; web typecheck clean. Live preview restarted so `/v1/findings` exists (memory_only). Carol registered **FND-0002** referencing CTL-0001, Start → in progress, Close. G2 CTL-0001 remained Draft. G1 OBL-0001 remained Open. Alice 403 on `/v1/findings/health` live. Live PostgreSQL UNVERIFIED.
 
+### 98:xx — G4 Control-Test Campaign Register ✅
+
+**Shipped:** G4 complete against `docs/architecture/g4-control-test-campaigns-preview.md` (Dev/Test). ID assigned by `docs/governance/g4-control-test-campaigns-authorized.md` (TEST=A). API identity unchanged (`1.04.0-i3.37`); campaign health increment is `G4`. Campaign register only. Human-only mutate. Optional G2 control reference (no G2/G3 mutation). Bob holds `grc.campaign`. I15, G1, P1, G2, and G3 not reopened. No I15.x. No mapping engine.
+
+| Increment | Change |
+| --- | --- |
+| **G4** | Campaigns, start/close, Compliance → Control tests, `/commercial/control-tests` |
+
+**Tests:** kernel control-tests 2/2; API g4 3/3 (401/403/400 title_required/control_not_found/cross-tenant 404/ai_actor/lifecycle); regression G1/G2/G3/P1/I15/I16/I13; web typecheck clean. Live preview restarted so `/v1/control-tests` exists (memory_only). Carol registered **CTC-0002** referencing CTL-0001, Start → in progress, Close. G2 CTL-0001 remained Draft. G3 FND-0001 remained Open. Unauthenticated `/v1/control-tests/health` is 401 live. Alice 403 covered by API. Live PostgreSQL UNVERIFIED.
+
 ### Recommended next increments
 
-PRIV=A shipped as P1. GRC=A shipped as G2. FIND=A shipped as G3. I21=D, I22=D, I23=D, EMCOMMS=D, EXER=D remain deferred. No successor IDs.
+PRIV=A shipped as P1. GRC=A shipped as G2. FIND=A shipped as G3. TEST=A shipped as G4. I21=D, I22=D, I23=D, EMCOMMS=D, EXER=D remain deferred. No successor IDs.
 
 ### Issues resolved
 

@@ -86,6 +86,7 @@ import { registerComplianceRoutes } from "./compliance/routes.js";
 import { registerPrivacyRoutes } from "./privacy/routes.js";
 import { registerGrcRoutes } from "./grc/routes.js";
 import { registerFindingsRoutes } from "./findings/routes.js";
+import { registerControlTestRoutes } from "./control-tests/routes.js";
 import type { EventCatalogueEntry } from "@sedmc/kernel";
 import {
   createLogger,
@@ -148,6 +149,7 @@ export function buildServer(options: ServerOptions | Store = {}) {
   registerPrivacyRoutes(app, store);
   registerGrcRoutes(app, store);
   registerFindingsRoutes(app, store);
+  registerControlTestRoutes(app, store);
   registerAiRoutes(app, store);
 
   app.get("/health", async (_req, reply) => {
