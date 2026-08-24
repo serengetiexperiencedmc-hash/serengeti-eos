@@ -1,10 +1,11 @@
 # 20. Phased Implementation Roadmap
 
-> **CURRENT STATE (2026-08-24 documentation hygiene)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`4f2ffd3afbf28b547f8e6deadd1c4f5241562cfb`**  
+> **CURRENT STATE (2026-08-24 ITR1 Stage 2 implemented Dev/Test)**  
+> **PRODUCT_STATE=FROZEN_DEVTEST**  
 > **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED**  
+> **CAPABILITY_SELECTED=YES** · **CAPABILITY=IT_RELEASE_REGISTER** · **CAPABILITY_ID=ITR1** · **STAGE_1_CREATED=YES** · **STAGE_1_APPROVED=YES** · **IMPLEMENTATION_AUTHORIZED=YES** (Dev/Test; Stage 2 complete)  
 > Phase 0 “approval before expanding beyond Increment 0” is **historical**. Expansion already occurred in Development/Test and is **frozen**.  
-> Remaining Phase 2–7 bullets that are not already shipped are **deferred / architecture inventory**, not a live implementation queue. Do not infer PO, CAL, Release, Asset, UEM, EMCOMMS, EXER, I21–I23, or C11 from this roadmap.
+> Remaining Phase 2–7 bullets that are not already shipped are **deferred / architecture inventory**, not a live implementation queue. Do not infer PO, CAL, Asset, UEM, EMCOMMS, EXER, I21–I23, or C11 from this roadmap. **ITR1** Stage 2 is **IMPLEMENTED / CLOSED** for Development/Test ([`itr1-it-release-register-preview.md`](itr1-it-release-register-preview.md)) — not inferred from this roadmap; UAT/Production not authorized.
 
 Human approval of Phase 0 was required before expanding beyond the Increment 0 kernel. The kernel was **Development-only**. *(Historical.)* The current frozen Dev/Test product is far beyond I0; Production remains unauthorized.
 
@@ -33,7 +34,7 @@ ITSM, CMDB, assets, monitoring, SOC integration, vulnerability, patch, UEM, PAM,
 
 **Exit:** Unified incident model live; privileged paths PAM-gated.
 
-> **Inventory, not authorized:** remaining Phase 3 bullets (assets, UEM, etc.) and later-phase items are **not** an execution queue. I11, ITC1, ITP1, I12–I14 bounded slices already shipped; Release / Asset / License remain deferred/inventory.
+> **Inventory, not authorized:** remaining Phase 3 bullets (assets, UEM, etc.) and later-phase items are **not** an execution queue. I11, ITC1, ITP1, ITR1, I12–I14 bounded slices already shipped. Asset / License remain deferred/inventory.
 
 ## Phase 4 — Governance
 

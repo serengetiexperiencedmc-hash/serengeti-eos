@@ -4,7 +4,7 @@
 > **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`4f2ffd3afbf28b547f8e6deadd1c4f5241562cfb`** (this HEAD **is** the ITP1 implementation commit)  
 > ITP1 Stage 2 is **IMPLEMENTED / COMPLETE / CLOSED** for Development/Test (additive SQL `102_itp1_itsm_problems.sql`).  
 > The lifecycle table and contract body below are the **historical Stage 1** record (`IMPLEMENTATION_AUTHORIZED=NO`, `STATUS=STAGE_1_AUTHORIZED` at authorization time). They answer “what was authorized at Stage 1?” They must not be read as a pending implementation queue.  
-> Release / RCA remain inventory / **NOT AUTHORIZED**. No ITP1.x. **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED**
+> RCA remains inventory / **NOT AUTHORIZED**. No ITP1.x. **ITR1** Stage 2 is **IMPLEMENTED / CLOSED** for Development/Test (not an ITP1 reopen). See [`../governance/itr1-it-release-register-authorized.md`](../governance/itr1-it-release-register-authorized.md) and [`itr1-it-release-register-preview.md`](itr1-it-release-register-preview.md). **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED**
 
 ## Lifecycle status (historical Stage 1)
 

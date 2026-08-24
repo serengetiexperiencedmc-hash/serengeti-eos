@@ -139,6 +139,9 @@ export default function CmdbPage() {
             <Btn variant="secondary" href="/commercial/itsm/problems">
               Problems
             </Btn>
+            <Btn variant="secondary" href="/commercial/itsm/releases">
+              Releases
+            </Btn>
             <Btn variant="secondary" href="/commercial">
               ← Dashboard
             </Btn>

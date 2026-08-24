@@ -1,10 +1,11 @@
 # Development backlog — independently deployable increments
 
-> **CURRENT STATE (2026-08-24 documentation hygiene)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`4f2ffd3afbf28b547f8e6deadd1c4f5241562cfb`**  
-> **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **IMPLEMENTATION_AUTHORIZED=NO** (no new work)  
-> **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED**  
-> This backlog is **not** an implementation queue. Do not infer a next increment from historical planning rows.
+> **CURRENT STATE (2026-08-24 ITR1 Stage 2 implemented Dev/Test)**  
+> **PRODUCT_STATE=FROZEN_DEVTEST**  
+> **CAPABILITY_SELECTED=YES** · **CAPABILITY=IT_RELEASE_REGISTER** · **CAPABILITY_ID=ITR1** · **STAGE_1_CREATED=YES** · **STAGE_1_APPROVED=YES**  
+> **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **IMPLEMENTATION_AUTHORIZED=YES** (Dev/Test; Stage 2 complete)  
+> **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **PUSH=NOT_AUTHORIZED**  
+> ITR1 Stage 2 is **IMPLEMENTED / CLOSED** for Development/Test. Do not infer UAT/Production from this row.
 
 Each increment must be releasable to **Test** on its own (Production only after ADRs and gates). Dependencies are listed; do not skip.
 
@@ -24,8 +25,9 @@ Each increment must be releasable to **Test** on its own (Production only after 
 | **I10** | HR core | I1 | Employee, leave, skills — **IMPLEMENTED** (Dev/Test), [`i10-hr-core-preview.md`](../architecture/i10-hr-core-preview.md) | Payroll engine |
 | **H1** | HR Certification Register | I10 | Certification register — **IMPLEMENTED / CLOSED** (Dev/Test), [`h1-hr-certification-register-preview.md`](../architecture/h1-hr-certification-register-preview.md) | Payroll / LMS / H1.x not created |
 | **I11** | ITSM + CMDB | I4 | Tickets, CIs — **IMPLEMENTED** (Dev/Test), [`i11-itsm-cmdb-preview.md`](../architecture/i11-itsm-cmdb-preview.md) | Discovery |
-| **ITC1** | IT Change Register | I11 | Change register — **IMPLEMENTED / CLOSED** (Dev/Test), [`itc1-it-change-register-preview.md`](../architecture/itc1-it-change-register-preview.md) | Release / CAB / ITC1.x not created |
-| **ITP1** | IT Problem Register | I11, ITC1 | Problem register — **IMPLEMENTED / CLOSED** (Dev/Test) at this HEAD, [`itp1-it-problem-register-preview.md`](../architecture/itp1-it-problem-register-preview.md) | Release / RCA engine / ITP1.x not created |
+| **ITC1** | IT Change Register | I11 | Change register — **IMPLEMENTED / CLOSED** (Dev/Test), [`itc1-it-change-register-preview.md`](../architecture/itc1-it-change-register-preview.md) | CAB / ITC1.x not created. ITR1 is a separate selected capability, not ITC1 |
+| **ITP1** | IT Problem Register | I11, ITC1 | Problem register — **IMPLEMENTED / CLOSED** (Dev/Test) at last implementation HEAD, [`itp1-it-problem-register-preview.md`](../architecture/itp1-it-problem-register-preview.md) | RCA engine / ITP1.x not created. ITR1 is a separate selected capability, not ITP1 |
+| **ITR1** | IT Release Register | I11 | Release register — **IMPLEMENTED / CLOSED** (Dev/Test), [`itr1-it-release-register-preview.md`](../architecture/itr1-it-release-register-preview.md), [`itr1-it-release-register-authorized.md`](../governance/itr1-it-release-register-authorized.md) | Release Management / deploy / CAB / CI/CD; ITR1.x not created; UAT/Production not authorized; not I11.x / ITC1.x / ITP1.x |
 | **I12** | Observability | I11 | OTel, health dependency map — **IMPLEMENTED** (Dev/Test), [`i12-observability-preview.md`](../architecture/i12-observability-preview.md) | Full AIOps |
 | **I13** | Defensive SOC integration | I12 | Alert ingest, IR casefile — **IMPLEMENTED** (Dev/Test), [`i13-defensive-soc-preview.md`](../architecture/i13-defensive-soc-preview.md) | Homegrown SIEM |
 | **I14** | PAM / secrets / ZTNA | I1, ADR-0012/13 | JIT, vault refs — **IMPLEMENTED** bounded Dev/Test (opaque refs + in-memory JIT; not production vault), [`i14-pam-preview.md`](../architecture/i14-pam-preview.md) | Custom VPN |
@@ -61,4 +63,4 @@ This section is **not** a live build order. All items below are **CLOSED** for D
 
 AI agents (beyond bounded I20 L0–L1), UAT and Production remain blocked. ADR-0006 / ADR-0012 / ADR-0013 + Production Readiness Review still required for Production.
 
-Official status: **frozen Development/Test product** at HEAD `4f2ffd3afbf28b547f8e6deadd1c4f5241562cfb` — not UAT-ready, not Production-ready. Do not treat remaining backlog or roadmap bullets as core-exit work.
+Official status: **frozen Development/Test product** including ITR1 — not UAT-ready, not Production-ready. Do not treat remaining backlog or roadmap bullets as core-exit work.

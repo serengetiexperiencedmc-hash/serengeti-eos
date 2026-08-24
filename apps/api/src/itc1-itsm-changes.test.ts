@@ -505,6 +505,6 @@ describe("ITC1 IT change register", () => {
     expect(c9After.json().increment).toBe("C9-C10");
 
     expect("itsmChanges" in store).toBe(true);
-    expect("itsmReleases" in store).toBe(false);
+    expect("itsmReleases" in store).toBe(true);
   });
 });

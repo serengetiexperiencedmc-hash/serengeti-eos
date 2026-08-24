@@ -2,13 +2,14 @@
 
 **System:** Serengeti Experience DMC Enterprise Operating System (EOS)  
 **Classification:** Internal  
-**Status:** Phase 0 architecture remains **normative**. The Development/Test **product is frozen** at HEAD `4f2ffd3afbf28b547f8e6deadd1c4f5241562cfb` — not limited to Increment 0. **UAT=NOT_AUTHORIZED. PRODUCTION=NOT_AUTHORIZED.**  
+**Status:** Phase 0 architecture remains **normative**. The Development/Test **product is frozen** including ITR1 — not limited to Increment 0. **UAT=NOT_AUTHORIZED. PRODUCTION=NOT_AUTHORIZED.**  
 **Version:** 0.1.0  
 **Date:** 2026-08-21 (index); current-state annotation 2026-08-24  
 
-> **CURRENT STATE (2026-08-24 documentation hygiene)**  
+> **CURRENT STATE (2026-08-24 ITR1 Stage 2 implemented Dev/Test)**  
 > **PRODUCT_STATE=FROZEN_DEVTEST** · **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE**  
-> Increment 0 through the closed commercial, ops, GRC, HR, ITSM-register, and bounded I20 surfaces already shipped in Development/Test. This index must not be read as “stop at I0” or as a licence to start UAT/Production or deferred streams (PO, CAL, Release, etc.).  
+> **CAPABILITY_SELECTED=YES** · **CAPABILITY=IT_RELEASE_REGISTER** · **CAPABILITY_ID=ITR1** · **STAGE_1_CREATED=YES** · **STAGE_1_APPROVED=YES** · **IMPLEMENTATION_AUTHORIZED=YES** (Dev/Test; Stage 2 complete)  
+> Increment 0 through the closed commercial, ops, GRC, HR, ITSM-register, and bounded I20 surfaces already shipped in Development/Test. ITR1 Stage 2 is **IMPLEMENTED / CLOSED** for Development/Test ([`itr1-it-release-register-preview.md`](itr1-it-release-register-preview.md)). This index must not be read as “stop at I0”, as UAT/Production authorization, or as a licence to start deferred streams (PO, CAL, etc.).  
 > Open Production blockers remain **ADR-0006, ADR-0012, ADR-0013**.
 
 This index maps the 30 required Phase 0 deliverables. Architecture is **normative**. Where code and architecture diverge, architecture wins until an ADR is approved.

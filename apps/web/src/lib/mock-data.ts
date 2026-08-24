@@ -66,6 +66,7 @@ export const navItems = [
       { href: "/commercial/cmdb", label: "CMDB", icon: "cmdb" },
       { href: "/commercial/itsm/changes", label: "Changes", icon: "itsm" },
       { href: "/commercial/itsm/problems", label: "Problems", icon: "itsm" },
+      { href: "/commercial/itsm/releases", label: "Releases", icon: "itsm" },
       { href: "/commercial/observability", label: "Observability", icon: "observability" },
     ],
   },

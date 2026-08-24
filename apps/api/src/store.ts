@@ -138,6 +138,7 @@ import {
   type HrCertification,
   type ItsmChange,
   type ItsmProblem,
+  type ItsmRelease,
   type KnowledgeDocument,
   type PamJitGrant,
   type PamSecretRef,
@@ -164,6 +165,7 @@ import { seedDefaultCrisisActions } from "./crisis-actions/collections.js";
 import { seedDefaultHrCertifications } from "./hr-certifications/collections.js";
 import { seedDefaultItsmChanges } from "./itsm-changes/collections.js";
 import { seedDefaultItsmProblems } from "./itsm-problems/collections.js";
+import { seedDefaultItsmReleases } from "./itsm-releases/collections.js";
 
 export type Payment = {
   id: string;
@@ -312,6 +314,7 @@ export type Store = {
   hrCertifications: HrCertification[];
   itsmChanges: ItsmChange[];
   itsmProblems: ItsmProblem[];
+  itsmReleases: ItsmRelease[];
   notifDismissals: NotifDismissal[];
   notifEmailOutbox: NotifEmailOutboxEntry[];
   notifEmailDeliveryEvents: NotifEmailDeliveryEvent[];
@@ -467,6 +470,7 @@ const ACTION_PERMS = ["crisis:read:action", "crisis:write:action"] as const;
 const CERTIFICATION_PERMS = ["hr:read:certification", "hr:write:certification"] as const;
 const CHANGE_PERMS = ["itsm:read:change", "itsm:write:change"] as const;
 const PROBLEM_PERMS = ["itsm:read:problem", "itsm:write:problem"] as const;
+const RELEASE_PERMS = ["itsm:read:release", "itsm:write:release"] as const;
 
 const ANALYTICS_PERMS = ["analytics:read:commercial", "analytics:read:operations", "analytics:read:finance"] as const;
 
@@ -627,6 +631,7 @@ const PERMS = {
   hrCertification: [...CERTIFICATION_PERMS],
   itsmChange: [...CHANGE_PERMS],
   itsmProblem: [...PROBLEM_PERMS],
+  itsmRelease: [...RELEASE_PERMS],
   platformAdmin: [
     "org:read:unit",
     "org:write:unit",
@@ -675,6 +680,7 @@ const PERMS = {
     ...CERTIFICATION_PERMS,
     ...CHANGE_PERMS,
     ...PROBLEM_PERMS,
+    ...RELEASE_PERMS,
     ...ANALYTICS_PERMS,
     ...FINANCE_MODULE_PERMS,
     "finance:create:payment",
@@ -831,6 +837,7 @@ export function seedStore(
       "hr.certification",
       "itsm.change",
       "itsm.problem",
+      "itsm.release",
     ],
     permissions: [
       ...PERMS.financeApprover,
@@ -850,6 +857,7 @@ export function seedStore(
       ...PERMS.hrCertification,
       ...PERMS.itsmChange,
       ...PERMS.itsmProblem,
+      ...PERMS.itsmRelease,
     ],
     passwordHash: hashPassword(bootstrap.bobPassword),
     attributes: { department: "finance" },
@@ -1051,6 +1059,13 @@ export function seedStore(
       key: "itsm.problem",
       name: "IT Problem",
       permissionKeys: [...PERMS.itsmProblem],
+    },
+    {
+      id: "role-itsm-release",
+      tenantId,
+      key: "itsm.release",
+      name: "IT Release",
+      permissionKeys: [...PERMS.itsmRelease],
     },
     {
       id: "role-audit-member",
@@ -1277,6 +1292,14 @@ export function seedStore(
         grantedByPrincipalId: carolId,
       },
       {
+        id: "grant-bob-itsm-release",
+        tenantId,
+        principalId: bobId,
+        roleKey: "itsm.release",
+        grantedAt: new Date().toISOString(),
+        grantedByPrincipalId: carolId,
+      },
+      {
         id: "grant-carol",
         tenantId,
         principalId: carolId,
@@ -1470,6 +1493,7 @@ export function seedStore(
     hrCertifications: [],
     itsmChanges: [],
     itsmProblems: [],
+    itsmReleases: [],
     notifDismissals: [],
     notifEmailOutbox: [],
     notifEmailDeliveryEvents: [],
@@ -1524,6 +1548,7 @@ export function seedStore(
   seedDefaultHrCertifications(store);
   seedDefaultItsmChanges(store);
   seedDefaultItsmProblems(store);
+  seedDefaultItsmReleases(store);
   return store;
 }
 
