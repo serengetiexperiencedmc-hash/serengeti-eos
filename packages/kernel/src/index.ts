@@ -64,3 +64,5 @@ export * from "./ops-field-sync.js";
 export * from "./field-cache-crypto.js";
 export * from "./ops-voucher.js";
 export * from "./hr.js";
+export * from "./itsm.js";
+export * from "./cmdb.js";

@@ -909,9 +909,19 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **I10** | Employee directory, skill catalogue, leave submit/approve SoD, People → HR nav, `/commercial/hr` workspace |
 
+### 85:xx — I11 ITSM and CMDB ✅
+
+**Shipped:** I11 complete against `docs/architecture/i11-itsm-cmdb-preview.md` (Dev/Test). API identity unchanged (`1.04.0-i3.37`); ITSM/CMDB health increment is `I11`.
+
+| Increment | Change |
+| --- | --- |
+| **I11** | Service desk tickets, CMDB CIs/relationships, ticket↔CI links, IT nav, `/commercial/itsm` + `/commercial/cmdb` |
+
+**Tests:** kernel itsm 3/3; API i11 4/4 + I10 regression 5/5; web typecheck clean. Live `dev:preview` API on 8080 returned 404 for `/v1/itsm/health` and `/v1/hr/health` (stale process) — live UI/API UNVERIFIED.
+
 ### Recommended next increments
 
-I11 ITSM + CMDB is the next numbered backlog increment (Phase 3). Remaining Phase 2 domain-map items (Calendar; Procurement request/PO) have no increment contract.
+I12 Observability is the next numbered backlog increment (Phase 3) but lacks an implementation contract (OTel exporter/collector, SLO model, alert ingest, and UI are unspecified). Remaining Phase 2 domain-map items (Calendar; Procurement request/PO) have no increment contract.
 
 ### Issues resolved
 

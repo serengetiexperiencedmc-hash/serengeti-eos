@@ -15,7 +15,7 @@ Each increment must be releasable to **Test** on its own (Production only after 
 | **I8** | Finance quotes/invoices | I7 | Quotes, invoices, SoD payments (no bank file until provider known) | GL replacement |
 | **I9** | Operations + field offline | I7 | Tasks, assignments, encrypted cache | UEM |
 | **I10** | HR core | I1 | Employee, leave, skills — **IMPLEMENTED** (Dev/Test), [`i10-hr-core-preview.md`](../architecture/i10-hr-core-preview.md) | Payroll engine |
-| **I11** | ITSM + CMDB | I4 | Tickets, CIs | Discovery |
+| **I11** | ITSM + CMDB | I4 | Tickets, CIs — **IMPLEMENTED** (Dev/Test), [`i11-itsm-cmdb-preview.md`](../architecture/i11-itsm-cmdb-preview.md) | Discovery |
 | **I12** | Observability | I11 | OTel, health dependency map | Full AIOps |
 | **I13** | Defensive SOC integration | I12 | Alert ingest, IR casefile | Homegrown SIEM |
 | **I14** | PAM / secrets / ZTNA | I1, ADR-0012/13 | JIT, vault refs | Custom VPN |

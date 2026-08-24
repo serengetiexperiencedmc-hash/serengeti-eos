@@ -112,9 +112,14 @@ import {
   type HrEmployeeSkill,
   type HrLeaveRequest,
   type HrSkill,
+  type CmdbCi,
+  type CmdbRelationship,
+  type ItsmTicket,
+  type ItsmTicketCi,
 } from "@sedmc/kernel";
 import { seedCrmCatalogues } from "./crm/collections.js";
 import { seedDefaultHr } from "./hr/collections.js";
+import { seedDefaultIt } from "./it/collections.js";
 
 export type Payment = {
   id: string;
@@ -234,6 +239,10 @@ export type Store = {
   hrSkills: HrSkill[];
   hrEmployeeSkills: HrEmployeeSkill[];
   hrLeaveRequests: HrLeaveRequest[];
+  cmdbCis: CmdbCi[];
+  cmdbRelationships: CmdbRelationship[];
+  itsmTickets: ItsmTicket[];
+  itsmTicketCis: ItsmTicketCi[];
   notifDismissals: NotifDismissal[];
   notifEmailOutbox: NotifEmailOutboxEntry[];
   notifEmailDeliveryEvents: NotifEmailDeliveryEvent[];
@@ -422,6 +431,16 @@ const HR_APPROVER_PERMS = [
   "hr:approve:leave",
 ] as const;
 
+const ITSM_PERMS = [
+  "itsm:read:ticket",
+  "itsm:write:ticket",
+  "itsm:assign:ticket",
+  "itsm:resolve:ticket",
+  "itsm:close:ticket",
+] as const;
+
+const CMDB_PERMS = ["cmdb:read:ci", "cmdb:write:ci"] as const;
+
 const PERMS = {
   financeMember: [
     "finance:create:payment",
@@ -451,6 +470,7 @@ const PERMS = {
   ],
   hrMember: [...HR_MEMBER_PERMS],
   hrApprover: [...HR_APPROVER_PERMS],
+  itAgent: [...ITSM_PERMS, ...CMDB_PERMS],
   platformAdmin: [
     "org:read:unit",
     "org:write:unit",
@@ -498,6 +518,8 @@ const PERMS = {
     "finance:create:payment",
     "finance:read:payment",
     ...HR_PERMS,
+    ...ITSM_PERMS,
+    ...CMDB_PERMS,
     ...NOTIFICATION_PERMS,
     "ai:read:recommend",
     "ai:write:draft",
@@ -712,6 +734,13 @@ export function seedStore(
       key: "hr.approver",
       name: "HR Approver",
       permissionKeys: [...PERMS.hrApprover],
+    },
+    {
+      id: "role-it-agent",
+      tenantId,
+      key: "it.agent",
+      name: "IT Agent",
+      permissionKeys: [...PERMS.itAgent],
     },
     {
       id: "role-ai-agent",
@@ -961,6 +990,10 @@ export function seedStore(
     hrSkills: [],
     hrEmployeeSkills: [],
     hrLeaveRequests: [],
+    cmdbCis: [],
+    cmdbRelationships: [],
+    itsmTickets: [],
+    itsmTicketCis: [],
     notifDismissals: [],
     notifEmailOutbox: [],
     notifEmailDeliveryEvents: [],
@@ -995,6 +1028,7 @@ export function seedStore(
   };
   seedCrmCatalogues(store, tenantId);
   seedDefaultHr(store);
+  seedDefaultIt(store);
   return store;
 }
 
