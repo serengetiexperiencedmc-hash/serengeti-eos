@@ -12,7 +12,7 @@ This record assigns **K2**. It is a **crisis-command family** identifier after I
 | Name | Crisis Action Register |
 | Family | crisis-command |
 | Environment | Development/Test only |
-| **IMPLEMENTATION_AUTHORIZED** | **NO** |
+| **IMPLEMENTATION_AUTHORIZED** | **YES** |
 | I18 Crisis overlay | CLOSED — not reopened (read-only parent `crisis_cases` only) |
 | K1 Crisis Decision Log | CLOSED — not reopened |
 | I17 BCM backup evidence | CLOSED — not reopened |
@@ -25,7 +25,7 @@ This record assigns **K2**. It is a **crisis-command family** identifier after I
 
 ## Authorized scope (preview/contract only)
 
-Tenant-scoped, human-maintained **action register** against an existing same-tenant **open** I18 crisis case. Required `title`; required `crisisId`; optional `ownerLabel` (text, not a principal id) and `notes`; status. Lifecycle `open` → `done`, `open` → `cancelled` (`done` and `cancelled` terminal). `crisisId` immutable after create. Human-only mutation. Dedicated action read/write permissions (do not broaden I18 `crisis.commander` / case / timeline permissions or K1 decision permissions). API `/v1/crisis/actions`. UI **Crisis → Actions** at `/commercial/crisis/actions` (declaration remains I18; decisions remain K1). Store key `crisisActions`. Aggregate `crisis_actions`. Runtime in-memory. Additive SQL only if implementation is later authorized.
+Tenant-scoped, human-maintained **action register** against an existing same-tenant **open** I18 crisis case. Required `title`; required `crisisId`; optional `ownerLabel` (text, not a principal id) and `notes`; status. Lifecycle `open` → `done`, `open` → `cancelled` (`done` and `cancelled` terminal). `crisisId` immutable after create. Human-only mutation. Dedicated action read/write permissions (do not broaden I18 `crisis.commander` / case / timeline permissions or K1 decision permissions). API `/v1/crisis/actions`. UI **Crisis → Actions** at `/commercial/crisis/actions` (declaration remains I18; decisions remain K1). Store key `crisisActions`. Aggregate `crisis_actions`. Runtime in-memory. Additive SQL `099_k2_crisis_actions.sql`.
 
 K2 is **not** the full Architecture 13.2 action tracker: no principal assignment, due times, SLA, reminders, escalation, or scheduling engine.
 
@@ -35,9 +35,9 @@ Emergency communications (SMS / voice / Teams / email blasts); exercise engine /
 
 ## Implementation
 
-**IMPLEMENTATION_AUTHORIZED=NO**
+**IMPLEMENTATION_AUTHORIZED=YES**
 
-This record plus the architecture preview authorize **preview/authorization artifacts only**. Implementation (kernel, API, RBAC, UI, tests, runtime store, migration) requires a **separate explicit execution instruction** after these records are committed.
+This record plus the architecture preview and a separate explicit execution instruction authorize kernel, API, RBAC, UI, tests, runtime store, and additive SQL for Development/Test.
 
 ## Contract
 

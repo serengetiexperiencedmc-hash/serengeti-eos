@@ -109,6 +109,7 @@ export const navItems = [
     items: [
       { href: "/commercial/crisis", label: "Declaration", icon: "crisis" },
       { href: "/commercial/crisis/decisions", label: "Decisions", icon: "crisis" },
+      { href: "/commercial/crisis/actions", label: "Actions", icon: "crisis" },
     ],
   },
   {

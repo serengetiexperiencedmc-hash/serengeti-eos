@@ -9,16 +9,16 @@
 | Family | crisis-command |
 | Predecessor | I2 kernel (complete); I18 Crisis overlay complete and **not** reopened; K1 Crisis Decision Log complete and **not** reopened; I17 BCM complete and **not** reopened; O1–O6 complete and **not** reopened; G1–G5 complete and **not** reopened |
 | Architecture status | This document is the K2 contract |
-| Implementation status | **NOT AUTHORIZED** — preview only |
+| Implementation status | **IMPLEMENTED / COMPLETE** |
 | Environment | Development/Test only |
-| Persistence | In-memory at implementation time. Additive SQL only if implementation is later authorized. ADR-0017 not reopened. No migration file in this increment |
+| Persistence | In-memory store + additive SQL `099_k2_crisis_actions.sql`. ADR-0017 not reopened |
 | Runtime health increment | `K2` |
 | Production / UAT / AI | Not authorized |
-| **IMPLEMENTATION_AUTHORIZED** | **NO** |
+| **IMPLEMENTATION_AUTHORIZED** | **YES** |
 
 Authority: 2026-08-24 governance **CANDIDATE=CRISIS_ACTION_REGISTER / DECISION=APPROVE / CAPABILITY_ID=K2 / FAMILY=CRISIS_COMMAND / CONTRACT=APPROVE / EXCLUSIONS=APPROVE / PREVIEW=AUTHORIZE / IMPLEMENTATION=NOT_YET_AUTHORIZED** and [`k2-crisis-action-register-authorized.md`](../governance/k2-crisis-action-register-authorized.md). ID **K2** is assigned by that record. It is a crisis-command family identifier after I18 and K1. This is not O7, not I18.x, not G6, and not a reopen of I18 or K1.
 
-The sections after this heading are the architecture contract. Implementation must not begin until a separate explicit execution instruction.
+The sections after this heading are the architecture contract.
 
 ---
 
@@ -72,7 +72,7 @@ JSON may include a read-only `crisisCode` resolved from I18 at response time. Cr
 
 ## Persistence / migration
 
-No migration in this Stage 1 increment. If implementation is later authorized: additive SQL only; runtime in-memory; live PostgreSQL UNVERIFIED. ADR-0017 not reopened.
+No migration beyond additive SQL `099_k2_crisis_actions.sql`. Runtime in-memory; live PostgreSQL UNVERIFIED. ADR-0017 not reopened.
 
 ## Workflow
 

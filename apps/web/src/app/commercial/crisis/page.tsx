@@ -137,6 +137,9 @@ export default function CrisisDeclarationPage() {
             <Btn variant="secondary" href="/commercial/crisis/decisions">
               Decisions
             </Btn>
+            <Btn variant="secondary" href="/commercial/crisis/actions">
+              Actions
+            </Btn>
             <Btn variant="secondary" href="/commercial">
               ← Dashboard
             </Btn>
