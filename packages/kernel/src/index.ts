@@ -71,3 +71,4 @@ export * from "./security.js";
 export * from "./pam.js";
 export * from "./erm.js";
 export * from "./knowledge.js";
+export * from "./audit-ia.js";

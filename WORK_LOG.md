@@ -969,9 +969,19 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 
 **Tests:** kernel knowledge 2/2; API i19 3/3; regression I15 3/3; web typecheck clean. Live preview API UNVERIFIED (existing process predates I19; not restarted). Live PostgreSQL UNVERIFIED.
 
+### 91:xx — I16 Internal Audit ✅
+
+**Shipped:** I16 complete against `docs/architecture/i16-internal-audit-preview.md` (Dev/Test). API identity unchanged (`1.04.0-i3.37`); Internal Audit health increment is `I16`. Engagements + workpapers only. Object-level SoD: workpaper creator cannot finalize. Bob holds `audit.member` for review. No Opinion aggregate.
+
+| Increment | Change |
+| --- | --- |
+| **I16** | Engagements, workpapers, SoD finalize, Audit → Engagements, `/commercial/audit-ia` |
+
+**Tests:** kernel audit-ia 2/2; API i16 3/3; regression I19 3/3; web typecheck clean.
+
 ### Recommended next increments
 
-No remaining implementation-ready authorized capability. I16 still needs an engagement/workpaper contract. I17 remains deferred (ADR-0011). I22 remains deferred. I20 stays within existing L0–L1.
+No remaining implementation-ready authorized capability. I17 remains deferred (ADR-0011). I15 remaining compliance/privacy remain deferred. I22 remains deferred. I20 stays within existing L0–L1.
 
 ### Issues resolved
 

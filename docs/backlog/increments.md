@@ -20,7 +20,7 @@ Each increment must be releasable to **Test** on its own (Production only after 
 | **I13** | Defensive SOC integration | I12 | Alert ingest, IR casefile — **IMPLEMENTED** (Dev/Test), [`i13-defensive-soc-preview.md`](../architecture/i13-defensive-soc-preview.md) | Homegrown SIEM |
 | **I14** | PAM / secrets / ZTNA | I1, ADR-0012/13 | JIT, vault refs — **IMPLEMENTED** bounded Dev/Test (opaque refs + in-memory JIT; not production vault), [`i14-pam-preview.md`](../architecture/i14-pam-preview.md) | Custom VPN |
 | **I15** | ERM + compliance + privacy | I2 | Registers, RoPA, DSR workflow — **IMPLEMENTED** risk register only (obligations/RoPA/DSR deferred), [`i15-erm-risk-register-preview.md`](../architecture/i15-erm-risk-register-preview.md) | Legal opinion automation |
-| **I16** | Internal audit | I15 | Engagements, workpapers | |
+| **I16** | Internal audit | I15 | Engagements, workpapers — **IMPLEMENTED** (Dev/Test), [`i16-internal-audit-preview.md`](../architecture/i16-internal-audit-preview.md) | Opinion / external GRC |
 | **I17** | BCM + backup proof | ADR-0011 | 19:00 EAT job, restore probe evidence | Hot site unless ADR |
 | **I18** | Crisis + emcomms + exercises | I3, I17 | Command center | Voice until provider |
 | **I19** | Knowledge + search | I0 | Authority states, permissioned search — **IMPLEMENTED** tenant-scoped SQL-shaped search (no graph/external index), [`i19-knowledge-search-preview.md`](../architecture/i19-knowledge-search-preview.md) | Graph DB |
