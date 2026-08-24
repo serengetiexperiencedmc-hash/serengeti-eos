@@ -826,6 +826,15 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **C4** | Close remaining C4 contract gaps: tenant-scoped supplier health, `supplier:read:supplier` on health/categories, C4 security tests. Existing Supplier Library UI and import/CRUD unchanged |
 | Docs | `c4-supplier-preview.md` lifecycle status recorded after ship |
 
+### 75:xx — C5 programme builder ✅
+
+**Shipped:** C5 complete against `docs/architecture/c5-programme-preview.md` (Dev/Test). API identity unchanged (`1.04.0-i3.37`); programme health increment remains `C5`.
+
+| Increment | Change |
+| --- | --- |
+| **C5** | Tenant-scoped programme health, title-required day/item writes, builder UI (create programme, add day/item, attach supplier), C5 security tests |
+| Docs | `c5-programme-preview.md` lifecycle status recorded after ship |
+
 ### Recommended next increments
 
 1. I20.23 — (unnamed / undefined)

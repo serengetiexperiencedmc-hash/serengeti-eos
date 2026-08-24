@@ -14,6 +14,15 @@ async function loginCarol(app: ReturnType<typeof buildServer>) {
   return res.json().accessToken as string;
 }
 
+async function loginAlice(app: ReturnType<typeof buildServer>) {
+  const res = await app.inject({
+    method: "POST",
+    url: "/v1/auth/login",
+    payload: { email: "alice.finance@sedmc.local", password: P.alicePassword, tenantSlug: "sedmc" },
+  });
+  return res.json().accessToken as string;
+}
+
 async function seedCrmOrg(app: ReturnType<typeof buildServer>, token: string) {
   const csv = ["legalName,organizationTypeKey,tradingName,country", "Programme Client Ltd,corporate,Programme Client,UK"].join("\n");
   const created = await app.inject({
@@ -133,5 +142,102 @@ describe("C5 programme API", () => {
       payload: { rfpId, title: "Second" },
     });
     expect(dup.statusCode).toBe(409);
+  });
+
+  it("scopes programme health and enforces builder validation", async () => {
+    const store = seedStore("test-secret");
+    const app = buildServer({ store });
+    const token = await loginCarol(app);
+    const orgId = await seedCrmOrg(app, token);
+    const rfpId = await createRfp(app, token, orgId);
+
+    const created = await app.inject({
+      method: "POST",
+      url: "/v1/programmes",
+      headers: { authorization: `Bearer ${token}` },
+      payload: { rfpId, title: "Health Programme" },
+    });
+    expect(created.statusCode).toBe(201);
+    const programmeId = created.json().programme.id as string;
+    expect(created.json().programme).not.toHaveProperty("tenantId");
+
+    store.prgProgrammes.push({
+      ...store.prgProgrammes[0]!,
+      id: "99999999-9999-4999-8999-999999999999",
+      tenantId: "22222222-2222-4222-8222-222222222222",
+      programmeCode: "PRG-FOREIGN",
+    });
+
+    const health = await app.inject({
+      method: "GET",
+      url: "/v1/programmes/health",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(health.statusCode).toBe(200);
+    expect(health.json().increment).toBe("C5");
+    expect(health.json().programmes).toBe(1);
+
+    const blankDay = await app.inject({
+      method: "POST",
+      url: `/v1/programmes/${programmeId}/days`,
+      headers: { authorization: `Bearer ${token}` },
+      payload: { dayNumber: 1, title: "   " },
+    });
+    expect(blankDay.statusCode).toBe(400);
+    expect(blankDay.json().reason).toBe("title_required");
+
+    const day = await app.inject({
+      method: "POST",
+      url: `/v1/programmes/${programmeId}/days`,
+      headers: { authorization: `Bearer ${token}` },
+      payload: { dayNumber: 1, title: "Arrival", location: "Arusha" },
+    });
+    expect(day.statusCode).toBe(201);
+    const dayId = day.json().day.id as string;
+    expect(day.json().day).not.toHaveProperty("tenantId");
+
+    const blankItem = await app.inject({
+      method: "POST",
+      url: `/v1/programmes/${programmeId}/days/${dayId}/items`,
+      headers: { authorization: `Bearer ${token}` },
+      payload: { title: " " },
+    });
+    expect(blankItem.statusCode).toBe(400);
+
+    const item = await app.inject({
+      method: "POST",
+      url: `/v1/programmes/${programmeId}/days/${dayId}/items`,
+      headers: { authorization: `Bearer ${token}` },
+      payload: { title: "Airport transfer", startTime: "14:00" },
+    });
+    expect(item.statusCode).toBe(201);
+
+    const aliceToken = await loginAlice(app);
+    const denied = await app.inject({
+      method: "GET",
+      url: "/v1/programmes/health",
+      headers: { authorization: `Bearer ${aliceToken}` },
+    });
+    expect(denied.statusCode).toBe(403);
+
+    const partnerLogin = await app.inject({
+      method: "POST",
+      url: "/v1/auth/login",
+      payload: { email: "partner@external.local", password: P.partnerPassword, tenantSlug: "partner-demo" },
+    });
+    const partnerToken = partnerLogin.json().accessToken as string;
+    const foreign = await app.inject({
+      method: "GET",
+      url: `/v1/programmes/${programmeId}`,
+      headers: { authorization: `Bearer ${partnerToken}` },
+    });
+    expect(foreign.statusCode).toBe(404);
+  });
+
+  it("rejects unauthenticated programme reads", async () => {
+    const store = seedStore("test-secret");
+    const app = buildServer({ store });
+    const res = await app.inject({ method: "GET", url: "/v1/programmes/health" });
+    expect(res.statusCode).toBe(401);
   });
 });

@@ -67,15 +67,24 @@ function findProgrammeByRfp(store: Store, tenantId: string, rfpId: string): PrgP
   return store.prgProgrammes.find((p) => p.rfpId === rfpId && p.tenantId === tenantId && !p.archivedAt);
 }
 
-export function getProgrammeModuleHealth(store: Store) {
+export function getProgrammeModuleHealth(store: Store, principal: Principal) {
   ensureProgrammeCollections(store);
+  const decision = authorize({
+    principal,
+    permission: "programme:read:programme",
+    action: "read:prg_programme",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+  const tenantId = principal.tenantId;
+  const programmes = store.prgProgrammes.filter((p) => p.tenantId === tenantId && !p.archivedAt);
+  const programmeIds = new Set(programmes.map((p) => p.id));
   return {
     module: "programme",
     increment: "C5",
     status: "ok" as const,
-    programmes: store.prgProgrammes.filter((p) => !p.archivedAt).length,
-    days: store.prgDays.length,
-    items: store.prgItems.length,
+    programmes: programmes.length,
+    days: store.prgDays.filter((d) => d.tenantId === tenantId && programmeIds.has(d.programmeId)).length,
+    items: store.prgItems.filter((i) => i.tenantId === tenantId && programmeIds.has(i.programmeId)).length,
   };
 }
 
@@ -118,13 +127,13 @@ export function getProgrammeDetail(store: Store, principal: Principal, id: strin
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
 
   const days = store.prgDays
-    .filter((d) => d.programmeId === id)
+    .filter((d) => d.programmeId === id && d.tenantId === programme.tenantId)
     .sort((a, b) => a.sortOrder - b.sortOrder || a.dayNumber - b.dayNumber);
 
   const itemsByDay = new Map<string, ReturnType<typeof sanitizeItem>[]>();
   for (const day of days) {
     const items = store.prgItems
-      .filter((i) => i.dayId === day.id)
+      .filter((i) => i.dayId === day.id && i.tenantId === programme.tenantId)
       .sort((a, b) => a.sortOrder - b.sortOrder)
       .map(sanitizeItem);
     itemsByDay.set(day.id, items);
@@ -329,6 +338,13 @@ export function addProgrammeDay(
     return { error: "forbidden" as const, reason: decision.reason };
   }
 
+  if (!Number.isFinite(input.dayNumber) || input.dayNumber < 1) {
+    return { error: "invalid_request" as const, reason: "day_number_required" };
+  }
+  if (!input.title?.trim()) {
+    return { error: "invalid_request" as const, reason: "title_required" };
+  }
+
   if (store.prgDays.some((d) => d.programmeId === programmeId && d.dayNumber === input.dayNumber)) {
     return { error: "conflict" as const, reason: "duplicate_day_number" };
   }
@@ -365,7 +381,9 @@ export function addProgrammeItem(
   const programme = findProgramme(store, principal.tenantId, programmeId);
   if (!programme) return { error: "not_found" as const };
 
-  const day = store.prgDays.find((d) => d.id === dayId && d.programmeId === programmeId);
+  const day = store.prgDays.find(
+    (d) => d.id === dayId && d.programmeId === programmeId && d.tenantId === programme.tenantId,
+  );
   if (!day) return { error: "not_found" as const, reason: "day_not_found" };
 
   const decision = authorize({
@@ -382,6 +400,10 @@ export function addProgrammeItem(
   if (decision.result === "deny") {
     denyProgrammeAudit(store, principal, "programme:write:item", "prg_item", correlationId, decision.reason, programmeId);
     return { error: "forbidden" as const, reason: decision.reason };
+  }
+
+  if (!input.title?.trim()) {
+    return { error: "invalid_request" as const, reason: "title_required" };
   }
 
   const now = new Date().toISOString();

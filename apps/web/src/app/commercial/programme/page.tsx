@@ -1,12 +1,18 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { AiPanel, Btn, PageHeader } from "@/components/commercial/ui";
 import { useEosSession } from "@/components/commercial/EosSessionProvider";
 import { listOrganizations, type CrmOrganization } from "@/lib/crm-api";
 import { EosApiError } from "@/lib/eos-client";
-import { getProgrammeByRfp, type ProgrammeDetail } from "@/lib/programme-api";
+import {
+  addProgrammeDay,
+  addProgrammeItem,
+  createProgramme,
+  getProgrammeByRfp,
+  type ProgrammeDetail,
+} from "@/lib/programme-api";
 import { getCostSheetByProgramme, formatCost, COST_CATEGORY_LABELS, recalculateCostSheet, type CostSheetDetail } from "@/lib/costing-api";
 import { listSuppliers, type SupplierSummary } from "@/lib/suppliers-api";
 
@@ -15,39 +21,74 @@ function ProgrammeBuilderContent() {
   const rfpId = searchParams.get("rfpId") ?? undefined;
   const { token, ready } = useEosSession();
   const [detail, setDetail] = useState<ProgrammeDetail | null>(null);
+  const [missing, setMissing] = useState(false);
   const [costing, setCosting] = useState<CostSheetDetail | null>(null);
   const [suppliers, setSuppliers] = useState<SupplierSummary[]>([]);
+  const [supplierQuery, setSupplierQuery] = useState("");
   const [orgs, setOrgs] = useState<CrmOrganization[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
+  const [dayTitle, setDayTitle] = useState("");
+  const [dayLocation, setDayLocation] = useState("");
+  const [itemTitle, setItemTitle] = useState("");
+  const [itemTime, setItemTime] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
+  const loadProgramme = useCallback(async () => {
     if (!token || !rfpId) {
       setDetail(null);
       setCosting(null);
+      setMissing(false);
       return;
     }
     setLoading(true);
     setError(null);
-    Promise.all([getProgrammeByRfp(token, rfpId), listSuppliers(token), listOrganizations(token)])
-      .then(async ([programme, supplierList, orgList]) => {
-        setDetail(programme);
-        setSuppliers(supplierList.items.slice(0, 8));
-        setOrgs(orgList.items);
+    setMissing(false);
+    try {
+      const [programme, supplierList, orgList] = await Promise.all([
+        getProgrammeByRfp(token, rfpId),
+        listSuppliers(token),
+        listOrganizations(token),
+      ]);
+      setDetail(programme);
+      setSuppliers(supplierList.items);
+      setOrgs(orgList.items);
+      setSelectedDayId((current) => {
+        if (current && programme.days.some((d) => d.id === current)) return current;
+        return programme.days[0]?.id ?? null;
+      });
+      try {
+        const sheet = await getCostSheetByProgramme(token, programme.programme.id);
+        setCosting(sheet);
+      } catch {
+        setCosting(null);
+      }
+    } catch (err) {
+      setDetail(null);
+      setCosting(null);
+      if (err instanceof EosApiError && err.status === 404) {
+        setMissing(true);
         try {
-          const sheet = await getCostSheetByProgramme(token, programme.programme.id);
-          setCosting(sheet);
+          const [supplierList, orgList] = await Promise.all([listSuppliers(token), listOrganizations(token)]);
+          setSuppliers(supplierList.items);
+          setOrgs(orgList.items);
         } catch {
-          setCosting(null);
+          /* keep builder usable for create even if library fails */
         }
-      })
-      .catch((err) => {
+      } else {
         setError(err instanceof EosApiError ? err.message : "Failed to load programme");
-        setDetail(null);
-      })
-      .finally(() => setLoading(false));
+      }
+    } finally {
+      setLoading(false);
+    }
   }, [token, rfpId]);
+
+  useEffect(() => {
+    void loadProgramme();
+  }, [loadProgramme]);
 
   const clientName = useMemo(() => {
     if (!detail) return "";
@@ -58,8 +99,23 @@ function ProgrammeBuilderContent() {
   const subtitle = detail
     ? `${clientName} · ${detail.programme.paxCount ?? "—"} pax · ${detail.programme.destinations ?? "Tanzania"}`
     : rfpId
-      ? "Loading programme…"
+      ? missing
+        ? "No programme yet for this RFP"
+        : "Loading programme…"
       : "Open from an RFP to load programme data";
+
+  const filteredSuppliers = useMemo(() => {
+    const q = supplierQuery.trim().toLowerCase();
+    if (!q) return suppliers.slice(0, 12);
+    return suppliers
+      .filter(
+        (s) =>
+          s.legalName.toLowerCase().includes(q) ||
+          s.supplierCode.toLowerCase().includes(q) ||
+          (s.tradingName?.toLowerCase().includes(q) ?? false),
+      )
+      .slice(0, 12);
+  }, [suppliers, supplierQuery]);
 
   async function handleSaveAndCost() {
     if (!token || !costing) return;
@@ -73,6 +129,84 @@ function ProgrammeBuilderContent() {
     } finally {
       setRecalculating(false);
     }
+  }
+
+  async function handleCreateProgramme() {
+    if (!token || !rfpId) return;
+    setCreating(true);
+    setError(null);
+    try {
+      await createProgramme(token, { rfpId });
+      await loadProgramme();
+    } catch (err) {
+      setError(err instanceof EosApiError ? err.message : "Failed to create programme");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function handleAddDay() {
+    if (!token || !detail) return;
+    const title = dayTitle.trim();
+    if (!title) {
+      setError("Day title is required");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const nextNumber = detail.days.reduce((max, d) => Math.max(max, d.dayNumber), 0) + 1;
+      await addProgrammeDay(token, detail.programme.id, {
+        dayNumber: nextNumber,
+        title,
+        ...(dayLocation.trim() ? { location: dayLocation.trim() } : {}),
+      });
+      setDayTitle("");
+      setDayLocation("");
+      await loadProgramme();
+    } catch (err) {
+      setError(err instanceof EosApiError ? err.message : "Failed to add day");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleAddItem(dayId: string, input: { title: string; startTime?: string; supplierId?: string; supplierLabel?: string }) {
+    if (!token || !detail) return;
+    if (!input.title.trim()) {
+      setError("Item title is required");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await addProgrammeItem(token, detail.programme.id, dayId, {
+        title: input.title.trim(),
+        ...(input.startTime ? { startTime: input.startTime } : {}),
+        ...(input.supplierId ? { supplierId: input.supplierId } : {}),
+        ...(input.supplierLabel ? { supplierLabel: input.supplierLabel } : {}),
+      });
+      setItemTitle("");
+      setItemTime("");
+      setSelectedDayId(dayId);
+      await loadProgramme();
+    } catch (err) {
+      setError(err instanceof EosApiError ? err.message : "Failed to add itinerary item");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleAttachSupplier(supplier: SupplierSummary) {
+    if (!selectedDayId) {
+      setError("Add or select a day before attaching a supplier");
+      return;
+    }
+    await handleAddItem(selectedDayId, {
+      title: supplier.tradingName ?? supplier.legalName,
+      supplierId: supplier.id,
+      supplierLabel: supplier.tradingName ?? supplier.legalName,
+    });
   }
 
   return (
@@ -114,48 +248,122 @@ function ProgrammeBuilderContent() {
 
       {loading && <p className="text-sm text-muted">Loading programme…</p>}
 
+      {token && rfpId && missing && !loading && (
+        <div className="mb-4 rounded-md border border-line bg-ivory px-4 py-4 text-sm text-ink-soft">
+          <p className="mb-3">This RFP has no programme yet. Create one to start the itinerary.</p>
+          <Btn disabled={creating} onClick={() => void handleCreateProgramme()}>
+            {creating ? "Creating…" : "Create programme"}
+          </Btn>
+        </div>
+      )}
+
       {detail && (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[280px_1fr_300px]">
           <Panel title="Supplier Library">
             <input
               type="search"
+              value={supplierQuery}
+              onChange={(e) => setSupplierQuery(e.target.value)}
               placeholder="Search suppliers…"
               className="mb-3 w-full rounded-md border border-line px-3 py-2 text-xs outline-none focus:border-gold"
-              disabled
             />
-            {suppliers.map((s) => (
-              <div
-                key={s.id}
-                className="mb-2 flex cursor-grab items-center gap-2 rounded-md border border-line bg-ivory p-2 text-xs hover:border-gold"
-              >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-sand text-[0.6rem] text-muted">
-                  {s.category.slice(0, 3).toUpperCase()}
-                </div>
-                <div>
-                  <strong className="block text-ink">{s.tradingName ?? s.legalName}</strong>
-                  <span className="text-muted">{s.preferredPartner ? "★ Preferred" : s.category.replace(/_/g, " ")}</span>
-                </div>
-              </div>
-            ))}
+            <p className="mb-2 text-[0.65rem] text-muted">Click a supplier to add it to the selected day.</p>
+            {filteredSuppliers.length === 0 ? (
+              <p className="text-xs text-muted">No suppliers match.</p>
+            ) : (
+              filteredSuppliers.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  disabled={busy || !selectedDayId}
+                  onClick={() => void handleAttachSupplier(s)}
+                  className="mb-2 flex w-full cursor-pointer items-center gap-2 rounded-md border border-line bg-ivory p-2 text-left text-xs hover:border-gold disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-sand text-[0.6rem] text-muted">
+                    {s.category.slice(0, 3).toUpperCase()}
+                  </div>
+                  <div>
+                    <strong className="block text-ink">{s.tradingName ?? s.legalName}</strong>
+                    <span className="text-muted">{s.preferredPartner ? "★ Preferred" : s.category.replace(/_/g, " ")}</span>
+                  </div>
+                </button>
+              ))
+            )}
           </Panel>
 
           <Panel title="Itinerary · Live from C5 API">
+            <div className="mb-3 rounded-md border border-line bg-ivory p-3">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Add day</div>
+              <input
+                value={dayTitle}
+                onChange={(e) => setDayTitle(e.target.value)}
+                placeholder="Day title"
+                className="mb-2 w-full rounded-md border border-line px-3 py-2 text-xs outline-none focus:border-gold"
+              />
+              <input
+                value={dayLocation}
+                onChange={(e) => setDayLocation(e.target.value)}
+                placeholder="Location (optional)"
+                className="mb-2 w-full rounded-md border border-line px-3 py-2 text-xs outline-none focus:border-gold"
+              />
+              <Btn size="sm" disabled={busy} onClick={() => void handleAddDay()}>
+                Add day
+              </Btn>
+            </div>
+
             {detail.days.length === 0 ? (
-              <p className="text-sm text-muted">No days yet. Add days via the API.</p>
+              <p className="text-sm text-muted">No days yet. Add a day to start the itinerary.</p>
             ) : (
               detail.days.map((day) => (
-                <DayBlock
-                  key={day.id}
-                  day={day.title}
-                  location={day.location ?? ""}
-                  items={day.items.map((item) => ({
-                    time: item.startTime ?? "—",
-                    title: item.title,
-                    sub: item.supplierLabel ?? item.description ?? "",
-                  }))}
-                  empty={day.items.length === 0}
-                />
+                <div key={day.id} className={selectedDayId === day.id ? "ring-1 ring-gold rounded-[10px]" : ""}>
+                  <button
+                    type="button"
+                    className="mb-1 w-full text-left"
+                    onClick={() => setSelectedDayId(day.id)}
+                  >
+                    <DayBlock
+                      day={day.title}
+                      location={day.location ?? (selectedDayId === day.id ? "Selected" : "")}
+                      items={day.items.map((item) => ({
+                        time: item.startTime ?? "—",
+                        title: item.title,
+                        sub: item.supplierLabel ?? item.description ?? "",
+                      }))}
+                      empty={day.items.length === 0}
+                    />
+                  </button>
+                </div>
               ))
+            )}
+
+            {selectedDayId && (
+              <div className="mt-2 rounded-md border border-dashed border-line p-3">
+                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Add item to selected day</div>
+                <input
+                  value={itemTitle}
+                  onChange={(e) => setItemTitle(e.target.value)}
+                  placeholder="Item title"
+                  className="mb-2 w-full rounded-md border border-line px-3 py-2 text-xs outline-none focus:border-gold"
+                />
+                <input
+                  value={itemTime}
+                  onChange={(e) => setItemTime(e.target.value)}
+                  placeholder="Start time (optional)"
+                  className="mb-2 w-full rounded-md border border-line px-3 py-2 text-xs outline-none focus:border-gold"
+                />
+                <Btn
+                  size="sm"
+                  disabled={busy}
+                  onClick={() =>
+                    void handleAddItem(selectedDayId, {
+                      title: itemTitle,
+                      ...(itemTime.trim() ? { startTime: itemTime.trim() } : {}),
+                    })
+                  }
+                >
+                  Add item
+                </Btn>
+              </div>
             )}
           </Panel>
 
@@ -264,7 +472,7 @@ function DayBlock({
         ))}
         {empty && (
           <div className="rounded-md border border-dashed border-line bg-ivory p-2.5 text-xs text-muted">
-            Drop supplier here…
+            Select this day, then add an item or click a supplier.
           </div>
         )}
       </div>

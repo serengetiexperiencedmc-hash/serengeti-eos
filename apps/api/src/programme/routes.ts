@@ -32,7 +32,9 @@ export function registerProgrammeRoutes(app: FastifyInstance, store: Store): voi
   app.get("/v1/programmes/health", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    return getProgrammeModuleHealth(store);
+    const result = getProgrammeModuleHealth(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
   });
 
   app.get("/v1/programmes", async (req, reply) => {
