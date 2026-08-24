@@ -8,7 +8,7 @@
 | Capability name | GRC Control Catalogue |
 | Predecessor | I2 kernel (complete); I15 ERM complete and **not** reopened; G1 complete and **not** reopened; P1 complete and **not** reopened |
 | Architecture status | This document is the G2 contract |
-| Implementation status | **PREVIEW / NOT IMPLEMENTED** |
+| Implementation status | **IMPLEMENTED / COMPLETE** |
 | Environment | Development/Test only |
 | Persistence | In-memory store + additive SQL `093_g2_grc_control_catalogue.sql`. ADR-0017 not reopened |
 | Runtime health increment | `G2` |

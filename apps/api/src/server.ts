@@ -84,6 +84,7 @@ import { registerBcmRoutes } from "./bcm/routes.js";
 import { registerCrisisRoutes } from "./crisis/routes.js";
 import { registerComplianceRoutes } from "./compliance/routes.js";
 import { registerPrivacyRoutes } from "./privacy/routes.js";
+import { registerGrcRoutes } from "./grc/routes.js";
 import type { EventCatalogueEntry } from "@sedmc/kernel";
 import {
   createLogger,
@@ -144,6 +145,7 @@ export function buildServer(options: ServerOptions | Store = {}) {
   registerCrisisRoutes(app, store);
   registerComplianceRoutes(app, store);
   registerPrivacyRoutes(app, store);
+  registerGrcRoutes(app, store);
   registerAiRoutes(app, store);
 
   app.get("/health", async (_req, reply) => {

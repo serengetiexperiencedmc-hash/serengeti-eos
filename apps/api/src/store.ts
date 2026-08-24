@@ -128,6 +128,7 @@ import {
   type ComplianceObligation,
   type PrivacyProcessingActivity,
   type PrivacyDsrCase,
+  type GrcControl,
   type KnowledgeDocument,
   type PamJitGrant,
   type PamSecretRef,
@@ -144,6 +145,7 @@ import { seedDefaultBcm } from "./bcm/collections.js";
 import { seedDefaultCrisis } from "./crisis/collections.js";
 import { seedDefaultCompliance } from "./compliance/collections.js";
 import { seedDefaultPrivacy } from "./privacy/collections.js";
+import { seedDefaultGrc } from "./grc/collections.js";
 
 export type Payment = {
   id: string;
@@ -282,6 +284,7 @@ export type Store = {
   complianceObligations: ComplianceObligation[];
   privacyProcessingActivities: PrivacyProcessingActivity[];
   privacyDsrCases: PrivacyDsrCase[];
+  grcControls: GrcControl[];
   notifDismissals: NotifDismissal[];
   notifEmailOutbox: NotifEmailOutboxEntry[];
   notifEmailDeliveryEvents: NotifEmailDeliveryEvent[];
@@ -525,6 +528,8 @@ const CRISIS_PERMS = [
 
 const COMPLIANCE_PERMS = ["compliance:read:obligation", "compliance:write:obligation"] as const;
 
+const GRC_PERMS = ["grc:read:control", "grc:write:control"] as const;
+
 const PRIVACY_PERMS = [
   "privacy:read:activity",
   "privacy:write:activity",
@@ -569,6 +574,7 @@ const PERMS = {
   crisisCommander: [...CRISIS_PERMS],
   complianceMember: [...COMPLIANCE_PERMS],
   dpo: [...PRIVACY_PERMS],
+  grcControl: [...GRC_PERMS],
   platformAdmin: [
     "org:read:unit",
     "org:write:unit",
@@ -628,6 +634,7 @@ const PERMS = {
     ...CRISIS_PERMS,
     ...COMPLIANCE_PERMS,
     ...PRIVACY_PERMS,
+    ...GRC_PERMS,
     ...NOTIFICATION_PERMS,
     "ai:read:recommend",
     "ai:write:draft",
@@ -753,6 +760,7 @@ export function seedStore(
       "crisis.commander",
       "compliance.member",
       "dpo",
+      "grc.control",
     ],
     permissions: [
       ...PERMS.financeApprover,
@@ -762,6 +770,7 @@ export function seedStore(
       ...PERMS.crisisCommander,
       ...PERMS.complianceMember,
       ...PERMS.dpo,
+      ...PERMS.grcControl,
     ],
     passwordHash: hashPassword(bootstrap.bobPassword),
     attributes: { department: "finance" },
@@ -893,6 +902,13 @@ export function seedStore(
       key: "dpo",
       name: "DPO",
       permissionKeys: [...PERMS.dpo],
+    },
+    {
+      id: "role-grc-control",
+      tenantId,
+      key: "grc.control",
+      name: "GRC Control",
+      permissionKeys: [...PERMS.grcControl],
     },
     {
       id: "role-audit-member",
@@ -1035,6 +1051,14 @@ export function seedStore(
         tenantId,
         principalId: bobId,
         roleKey: "dpo",
+        grantedAt: new Date().toISOString(),
+        grantedByPrincipalId: carolId,
+      },
+      {
+        id: "grant-bob-grc",
+        tenantId,
+        principalId: bobId,
+        roleKey: "grc.control",
         grantedAt: new Date().toISOString(),
         grantedByPrincipalId: carolId,
       },
@@ -1222,6 +1246,7 @@ export function seedStore(
     complianceObligations: [],
     privacyProcessingActivities: [],
     privacyDsrCases: [],
+    grcControls: [],
     notifDismissals: [],
     notifEmailOutbox: [],
     notifEmailDeliveryEvents: [],
@@ -1266,6 +1291,7 @@ export function seedStore(
   seedDefaultCrisis(store);
   seedDefaultCompliance(store);
   seedDefaultPrivacy(store);
+  seedDefaultGrc(store);
   return store;
 }
 

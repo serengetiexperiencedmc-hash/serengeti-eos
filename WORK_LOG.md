@@ -1019,9 +1019,19 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 
 **Tests:** kernel privacy 2/2; API p1 3/3 (401/403/400 title_required/cross-tenant 404/ai_actor/sod/lifecycle); regression G1/I15/I16/I13; web typecheck clean. Live preview restarted so `/v1/privacy` exists (memory_only). Carol registered **RPA-0002** and retired it; registered **DSR-0002** Access, Start → in progress, Close as creator → **sod**. Bob close covered by API. Live PostgreSQL UNVERIFIED.
 
+### 96:xx — G2 GRC Control Catalogue ✅
+
+**Shipped:** G2 complete against `docs/architecture/g2-grc-control-catalogue-preview.md` (Dev/Test). ID assigned by `docs/governance/g2-grc-control-catalogue-authorized.md` (GRC=A). API identity unchanged (`1.04.0-i3.37`); GRC health increment is `G2`. Control catalogue only. Human-only mutate. Optional G1 obligation reference (no G1 mutation). Bob holds `grc.control`. I15, G1, and P1 not reopened. No I15.x. No findings, tests, or mapping engine.
+
+| Increment | Change |
+| --- | --- |
+| **G2** | Controls, activate/retire, Compliance → Controls, `/commercial/controls` |
+
+**Tests:** kernel grc 2/2; API g2 3/3 (401/403/400 title_required/obligation_not_found/cross-tenant 404/ai_actor/lifecycle); regression G1/P1/I15/I16/I13; web typecheck clean. Live preview restarted so `/v1/grc` exists (memory_only). Carol registered **CTL-0002** referencing OBL-0001, Activate → active, Retire. G1 OBL-0001 remained Open. Alice 403 on `/v1/grc/health` live. Live PostgreSQL UNVERIFIED.
+
 ### Recommended next increments
 
-PRIV=A shipped as P1. I21=D, I22=D, I23=D, EMCOMMS=D, EXER=D remain deferred. No successor IDs.
+PRIV=A shipped as P1. GRC=A shipped as G2. I21=D, I22=D, I23=D, EMCOMMS=D, EXER=D remain deferred. No successor IDs.
 
 ### Issues resolved
 

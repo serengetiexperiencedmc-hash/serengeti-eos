@@ -76,3 +76,4 @@ export * from "./bcm.js";
 export * from "./crisis.js";
 export * from "./compliance.js";
 export * from "./privacy.js";
+export * from "./grc.js";
