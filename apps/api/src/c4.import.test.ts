@@ -247,4 +247,102 @@ describe("C4 supplier import API", () => {
     });
     expect(noKey.statusCode).toBe(400);
   });
+
+  it("scopes supplier health to the caller tenant and requires read permission", async () => {
+    const store = seedStore("test-secret");
+    const app = buildServer({ store });
+    const token = await loginCarol(app);
+
+    const created = await app.inject({
+      method: "POST",
+      url: "/v1/suppliers",
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        supplierCode: "C4-HEALTH-01",
+        legalName: "C4 Health Lodge",
+        category: "accommodation",
+        country: "TZ",
+      },
+    });
+    expect(created.statusCode).toBe(201);
+    const supplierId = created.json().supplier.id as string;
+    expect(created.json().supplier).not.toHaveProperty("tenantId");
+
+    store.supSuppliers.push({
+      ...store.supSuppliers[0]!,
+      id: "99999999-9999-4999-8999-999999999999",
+      tenantId: "22222222-2222-4222-8222-222222222222",
+      supplierCode: "FOREIGN-SUP",
+    });
+
+    const health = await app.inject({
+      method: "GET",
+      url: "/v1/suppliers/health",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(health.statusCode).toBe(200);
+    expect(health.json().increment).toBe("PG.21");
+    expect(health.json().module).toBe("supplier");
+    expect(health.json().suppliers).toBe(1);
+
+    const aliceToken = await loginAlice(app);
+    const deniedHealth = await app.inject({
+      method: "GET",
+      url: "/v1/suppliers/health",
+      headers: { authorization: `Bearer ${aliceToken}` },
+    });
+    expect(deniedHealth.statusCode).toBe(403);
+
+    const deniedList = await app.inject({
+      method: "GET",
+      url: "/v1/suppliers",
+      headers: { authorization: `Bearer ${aliceToken}` },
+    });
+    expect(deniedList.statusCode).toBe(403);
+
+    const deniedCategories = await app.inject({
+      method: "GET",
+      url: "/v1/suppliers/categories",
+      headers: { authorization: `Bearer ${aliceToken}` },
+    });
+    expect(deniedCategories.statusCode).toBe(403);
+
+    const partnerLogin = await app.inject({
+      method: "POST",
+      url: "/v1/auth/login",
+      payload: { email: "partner@external.local", password: P.partnerPassword, tenantSlug: "partner-demo" },
+    });
+    const partnerToken = partnerLogin.json().accessToken as string;
+    const foreign = await app.inject({
+      method: "GET",
+      url: `/v1/suppliers/${supplierId}`,
+      headers: { authorization: `Bearer ${partnerToken}` },
+    });
+    expect(foreign.statusCode).toBe(404);
+  });
+
+  it("rejects unauthenticated supplier reads and empty legal names", async () => {
+    const store = seedStore("test-secret");
+    const app = buildServer({ store });
+    const unauth = await app.inject({ method: "GET", url: "/v1/suppliers/health" });
+    expect(unauth.statusCode).toBe(401);
+
+    const unauthList = await app.inject({ method: "GET", url: "/v1/suppliers" });
+    expect(unauthList.statusCode).toBe(401);
+
+    const token = await loginCarol(app);
+    const missingName = await app.inject({
+      method: "POST",
+      url: "/v1/suppliers",
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        supplierCode: "C4-NONAME",
+        legalName: "   ",
+        category: "accommodation",
+        country: "TZ",
+      },
+    });
+    expect(missingName.statusCode).toBe(400);
+    expect(missingName.json().reason).toBe("legal_name_required");
+  });
 });

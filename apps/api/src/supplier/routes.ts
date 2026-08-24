@@ -59,7 +59,9 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     void getCorrelationId(req);
-    return getSupplierModuleHealth(store);
+    const result = getSupplierModuleHealth(store, principal);
+    if ("error" in result) return sendSupplierError(reply, result);
+    return result;
   });
 
   app.get("/v1/suppliers/seasons/export", async (req, reply) => {
@@ -213,7 +215,9 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
   app.get("/v1/suppliers/categories", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    return listSupplierCategories();
+    const result = listSupplierCategories(store, principal);
+    if ("error" in result) return sendSupplierError(reply, result);
+    return result;
   });
 
   app.get("/v1/suppliers/facets", async (req, reply) => {

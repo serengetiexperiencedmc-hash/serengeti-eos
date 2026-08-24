@@ -817,6 +817,15 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **C3** | Close remaining C3 contract gaps: tenant-scoped RFP health, workflow-stage authz, close-transition map, sanitized versions, C3 security tests |
 | Docs | `c3-rfp-preview.md` lifecycle status recorded after ship |
 
+### 74:xx — C4 supplier management ✅
+
+**Shipped:** C4 complete against `docs/architecture/c4-supplier-preview.md` (Dev/Test). API identity unchanged (`1.04.0-i3.37`); supplier health increment remains `PG.21`.
+
+| Increment | Change |
+| --- | --- |
+| **C4** | Close remaining C4 contract gaps: tenant-scoped supplier health, `supplier:read:supplier` on health/categories, C4 security tests. Existing Supplier Library UI and import/CRUD unchanged |
+| Docs | `c4-supplier-preview.md` lifecycle status recorded after ship |
+
 ### Recommended next increments
 
 1. I20.23 — (unnamed / undefined)

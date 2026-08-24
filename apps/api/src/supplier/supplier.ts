@@ -703,23 +703,37 @@ export function restoreSupplier(store: Store, principal: Principal, id: string, 
   };
 }
 
-export function getSupplierModuleHealth(store: Store) {
+export function getSupplierModuleHealth(store: Store, principal: Principal) {
   ensureSupplierCollections(store);
+  const decision = authorize({
+    principal,
+    permission: "supplier:read:supplier",
+    action: "read:sup_supplier",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+  const tenantId = principal.tenantId;
   return {
     module: "supplier",
     status: "ok" as const,
     increment: "PG.21",
-    suppliers: store.supSuppliers.filter((s) => !s.archivedAt).length,
-    archivedSuppliers: store.supSuppliers.filter((s) => Boolean(s.archivedAt)).length,
-    importBatches: store.supImportBatches.length,
-    contacts: store.supContacts.filter((c) => !c.archivedAt).length,
-    rates: store.supRates.filter((r) => !r.archivedAt).length,
-    seasons: (store.supSeasons ?? []).filter((s) => !s.archivedAt).length,
-    contentBlocks: store.supContentBlocks.filter((b) => !b.archivedAt).length,
+    suppliers: store.supSuppliers.filter((s) => s.tenantId === tenantId && !s.archivedAt).length,
+    archivedSuppliers: store.supSuppliers.filter((s) => s.tenantId === tenantId && Boolean(s.archivedAt)).length,
+    importBatches: store.supImportBatches.filter((b) => b.tenantId === tenantId).length,
+    contacts: store.supContacts.filter((c) => c.tenantId === tenantId && !c.archivedAt).length,
+    rates: store.supRates.filter((r) => r.tenantId === tenantId && !r.archivedAt).length,
+    seasons: (store.supSeasons ?? []).filter((s) => s.tenantId === tenantId && !s.archivedAt).length,
+    contentBlocks: store.supContentBlocks.filter((b) => b.tenantId === tenantId && !b.archivedAt).length,
   };
 }
 
-export function listSupplierCategories() {
+export function listSupplierCategories(store: Store, principal: Principal) {
+  ensureSupplierCollections(store);
+  const decision = authorize({
+    principal,
+    permission: "supplier:read:supplier",
+    action: "read:sup_supplier",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
   return {
     items: [...SUPPLIER_CATEGORIES],
   };
