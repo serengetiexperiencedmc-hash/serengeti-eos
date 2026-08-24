@@ -1069,9 +1069,19 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 
 **Tests:** kernel operational-issues; API o6 (401/403/400 title_required/booking_not_found/cross-tenant 404/ai_actor/lifecycle); regression O5/C9/C10/I9/I8.4/G1–G5/P1/I15/I16/I13; web typecheck. Live PostgreSQL UNVERIFIED.
 
+### 99:xx — K1 Crisis Decision Log ✅
+
+**Shipped:** K1 complete against `docs/architecture/k1-crisis-decision-log-preview.md` (Dev/Test). ID assigned by `docs/governance/k1-crisis-decision-log-authorized.md`. API identity unchanged (`1.04.0-i3.37`); decisions health increment is `K1`. Decision log only. Human-only mutate. Required open I18 crisis reference (no I18 case/timeline mutation). Bob holds `crisis.decision`. I18 `crisis.commander` not broadened. I17, I18, O1–O6, and G1–G5 not reopened. SAMPLE remains deferred. No I18.x. No O7. No G6.
+
+| Increment | Change |
+| --- | --- |
+| **K1** | Decisions, supersede, Crisis → Decisions, `/commercial/crisis/decisions` |
+
+**Tests:** kernel crisis-decisions; API k1 (401/403/400 title_required/crisis_not_found/409 case_closed/cross-tenant 404/ai_actor/lifecycle); regression I18/I17/I11/I13/O6/G1/P1/G2/G3/G4/G5/I15; web typecheck. Live PostgreSQL UNVERIFIED.
+
 ### Recommended next increments
 
-PRIV=A shipped as P1. GRC=A shipped as G2. FIND=A shipped as G3. TEST=A shipped as G4. MAP=A shipped as G5. O6 shipped. I21=D, I22=D, I23=D, EMCOMMS=D, EXER=D remain deferred. No successor IDs.
+PRIV=A shipped as P1. GRC=A shipped as G2. FIND=A shipped as G3. TEST=A shipped as G4. MAP=A shipped as G5. O6 shipped. K1 shipped. I21=D, I22=D, I23=D, EMCOMMS=D, EXER=D remain deferred. No successor IDs.
 
 ### Issues resolved
 

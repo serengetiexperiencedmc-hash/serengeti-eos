@@ -133,6 +133,7 @@ import {
   type ControlTestCampaign,
   type RegulationControlMapping,
   type OperationalIssue,
+  type CrisisDecision,
   type KnowledgeDocument,
   type PamJitGrant,
   type PamSecretRef,
@@ -154,6 +155,7 @@ import { seedDefaultFindings } from "./findings/collections.js";
 import { seedDefaultCampaigns } from "./control-tests/collections.js";
 import { seedDefaultMappings } from "./mappings/collections.js";
 import { seedDefaultOperationalIssues } from "./operational-issues/collections.js";
+import { seedDefaultCrisisDecisions } from "./crisis-decisions/collections.js";
 
 export type Payment = {
   id: string;
@@ -297,6 +299,7 @@ export type Store = {
   controlTestCampaigns: ControlTestCampaign[];
   mappingRecords: RegulationControlMapping[];
   operationalIssues: OperationalIssue[];
+  crisisDecisions: CrisisDecision[];
   notifDismissals: NotifDismissal[];
   notifEmailOutbox: NotifEmailOutboxEntry[];
   notifEmailDeliveryEvents: NotifEmailDeliveryEvent[];
@@ -444,6 +447,8 @@ const OPS_PERMS = [
 ] as const;
 
 const ISSUE_PERMS = ["ops:read:issue", "ops:write:issue"] as const;
+
+const DECISION_PERMS = ["crisis:read:decision", "crisis:write:decision"] as const;
 
 const ANALYTICS_PERMS = ["analytics:read:commercial", "analytics:read:operations", "analytics:read:finance"] as const;
 
@@ -599,6 +604,7 @@ const PERMS = {
   grcCampaign: [...CAMPAIGN_PERMS],
   grcMapping: [...MAPPING_PERMS],
   opsIssue: [...ISSUE_PERMS],
+  crisisDecision: [...DECISION_PERMS],
   platformAdmin: [
     "org:read:unit",
     "org:write:unit",
@@ -642,6 +648,7 @@ const PERMS = {
     ...BOOKING_PERMS,
     ...OPS_PERMS,
     ...ISSUE_PERMS,
+    ...DECISION_PERMS,
     ...ANALYTICS_PERMS,
     ...FINANCE_MODULE_PERMS,
     "finance:create:payment",
@@ -793,6 +800,7 @@ export function seedStore(
       "grc.campaign",
       "grc.mapping",
       "ops.issue",
+      "crisis.decision",
     ],
     permissions: [
       ...PERMS.financeApprover,
@@ -807,6 +815,7 @@ export function seedStore(
       ...PERMS.grcCampaign,
       ...PERMS.grcMapping,
       ...PERMS.opsIssue,
+      ...PERMS.crisisDecision,
     ],
     passwordHash: hashPassword(bootstrap.bobPassword),
     attributes: { department: "finance" },
@@ -973,6 +982,13 @@ export function seedStore(
       key: "ops.issue",
       name: "Operations Issue",
       permissionKeys: [...PERMS.opsIssue],
+    },
+    {
+      id: "role-crisis-decision",
+      tenantId,
+      key: "crisis.decision",
+      name: "Crisis Decision",
+      permissionKeys: [...PERMS.crisisDecision],
     },
     {
       id: "role-audit-member",
@@ -1155,6 +1171,14 @@ export function seedStore(
         tenantId,
         principalId: bobId,
         roleKey: "ops.issue",
+        grantedAt: new Date().toISOString(),
+        grantedByPrincipalId: carolId,
+      },
+      {
+        id: "grant-bob-crisis-decision",
+        tenantId,
+        principalId: bobId,
+        roleKey: "crisis.decision",
         grantedAt: new Date().toISOString(),
         grantedByPrincipalId: carolId,
       },
@@ -1347,6 +1371,7 @@ export function seedStore(
     controlTestCampaigns: [],
     mappingRecords: [],
     operationalIssues: [],
+    crisisDecisions: [],
     notifDismissals: [],
     notifEmailOutbox: [],
     notifEmailDeliveryEvents: [],
@@ -1396,6 +1421,7 @@ export function seedStore(
   seedDefaultCampaigns(store);
   seedDefaultMappings(store);
   seedDefaultOperationalIssues(store);
+  seedDefaultCrisisDecisions(store);
   return store;
 }
 

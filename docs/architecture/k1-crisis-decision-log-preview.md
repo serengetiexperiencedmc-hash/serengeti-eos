@@ -8,16 +8,16 @@
 | Capability name | Crisis Decision Log |
 | Predecessor | I2 kernel (complete); I18 Crisis overlay complete and **not** reopened; I17 BCM complete and **not** reopened; O1–O6 complete and **not** reopened; G1–G5 complete and **not** reopened |
 | Architecture status | This document is the K1 contract |
-| Implementation status | **NOT AUTHORIZED** — preview only |
+| Implementation status | **IMPLEMENTED / COMPLETE** |
 | Environment | Development/Test only |
-| Persistence | In-memory at implementation time. Additive SQL only if implementation is later authorized. ADR-0017 not reopened. No migration file in this increment |
+| Persistence | In-memory store + additive SQL `098_k1_crisis_decisions.sql`. ADR-0017 not reopened |
 | Runtime health increment | `K1` |
 | Production / UAT / AI | Not authorized |
-| **IMPLEMENTATION_AUTHORIZED** | **NO** |
+| **IMPLEMENTATION_AUTHORIZED** | **YES** |
 
 Authority: 2026-08-24 governance **CANDIDATE=CRISIS_DECISION_LOG / DECISION=APPROVE / CAPABILITY_ID=K1** and [`k1-crisis-decision-log-authorized.md`](../governance/k1-crisis-decision-log-authorized.md). ID **K1** is assigned by that record. It is a crisis-command family identifier after I18. This is not O7, not I18.x, not G6, and not I15.x.
 
-The sections after this heading are the architecture contract. Implementation must not begin until a separate explicit execution instruction.
+The sections after this heading are the architecture contract.
 
 ---
 
@@ -67,7 +67,7 @@ JSON may include a read-only `crisisCode` resolved from I18 at response time. Cr
 
 ## Persistence / migration
 
-No migration in this Stage 1 increment. If implementation is later authorized: additive SQL only; runtime in-memory; live PostgreSQL UNVERIFIED. ADR-0017 not reopened.
+`098_k1_crisis_decisions.sql`. Runtime in-memory. Live PostgreSQL UNVERIFIED. ADR-0017 not reopened.
 
 ## Workflow
 

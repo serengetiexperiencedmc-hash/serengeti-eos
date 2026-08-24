@@ -133,9 +133,14 @@ export default function CrisisDeclarationPage() {
         title="Declaration"
         subtitle="Human L2/L3 command overlay and immutable timeline · not emcomms · declarer cannot close"
         actions={
-          <Btn variant="secondary" href="/commercial">
-            ← Dashboard
-          </Btn>
+          <div className="flex flex-wrap gap-2">
+            <Btn variant="secondary" href="/commercial/crisis/decisions">
+              Decisions
+            </Btn>
+            <Btn variant="secondary" href="/commercial">
+              ← Dashboard
+            </Btn>
+          </div>
         }
       />
 
