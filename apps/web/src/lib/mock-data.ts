@@ -64,6 +64,10 @@ export const navItems = [
     ],
   },
   {
+    section: "Security",
+    items: [{ href: "/commercial/soc", label: "SOC", icon: "soc" }],
+  },
+  {
     section: "Resources",
     items: [
       { href: "/commercial/suppliers", label: "Supplier Library", icon: "suppliers" },

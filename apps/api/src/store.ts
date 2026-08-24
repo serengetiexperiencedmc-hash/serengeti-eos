@@ -117,10 +117,12 @@ import {
   type ItsmTicket,
   type ItsmTicketCi,
   type OtelSpan,
+  type SecurityAlert,
 } from "@sedmc/kernel";
 import { seedCrmCatalogues } from "./crm/collections.js";
 import { seedDefaultHr } from "./hr/collections.js";
 import { seedDefaultIt } from "./it/collections.js";
+import { seedDefaultSoc } from "./security/collections.js";
 
 export type Payment = {
   id: string;
@@ -245,6 +247,7 @@ export type Store = {
   itsmTickets: ItsmTicket[];
   itsmTicketCis: ItsmTicketCi[];
   otelSpans: OtelSpan[];
+  securityAlerts: SecurityAlert[];
   notifDismissals: NotifDismissal[];
   notifEmailOutbox: NotifEmailOutboxEntry[];
   notifEmailDeliveryEvents: NotifEmailDeliveryEvent[];
@@ -445,6 +448,19 @@ const CMDB_PERMS = ["cmdb:read:ci", "cmdb:write:ci"] as const;
 
 const OBS_PERMS = ["observability:read:map", "observability:read:signal"] as const;
 
+const SECURITY_PERMS = [
+  "security:read:alert",
+  "security:ingest:alert",
+  "security:write:alert",
+  "security:write:case",
+] as const;
+
+const SECURITY_ANALYST_PERMS = [
+  "security:read:alert",
+  "security:write:alert",
+  "security:write:case",
+] as const;
+
 const PERMS = {
   financeMember: [
     "finance:create:payment",
@@ -475,6 +491,7 @@ const PERMS = {
   hrMember: [...HR_MEMBER_PERMS],
   hrApprover: [...HR_APPROVER_PERMS],
   itAgent: [...ITSM_PERMS, ...CMDB_PERMS, ...OBS_PERMS],
+  securityAnalyst: [...SECURITY_ANALYST_PERMS],
   platformAdmin: [
     "org:read:unit",
     "org:write:unit",
@@ -525,6 +542,7 @@ const PERMS = {
     ...ITSM_PERMS,
     ...CMDB_PERMS,
     ...OBS_PERMS,
+    ...SECURITY_PERMS,
     ...NOTIFICATION_PERMS,
     "ai:read:recommend",
     "ai:write:draft",
@@ -746,6 +764,13 @@ export function seedStore(
       key: "it.agent",
       name: "IT Agent",
       permissionKeys: [...PERMS.itAgent],
+    },
+    {
+      id: "role-security-analyst",
+      tenantId,
+      key: "security.analyst",
+      name: "Security Analyst",
+      permissionKeys: [...PERMS.securityAnalyst],
     },
     {
       id: "role-ai-agent",
@@ -1000,6 +1025,7 @@ export function seedStore(
     itsmTickets: [],
     itsmTicketCis: [],
     otelSpans: [],
+    securityAlerts: [],
     notifDismissals: [],
     notifEmailOutbox: [],
     notifEmailDeliveryEvents: [],
@@ -1035,6 +1061,7 @@ export function seedStore(
   seedCrmCatalogues(store, tenantId);
   seedDefaultHr(store);
   seedDefaultIt(store);
+  seedDefaultSoc(store);
   return store;
 }
 

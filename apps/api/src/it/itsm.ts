@@ -316,3 +316,42 @@ export function unlinkTicketCi(store: Store, principal: Principal, ticketId: str
   store.itsmTicketCis.splice(idx, 1);
   return getTicket(store, principal, ticket.id);
 }
+
+export function createSocIncidentTicket(
+  store: Store,
+  principal: Principal,
+  input: { title: string; severity: TicketSeverity; description?: string; ciId?: string },
+) {
+  ensureItCollections(store);
+  if (input.ciId) {
+    const ci = findCi(store, principal.tenantId, input.ciId);
+    if (!ci) return { error: "not_found" as const, reason: "ci_not_found" };
+  }
+  const now = new Date().toISOString();
+  const tenantTickets = store.itsmTickets.filter((t) => t.tenantId === principal.tenantId);
+  const ticket: ItsmTicket = {
+    id: newId(),
+    tenantId: principal.tenantId,
+    ticketCode: nextTicketCode(tenantTickets.map((t) => t.ticketCode)),
+    title: input.title,
+    ticketType: "incident",
+    severity: input.severity,
+    status: "open",
+    createdAt: now,
+    updatedAt: now,
+    createdByPrincipalId: principal.id,
+    updatedByPrincipalId: principal.id,
+  };
+  if (input.description) ticket.description = input.description;
+  store.itsmTickets.push(ticket);
+  if (input.ciId) {
+    store.itsmTicketCis.push({
+      id: newId(),
+      tenantId: principal.tenantId,
+      ticketId: ticket.id,
+      ciId: input.ciId,
+      createdAt: now,
+    });
+  }
+  return { ticket: sanitizeTicket(store, ticket) };
+}

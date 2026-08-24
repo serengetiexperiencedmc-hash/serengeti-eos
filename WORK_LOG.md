@@ -929,9 +929,19 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 
 **Tests:** kernel observability 4/4; API i12 4/4; regression I11 4/4, I10 5/5, O5 3/3, J3 2/2; web typecheck clean. Live preview API UNVERIFIED (stale 8080).
 
+### 87:xx — I13 Defensive SOC ✅
+
+**Shipped:** I13 complete against `docs/architecture/i13-defensive-soc-preview.md` (Dev/Test). API identity unchanged (`1.04.0-i3.37`); security health increment is `I13`. Bounded adapter ingest (`source=devtest.webhook`); IR casefile reuses I11 incident tickets. Not a SIEM; no production defensive-product vendor.
+
+| Increment | Change |
+| --- | --- |
+| **I13** | Alert ingest + acknowledge/close, I11 incident casefile, Security → SOC, `/commercial/soc` |
+
+**Tests:** kernel security 2/2; API i13 3/3; regression I12 4/4, I11 4/4; web typecheck clean. Live preview **VERIFIED** after restarting `dev:preview`: Security → SOC, ingest ALT-0002, open I11 case TKT-0002. Live PostgreSQL UNVERIFIED.
+
 ### Recommended next increments
 
-I13 Defensive SOC (alert ingest, IR casefile) requires an external defensive product / alert schema — not inferable. I14 PAM/secrets/ZTNA is blocked on ADR-0012. Calendar and Procurement remain domain-map only.
+No implementation-ready increment remains after I13. I14 PAM/secrets/ZTNA is blocked on ADR-0012 (Vault vs cloud KMS). I15–I23, Calendar, and Procurement cannot be matured without material product or external-platform decisions (see governance package after this commit).
 
 ### Issues resolved
 
