@@ -1,11 +1,11 @@
 # C1 GATE DECISION PACKAGE
 
-**Status:** EVIDENCE ASSEMBLED — OUTCOME NOT RECORDED  
+**Status:** OUTCOME RECORDED — see `docs/governance/c1-gate-decision.md`  
 **Environment:** Development/Test only  
 **Package date:** 2026-08-24  
 **Authoritative HEAD at assembly:** `1d722670a43e88e8afb488b0578b140b6987b0a3`  
 **API identity at HEAD:** `1.04.0-i3.37`  
-**This file is not a Gate outcome.** It does not record PASS, CONDITIONAL PASS, or NOT PASS. It does not appoint a reviewer. It does not authorize C2+, UAT, Production, AI/LLM, I3.38, I4.35, I20.23, or PG.30.
+**Gate outcome:** **PASS — Development/Test only** (recorded 2026-08-24). This package remains the evidence matrix. It does not appoint a named reviewer. It does not authorize C2+, UAT, Production, AI/LLM, I3.38, I4.35, I20.23, or PG.30.
 
 | Field | Value |
 | --- | --- |
@@ -231,19 +231,11 @@ This recommendation is not a Gate decision.
 
 ---
 
-## 11. Single human decision required
+## 11. Human decision — recorded
 
-**C1 Gate requires an independent reviewer decision. Repository evidence has been assembled. Please record one of PASS / CONDITIONAL PASS / NOT PASS using the attached decision matrix.**
+**Recorded 2026-08-24:** PASS — Development/Test only.
 
-When recording the outcome, also state:
-
-1. Who is Decision Authority.
-2. Who is Independent Reviewer (or that both offices are held by the same appointed person).
-3. Environment: Development/Test only.
-4. That working-tree PASS drafts were not used as authority.
-5. If CONDITIONAL PASS: the exact remaining conditions.
-
-No other product, increment-ID, or “what next” choice is required to close this Gate.
+See `docs/governance/c1-gate-decision.md`. A named Independent Reviewer identity was not designated and was not invented. Working-tree PASS drafts dated 2026-08-23 were not used as authority.
 
 ---
 
@@ -264,11 +256,11 @@ I3.36, I3.37, I4.34, I20.22, and PG.29 remain closed. Their verification gaps st
 | Field | Value |
 | --- | --- |
 | Title | C1 GATE DECISION PACKAGE |
-| Outcome | **Not recorded** |
+| Outcome | **PASS — Development/Test only** (`c1-gate-decision.md`, 2026-08-24) |
 | C1.1–C1.11 | COMPLETE (implementation evidence) |
-| C1 Gate | PENDING / NOT PASSED (`ba8cf9e`) |
+| C1 Gate | PASS — Development/Test only |
 | Current C1/CRM tests | 111 passed / 0 failed / 3 skipped (2026-08-24, no live PG) |
-| Decision Authority | UNASSIGNED |
-| Independent Reviewer | UNASSIGNED |
-| C2+ / UAT / Production / AI | Blocked |
+| Decision Authority | Explicit 2026-08-24 project-authority instruction |
+| Independent Reviewer | Not designated — not invented |
+| C2+ / UAT / Production / AI | Blocked (unchanged by this PASS) |
 | Successor IDs | Undefined |

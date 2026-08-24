@@ -1,223 +1,148 @@
 # C1 GATE DECISION RECORD
 
-**Status:** GATE DECISION PENDING — ORIGINAL CONDITIONAL PASS FINDINGS NOT RECOVERABLE  
+**Status:** RECORDED  
 **Environment:** Development/Test only  
-**Gate outcome:** **Not determined.** This record does not state that C1 has passed. This record does not state that C1 has failed.
+**Gate outcome:** **PASS — Development/Test only**
+
+This is not UAT certification, Production certification, or C2+ authorization.
 
 | Field | Value |
 | --- | --- |
-| Document purpose | Formalize the missing C1 Gate decision state so an independent determination can be made without inventing lost findings |
-| Evidence basis | Existing C1 governance/architecture records and Git provenance of `46b049f` |
+| Document purpose | Record the C1 Dev/Test Gate outcome from the 2026-08-24 project-authority instruction |
+| Evidence basis | Committed C1.1–C1.11 records, `docs/governance/c1-gate-decision-package.md`, and Git provenance of `46b049f` / `ba8cf9e` |
 | Provenance commit | `46b049f82b871ee5e64faf6b7434c96781d841f6` (2026-08-22 17:23:21 +0300) |
-| Record date | 2026-08-23 |
-| Implementation authorization | **None beyond I3.35.** This record does not authorize implementation |
-| Reviewer / signatory | **UNASSIGNED / PENDING GOVERNANCE** |
-| Independent authority | **Not defined in the repository** |
+| Prior outcome record | `ba8cf9e5e9be05c7f7a1f19f1173d32781929b66` — PENDING / NOT PASSED |
+| Evidence package | `d7b27b6780aef5307aea7f27584de2ce4ef571b2` — `docs/governance/c1-gate-decision-package.md` |
+| Decision date | 2026-08-24 |
+| Implementation authorization from this Gate | **None beyond already-complete C1.1–C1.11.** This PASS does not authorize C2+, UAT, Production, AI/LLM, I3.38, I4.35, I20.23, or PG.30 |
+| Decision authority | Explicit 2026-08-24 project-authority instruction: RECORD C1 = PASS (Development/Test only) |
+| Named reviewer identity in repository | **Not designated** — not invented |
+| Signatory name | **Not designated** — not invented |
 
-This governance record does not authorize implementation.
+A prior uncommitted working-tree PASS draft dated 2026-08-23 is **not** this decision and was not used as authority.
 
-No implementation target is authorized beyond I3.35.
+---
+
+## Recorded Gate decision (2026-08-24)
+
+### A. Gate status
+
+**PASS** for **Development/Test only**.
+
+Original CONDITIONAL PASS findings remain unrecoverable and are **not reconstructed**. This PASS is a new decision on current recorded evidence, not an upgrade of unknown historical conditions.
+
+### B. Evidence accepted
+
+Accepted as sufficient for C1 Dev/Test:
+
+- C1.1–C1.11 recorded **COMPLETE**
+- Security regression disposition (22 IMPLEMENTED + PASS, 1 NOT APPLICABLE, 2 FORMALLY WAIVED)
+- OpenAPI `docs/architecture/openapi/crm-c1.yaml`
+- Migrations 004–013 with static sequence evidence
+- Performance baseline (Dev/Test samples, not an SLA)
+- Tenant isolation, RBAC/ABAC, audit, duplicates, merge, and event evidence in the C1 suites
+- C1.11 historical test note: 157 passed / 0 failed / 4 skipped without live PG (`0.14.0-c1.11`)
+- Current C1/CRM targeted suite at package assembly: 111 passed / 0 failed / 3 skipped (2026-08-24, live PostgreSQL gated)
+
+The 17-item submission checklist in `implementation-sequence.md` is **not** treated as a list of original Gate findings. Missing standalone artifacts (architecture diff, unresolved-risks document) are **not** recorded as failures of this PASS.
+
+### C. Waivers accepted (C1 Dev/Test)
+
+| ID | Waiver |
+| --- | --- |
+| SD-01 | Same-principal merge approve — I2 merge workflow stubbed in C1 Dev/Test |
+| SD-02 | Import submit + commit SoD — direct import with audit in C1 Dev/Test |
+| AZ-05 | Export without permission — **NOT APPLICABLE** (no C1 CRM export endpoint) |
+
+These waivers do not apply to UAT or Production.
+
+### D. Scope boundary — CRM PostgreSQL runtime persistence
+
+**Accepted C1 boundary:** C1.11 language controls. CRM API runtime remains **in-memory**. PostgreSQL is **schema-only** (migrations 004–013; live schema tests gated) until a **separately authorized** persistence increment.
+
+Preview / `test-matrix.md` DoD wording that lists “PostgreSQL persistence” is interpreted as schema + gated validation, **not** as a requirement that C1 runtime SoR be PostgreSQL.
+
+This PASS does not create PG.30 or any CRM persist increment. It does not reopen ADR-0017. It does not authorize Production persistence as system-of-record.
+
+### E. Remaining conditions
+
+**None** for C1 Dev/Test PASS.
+
+Follow-ups that are **not** Gate conditions and **not** new increments: live PG when `EOS_RUN_PG_TESTS=1` is set; optional architecture-diff note; optional risks note; optional observability-plan implementation. Existing verification gaps on I3.36, I3.37, and I4.34 remain attached to those closed increments.
+
+### F. Consequences
+
+- C1 Dev/Test Gate is **PASS**.
+- C1.1–C1.11 are accepted as the C1 implementation foundation.
+- **C2+ is not authorized** by this PASS. C2 requires its own architecture/implementation authorization. Existing C2–C10 / J1 / J2 source is not rebuilt by this record.
+- **UAT remains blocked** unless a separate existing governance rule already permits it. None does.
+- **Production remains blocked.**
+- **AI agents / LLM / autonomous apply remain blocked.**
+- ADR-0006 / 0012 / 0013 remain **open**. They are **not** reopened or closed by this PASS.
+- ADR-0017 is **not** reopened.
+- This PASS does **not** assign I3.38, I4.35, I20.23, or PG.30.
+- This PASS does **not** reopen closed increments.
 
 ---
 
 ## 1. Historical provenance
 
-Verified from Git history (read-only recovery, 2026-08-23):
+Verified from Git history (read-only recovery, 2026-08-23, preserved):
 
 | Fact | Evidence |
 | --- | --- |
-| Status assertion exists | `docs/governance/c1-implementation-authorized.md` table row: **C1 Gate \| Pending independent upgrade from CONDITIONAL PASS** |
+| Status assertion exists | `docs/governance/c1-implementation-authorized.md` table row at `46b049f`: **C1 Gate \| Pending independent upgrade from CONDITIONAL PASS** |
 | Same snapshot | Commit `46b049f82b871ee5e64faf6b7434c96781d841f6`, 2026-08-22 17:23:21 +0300 (initial commit) |
-| Parallel shorter status | `docs/architecture/c1-crm-preview.md` §13: **C1 Gate \| Pending independent upgrade** (no “CONDITIONAL PASS” wording) |
+| Parallel shorter status | `docs/architecture/c1-crm-preview.md` §13 at `46b049f`: **C1 Gate \| Pending independent upgrade** |
 | Originating findings | **Not preserved** |
-| Separate original Gate decision | **Not found** (`git log -S "CONDITIONAL PASS"` and `git blame` show only `46b049f`) |
-| Deleted / renamed Gate record | **Not recovered** |
-| Other branch / stash / note | **None** (`master` only; empty stash and notes) |
-| Later edits to the Gate status | **None.** Subsequent commits under `docs/architecture/c1/` only change `performance-baseline.md` sample numbers |
+| Separate original Gate decision | **Not found** |
+| Authoritative pending record | `ba8cf9e5e9be05c7f7a1f19f1173d32781929b66` — PENDING / NOT PASSED |
 
-Repository history preserves the existence of a CONDITIONAL PASS status assertion but does not preserve the underlying decision record, reviewer, findings, conditions, or acceptance mapping. This record therefore does not reconstruct those missing findings.
-
-The status assertion and C1.1–C1.11 **COMPLETE** markings were introduced in the **same** commit. Completeness notes are not a substitute for the missing decision.
+Repository history preserves the existence of a CONDITIONAL PASS status assertion but does not preserve the underlying decision record, reviewer, findings, conditions, or acceptance mapping. This record does not reconstruct those missing findings.
 
 ---
 
 ## 2. C1 implementation completion (already recorded)
 
-Authoritative source: `docs/governance/c1-implementation-authorized.md` and `docs/architecture/c1-crm-preview.md` §13.
+Authoritative source: `docs/governance/c1-implementation-authorized.md`.
 
 | Increment | Recorded state |
 | --- | --- |
 | C1.1–C1.10 | **COMPLETE** |
 | C1.11 | **COMPLETE** (Gate remediation, Dev/Test) |
 
-C1.11 evidence already recorded (not re-derived as original Gate findings):
-
-- Task-search remediation (`c1.search-duplicates.test.ts`)
-- `commitCrmWithOutbox()` atomicity (`c1.11.atomicity.test.ts`)
-- Input validation (IN-01–IN-03) in `crm.security.regression.test.ts`
-- Security disposition 22 IMPLEMENTED + PASS · 1 NOT APPLICABLE · 2 FORMALLY WAIVED (`docs/architecture/c1/security-coverage-disposition.md`)
-- OpenAPI `docs/architecture/openapi/crm-c1.yaml` (`c1.11.openapi.test.ts`)
-- Performance baseline `docs/architecture/c1/performance-baseline.md` (`c1.11.performance.test.ts`)
-- Migrations 004–013 listed and statically checked (`crm.integration.test.ts`)
-- C1.11 stated CRM runtime **in-memory**; PostgreSQL **schema-only** until a future persistence increment
-
-Recorded C1.11 test note: 157 passed / 0 failed / 4 skipped without live PG. Live PG remains gated on `EOS_RUN_PG_TESTS=1` + `EOS_DATABASE_URL`. Recorded C1.11 version at that snapshot: `0.14.0-c1.11`. Current API source version is `0.99.0-i3.35` (later increments). That version drift is not a C1 Gate finding.
-
-Completion of C1.1–C1.11 does not, by itself, constitute the independent C1 Gate upgrade.
-
----
-
-## 3. Evidence-state table
-
-“Proven original Gate condition?” answers whether Git/history proves the item was an original CONDITIONAL PASS finding. Checklist membership is **not** treated as YES.
-
-| Area | Repository evidence | Proven original Gate condition? | Current state | Decision required |
-| --- | --- | --- | --- | --- |
-| Architecture diff | Checklist item 1 in `implementation-sequence.md`; no standalone preview-vs-implementation artifact found | UNKNOWN | Missing as a named artifact | Accept equivalent evidence, require the artifact, or waive — **do not infer original findings** |
-| Database migrations | Migrations 004–013; static list in `crm.integration.test.ts` | UNKNOWN | Present | Accept or list remaining schema conditions |
-| OpenAPI | `crm-c1.yaml`; `c1.11.openapi.test.ts` | UNKNOWN | Present | Accept or list gaps |
-| RBAC/ABAC | `crm.security.regression.test.ts` AZ-* | UNKNOWN | Present | Accept or list gaps |
-| Tenant isolation | TI-* in the same suite | UNKNOWN | Present | Accept or list gaps |
-| SoD | SD-01 / SD-02 **FORMALLY WAIVED** (`security-coverage-disposition.md`; I2 stubs in `workflow-integration.md`) | UNKNOWN | Formal C1 Dev/Test waiver recorded; Gate acceptance of the waiver is unrecorded | Accept waiver, reject, or require I2 templates |
-| Audit | AU-01 + mutation audit in security regression | UNKNOWN | Present | Accept or list gaps |
-| Duplicates | `c1.search-duplicates.test.ts`; C1.6 notes | UNKNOWN | Present | Accept or list gaps |
-| Merge | `c1.merge-import.test.ts`; MG-* | UNKNOWN | Present | Accept or list gaps |
-| Events | `c1.events.test.ts`; EV-*; `commitCrmWithOutbox()` | UNKNOWN | Present | Accept or list gaps |
-| Concurrency | MG-04 stale version; merge `concurrent_modification`; no dedicated suite matching all `test-matrix.md` concurrency rows | UNKNOWN | Partial relative to the matrix | Accept current evidence or require named cases |
-| Security regression | Disposition 100% of planned IDs | UNKNOWN | Present (including N/A + waivers) | Accept disposition or reopen waived IDs |
-| Performance | `performance-baseline.md`; `c1.11.performance.test.ts` | UNKNOWN | Present (Dev/Test samples, not an SLA) | Accept as Dev/Test baseline or require more |
-| Observability | `observability-plan.md` still **Proposed**; optional `GET /v1/crm/operations` not found | UNKNOWN | Plan not marked implemented | Accept request-path evidence, require the plan, or defer |
-| Test matrix / live PG | C1.11: 157/0/4 skipped without live PG; live describe skipped unless env set | UNKNOWN | In-memory suite recorded; live PG gated | Accept gated PG, require a live run, or defer |
-| Unresolved risks | Checklist item 16; no standalone risks document found | UNKNOWN | Missing as a named artifact | Accept scattered notes, require a document, or waive |
-| ADR impact | `adr-impact-assessment.md`: no new ADR to start C1 Dev/Test; 0006/0012/0013 remain OPEN | UNKNOWN | Present | Confirm no C1 ADR close; those ADRs still block UAT/Production |
-| CRM PostgreSQL runtime persistence | Preview §11 and `test-matrix.md` DoD list “PostgreSQL persistence”; C1.11 in the **same commit** states in-memory SoR / schema-only PG | UNKNOWN | **UNRESOLVED SCOPE INTERPRETATION** | Clarify if material to the Gate — see §5 |
-| Independent Gate upgrade | Status assertion only; no PASS record | UNKNOWN | Pending; procedure undefined | Record PASS / CONDITIONAL PASS / NOT PASS with explicit conditions |
-
-No row is YES. Reconstructing YES from the 17-item list would invent original findings.
-
----
-
-## 4. 17-Item Gate Submission Checklist vs Original Gate Findings
-
-`docs/architecture/c1/implementation-sequence.md` contains a planned 17-item submission checklist (after C1.10). It also states that passing tests alone is insufficient and that C2 must not start without gate approval.
-
-The repository does not establish that every checklist item was an original CONDITIONAL PASS finding.
-
-The original Gate findings cannot be reconstructed.
-
-Therefore, missing checklist artifacts must not automatically be treated as unresolved Gate failures.
-
-Preserve these four layers:
-
-1. **Original Gate findings** — not recoverable from Git.
-2. **Submission requirements** — the 17-item list in `implementation-sequence.md`.
-3. **C1.11 remediation evidence** — recorded complete in `c1-implementation-authorized.md`; not proven to be the original findings.
-4. **Later UAT / Production / C2+ requirements** — ADR-0006 / 0012 / 0013 open; UAT, Production, AI agents blocked; C2+ blocked pending this Gate. Those are not recovered CONDITIONAL PASS findings.
-
-`implementation-sequence.md` still contains a stale “C1 implementation \| NOT YET AUTHORIZED” reminder. That line does not control current implementation status (`c1-implementation-authorized.md` records implementation authorized and C1.1–C1.11 complete). This record does not rewrite that file.
-
----
-
-## 5. PostgreSQL boundary contradiction
-
-The same C1 snapshot (`46b049f`) contains both:
-
-- Preview Definition of Done and `test-matrix.md` C1 DoD checklist language listing **PostgreSQL persistence**.
-- C1.11 language: CRM runtime remains **in-memory**; PostgreSQL stores **schema only** until a **future persistence increment**; a gate test expects PG row count **0** after API create when live PG tests run.
-
-Classification: **UNRESOLVED SCOPE INTERPRETATION**.
-
-This record does not declare PostgreSQL runtime persistence required.  
-This record does not declare it waived.  
-This record does not create a persistence increment.  
-This record does not modify the test matrix or the C1 preview.
-
-An authorized governance decision must clarify the boundary if it is material to the Gate.
+Completion of C1.1–C1.11 was implementation evidence only until this 2026-08-24 PASS. It did not, by itself, constitute the Gate.
 
 ---
 
 ## Independent Gate Authority
 
-**No independent C1 Gate reviewer role, sign-off procedure, or approval authority is currently defined in the repository.**
+No named C1 Gate reviewer identity is stored in the repository. This record does not invent one.
 
-Other platform records name programme-direction / chat approval for Phase 0 / I0 (`docs/governance/phase0-i0-approval.md`) or publish a named acceptance document for I1 / I4 (`i1-acceptance.md`, `i4-accepted-harden-gate.md`). Those documents do **not** designate a C1 Gate reviewer.
+I0 programme-direction / chat approval in `docs/governance/phase0-i0-approval.md` is **not** reused as a named C1 reviewer.
 
-This record does not invent a role and does not assign a reviewer.
-
-A formal Gate outcome requires an authorized governance authority to be identified **outside** this repository or through a **subsequent** governance decision.
-
-Reviewer / signatory on this document: **UNASSIGNED / PENDING GOVERNANCE**.
-
----
-
-## Required Independent Gate Decision
-
-A future authorized decision must determine the following explicitly.
-
-### A. Gate status
-
-One of:
-
-- PASS
-- CONDITIONAL PASS
-- NOT PASS
-
-This document records none of those outcomes.
-
-### B. Evidence accepted
-
-Identify which current evidence (table in §3) is accepted for C1 Dev/Test.
-
-### C. Waivers
-
-Identify any formal waivers (including whether SD-01 / SD-02 remain accepted).
-
-### D. Scope boundaries
-
-If material to the Gate, resolve the CRM runtime persistence interpretation (§5).
-
-### E. Remaining conditions
-
-If the outcome is CONDITIONAL PASS, list **exact** conditions and the evidence required for each. Do not reuse unrecovered historical findings.
-
-### F. Consequences
-
-**If PASS:**
-
-- Record that the C1 Dev/Test Gate is passed.
-- Do **not** automatically authorize C2+.
-- Do **not** authorize UAT.
-- Do **not** authorize Production.
-- Do **not** authorize AI agents.
-- Do **not** authorize I3.36, I4.32, I20.23, or PG.30.
-
-**If CONDITIONAL PASS:**
-
-- Preserve the exact conditions in the decision record.
-
-**If NOT PASS:**
-
-- Identify required remediation only as a **separately authorized** action. This record does not authorize that work.
+The 2026-08-24 project-authority instruction is the Decision Authority for this PASS. A named Independent Reviewer identity remains undesignated.
 
 ---
 
 ## Authorization boundaries
 
-This governance record does not authorize implementation.
+This Gate PASS does not authorize new implementation.
 
-No implementation target is authorized beyond I3.35.
+Later I3 / I4 / I20 / PG increments that already shipped under **separate** authorizations remain as they were. This PASS did not authorize them and does not reopen them.
 
 | Area | State |
 | --- | --- |
-| I3.35 | **CLOSED** |
-| I4 | Complete through **I4.31** |
-| I20 | Defined through **I20.22** |
-| PG | Complete through **PG.29** |
-| I4.32 | **Undefined** candidate — not authorized by this record or by a future C1 Gate PASS |
-| I3.36 | **Undefined** |
-| I20.23 | **Undefined** |
-| PG.30 | **Undefined** |
-| C2+ | **Blocked** pending its own authorization after a C1 Gate outcome |
+| C1.1–C1.11 | **COMPLETE** / accepted as C1 Dev/Test foundation |
+| I3 | Complete through **I3.37** (CLOSED / ACCEPTED WITH VERIFICATION GAPS) |
+| I4 | Complete through **I4.34** (CLOSED / ACCEPTED WITH VERIFICATION GAPS) |
+| I20 | Complete through **I20.22** (CLOSED) |
+| PG | Complete through **PG.29** (CLOSED) |
+| I3.38 | **Undefined** — not assigned by this PASS |
+| I4.35 | **Undefined** — not assigned by this PASS |
+| I20.23 | **Undefined** — not assigned by this PASS |
+| PG.30 | **Undefined** — not assigned by this PASS |
+| C2+ new work | **Blocked** — requires its own authorization |
 | UAT | **Blocked** |
 | Production | **Blocked** |
 | AI agents / autonomous apply | **Blocked** |
@@ -230,18 +155,15 @@ This record does not create any increment.
 
 This record:
 
-- does **not** supersede `docs/governance/c1-implementation-authorized.md`;
-- does **not** rewrite C1.11 completion;
-- does **not** alter `docs/architecture/c1-crm-preview.md`;
-- does **not** modify the 17-item checklist in `implementation-sequence.md`;
+- supersedes the PENDING / NOT PASSED outcome in `ba8cf9e` for C1 Dev/Test Gate status only;
+- aligns companion status rows in `c1-implementation-authorized.md` and `c1-crm-preview.md` §13 to PASS — Dev/Test only;
+- does **not** rewrite C1.11 completion evidence;
+- does **not** modify the 17-item checklist text in `implementation-sequence.md`;
 - does **not** close ADR-0006 / ADR-0012 / ADR-0013;
 - does **not** reopen ADR-0017;
-- does **not** modify I0 / I1 / I2 controls;
-- does **not** change I4.31, I20.22, or PG.29.
+- does **not** modify I0 / I1 / I2 controls.
 
-It exists to formalize the missing Gate decision state.
-
-Related context (unchanged): `docs/governance/crm-mice-authorization-gate.md` (original CRM/MICE domain authorization; contains stale “C1 implementation not yet authorized” language); `docs/governance/i4-accepted-harden-gate.md` (I4 accepted for Dev/Test; CRM/MICE still required a later gate review).
+Related context (unchanged): `docs/governance/crm-mice-authorization-gate.md` (contains stale “C1 implementation not yet authorized” language); `docs/governance/i4-accepted-harden-gate.md`.
 
 ---
 
@@ -250,11 +172,11 @@ Related context (unchanged): `docs/governance/crm-mice-authorization-gate.md` (o
 | Field | Value |
 | --- | --- |
 | Title | C1 GATE DECISION RECORD |
-| Current status | GATE DECISION PENDING — ORIGINAL CONDITIONAL PASS FINDINGS NOT RECOVERABLE |
+| Current status | RECORDED — PASS (Development/Test only) |
 | Environment | Development/Test only |
-| Evidence basis | In-repo C1 records + Git history of `46b049f82b871ee5e64faf6b7434c96781d841f6` |
-| Record date | 2026-08-23 |
-| Implementation authorization | None beyond I3.35 |
-| Reviewer | UNASSIGNED / PENDING GOVERNANCE |
-| Signatory | UNASSIGNED / PENDING GOVERNANCE |
-| C1 PASS / FAIL | **Not declared** |
+| Evidence basis | C1 records + `c1-gate-decision-package.md` + Git history of `46b049f` / `ba8cf9e` / `d7b27b67` |
+| Decision date | 2026-08-24 |
+| Implementation authorization | None beyond already-complete C1.1–C1.11 |
+| Named reviewer in repository | Not designated |
+| Signatory name | Not designated |
+| C1 Gate outcome | **PASS — Development/Test only** |

@@ -15,8 +15,8 @@
 | C1.9 CRM domain events | **COMPLETE** |
 | C1.10 CRM completion / hardening | **COMPLETE** |
 | C1.11 C1 Gate remediation | **COMPLETE** |
-| C1 Gate | Pending independent upgrade from CONDITIONAL PASS |
-| C2+ | BLOCKED pending C1 Gate |
+| C1 Gate | **PASS — Development/Test only** (`c1-gate-decision.md`) |
+| C2+ | **BLOCKED** — requires its own authorization |
 | AI / UAT / Production | BLOCKED |
 | ADR-0006 / 0012 / 0013 | OPEN |
 | ADR-0010 | Development/Test only |
@@ -118,7 +118,7 @@ Official statement unchanged: not UAT-ready, not Production-ready.
 - **Event hardening** — `validateCrmEventEmission()` dry-run; simulation mode blocks CRM event emission (`simulation_cannot_publish`).
 - Migration `013_c1_hardening.sql`; schema registry phase **11**.
 - Version **0.13.0-c1.10**; test evidence in security regression + integration suites.
-- **C1 Gate NOT passed** — separate authorization required.
+- **C1 Gate** — **PASS — Development/Test only** (`c1-gate-decision.md`). C2+ still requires its own authorization.
 - Live Postgres integration: **not executed** (3 skipped tests require `EOS_DATABASE_URL` + `EOS_RUN_PG_TESTS=1`).
 
 ## C1.11 implementation notes (Dev/Test — Gate remediation)
@@ -132,4 +132,4 @@ Official statement unchanged: not UAT-ready, not Production-ready.
 - **PostgreSQL boundary** — migrations 004–013 validated statically; live PG tests gated. **CRM runtime remains in-memory**; PG stores schema only until a future persistence increment. Gate test confirms PG row count stays 0 after API create when `EOS_RUN_PG_TESTS=1`.
 - **Typecheck** — `npm run typecheck` exits 0.
 - Version **0.14.0-c1.11**; test evidence: **157 passed / 0 failed / 4 skipped** (without live PG).
-- **C1 Gate upgrade** requires separate governance decision — not automatic.
+- **C1 Gate** recorded 2026-08-24 as PASS — Development/Test only. Not automatic for C2+, UAT, or Production.
