@@ -3,7 +3,7 @@
 Status values: `proposed` (needs human approval), `accepted` (approved), `superseded`, `open` (explicitly pending).
 
 > **CURRENT STATE (2026-08-24 documentation hygiene)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`4f2ffd3afbf28b547f8e6deadd1c4f5241562cfb`** · **EXECUTION_QUEUE=EMPTY**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`c55b608001e6af764fc80bd41ce9844b24da60d8`** · **EXECUTION_QUEUE=EMPTY**  
 > ADR-0004 / 0007 / 0008 / 0010 index rows below match Development/Test reality. **ADR-0006, ADR-0012, ADR-0013 remain OPEN.** This register does not authorize new implementation, UAT, or Production.
 
 **Phase 0 baseline:** approved for continued development (see `docs/governance/phase0-i0-approval.md`).  

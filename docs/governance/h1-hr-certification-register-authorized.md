@@ -1,7 +1,7 @@
 # H1 Authorization — HR Certification Register
 
 > **CURRENT STATE (2026-08-24 documentation hygiene — supersession banner, not a rewrite of Stage 1)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`4f2ffd3afbf28b547f8e6deadd1c4f5241562cfb`**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`c55b608001e6af764fc80bd41ce9844b24da60d8`**  
 > H1 Stage 2 is **COMPLETE / CLOSED** for Development/Test. The Stage 1 fields below (`IMPLEMENTATION_AUTHORIZED=NO`) remain the **historical authorization**. They must not be read as a pending execution queue.  
 > No H1.x. No payroll/LMS. **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED**
 

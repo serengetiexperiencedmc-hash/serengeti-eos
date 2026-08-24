@@ -1,7 +1,7 @@
 # ITP1 Authorization — IT Problem Register
 
 > **CURRENT STATE (2026-08-24 documentation hygiene — supersession banner, not a rewrite of Stage 1)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`4f2ffd3afbf28b547f8e6deadd1c4f5241562cfb`** (this HEAD **is** the ITP1 implementation commit)  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`c55b608001e6af764fc80bd41ce9844b24da60d8`** (current product HEAD is the ITR1 implementation; ITP1 remains closed at `4f2ffd3afbf28b547f8e6deadd1c4f5241562cfb`)  
 > ITP1 Stage 2 is **COMPLETE / CLOSED** for Development/Test. The Stage 1 fields below (`IMPLEMENTATION_AUTHORIZED=NO`, `STATUS=STAGE_1_AUTHORIZED`) remain the **historical authorization**. They must not be read as a pending execution queue.  
 > ITP1 remains **CLOSED**. No ITP1.x. **ITR1** Stage 2 is **IMPLEMENTED / CLOSED** for Development/Test (not an ITP1 reopen). See [`itr1-it-release-register-authorized.md`](itr1-it-release-register-authorized.md) and [`../architecture/itr1-it-release-register-preview.md`](../architecture/itr1-it-release-register-preview.md). **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED**
 

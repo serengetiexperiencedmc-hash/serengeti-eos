@@ -1,7 +1,7 @@
 # C1 — Implementation Sequence
 
 > **CURRENT STATE (2026-08-24 documentation hygiene)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`4f2ffd3afbf28b547f8e6deadd1c4f5241562cfb`**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`c55b608001e6af764fc80bd41ce9844b24da60d8`**  
 > This sequence is **historical and already executed**. C1.1–C1.11 are **COMPLETE**. C1 Gate is **PASS** (Dev/Test only). C2–C10 are **CLOSED**. **C11+ is not created and not authorized.**  
 > Do not treat this file as an open runbook. **EXECUTION_QUEUE=EMPTY** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED**
 

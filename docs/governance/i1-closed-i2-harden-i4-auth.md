@@ -4,7 +4,7 @@
 > This file is the **2026-08-22** I1/I2 snapshot. It must not override later gates.  
 > Later: I4 **ACCEPTED** (Dev/Test) in [`i4-accepted-harden-gate.md`](./i4-accepted-harden-gate.md); CRM/MICE **C1–C10 CLOSED**; C1 Gate **PASS**.  
 > AI agents, UAT, Production, and ADR-0006 / 0012 / 0013 remain as below.  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`4f2ffd3afbf28b547f8e6deadd1c4f5241562cfb`** · **EXECUTION_QUEUE=EMPTY**
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`c55b608001e6af764fc80bd41ce9844b24da60d8`** · **EXECUTION_QUEUE=EMPTY**
 
 | Gate | Status |
 | --- | --- |

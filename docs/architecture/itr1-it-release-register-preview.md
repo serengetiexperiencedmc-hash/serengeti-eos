@@ -1,7 +1,8 @@
 # ITR1 IT Release Register — Stage 1 Preview
 
 > **CURRENT STATE (2026-08-24 Stage 1 approved + Stage 2 implemented Dev/Test)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · ITR1 Stage 2 is **IMPLEMENTED / COMPLETE / CLOSED** for Development/Test (additive SQL `103_itr1_itsm_releases.sql`).  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`c55b608001e6af764fc80bd41ce9844b24da60d8`** (this HEAD **is** the ITR1 implementation commit)  
+> ITR1 Stage 2 is **IMPLEMENTED / COMPLETE / CLOSED** for Development/Test (additive SQL `103_itr1_itsm_releases.sql`).  
 > The lifecycle table and contract body below are the **historical Stage 1** record (authored before Operator approval). They answer “what was contracted at Stage 1?” They must not be read as a pending implementation queue.  
 > ITR1 remains **CLOSED** for further expansion. No ITR1.x. No Release Management, deployment, CAB, or CI/CD. I11, ITC1, and ITP1 remain **CLOSED**. **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **PUSH=NOT_AUTHORIZED**  
 > **CAPABILITY_SELECTED=YES** · **CAPABILITY=IT_RELEASE_REGISTER** · **CAPABILITY_ID=ITR1** · **STAGE_1_CREATED=YES** · **STAGE_1_APPROVED=YES** · **IMPLEMENTATION_AUTHORIZED=YES** (Dev/Test; Stage 2 complete)

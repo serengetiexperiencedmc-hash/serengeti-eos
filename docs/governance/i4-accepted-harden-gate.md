@@ -2,7 +2,7 @@
 
 > **CURRENT STATE (2026-08-24 documentation hygiene)**  
 > This file is the **2026-08-22 I4** snapshot. CRM/MICE later shipped as **C1–C10 CLOSED** (Dev/Test). AI agents remain blocked. UAT/Production remain not approved.  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`4f2ffd3afbf28b547f8e6deadd1c4f5241562cfb`** · **EXECUTION_QUEUE=EMPTY**
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`c55b608001e6af764fc80bd41ce9844b24da60d8`** · **EXECUTION_QUEUE=EMPTY**
 
 | Gate | Status |
 | --- | --- |

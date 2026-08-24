@@ -1,7 +1,7 @@
 # ITC1 IT Change Register — Preview
 
 > **CURRENT STATE (2026-08-24 documentation hygiene — supersession banner, not a rewrite of Stage 1)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`4f2ffd3afbf28b547f8e6deadd1c4f5241562cfb`**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`c55b608001e6af764fc80bd41ce9844b24da60d8`**  
 > ITC1 Stage 2 is **IMPLEMENTED / COMPLETE / CLOSED** for Development/Test (additive SQL `101_itc1_itsm_changes.sql`).  
 > The lifecycle table and contract body below are the **historical Stage 1** record (`IMPLEMENTATION_AUTHORIZED=NO`, `STATUS=STAGE_1_AUTHORIZED` at authorization time). They answer “what was authorized at Stage 1?” They must not be read as a pending implementation queue.  
 > ITC1 remains **CLOSED**. No ITC1.x. **ITR1** Stage 2 is **IMPLEMENTED / CLOSED** for Development/Test (not an ITC1 reopen). See [`../governance/itr1-it-release-register-authorized.md`](../governance/itr1-it-release-register-authorized.md) and [`itr1-it-release-register-preview.md`](itr1-it-release-register-preview.md). **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED**
