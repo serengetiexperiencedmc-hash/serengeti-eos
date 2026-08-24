@@ -1029,9 +1029,19 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 
 **Tests:** kernel grc 2/2; API g2 3/3 (401/403/400 title_required/obligation_not_found/cross-tenant 404/ai_actor/lifecycle); regression G1/P1/I15/I16/I13; web typecheck clean. Live preview restarted so `/v1/grc` exists (memory_only). Carol registered **CTL-0002** referencing OBL-0001, Activate → active, Retire. G1 OBL-0001 remained Open. Alice 403 on `/v1/grc/health` live. Live PostgreSQL UNVERIFIED.
 
+### 97:xx — G3 Findings Register ✅
+
+**Shipped:** G3 complete against `docs/architecture/g3-findings-register-preview.md` (Dev/Test). ID assigned by `docs/governance/g3-findings-register-authorized.md` (FIND=A). API identity unchanged (`1.04.0-i3.37`); findings health increment is `G3`. Findings register only. Human-only mutate. Optional G2 control reference (no G2 mutation). Bob holds `grc.finding`. I15, G1, P1, and G2 not reopened. No I15.x. No test campaigns or mapping engine.
+
+| Increment | Change |
+| --- | --- |
+| **G3** | Findings, start/close, Compliance → Findings, `/commercial/findings` |
+
+**Tests:** kernel findings 2/2; API g3 3/3 (401/403/400 title_required/control_not_found/cross-tenant 404/ai_actor/lifecycle); regression G1/G2/P1/I15/I16/I13; web typecheck clean. Live preview restarted so `/v1/findings` exists (memory_only). Carol registered **FND-0002** referencing CTL-0001, Start → in progress, Close. G2 CTL-0001 remained Draft. G1 OBL-0001 remained Open. Alice 403 on `/v1/findings/health` live. Live PostgreSQL UNVERIFIED.
+
 ### Recommended next increments
 
-PRIV=A shipped as P1. GRC=A shipped as G2. I21=D, I22=D, I23=D, EMCOMMS=D, EXER=D remain deferred. No successor IDs.
+PRIV=A shipped as P1. GRC=A shipped as G2. FIND=A shipped as G3. I21=D, I22=D, I23=D, EMCOMMS=D, EXER=D remain deferred. No successor IDs.
 
 ### Issues resolved
 

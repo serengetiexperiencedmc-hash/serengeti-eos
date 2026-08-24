@@ -8,7 +8,7 @@
 | Capability name | Findings register |
 | Predecessor | I2 kernel (complete); I15 ERM complete and **not** reopened; G1, P1, and G2 complete and **not** reopened |
 | Architecture status | This document is the G3 contract |
-| Implementation status | **PREVIEW / NOT IMPLEMENTED** |
+| Implementation status | **IMPLEMENTED / COMPLETE** |
 | Environment | Development/Test only |
 | Persistence | In-memory store + additive SQL `094_g3_findings_register.sql`. ADR-0017 not reopened |
 | Runtime health increment | `G3` |

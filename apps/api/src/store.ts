@@ -129,6 +129,7 @@ import {
   type PrivacyProcessingActivity,
   type PrivacyDsrCase,
   type GrcControl,
+  type FindingRecord,
   type KnowledgeDocument,
   type PamJitGrant,
   type PamSecretRef,
@@ -146,6 +147,7 @@ import { seedDefaultCrisis } from "./crisis/collections.js";
 import { seedDefaultCompliance } from "./compliance/collections.js";
 import { seedDefaultPrivacy } from "./privacy/collections.js";
 import { seedDefaultGrc } from "./grc/collections.js";
+import { seedDefaultFindings } from "./findings/collections.js";
 
 export type Payment = {
   id: string;
@@ -285,6 +287,7 @@ export type Store = {
   privacyProcessingActivities: PrivacyProcessingActivity[];
   privacyDsrCases: PrivacyDsrCase[];
   grcControls: GrcControl[];
+  findingRecords: FindingRecord[];
   notifDismissals: NotifDismissal[];
   notifEmailOutbox: NotifEmailOutboxEntry[];
   notifEmailDeliveryEvents: NotifEmailDeliveryEvent[];
@@ -530,6 +533,8 @@ const COMPLIANCE_PERMS = ["compliance:read:obligation", "compliance:write:obliga
 
 const GRC_PERMS = ["grc:read:control", "grc:write:control"] as const;
 
+const FINDINGS_PERMS = ["grc:read:finding", "grc:write:finding"] as const;
+
 const PRIVACY_PERMS = [
   "privacy:read:activity",
   "privacy:write:activity",
@@ -575,6 +580,7 @@ const PERMS = {
   complianceMember: [...COMPLIANCE_PERMS],
   dpo: [...PRIVACY_PERMS],
   grcControl: [...GRC_PERMS],
+  grcFinding: [...FINDINGS_PERMS],
   platformAdmin: [
     "org:read:unit",
     "org:write:unit",
@@ -635,6 +641,7 @@ const PERMS = {
     ...COMPLIANCE_PERMS,
     ...PRIVACY_PERMS,
     ...GRC_PERMS,
+    ...FINDINGS_PERMS,
     ...NOTIFICATION_PERMS,
     "ai:read:recommend",
     "ai:write:draft",
@@ -761,6 +768,7 @@ export function seedStore(
       "compliance.member",
       "dpo",
       "grc.control",
+      "grc.finding",
     ],
     permissions: [
       ...PERMS.financeApprover,
@@ -771,6 +779,7 @@ export function seedStore(
       ...PERMS.complianceMember,
       ...PERMS.dpo,
       ...PERMS.grcControl,
+      ...PERMS.grcFinding,
     ],
     passwordHash: hashPassword(bootstrap.bobPassword),
     attributes: { department: "finance" },
@@ -909,6 +918,13 @@ export function seedStore(
       key: "grc.control",
       name: "GRC Control",
       permissionKeys: [...PERMS.grcControl],
+    },
+    {
+      id: "role-grc-finding",
+      tenantId,
+      key: "grc.finding",
+      name: "GRC Finding",
+      permissionKeys: [...PERMS.grcFinding],
     },
     {
       id: "role-audit-member",
@@ -1059,6 +1075,14 @@ export function seedStore(
         tenantId,
         principalId: bobId,
         roleKey: "grc.control",
+        grantedAt: new Date().toISOString(),
+        grantedByPrincipalId: carolId,
+      },
+      {
+        id: "grant-bob-finding",
+        tenantId,
+        principalId: bobId,
+        roleKey: "grc.finding",
         grantedAt: new Date().toISOString(),
         grantedByPrincipalId: carolId,
       },
@@ -1247,6 +1271,7 @@ export function seedStore(
     privacyProcessingActivities: [],
     privacyDsrCases: [],
     grcControls: [],
+    findingRecords: [],
     notifDismissals: [],
     notifEmailOutbox: [],
     notifEmailDeliveryEvents: [],
@@ -1292,6 +1317,7 @@ export function seedStore(
   seedDefaultCompliance(store);
   seedDefaultPrivacy(store);
   seedDefaultGrc(store);
+  seedDefaultFindings(store);
   return store;
 }
 
