@@ -877,11 +877,18 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | --- | --- |
 | **C10** | Command-center 401/403/404 security tests. Existing command-center UI unchanged |
 
+### 81:xx — O5 operations workbench ✅
+
+**Shipped:** O5 complete against `docs/architecture/o5-operations-workbench-preview.md` (Dev/Test). API identity unchanged (`1.04.0-i3.37`); ops health increment is `O5`.
+
+| Increment | Change |
+| --- | --- |
+| **O5** | Tenant-scoped ops health, `/v1/ops/workbench` queue, Operations Workbench UI + nav, O5 security tests |
+
 ### Recommended next increments
 
-1. I20.23 — (unnamed / undefined)
-2. PG.30 — (undefined / not authorized)
-3. I4.35 — (undefined / not authorized)
+1. I8.4 — Booking financial control (Finance family, this phase)
+2. J3 — Finance analytics (Analytics family, this phase)
 
 ### Issues resolved
 

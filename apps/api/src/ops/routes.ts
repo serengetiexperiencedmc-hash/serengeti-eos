@@ -38,6 +38,7 @@ import {
   issueVoucher,
   listVouchers,
 } from "./vouchers.js";
+import { listOpsWorkbench } from "./workbench.js";
 
 function sendError(
   reply: { code: (n: number) => { send: (b: unknown) => unknown } },
@@ -59,7 +60,18 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
   app.get("/v1/ops/health", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    return getOpsModuleHealth(store);
+    const result = getOpsModuleHealth(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.get("/v1/ops/workbench", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const query = req.query as { attention?: string; status?: string; q?: string };
+    const result = listOpsWorkbench(store, principal, query);
+    if ("error" in result) return sendError(reply, result);
+    return result;
   });
 
   app.get("/v1/ops/supplier-confirmations", async (req, reply) => {

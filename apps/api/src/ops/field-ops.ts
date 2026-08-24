@@ -260,17 +260,31 @@ export function issueOpsBrief(store: Store, principal: Principal, bookingId: str
   return { brief: sanitizeBrief(brief) };
 }
 
-export function getOpsModuleHealth(store: Store) {
+export function getOpsModuleHealth(store: Store, principal: Principal) {
   ensureOpsCollections(store);
+  const decision = authorize({
+    principal,
+    permission: "ops:read:operations",
+    action: "read:ops_health",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+
+  const tenantId = principal.tenantId;
   return {
     module: "ops",
-    increment: "O1-O4",
+    increment: "O5",
     status: "ok" as const,
-    supplierConfirmations: store.opsSupplierConfirmations.length,
-    manifests: store.opsManifests.length,
-    assignments: store.opsAssignments.length,
-    fieldTasks: store.opsFieldTasks.length,
-    briefs: store.opsBriefs.length,
-    vouchers: store.opsVouchers.length,
+    supplierConfirmations: store.opsSupplierConfirmations.filter((c) => c.tenantId === tenantId).length,
+    manifests: store.opsManifests.filter((m) => m.tenantId === tenantId).length,
+    assignments: store.opsAssignments.filter((a) => a.tenantId === tenantId).length,
+    fieldTasks: store.opsFieldTasks.filter((t) => t.tenantId === tenantId).length,
+    briefs: store.opsBriefs.filter((b) => b.tenantId === tenantId).length,
+    vouchers: (store.opsVouchers ?? []).filter((v) => v.tenantId === tenantId).length,
+    workbench: store.bkgBookings.filter(
+      (b) =>
+        b.tenantId === tenantId &&
+        !b.archivedAt &&
+        (b.status === "confirmed" || b.status === "handover_pending" || b.status === "handed_over"),
+    ).length,
   };
 }

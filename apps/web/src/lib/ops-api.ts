@@ -172,3 +172,33 @@ export async function issueAllVouchers(token: string, bookingId: string) {
     body: JSON.stringify({ bookingId }),
   });
 }
+
+export type OpsWorkbenchItem = {
+  bookingId: string;
+  bookingCode: string;
+  title: string;
+  organizationId: string;
+  status: string;
+  handoverProgressPercent: number;
+  pendingHandoverTasks: number;
+  supplierConfirmationsPending: number;
+  manifestStatus?: string;
+  vouchersDraft: number;
+  fieldTasksOpen: number;
+  syncConflicts: number;
+  attentionRequired: boolean;
+  paxCount?: number;
+  travelDates?: string;
+};
+
+export async function listOpsWorkbench(
+  token: string,
+  query?: { attention?: boolean; status?: string; q?: string },
+) {
+  const params = new URLSearchParams();
+  if (query?.attention) params.set("attention", "true");
+  if (query?.status) params.set("status", query.status);
+  if (query?.q) params.set("q", query.q);
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  return eosFetch<{ items: OpsWorkbenchItem[] }>(`/v1/ops/workbench${suffix}`, { token });
+}

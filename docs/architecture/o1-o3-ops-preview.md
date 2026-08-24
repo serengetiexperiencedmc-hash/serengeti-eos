@@ -39,7 +39,7 @@ Permissions: `ops:read:operations`, `ops:write:operations`, `ops:confirm:supplie
 
 Completing ops work **auto-completes** matching C9 handover checklist items by `task_key`.
 
-See also: [O4 Guest Vouchers preview](./o4-vouchers-preview.md)
+See also: [O4 Guest Vouchers preview](./o4-vouchers-preview.md) · [O5 Operations Workbench preview](./o5-operations-workbench-preview.md)
 
 ## UI
 

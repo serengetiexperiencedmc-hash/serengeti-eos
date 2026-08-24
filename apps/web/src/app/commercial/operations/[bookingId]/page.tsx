@@ -283,8 +283,11 @@ export default function OperationsBookingPage() {
         subtitle="Supplier confirmations, manifest, vouchers & field operations"
         actions={
           <>
+            <Link href="/commercial/operations">
+              <Btn variant="secondary">← Workbench</Btn>
+            </Link>
             <Link href={`/commercial/bookings/${bookingId}`}>
-              <Btn variant="secondary">← Booking</Btn>
+              <Btn variant="secondary">Command Center</Btn>
             </Link>
             <Badge variant={bookingStatusBadge(booking.booking.status)} label={BOOKING_STATUS_LABELS[booking.booking.status]} />
           </>

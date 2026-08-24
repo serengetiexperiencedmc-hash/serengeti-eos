@@ -73,7 +73,30 @@ export type OpsBookingReadinessRollup = {
   syncConflicts: number;
 };
 
+export type OpsWorkbenchItem = OpsBookingReadinessRollup & {
+  organizationId: string;
+  attentionRequired: boolean;
+  paxCount?: number;
+  travelDates?: string;
+};
+
 export function computeHandoverProgress(completed: number, total: number): number {
   if (total <= 0) return 0;
   return Math.round((completed / total) * 1000) / 10;
+}
+
+export function requiresOpsAttention(item: {
+  pendingHandoverTasks: number;
+  supplierConfirmationsPending: number;
+  vouchersDraft: number;
+  fieldTasksOpen: number;
+  syncConflicts: number;
+}): boolean {
+  return (
+    item.pendingHandoverTasks > 0 ||
+    item.supplierConfirmationsPending > 0 ||
+    item.vouchersDraft > 0 ||
+    item.fieldTasksOpen > 0 ||
+    item.syncConflicts > 0
+  );
 }
