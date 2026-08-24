@@ -70,3 +70,4 @@ export * from "./observability.js";
 export * from "./security.js";
 export * from "./pam.js";
 export * from "./erm.js";
+export * from "./knowledge.js";

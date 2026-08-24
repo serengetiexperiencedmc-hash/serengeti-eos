@@ -23,7 +23,7 @@ Each increment must be releasable to **Test** on its own (Production only after 
 | **I16** | Internal audit | I15 | Engagements, workpapers | |
 | **I17** | BCM + backup proof | ADR-0011 | 19:00 EAT job, restore probe evidence | Hot site unless ADR |
 | **I18** | Crisis + emcomms + exercises | I3, I17 | Command center | Voice until provider |
-| **I19** | Knowledge + search | I0 | Authority states, permissioned search | Graph DB |
+| **I19** | Knowledge + search | I0 | Authority states, permissioned search — **IMPLEMENTED** tenant-scoped SQL-shaped search (no graph/external index), [`i19-knowledge-search-preview.md`](../architecture/i19-knowledge-search-preview.md) | Graph DB |
 | **I20** | AI orchestration | I19, ADR-0008 | Providers, prompts, agents L0–L1 | L3+ tools |
 | **I21** | Decision intelligence | I20 | Forecasts labelled as estimates | |
 | **I22** | Partner edge | I0, I4 | Partner IAM, isolation tests | Public catalogue |

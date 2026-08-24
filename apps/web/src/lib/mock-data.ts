@@ -75,6 +75,10 @@ export const navItems = [
     items: [{ href: "/commercial/erm", label: "Register", icon: "erm" }],
   },
   {
+    section: "Knowledge",
+    items: [{ href: "/commercial/knowledge", label: "Documents", icon: "knowledge" }],
+  },
+  {
     section: "Resources",
     items: [
       { href: "/commercial/suppliers", label: "Supplier Library", icon: "suppliers" },

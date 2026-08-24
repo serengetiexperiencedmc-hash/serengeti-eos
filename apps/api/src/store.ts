@@ -119,6 +119,7 @@ import {
   type OtelSpan,
   type SecurityAlert,
   type ErmRisk,
+  type KnowledgeDocument,
   type PamJitGrant,
   type PamSecretRef,
 } from "@sedmc/kernel";
@@ -128,6 +129,7 @@ import { seedDefaultIt } from "./it/collections.js";
 import { seedDefaultSoc } from "./security/collections.js";
 import { seedDefaultPam } from "./pam/collections.js";
 import { seedDefaultErm } from "./erm/collections.js";
+import { seedDefaultKnowledge } from "./knowledge/collections.js";
 
 export type Payment = {
   id: string;
@@ -256,6 +258,7 @@ export type Store = {
   pamSecretRefs: PamSecretRef[];
   pamJitGrants: PamJitGrant[];
   ermRisks: ErmRisk[];
+  knowledgeDocuments: KnowledgeDocument[];
   notifDismissals: NotifDismissal[];
   notifEmailOutbox: NotifEmailOutboxEntry[];
   notifEmailDeliveryEvents: NotifEmailDeliveryEvent[];
@@ -479,6 +482,8 @@ const PAM_PERMS = [
 
 const ERM_PERMS = ["erm:read:risk", "erm:write:risk"] as const;
 
+const KNOWLEDGE_PERMS = ["knowledge:read:document", "knowledge:write:document"] as const;
+
 const PERMS = {
   financeMember: [
     "finance:create:payment",
@@ -564,6 +569,7 @@ const PERMS = {
     ...SECURITY_PERMS,
     ...PAM_PERMS,
     ...ERM_PERMS,
+    ...KNOWLEDGE_PERMS,
     ...NOTIFICATION_PERMS,
     "ai:read:recommend",
     "ai:write:draft",
@@ -1057,6 +1063,7 @@ export function seedStore(
     pamSecretRefs: [],
     pamJitGrants: [],
     ermRisks: [],
+    knowledgeDocuments: [],
     notifDismissals: [],
     notifEmailOutbox: [],
     notifEmailDeliveryEvents: [],
@@ -1095,6 +1102,7 @@ export function seedStore(
   seedDefaultSoc(store);
   seedDefaultPam(store);
   seedDefaultErm(store);
+  seedDefaultKnowledge(store);
   return store;
 }
 

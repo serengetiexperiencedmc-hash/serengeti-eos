@@ -959,9 +959,19 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 
 **Tests:** kernel erm 2/2; API i15 3/3; regression I14 3/3; web typecheck clean. Live preview API UNVERIFIED (existing process predates I15; not restarted). Live PostgreSQL UNVERIFIED.
 
+### 90:xx — I19 Knowledge Search ✅
+
+**Shipped:** I19 complete against `docs/architecture/i19-knowledge-search-preview.md` (Dev/Test). API identity unchanged (`1.04.0-i3.37`); knowledge health increment is `I19`. Types policy/sop/note; states draft/authoritative/retired; tenant-scoped `q` search over title/body. No graph DB, no external index, no autonomous publishing.
+
+| Increment | Change |
+| --- | --- |
+| **I19** | Knowledge documents, search `q`, Knowledge → Documents, `/commercial/knowledge` |
+
+**Tests:** kernel knowledge 2/2; API i19 3/3; regression I15 3/3; web typecheck clean. Live preview API UNVERIFIED (existing process predates I19; not restarted). Live PostgreSQL UNVERIFIED.
+
 ### Recommended next increments
 
-I19 Knowledge/Search is authorized (governance I19=B). I16 internal audit still needs its own engagement/workpaper contract. I17 remains deferred (ADR-0011). I22 remains deferred.
+No remaining implementation-ready authorized capability. I16 still needs an engagement/workpaper contract. I17 remains deferred (ADR-0011). I22 remains deferred. I20 stays within existing L0–L1.
 
 ### Issues resolved
 
