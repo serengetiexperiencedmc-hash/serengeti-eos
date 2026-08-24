@@ -74,6 +74,7 @@ import { registerSupplierRoutes } from "./supplier/routes.js";
 import { registerAiRoutes } from "./ai/routes.js";
 import { registerHrRoutes } from "./hr/routes.js";
 import { registerItRoutes } from "./it/routes.js";
+import { registerObsRoutes } from "./obs/routes.js";
 import type { EventCatalogueEntry } from "@sedmc/kernel";
 import {
   createLogger,
@@ -124,6 +125,7 @@ export function buildServer(options: ServerOptions | Store = {}) {
   registerAnalyticsRoutes(app, store);
   registerHrRoutes(app, store);
   registerItRoutes(app, store);
+  registerObsRoutes(app, store, opts.dbHealth);
   registerAiRoutes(app, store);
 
   app.get("/health", async (_req, reply) => {

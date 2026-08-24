@@ -16,7 +16,7 @@ Each increment must be releasable to **Test** on its own (Production only after 
 | **I9** | Operations + field offline | I7 | Tasks, assignments, encrypted cache | UEM |
 | **I10** | HR core | I1 | Employee, leave, skills — **IMPLEMENTED** (Dev/Test), [`i10-hr-core-preview.md`](../architecture/i10-hr-core-preview.md) | Payroll engine |
 | **I11** | ITSM + CMDB | I4 | Tickets, CIs — **IMPLEMENTED** (Dev/Test), [`i11-itsm-cmdb-preview.md`](../architecture/i11-itsm-cmdb-preview.md) | Discovery |
-| **I12** | Observability | I11 | OTel, health dependency map | Full AIOps |
+| **I12** | Observability | I11 | OTel, health dependency map — **IMPLEMENTED** (Dev/Test), [`i12-observability-preview.md`](../architecture/i12-observability-preview.md) | Full AIOps |
 | **I13** | Defensive SOC integration | I12 | Alert ingest, IR casefile | Homegrown SIEM |
 | **I14** | PAM / secrets / ZTNA | I1, ADR-0012/13 | JIT, vault refs | Custom VPN |
 | **I15** | ERM + compliance + privacy | I2 | Registers, RoPA, DSR workflow | Legal opinion automation |

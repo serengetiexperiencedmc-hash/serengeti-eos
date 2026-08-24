@@ -919,9 +919,19 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 
 **Tests:** kernel itsm 3/3; API i11 4/4 + I10 regression 5/5; web typecheck clean. Live `dev:preview` API on 8080 returned 404 for `/v1/itsm/health` and `/v1/hr/health` (stale process) — live UI/API UNVERIFIED.
 
+### 86:xx — I12 Observability ✅
+
+**Shipped:** I12 complete against `docs/architecture/i12-observability-preview.md` (Dev/Test). API identity unchanged (`1.04.0-i3.37`); observability health increment is `I12`.
+
+| Increment | Change |
+| --- | --- |
+| **I12** | CMDB `depends_on` health map, in-process OTel-shaped traces, IT → Observability, `/commercial/observability` |
+
+**Tests:** kernel observability 4/4; API i12 4/4; regression I11 4/4, I10 5/5, O5 3/3, J3 2/2; web typecheck clean. Live preview API UNVERIFIED (stale 8080).
+
 ### Recommended next increments
 
-I12 Observability is the next numbered backlog increment (Phase 3) but lacks an implementation contract (OTel exporter/collector, SLO model, alert ingest, and UI are unspecified). Remaining Phase 2 domain-map items (Calendar; Procurement request/PO) have no increment contract.
+I13 Defensive SOC (alert ingest, IR casefile) requires an external defensive product / alert schema — not inferable. I14 PAM/secrets/ZTNA is blocked on ADR-0012. Calendar and Procurement remain domain-map only.
 
 ### Issues resolved
 

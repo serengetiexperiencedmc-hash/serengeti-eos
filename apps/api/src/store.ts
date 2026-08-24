@@ -116,6 +116,7 @@ import {
   type CmdbRelationship,
   type ItsmTicket,
   type ItsmTicketCi,
+  type OtelSpan,
 } from "@sedmc/kernel";
 import { seedCrmCatalogues } from "./crm/collections.js";
 import { seedDefaultHr } from "./hr/collections.js";
@@ -243,6 +244,7 @@ export type Store = {
   cmdbRelationships: CmdbRelationship[];
   itsmTickets: ItsmTicket[];
   itsmTicketCis: ItsmTicketCi[];
+  otelSpans: OtelSpan[];
   notifDismissals: NotifDismissal[];
   notifEmailOutbox: NotifEmailOutboxEntry[];
   notifEmailDeliveryEvents: NotifEmailDeliveryEvent[];
@@ -441,6 +443,8 @@ const ITSM_PERMS = [
 
 const CMDB_PERMS = ["cmdb:read:ci", "cmdb:write:ci"] as const;
 
+const OBS_PERMS = ["observability:read:map", "observability:read:signal"] as const;
+
 const PERMS = {
   financeMember: [
     "finance:create:payment",
@@ -470,7 +474,7 @@ const PERMS = {
   ],
   hrMember: [...HR_MEMBER_PERMS],
   hrApprover: [...HR_APPROVER_PERMS],
-  itAgent: [...ITSM_PERMS, ...CMDB_PERMS],
+  itAgent: [...ITSM_PERMS, ...CMDB_PERMS, ...OBS_PERMS],
   platformAdmin: [
     "org:read:unit",
     "org:write:unit",
@@ -520,6 +524,7 @@ const PERMS = {
     ...HR_PERMS,
     ...ITSM_PERMS,
     ...CMDB_PERMS,
+    ...OBS_PERMS,
     ...NOTIFICATION_PERMS,
     "ai:read:recommend",
     "ai:write:draft",
@@ -994,6 +999,7 @@ export function seedStore(
     cmdbRelationships: [],
     itsmTickets: [],
     itsmTicketCis: [],
+    otelSpans: [],
     notifDismissals: [],
     notifEmailOutbox: [],
     notifEmailDeliveryEvents: [],
