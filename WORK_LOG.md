@@ -989,9 +989,19 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 
 **Tests:** kernel bcm 2/2; API i17 3/3; regression I16 3/3; web typecheck clean.
 
+### 93:xx — I18 Crisis Overlay ✅
+
+**Shipped:** I18 complete against `docs/architecture/i18-crisis-overlay-preview.md` (Dev/Test). API identity unchanged (`1.04.0-i3.37`); crisis health increment is `I18`. Human L2/L3 declaration + immutable timeline only. Object-level SoD: declarer cannot close. Bob holds `crisis.commander`. No emcomms, exercises, decision log, or second incident model.
+
+| Increment | Change |
+| --- | --- |
+| **I18** | Crisis cases, timeline append, SoD close, Crisis → Declaration, `/commercial/crisis` |
+
+**Tests:** kernel crisis 2/2; API i18 3/3; regression I17 3/3; web typecheck clean.
+
 ### Recommended next increments
 
-I18 Crisis remains undefined as an increment contract (blocked until a matured I18 preview). I15 remaining compliance/privacy remain deferred. I22 remains deferred. I20 stays within existing L0–L1.
+I18=A does not unlock I21/I22/I23 or I15 remainder. I15 remaining compliance/privacy remain deferred. I21 remains undefined. I22 remains deferred. I20 stays within existing L0–L1.
 
 ### Issues resolved
 

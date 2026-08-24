@@ -87,6 +87,10 @@ export const navItems = [
     items: [{ href: "/commercial/bcm", label: "Backup evidence", icon: "bcm" }],
   },
   {
+    section: "Crisis",
+    items: [{ href: "/commercial/crisis", label: "Declaration", icon: "crisis" }],
+  },
+  {
     section: "Resources",
     items: [
       { href: "/commercial/suppliers", label: "Supplier Library", icon: "suppliers" },

@@ -22,4 +22,4 @@ This is **not** a backup appliance, vendor, hot site, object-storage product, or
 
 BCM evidence objects must store restore probe results. Job-green dashboards are insufficient.
 
-Production still requires a named backup product before UAT/Production. I18 Crisis remains a separate increment and is not authorized by I17=A.
+Production still requires a named backup product before UAT/Production. I18 Crisis is a separate increment. **I18=A (2026-08-24)** separately authorized a bounded Dev/Test crisis overlay (human declaration + immutable timeline); it is not this ADR.
