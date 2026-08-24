@@ -50,14 +50,21 @@ function findPendingForSheet(store: Store, tenantId: string, costSheetId: string
   );
 }
 
-export function getCommercialApprovalModuleHealth(store: Store) {
+export function getCommercialApprovalModuleHealth(store: Store, principal: Principal) {
   ensureCommercialApprovalCollections(store);
+  const decision = authorize({
+    principal,
+    permission: "commercial:read:approval",
+    action: "read:com_approval",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+  const items = store.comApprovalRequests.filter((r) => r.tenantId === principal.tenantId);
   return {
     module: "commercial-approval",
     increment: "C7",
     status: "ok" as const,
-    requests: store.comApprovalRequests.length,
-    pending: store.comApprovalRequests.filter((r) => r.status === "pending").length,
+    requests: items.length,
+    pending: items.filter((r) => r.status === "pending").length,
   };
 }
 

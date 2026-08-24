@@ -844,6 +844,15 @@ Also includes uncommitted preview fix (kernel subpath import, dev-preview HTTP 2
 | **C6** | Tenant-scoped costing health, create/add-line Live Costing UI, C6 security tests |
 | Docs | `c6-costing-preview.md` lifecycle status recorded after ship |
 
+### 77:xx — C7 commercial approval ✅
+
+**Shipped:** C7 complete against `docs/architecture/c7-commercial-approval-preview.md` (Dev/Test). API identity unchanged (`1.04.0-i3.37`); approval health increment remains `C7`.
+
+| Increment | Change |
+| --- | --- |
+| **C7** | Tenant-scoped approval health, RFP Approve/Reject actions, C7 security tests |
+| Docs | `c7-commercial-approval-preview.md` lifecycle status recorded after ship |
+
 ### Recommended next increments
 
 1. I20.23 — (unnamed / undefined)

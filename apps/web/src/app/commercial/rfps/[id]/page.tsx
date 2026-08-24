@@ -21,6 +21,7 @@ import {
 import { getCostSheetByRfp, formatCost, type CostSheetDetail } from "@/lib/costing-api";
 import {
   approvalStatusLabel,
+  decideCommercialApproval,
   listCommercialApprovals,
   requestCommercialApproval,
   type CommercialApprovalRequest,
@@ -55,6 +56,7 @@ export default function RfpDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [requesting, setRequesting] = useState(false);
+  const [deciding, setDeciding] = useState(false);
   const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
@@ -115,6 +117,24 @@ export default function RfpDetailPage() {
       setError(err instanceof EosApiError ? err.message : "Failed to request approval");
     } finally {
       setRequesting(false);
+    }
+  }
+
+  async function handleDecideApproval(outcome: "approved" | "rejected") {
+    if (!token || !approval) return;
+    setDeciding(true);
+    setError(null);
+    try {
+      const result = await decideCommercialApproval(token, approval.id, outcome);
+      setApproval(result.request);
+      if (params.id) {
+        const detail = await getRfp(token, params.id);
+        setRfp(detail.rfp);
+      }
+    } catch (err) {
+      setError(err instanceof EosApiError ? err.message : "Failed to record finance decision");
+    } finally {
+      setDeciding(false);
     }
   }
 
@@ -279,6 +299,26 @@ export default function RfpDetailPage() {
                         ? "Approval Pending"
                         : "Request Finance Approval"}
                 </Btn>
+                {approval?.status === "pending" && (
+                  <div className="mt-2 flex gap-2">
+                    <Btn
+                      variant="secondary"
+                      className="w-full"
+                      disabled={deciding}
+                      onClick={() => void handleDecideApproval("approved")}
+                    >
+                      {deciding ? "Saving…" : "Approve"}
+                    </Btn>
+                    <Btn
+                      variant="ghost"
+                      className="w-full"
+                      disabled={deciding}
+                      onClick={() => void handleDecideApproval("rejected")}
+                    >
+                      Reject
+                    </Btn>
+                  </div>
+                )}
                 {approval?.status === "approved" && !proposal && (
                   <Btn
                     variant="secondary"

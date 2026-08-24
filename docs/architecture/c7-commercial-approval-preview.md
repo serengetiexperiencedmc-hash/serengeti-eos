@@ -1,6 +1,27 @@
 # C7 Commercial Approval — Preview
 
+## Lifecycle status (reconciled for C7 completion)
+
+| Field | Value |
+| --- | --- |
+| Increment ID | **C7** |
+| Capability name | Commercial Approval |
+| Predecessor | C6 Costing Engine |
+| Architecture status | Existing committed preview remains the C7 contract |
+| Implementation status | **IMPLEMENTED / COMPLETE** |
+| Environment | Development/Test only |
+| Persistence | Dev/Test in-memory read SoR; PostgreSQL schema `019_c7_commercial_approval.sql` (schema-only). ADR-0017 not reopened |
+| Production / UAT / AI | Not authorized |
+
+The sections after this heading are the architecture contract.
+
+---
+
 Increment **C7** adds finance approval gates for commercial cost sheets, building on C6 costing and I2 workflow/rules patterns.
+
+## Objective
+
+Gate high-value or below-floor commercials through finance review with SoD (requester ≠ decider), from the RFP Commercial Summary — including Approve/Reject.
 
 ## Kernel
 
@@ -21,28 +42,29 @@ Increment **C7** adds finance approval gates for commercial cost sheets, buildin
 
 ## API (`/v1/commercial-approvals`)
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | Module health |
-| GET | `/commercial-approvals` | List (filter by costSheetId, rfpId, status) |
-| POST | `/commercial-approvals/request` | Request finance approval for cost sheet |
-| GET | `/commercial-approvals/:id` | Detail |
-| POST | `/commercial-approvals/:id/decision` | Approve/reject (SoD: requester ≠ decider) |
+| Method | Path | Permission |
+|--------|------|------------|
+| GET | `/health` | `commercial:read:approval` (tenant-scoped) |
+| GET | `/commercial-approvals` | `commercial:read:approval` |
+| POST | `/commercial-approvals/request` | `commercial:request:approval` |
+| GET | `/commercial-approvals/:id` | `commercial:read:approval` |
+| POST | `/commercial-approvals/:id/decision` | `commercial:decide:approval` (SoD) |
 
-Permissions:
-- `commercial:read:approval`, `commercial:request:approval` — commercial manager
-- `commercial:decide:approval` — finance approver + platform admin
-
-On approve: RFP workflow advances `approval` → `proposal`.
+On approve: RFP workflow advances `approval` → `proposal`. Health increment remains `C7`.
 
 ## UI
 
-- RFP detail **Commercial Summary** — approval status badge, enabled **Request Finance Approval**
+- RFP detail **Commercial Summary** — status badge, **Request Finance Approval**, **Approve** / **Reject** when pending
 - Programme builder **Save & Cost** — recalculates cost sheet via API
 
-## Demo seed
+## Tests
 
-Pending approval `APR-2026-0847` for Global Incentives cost sheet (sell threshold gate).
+Existing SoD/margin-floor tests plus 401/403, tenant-scoped health.
+
+## Explicit exclusions
+
+- UAT / Production / AI / ADR-0017
+- I3.38 / I4.35 / I20.23 / PG.30
 
 ## Next
 

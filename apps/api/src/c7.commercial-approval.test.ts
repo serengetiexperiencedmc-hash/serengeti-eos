@@ -23,6 +23,15 @@ async function loginBob(app: ReturnType<typeof buildServer>) {
   return res.json().accessToken as string;
 }
 
+async function loginAlice(app: ReturnType<typeof buildServer>) {
+  const res = await app.inject({
+    method: "POST",
+    url: "/v1/auth/login",
+    payload: { email: "alice.finance@sedmc.local", password: P.alicePassword, tenantSlug: "sedmc" },
+  });
+  return res.json().accessToken as string;
+}
+
 async function seedCrmOrg(app: ReturnType<typeof buildServer>, token: string) {
   const csv = ["legalName,organizationTypeKey,tradingName,country", "Approval Client Ltd,corporate,Approval Client,UK"].join("\n");
   const created = await app.inject({
@@ -184,5 +193,50 @@ describe("C7 commercial approval API", () => {
     });
     expect(bad.statusCode).toBe(409);
     expect(bad.json().reason).toBe("margin_below_floor");
+  });
+
+  it("scopes commercial approval health and rejects unauthorized access", async () => {
+    const store = seedStore("test-secret");
+    const app = buildServer({ store });
+    const carolToken = await loginCarol(app);
+    const orgId = await seedCrmOrg(app, carolToken);
+    const { sheetId } = await createCostSheet(app, carolToken, orgId);
+
+    const requested = await app.inject({
+      method: "POST",
+      url: "/v1/commercial-approvals/request",
+      headers: { authorization: `Bearer ${carolToken}` },
+      payload: { costSheetId: sheetId },
+    });
+    expect(requested.statusCode).toBe(201);
+    expect(requested.json().request).not.toHaveProperty("tenantId");
+
+    store.comApprovalRequests.push({
+      ...store.comApprovalRequests[0]!,
+      id: "99999999-9999-4999-8999-999999999999",
+      tenantId: "22222222-2222-4222-8222-222222222222",
+      requestCode: "APR-FOREIGN",
+    });
+
+    const health = await app.inject({
+      method: "GET",
+      url: "/v1/commercial-approvals/health",
+      headers: { authorization: `Bearer ${carolToken}` },
+    });
+    expect(health.statusCode).toBe(200);
+    expect(health.json().increment).toBe("C7");
+    expect(health.json().requests).toBe(1);
+    expect(health.json().pending).toBe(1);
+
+    const aliceToken = await loginAlice(app);
+    const denied = await app.inject({
+      method: "GET",
+      url: "/v1/commercial-approvals/health",
+      headers: { authorization: `Bearer ${aliceToken}` },
+    });
+    expect(denied.statusCode).toBe(403);
+
+    const unauth = await app.inject({ method: "GET", url: "/v1/commercial-approvals/health" });
+    expect(unauth.statusCode).toBe(401);
   });
 });

@@ -30,7 +30,9 @@ export function registerCommercialApprovalRoutes(app: FastifyInstance, store: St
   app.get("/v1/commercial-approvals/health", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    return getCommercialApprovalModuleHealth(store);
+    const result = getCommercialApprovalModuleHealth(store, principal);
+    if ("error" in result) return sendError(reply, result);
+    return result;
   });
 
   app.get("/v1/commercial-approvals", async (req, reply) => {
