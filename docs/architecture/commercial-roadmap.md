@@ -1,6 +1,12 @@
-# Commercial Domain Roadmap — C1 to C9
+# Commercial Domain Roadmap — C1 to C10
 
-**Status:** Authorized for Development/Test planning  
+> **CURRENT STATE (2026-08-24 documentation hygiene)**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`4f2ffd3afbf28b547f8e6deadd1c4f5241562cfb`**  
+> C1–C10 are **IMPLEMENTED / CLOSED** for Development/Test. This document is no longer an open commercial programme.  
+> **C11+ is not created and not authorized.** Procurement (**PO**) and Calendar (**CAL**) remain **DEFERRED**.  
+> **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED**
+
+**Status:** **IMPLEMENTED / CLOSED (Dev/Test) through C10.** Planning language below is historical; it applies only to any future C11+ (none authorized).  
 **Principle:** One integrated commercial platform — not three disconnected applications.
 
 ```
@@ -19,7 +25,8 @@ Relationship → Opportunity → RFP → Programme → Supplier → Cost → App
 | **C6** | Costing Engine | C4, C5 | Costs, currencies, markup, margin, versions |
 | **C7** | Commercial Approval | C6, I2 | Workflow + rules for margin/thresholds |
 | **C8** | Proposal Engine | C6, C7 | Structured proposals from programme + costing |
-| **C9** | Booking & Handover | C8 | Confirmation, operational handover (no live banking) |
+| **C9** | Booking & Handover | C8 | Confirmation, operational handover (no live banking) — **IMPLEMENTED / CLOSED** (Dev/Test) |
+| **C10** | Booking Command Center | C9 | Command-center rollup — **IMPLEMENTED / CLOSED** (Dev/Test), [`c10-booking-command-center-preview.md`](./c10-booking-command-center-preview.md) |
 
 ## Domain map (target architecture)
 
@@ -36,7 +43,7 @@ Relationship → Opportunity → RFP → Programme → Supplier → Cost → App
 | I — Operational Handover | Sell once → operate from same truth |
 | J — Commercial Analytics | Post-programme intelligence (later) |
 
-Do not implement all domains simultaneously. Follow C1→C9.
+Do not implement all domains simultaneously. Follow C1→C10 (historical sequence — **already executed** in Dev/Test). C11+ is not authorized.
 
 ## Control plane reuse (mandatory)
 
@@ -53,4 +60,4 @@ Structured data is built now for future **advisory** AI. No autonomous agents. N
 
 ## Next document
 
-[C1 CRM Foundation Preview](./c1-crm-preview.md) — required before C1 code.
+[C1 CRM Foundation Preview](./c1-crm-preview.md) — historical contract (C1 already implemented; not a cue to write C1 code).

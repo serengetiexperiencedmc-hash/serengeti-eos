@@ -1,6 +1,12 @@
 # H1 HR Certification Register — Preview
 
-## Lifecycle status
+> **CURRENT STATE (2026-08-24 documentation hygiene — supersession banner, not a rewrite of Stage 1)**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`4f2ffd3afbf28b547f8e6deadd1c4f5241562cfb`**  
+> H1 Stage 2 is **IMPLEMENTED / COMPLETE / CLOSED** for Development/Test (additive SQL `100_h1_hr_certifications.sql`).  
+> The lifecycle table and contract body below are the **historical Stage 1** record (`IMPLEMENTATION_AUTHORIZED=NO` at authorization time). They answer “what was authorized at Stage 1?” They must not be read as a pending implementation queue.  
+> No H1.x. No payroll/LMS. **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED**
+
+## Lifecycle status (historical Stage 1)
 
 | Field | Value |
 | --- | --- |
@@ -18,7 +24,7 @@
 
 Authority: 2026-08-24 Operator / product-owner decision **CANDIDATE=HR_CERTIFICATION_REGISTER / DECISION=APPROVE / CAPABILITY_ID=H1 / CONTRACT=APPROVE / EXCLUSIONS=APPROVE / PREVIEW=AUTHORIZE / IMPLEMENTATION=NOT_YET_AUTHORIZED** and [`h1-hr-certification-register-authorized.md`](../governance/h1-hr-certification-register-authorized.md). ID **H1** is assigned by that record. It is an HR-family identifier after I10. This is not I10.x, not I21, not O7, not K3, not G6, and not payroll.
 
-The sections after this heading are the architecture contract. Implementation must not begin until a separate explicit execution instruction.
+The sections after this heading are the architecture contract. Implementation must not begin until a separate explicit execution instruction. *(Historical Stage 1 sentence. Stage 2 later completed; see current-state banner. Not a new execution authorization.)*
 
 ---
 

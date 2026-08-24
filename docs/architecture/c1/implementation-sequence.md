@@ -1,6 +1,11 @@
 # C1 — Implementation Sequence
 
-**Status:** Proposed — execute only after architecture approval
+> **CURRENT STATE (2026-08-24 documentation hygiene)**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`4f2ffd3afbf28b547f8e6deadd1c4f5241562cfb`**  
+> This sequence is **historical and already executed**. C1.1–C1.11 are **COMPLETE**. C1 Gate is **PASS** (Dev/Test only). C2–C10 are **CLOSED**. **C11+ is not created and not authorized.**  
+> Do not treat this file as an open runbook. **EXECUTION_QUEUE=EMPTY** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED**
+
+**Status:** Historical sequence — **executed** (C1 CLOSED / IMPLEMENTED for Dev/Test)
 
 ## Phased delivery
 
@@ -65,12 +70,12 @@ After C1.10, return with:
 16. Unresolved risks
 17. ADR changes (if any)
 
-**Do not advance to C2** until gate approval — passing tests alone is insufficient.
+**Do not advance to C2** until gate approval — passing tests alone is insufficient. *(Historical Stage 1/C1-gate sentence. C1 Gate later **PASS**; C2–C10 later **CLOSED**. Not a live queue.)*
 
 ## Authorization reminder
 
-| Status | |
-| --- | --- |
-| C1 architecture | READY FOR REVIEW |
-| C1 implementation | NOT YET AUTHORIZED |
-| C2+ | BLOCKED until C1 gate |
+| Status | Historical (this document) | Current (HEAD) |
+| --- | --- | --- |
+| C1 architecture | READY FOR REVIEW | Historical contract — Gate **PASS** |
+| C1 implementation | NOT YET AUTHORIZED | **COMPLETE / CLOSED** (Dev/Test) |
+| C2+ | BLOCKED until C1 gate | **C2–C10 CLOSED** (Dev/Test, prior authorizations). **C11+ NOT AUTHORIZED** / not created |

@@ -1,5 +1,11 @@
 # Development backlog — independently deployable increments
 
+> **CURRENT STATE (2026-08-24 documentation hygiene)**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`4f2ffd3afbf28b547f8e6deadd1c4f5241562cfb`**  
+> **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **IMPLEMENTATION_AUTHORIZED=NO** (no new work)  
+> **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED**  
+> This backlog is **not** an implementation queue. Do not infer a next increment from historical planning rows.
+
 Each increment must be releasable to **Test** on its own (Production only after ADRs and gates). Dependencies are listed; do not skip.
 
 | ID | Increment | Depends on | Includes | Not included |
@@ -9,13 +15,17 @@ Each increment must be releasable to **Test** on its own (Production only after 
 | **I2** | Workflow + rules kernel | I1 | Process instances, human tasks, versioned rules, simulation | Temporal |
 | **I3** | Notifications | I2 | Templates, in-app + email adapter interface | SMS/Teams until contracted |
 | **I4** | Event bus productionisation | I0 | Outbox publisher, NATS, DLQ, registry enforcement | Kafka |
-| **I5** | CRM + Sales | I2–I4 | Parties, leads, opportunities | Marketing automation |
-| **I6** | Supplier master | I5 | Suppliers, contracts metadata, performance stub | Rate engines |
-| **I7** | MICE RFP → proposal | I5–I6 | RFP, programme, itinerary, costing, margin gates | Channel manager |
-| **I8** | Finance quotes/invoices | I7 | Quotes, invoices, SoD payments (no bank file until provider known) | GL replacement |
-| **I9** | Operations + field offline | I7 | Tasks, assignments, encrypted cache | UEM |
+| **I5** | CRM + Sales | I2–I4 | Parties, leads, opportunities — **IMPLEMENTED / CLOSED** as **C1–C2** (Dev/Test), [`c1-crm-preview.md`](../architecture/c1-crm-preview.md) | Marketing automation; C11+ not created |
+| **I6** | Supplier master | I5 | Suppliers, contracts metadata, performance stub — **IMPLEMENTED / CLOSED** as **C4** (Dev/Test) | Rate engines |
+| **I7** | MICE RFP → proposal | I5–I6 | RFP, programme, itinerary, costing, margin gates — **IMPLEMENTED / CLOSED** as **C3 / C5–C8** (Dev/Test) | Channel manager |
+| **I8** | Finance quotes/invoices | I7 | Quotes, invoices, SoD payments (no bank file until provider known) — **IMPLEMENTED** (Dev/Test), [`i8-finance-preview.md`](../architecture/i8-finance-preview.md) | GL replacement |
+| **I9** | Operations + field offline | I7 | Tasks, assignments, encrypted cache — **IMPLEMENTED** (Dev/Test) as **O1–O6** + I9 field | UEM |
+| **C1–C10** | Commercial chain | I0–I4 | CRM Foundation through Booking Command Center — **IMPLEMENTED / CLOSED** (Dev/Test), [`commercial-roadmap.md`](../architecture/commercial-roadmap.md), [`c10-booking-command-center-preview.md`](../architecture/c10-booking-command-center-preview.md) | C11+ not created; **PO** Procurement and **CAL** Calendar remain **DEFERRED** |
 | **I10** | HR core | I1 | Employee, leave, skills — **IMPLEMENTED** (Dev/Test), [`i10-hr-core-preview.md`](../architecture/i10-hr-core-preview.md) | Payroll engine |
+| **H1** | HR Certification Register | I10 | Certification register — **IMPLEMENTED / CLOSED** (Dev/Test), [`h1-hr-certification-register-preview.md`](../architecture/h1-hr-certification-register-preview.md) | Payroll / LMS / H1.x not created |
 | **I11** | ITSM + CMDB | I4 | Tickets, CIs — **IMPLEMENTED** (Dev/Test), [`i11-itsm-cmdb-preview.md`](../architecture/i11-itsm-cmdb-preview.md) | Discovery |
+| **ITC1** | IT Change Register | I11 | Change register — **IMPLEMENTED / CLOSED** (Dev/Test), [`itc1-it-change-register-preview.md`](../architecture/itc1-it-change-register-preview.md) | Release / CAB / ITC1.x not created |
+| **ITP1** | IT Problem Register | I11, ITC1 | Problem register — **IMPLEMENTED / CLOSED** (Dev/Test) at this HEAD, [`itp1-it-problem-register-preview.md`](../architecture/itp1-it-problem-register-preview.md) | Release / RCA engine / ITP1.x not created |
 | **I12** | Observability | I11 | OTel, health dependency map — **IMPLEMENTED** (Dev/Test), [`i12-observability-preview.md`](../architecture/i12-observability-preview.md) | Full AIOps |
 | **I13** | Defensive SOC integration | I12 | Alert ingest, IR casefile — **IMPLEMENTED** (Dev/Test), [`i13-defensive-soc-preview.md`](../architecture/i13-defensive-soc-preview.md) | Homegrown SIEM |
 | **I14** | PAM / secrets / ZTNA | I1, ADR-0012/13 | JIT, vault refs — **IMPLEMENTED** bounded Dev/Test (opaque refs + in-memory JIT; not production vault), [`i14-pam-preview.md`](../architecture/i14-pam-preview.md) | Custom VPN |
@@ -33,20 +43,22 @@ Each increment must be releasable to **Test** on its own (Production only after 
 | **I17** | BCM + backup proof | ADR-0011 | 19:00 EAT job, restore probe evidence — **IMPLEMENTED** Dev/Test evidence-register only (no backup product), [`i17-bcm-backup-evidence-preview.md`](../architecture/i17-bcm-backup-evidence-preview.md) | Hot site unless ADR |
 | **I18** | Crisis + emcomms + exercises | I3, I17 | Command center — **IMPLEMENTED** bounded Dev/Test (human declaration + immutable timeline only; no emcomms/exercises), [`i18-crisis-overlay-preview.md`](../architecture/i18-crisis-overlay-preview.md) | Voice / SMS / Teams / exercises until provider |
 | **I19** | Knowledge + search | I0 | Authority states, permissioned search — **IMPLEMENTED** tenant-scoped SQL-shaped search (no graph/external index), [`i19-knowledge-search-preview.md`](../architecture/i19-knowledge-search-preview.md) | Graph DB |
-| **I20** | AI orchestration | I19, ADR-0008 | Providers, prompts, agents L0–L1 | L3+ tools |
-| **I21** | Decision intelligence | I20 | Forecasts labelled as estimates | |
-| **I22** | Partner edge | I0, I4 | Partner IAM, isolation tests | Public catalogue |
-| **I23** | Process mining / AIOps | I4, I12 | | Autonomous remediation |
+| **I20** | AI orchestration | I19, ADR-0008 | Providers, prompts, agents L0–L1 — **IMPLEMENTED** bounded through **I20.22** (Dev/Test) | L3+ tools; autonomous apply; I20X deferred |
+| **I21** | Decision intelligence | I20 | Forecasts labelled as estimates | **DEFERRED** — not a pending queue item |
+| **I22** | Partner edge | I0, I4 | Partner IAM, isolation tests | **DEFERRED** — not a pending queue item |
+| **I23** | Process mining / AIOps | I4, I12 | | **DEFERRED** — Autonomous remediation |
 
-## Highest-priority build order (now)
+## Highest-priority build order (historical — closed in Dev/Test)
+
+This section is **not** a live build order. All items below are **CLOSED** for Development/Test. **EXECUTION_QUEUE=EMPTY.**
 
 1. ~~I0 kernel~~ — Development/Testing only  
 2. ~~I1 admin shell~~ — **CLOSED** for Development/Testing  
 3. ~~I2 workflow/rules~~ — **HARDENED** for Dev/Test  
 4. ~~I4 outbox/events~~ — **ACCEPTED** + hardened for Dev/Test  
-5. **C1 CRM Foundation** — preview **READY FOR REVIEW** ([`c1-crm-preview.md`](../architecture/c1-crm-preview.md) + [`c1/`](../architecture/c1/)) — **implementation NOT YET AUTHORIZED**  
-6. C2–C9 commercial increments — authorized in dependency order ([commercial-roadmap.md](../architecture/commercial-roadmap.md))  
+5. ~~C1 CRM Foundation~~ — **CLOSED / IMPLEMENTED** (Dev/Test). Gate **PASS** ([`c1-implementation-authorized.md`](../governance/c1-implementation-authorized.md), [`c1-gate-decision.md`](../governance/c1-gate-decision.md)). [`c1-crm-preview.md`](../architecture/c1-crm-preview.md) is a historical contract.  
+6. ~~C2–C10 commercial chain~~ — **CLOSED / IMPLEMENTED** (Dev/Test) ([commercial-roadmap.md](../architecture/commercial-roadmap.md)). **C11+ is not created and not authorized.** Procurement (**PO**) and Calendar (**CAL**) remain **DEFERRED**.
 
-AI agents, UAT and Production remain blocked. ADR-0006 / ADR-0012 / ADR-0013 + Production Readiness Review still required for Production.
+AI agents (beyond bounded I20 L0–L1), UAT and Production remain blocked. ADR-0006 / ADR-0012 / ADR-0013 + Production Readiness Review still required for Production.
 
-Official status: Development/Test foundation + authorized commercial-domain increments — not UAT-ready, not Production-ready.
+Official status: **frozen Development/Test product** at HEAD `4f2ffd3afbf28b547f8e6deadd1c4f5241562cfb` — not UAT-ready, not Production-ready. Do not treat remaining backlog or roadmap bullets as core-exit work.

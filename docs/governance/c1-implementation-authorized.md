@@ -1,5 +1,10 @@
 # C1 Implementation Authorization — 2026-08-22
 
+> **CURRENT STATE (2026-08-24 documentation hygiene)**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`4f2ffd3afbf28b547f8e6deadd1c4f5241562cfb`**  
+> C1 remains **COMPLETE / CLOSED** (Dev/Test). C1 Gate **PASS**. **C2–C10 CLOSED** under later authorizations. **C11+ is not created and not authorized.**  
+> This record does not authorize new implementation. **EXECUTION_QUEUE=EMPTY** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED**
+
 | Gate | Decision |
 | --- | --- |
 | C1 Architecture Preview | **APPROVED** |
@@ -16,7 +21,8 @@
 | C1.10 CRM completion / hardening | **COMPLETE** |
 | C1.11 C1 Gate remediation | **COMPLETE** |
 | C1 Gate | **PASS — Development/Test only** (`c1-gate-decision.md`) |
-| C2+ | **BLOCKED** — requires its own authorization |
+| C2–C10 | **CLOSED** (Dev/Test, prior authorizations — not pending on this C1 gate) |
+| New C11+ | **NOT AUTHORIZED** / not created |
 | AI / UAT / Production | BLOCKED |
 | ADR-0006 / 0012 / 0013 | OPEN |
 | ADR-0010 | Development/Test only |

@@ -1,7 +1,8 @@
 # ADR-0007 — Embedded workflow kernel first
 
-- Status: **proposed**
+- Status: **accepted for Development** (embedded kernel via I2 / [ADR-0016](ADR-0016-workflow-rules-kernel.md)). Temporal extraction remains **proposed**.
 - Date: 2026-08-21
+- Updated: 2026-08-24 (documentation hygiene — status vs I2/ADR-0016; decision body unchanged)
 
 ## Decision
 

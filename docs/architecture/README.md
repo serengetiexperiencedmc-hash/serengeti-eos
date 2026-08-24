@@ -2,11 +2,16 @@
 
 **System:** Serengeti Experience DMC Enterprise Operating System (EOS)  
 **Classification:** Internal  
-**Status:** Draft for human approval — not authorised for production build-out beyond Increment 0 kernel  
+**Status:** Phase 0 architecture remains **normative**. The Development/Test **product is frozen** at HEAD `4f2ffd3afbf28b547f8e6deadd1c4f5241562cfb` — not limited to Increment 0. **UAT=NOT_AUTHORIZED. PRODUCTION=NOT_AUTHORIZED.**  
 **Version:** 0.1.0  
-**Date:** 2026-08-21  
+**Date:** 2026-08-21 (index); current-state annotation 2026-08-24  
 
-This index maps the 30 required Phase 0 deliverables. Architecture is **normative**. Increment 0 code must not contradict it. Where code and architecture diverge, architecture wins until an ADR is approved.
+> **CURRENT STATE (2026-08-24 documentation hygiene)**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE**  
+> Increment 0 through the closed commercial, ops, GRC, HR, ITSM-register, and bounded I20 surfaces already shipped in Development/Test. This index must not be read as “stop at I0” or as a licence to start UAT/Production or deferred streams (PO, CAL, Release, etc.).  
+> Open Production blockers remain **ADR-0006, ADR-0012, ADR-0013**.
+
+This index maps the 30 required Phase 0 deliverables. Architecture is **normative**. Where code and architecture diverge, architecture wins until an ADR is approved.
 
 ## Existing-estate findings (mandatory pre-code inspection)
 
@@ -64,13 +69,13 @@ Do not treat the following as decided:
 5. Lawful bases and records of processing (legal review)
 6. Whether cardholder data will ever enter this platform (PCI scope)
 
-Increment 0 may proceed on **local Development** only, using replaceable abstractions for identity, secrets, and providers.
+Increment 0 proceeded on **local Development** using replaceable abstractions for identity, secrets, and providers. *(Historical Phase 0 instruction.)* Expansion beyond I0 in Development/Test already occurred and is **closed/frozen**. That history does **not** authorize UAT, Production, or deferred streams.
 
-## Commercial domain (authorized 2026-08-22)
+## Commercial domain (authorized 2026-08-22; **CLOSED** in Dev/Test as of freeze)
 
 | Document | Purpose |
 | --- | --- |
-| [commercial-roadmap.md](commercial-roadmap.md) | C1–C9 increment sequence |
-| [c1-crm-preview.md](c1-crm-preview.md) | **C1 master preview — READY FOR REVIEW** |
-| [c1/](c1/) | C1 pre-implementation deliverables (16 artifacts) |
-| [../governance/crm-mice-authorization-gate.md](../governance/crm-mice-authorization-gate.md) | Gate decision record |
+| [commercial-roadmap.md](commercial-roadmap.md) | C1–C10 increment sequence — **IMPLEMENTED / CLOSED** (Dev/Test). C11+ not created. |
+| [c1-crm-preview.md](c1-crm-preview.md) | **C1 historical contract** — **IMPLEMENTED / CLOSED** (Dev/Test); Gate **PASS** |
+| [c1/](c1/) | C1 pre-implementation deliverables (16 artifacts) — historical |
+| [../governance/crm-mice-authorization-gate.md](../governance/crm-mice-authorization-gate.md) | Gate decision record (C1 implementation status superseded by later C1 Gate **PASS**) |

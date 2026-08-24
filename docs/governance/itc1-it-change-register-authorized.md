@@ -1,5 +1,10 @@
 # ITC1 Authorization — IT Change Register
 
+> **CURRENT STATE (2026-08-24 documentation hygiene — supersession banner, not a rewrite of Stage 1)**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`4f2ffd3afbf28b547f8e6deadd1c4f5241562cfb`**  
+> ITC1 Stage 2 is **COMPLETE / CLOSED** for Development/Test. The Stage 1 fields below (`IMPLEMENTATION_AUTHORIZED=NO`, `STATUS=STAGE_1_AUTHORIZED`) remain the **historical authorization**. They must not be read as a pending execution queue.  
+> Release remains **NOT AUTHORIZED** (inventory). No ITC1.x. **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED**
+
 **Date:** 2026-08-24  
 **Authority:** Operator / product-owner decision **CANDIDATE=IT_CHANGE_REGISTER / FAMILY=ITSM / CAPABILITY_ID=ITC1 / DECISION=APPROVE / CONTRACT=APPROVE / EXCLUSIONS=APPROVE / PREVIEW=AUTHORIZE / IMPLEMENTATION=NOT_YET_AUTHORIZED**.  
 **Capability ID assigned by this record:** **ITC1**
@@ -59,9 +64,9 @@ CAB / advisory-board workflow; change approval workflow; change freeze managemen
 
 ## Implementation
 
-**IMPLEMENTATION_AUTHORIZED=NO**
+**IMPLEMENTATION_AUTHORIZED=NO** *(historical Stage 1)*
 
-This record plus the architecture preview authorize **preview/authorization artifacts only**. Implementation (kernel, API, RBAC, UI, tests, runtime store, migration) requires a **separate explicit execution instruction** after these records are committed.
+This record plus the architecture preview authorize **preview/authorization artifacts only**. Implementation (kernel, API, RBAC, UI, tests, runtime store, migration) requires a **separate explicit execution instruction** after these records are committed. *(Historical Stage 1 sentence. That execution later completed; ITC1 is CLOSED. This paragraph is not a new authorization.)*
 
 ## Contract
 

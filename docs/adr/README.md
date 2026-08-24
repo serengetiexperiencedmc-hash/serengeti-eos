@@ -2,6 +2,10 @@
 
 Status values: `proposed` (needs human approval), `accepted` (approved), `superseded`, `open` (explicitly pending).
 
+> **CURRENT STATE (2026-08-24 documentation hygiene)**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`4f2ffd3afbf28b547f8e6deadd1c4f5241562cfb`** · **EXECUTION_QUEUE=EMPTY**  
+> ADR-0004 / 0007 / 0008 / 0010 index rows below match Development/Test reality. **ADR-0006, ADR-0012, ADR-0013 remain OPEN.** This register does not authorize new implementation, UAT, or Production.
+
 **Phase 0 baseline:** approved for continued development (see `docs/governance/phase0-i0-approval.md`).  
 **Production readiness:** not approved.  
 **Open production blockers:** ADR-0006, ADR-0012, ADR-0013 — decision papers in `docs/decisions/`.
@@ -11,13 +15,13 @@ Status values: `proposed` (needs human approval), `accepted` (approved), `supers
 | [ADR-0001](ADR-0001-isolate-platform-from-collateral.md) | Isolate EOS from branding collateral | accepted for Development |
 | [ADR-0002](ADR-0002-modular-monolith.md) | Modular monolith first | accepted for Development |
 | [ADR-0003](ADR-0003-postgresql-system-of-record.md) | PostgreSQL system of record | accepted for Development |
-| [ADR-0004](ADR-0004-nats-jetstream.md) | NATS JetStream for Phase 1 events | proposed |
+| [ADR-0004](ADR-0004-nats-jetstream.md) | NATS JetStream for Phase 1 events | accepted for Development/Test (in-memory stand-in; Production JetStream pending ADR-0006) |
 | [ADR-0005](ADR-0005-oidc-identity.md) | OIDC as identity protocol | accepted for Development (product TBD) |
 | [ADR-0006](ADR-0006-hosting-and-residency.md) | Hosting and data residency | **OPEN — blocked for Prod** |
-| [ADR-0007](ADR-0007-workflow-engine.md) | Embedded workflow kernel first | proposed |
-| [ADR-0008](ADR-0008-multi-provider-ai.md) | Multi-provider AI, no vendor lock | proposed (AI deferred until after I4) |
+| [ADR-0007](ADR-0007-workflow-engine.md) | Embedded workflow kernel first | accepted for Development (I2 / ADR-0016); Temporal still proposed |
+| [ADR-0008](ADR-0008-multi-provider-ai.md) | Multi-provider AI, no vendor lock | accepted for Development/Test (I20 L0–L1); autonomous/Production AI blocked |
 | [ADR-0009](ADR-0009-logical-multitenancy.md) | Logical multi-tenancy | accepted for Development |
-| [ADR-0010](ADR-0010-transactional-outbox.md) | Transactional outbox | proposed |
+| [ADR-0010](ADR-0010-transactional-outbox.md) | Transactional outbox | accepted for Development/Test |
 | [ADR-0011](ADR-0011-backup-1900-eat.md) | Daily 19:00 EAT backup + restore proof | accepted for Development/Test (evidence-register; production product TBD) |
 | [ADR-0012](ADR-0012-secrets-platform.md) | Secrets platform | **OPEN — blocked for UAT+** |
 | [ADR-0013](ADR-0013-corporate-idp.md) | Corporate IdP product | **OPEN — blocked for Prod** |

@@ -1,5 +1,11 @@
 # CRM/MICE Authorization Gate — 2026-08-22
 
+> **CURRENT STATE (2026-08-24 documentation hygiene)**  
+> This file remains the **2026-08-22** CRM/MICE *development-dependency* gate. It is **historical** for C1 implementation status.  
+> **Superseded for C1 implementation / C1 Gate outcome** by [`c1-implementation-authorized.md`](./c1-implementation-authorized.md) and [`c1-gate-decision.md`](./c1-gate-decision.md) (**PASS — Development/Test only**). C1–C10 are **CLOSED**.  
+> **UAT, Production, AI agents, and ADR-0006 / 0012 / 0013 rows below are still in force.**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`4f2ffd3afbf28b547f8e6deadd1c4f5241562cfb`** · **EXECUTION_QUEUE=EMPTY**
+
 ## Gate decision
 
 | Gate | Status |
@@ -32,9 +38,11 @@ Development of the integrated commercial-domain architecture and controlled incr
 
 ## Immediate next step
 
+> **Historical 2026-08-22 instruction (superseded for C1).** Do not treat as a live queue.
+
 Review [`c1-crm-preview.md`](../architecture/c1-crm-preview.md) and [`c1/`](../architecture/c1/) deliverables.
 
-**C1 implementation: NOT YET AUTHORIZED.** After approval → implement C1.1–C1.10 → return for **C1 gate** before C2.
+**C1 implementation: NOT YET AUTHORIZED** *(historical sentence).* Later: C1.1–C1.11 **COMPLETE**, C1 Gate **PASS** (Dev/Test only), C2–C10 **CLOSED**. No C11+.
 
 ## Official platform statement
 

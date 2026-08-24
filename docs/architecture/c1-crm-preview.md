@@ -1,9 +1,15 @@
 # C1 — CRM Foundation (Architecture Preview)
 
+> **CURRENT STATE (2026-08-24 documentation hygiene)**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`4f2ffd3afbf28b547f8e6deadd1c4f5241562cfb`**  
+> C1 is **IMPLEMENTED / COMPLETE / CLOSED** for Development/Test. Gate **PASS** ([`c1-implementation-authorized.md`](../governance/c1-implementation-authorized.md), [`c1-gate-decision.md`](../governance/c1-gate-decision.md)).  
+> The body below is the **historical** architecture preview. It is not a pending implementation queue.  
+> **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED**
+
 **Increment:** C1 — CRM Foundation  
 **Environment:** Development/Test only  
-**Implementation:** **NOT YET AUTHORIZED**  
-**Architecture:** **READY FOR REVIEW**  
+**Implementation:** **IMPLEMENTED / COMPLETE (Dev/Test)** — historical preview body follows  
+**Architecture:** Historical contract (Gate **PASS**)  
 **Dependencies:** I0 Kernel → I1 Admin → I2 Workflow/Rules → I4 Outbox/Events
 
 ## Platform position
