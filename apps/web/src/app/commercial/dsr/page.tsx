@@ -95,9 +95,14 @@ export default function PrivacyDsrPage() {
         title="DSR"
         subtitle="Case register only · erasure is a label, not live deletion · creator cannot close"
         actions={
-          <Btn variant="secondary" href="/commercial/privacy">
-            ← RoPA
-          </Btn>
+          <div className="flex gap-2">
+            <Btn variant="secondary" href="/commercial/privacy">
+              RoPA
+            </Btn>
+            <Btn variant="secondary" href="/commercial/dpia">
+              DPIA
+            </Btn>
+          </div>
         }
       />
 

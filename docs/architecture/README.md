@@ -6,10 +6,10 @@
 **Version:** 0.1.0  
 **Date:** 2026-08-21 (index); current-state annotation 2026-08-24  
 
-> **CURRENT STATE (2026-08-24 ITR1 Stage 2 implemented Dev/Test)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`c55b608001e6af764fc80bd41ce9844b24da60d8`** · **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE**  
-> **CAPABILITY_SELECTED=YES** · **CAPABILITY=IT_RELEASE_REGISTER** · **CAPABILITY_ID=ITR1** · **STAGE_1_CREATED=YES** · **STAGE_1_APPROVED=YES** · **IMPLEMENTATION_AUTHORIZED=YES** (Dev/Test; Stage 2 complete)  
-> Increment 0 through the closed commercial, ops, GRC, HR, ITSM-register, and bounded I20 surfaces already shipped in Development/Test. ITR1 Stage 2 is **IMPLEMENTED / CLOSED** for Development/Test ([`itr1-it-release-register-preview.md`](itr1-it-release-register-preview.md)). This index must not be read as “stop at I0”, as UAT/Production authorization, or as a licence to start deferred streams (PO, CAL, etc.).  
+> **CURRENT STATE (2026-08-25 P2 Stage 2 implemented Dev/Test)**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · last implementation HEAD=`c55b608001e6af764fc80bd41ce9844b24da60d8` (ITR1; unchanged) · **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE**  
+> **CAPABILITY_SELECTED=YES** · **CAPABILITY=DPIA_REGISTER** · **CAPABILITY_ID=P2** · **STAGE_1_CREATED=YES** · **STAGE_1_APPROVED=YES** · **IMPLEMENTATION_AUTHORIZED=YES** (Dev/Test; Stage 2 complete)  
+> Increment 0 through the closed commercial, ops, GRC, HR, ITSM-register, and bounded I20 surfaces already shipped in Development/Test. ITR1 Stage 2 remains **IMPLEMENTED / CLOSED**. P2 Stage 2 is **IMPLEMENTED / CLOSED** for Development/Test ([`p2-dpia-register-preview.md`](p2-dpia-register-preview.md)). This index must not be read as “stop at I0”, as UAT/Production authorization, or as a licence to start deferred streams (PO, CAL, etc.).  
 > Open Production blockers remain **ADR-0006, ADR-0012, ADR-0013**.
 
 This index maps the 30 required Phase 0 deliverables. Architecture is **normative**. Where code and architecture diverge, architecture wins until an ADR is approved.

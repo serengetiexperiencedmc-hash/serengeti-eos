@@ -90,6 +90,7 @@ import { registerItsmProblemRoutes } from "./itsm-problems/routes.js";
 import { registerItsmReleaseRoutes } from "./itsm-releases/routes.js";
 import { registerComplianceRoutes } from "./compliance/routes.js";
 import { registerPrivacyRoutes } from "./privacy/routes.js";
+import { registerPrivacyDpiaRoutes } from "./privacy-dpias/routes.js";
 import { registerGrcRoutes } from "./grc/routes.js";
 import { registerFindingsRoutes } from "./findings/routes.js";
 import { registerControlTestRoutes } from "./control-tests/routes.js";
@@ -161,6 +162,7 @@ export function buildServer(options: ServerOptions | Store = {}) {
   registerItsmReleaseRoutes(app, store);
   registerComplianceRoutes(app, store);
   registerPrivacyRoutes(app, store);
+  registerPrivacyDpiaRoutes(app, store);
   registerGrcRoutes(app, store);
   registerFindingsRoutes(app, store);
   registerControlTestRoutes(app, store);

@@ -1,11 +1,11 @@
 # Development backlog — independently deployable increments
 
-> **CURRENT STATE (2026-08-24 ITR1 Stage 2 implemented Dev/Test)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`c55b608001e6af764fc80bd41ce9844b24da60d8`**  
-> **CAPABILITY_SELECTED=YES** · **CAPABILITY=IT_RELEASE_REGISTER** · **CAPABILITY_ID=ITR1** · **STAGE_1_CREATED=YES** · **STAGE_1_APPROVED=YES**  
+> **CURRENT STATE (2026-08-25 P2 Stage 2 implemented Dev/Test)**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · last committed implementation HEAD=`c55b608001e6af764fc80bd41ce9844b24da60d8` (ITR1; P2 Stage 2 is in the working tree)  
+> **CAPABILITY_SELECTED=YES** · **CAPABILITY=DPIA_REGISTER** · **CAPABILITY_ID=P2** · **STAGE_1_CREATED=YES** · **STAGE_1_APPROVED=YES**  
 > **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **IMPLEMENTATION_AUTHORIZED=YES** (Dev/Test; Stage 2 complete)  
 > **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **PUSH=NOT_AUTHORIZED**  
-> ITR1 Stage 2 is **IMPLEMENTED / CLOSED** for Development/Test. Do not infer UAT/Production from this row.
+> ITR1 Stage 2 remains **IMPLEMENTED / CLOSED**. P2 Stage 2 is **IMPLEMENTED / CLOSED** for Development/Test. Do not infer UAT or Production from this row.
 
 Each increment must be releasable to **Test** on its own (Production only after ADRs and gates). Dependencies are listed; do not skip.
 
@@ -33,7 +33,8 @@ Each increment must be releasable to **Test** on its own (Production only after 
 | **I14** | PAM / secrets / ZTNA | I1, ADR-0012/13 | JIT, vault refs — **IMPLEMENTED** bounded Dev/Test (opaque refs + in-memory JIT; not production vault), [`i14-pam-preview.md`](../architecture/i14-pam-preview.md) | Custom VPN |
 | **I15** | ERM + compliance + privacy | I2 | Registers, RoPA, DSR workflow — **IMPLEMENTED** risk register only (obligations = G1; RoPA/DSR = P1; controls = G2; findings = G3; campaigns = G4; mappings = G5; I15 not reopened), [`i15-erm-risk-register-preview.md`](../architecture/i15-erm-risk-register-preview.md) | Legal opinion automation |
 | **G1** | Compliance obligations | I2 | Obligation register — **IMPLEMENTED** (Dev/Test), [`g1-compliance-obligations-preview.md`](../architecture/g1-compliance-obligations-preview.md). Authorized COMP=A; not I15.x | Tests |
-| **P1** | Privacy RoPA + DSR | I2 | Processing activities + DSR cases — **IMPLEMENTED** (Dev/Test), [`p1-privacy-ropa-dsr-preview.md`](../architecture/p1-privacy-ropa-dsr-preview.md). Authorized PRIV=A; not I15.x | Consent / DPIA / DLP / live erasure |
+| **P1** | Privacy RoPA + DSR | I2 | Processing activities + DSR cases — **IMPLEMENTED / CLOSED** (Dev/Test), [`p1-privacy-ropa-dsr-preview.md`](../architecture/p1-privacy-ropa-dsr-preview.md). Authorized PRIV=A; not I15.x. P2 is a separate selected capability, not P1 | Consent / DPIA product / DLP / live erasure; P1.x not created |
+| **P2** | DPIA Register | P1 | DPIA case register — **IMPLEMENTED / CLOSED** (Dev/Test), [`p2-dpia-register-preview.md`](../architecture/p2-dpia-register-preview.md), [`p2-dpia-register-authorized.md`](../governance/p2-dpia-register-authorized.md) | DPIA product / legal opinion / consent / DLP / live erasure; P1.x not created; UAT/Production not authorized; not P1 reopen |
 | **G2** | GRC Control Catalogue | I2 | Internal controls + optional G1 obligation reference — **IMPLEMENTED** (Dev/Test), [`g2-grc-control-catalogue-preview.md`](../architecture/g2-grc-control-catalogue-preview.md). Authorized GRC=A; not I15.x | Tests |
 | **G3** | Findings register | I2 | Findings + optional G2 control reference — **IMPLEMENTED** (Dev/Test), [`g3-findings-register-preview.md`](../architecture/g3-findings-register-preview.md). Authorized FIND=A; not I15.x | Sampled execution |
 | **G4** | Control-test campaign register | I2 | Campaigns + optional G2 control reference — **IMPLEMENTED** (Dev/Test), [`g4-control-test-campaigns-preview.md`](../architecture/g4-control-test-campaigns-preview.md). Authorized TEST=A; not I15.x | Sampled execution |

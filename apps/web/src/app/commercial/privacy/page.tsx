@@ -92,9 +92,14 @@ export default function PrivacyRopaPage() {
         title="RoPA"
         subtitle="Processing-activity register only · not a consent platform, DPIA product, or legal interpretation"
         actions={
-          <Btn variant="secondary" href="/commercial/dsr">
-            DSR cases →
-          </Btn>
+          <div className="flex gap-2">
+            <Btn variant="secondary" href="/commercial/dsr">
+              DSR
+            </Btn>
+            <Btn variant="secondary" href="/commercial/dpia">
+              DPIA
+            </Btn>
+          </div>
         }
       />
 

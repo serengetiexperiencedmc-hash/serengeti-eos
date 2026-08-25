@@ -80,6 +80,7 @@ export * from "./bcm.js";
 export * from "./crisis.js";
 export * from "./compliance.js";
 export * from "./privacy.js";
+export * from "./privacy-dpias.js";
 export * from "./grc.js";
 export * from "./findings.js";
 export * from "./control-tests.js";

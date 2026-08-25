@@ -1,10 +1,10 @@
 # ITR1 Selection — IT Release Register
 
-> **CURRENT STATE (2026-08-24 Stage 1 approved + Stage 2 implemented Dev/Test)**  
+> **CURRENT STATE (2026-08-24 Path B P2 selection + Stage 1 authoring — supersession banner, not a rewrite of ITR1)**  
 > **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`c55b608001e6af764fc80bd41ce9844b24da60d8`** (this HEAD **is** the ITR1 implementation commit)  
-> ITR1 Stage 2 is **COMPLETE / CLOSED** for Development/Test. The selection/Stage 1 fields below remain the **historical selection**. They must not be read as a pending execution queue.  
-> ITR1 remains **CLOSED** for further expansion. No ITR1.x. I11, ITC1, and ITP1 remain **CLOSED**. **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **PUSH=NOT_AUTHORIZED**  
-> **CAPABILITY_SELECTED=YES** · **CAPABILITY=IT_RELEASE_REGISTER** · **CAPABILITY_ID=ITR1** · **STAGE_1_CREATED=YES** · **STAGE_1_APPROVED=YES** · **IMPLEMENTATION_AUTHORIZED=YES** (Dev/Test; Stage 2 complete)
+> ITR1 Stage 2 remains **COMPLETE / CLOSED** for Development/Test. The selection/Stage 1 fields below remain the **historical ITR1 selection**. They must not be read as a pending execution queue.  
+> ITR1 remains **CLOSED** for further expansion. No ITR1.x. I11, ITC1, and ITP1 remain **CLOSED**. **P2** DPIA Register is **SELECTED**; Stage 1 is **approved**; Stage 2 is **IMPLEMENTED / CLOSED** for Development/Test (not an ITR1 reopen). See [`p2-dpia-register-authorized.md`](p2-dpia-register-authorized.md) and [`../architecture/p2-dpia-register-preview.md`](../architecture/p2-dpia-register-preview.md). **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **PUSH=NOT_AUTHORIZED**  
+> ITR1 historical: **CAPABILITY_SELECTED=YES** · **CAPABILITY=IT_RELEASE_REGISTER** · **CAPABILITY_ID=ITR1** · **STAGE_1_CREATED=YES** · **STAGE_1_APPROVED=YES** · **IMPLEMENTATION_AUTHORIZED=YES** (Dev/Test; Stage 2 complete)
 
 **Date:** 2026-08-24  
 **Authority (selection):** Operator / product-owner decision **PATH_B_SELECTED=YES / CANDIDATE=IT_RELEASE_REGISTER / FAMILY=ITSM / DECISION=SELECT / STAGE_1=AUTHORED_NOT_APPROVED / IMPLEMENTATION=NOT_AUTHORIZED**.  

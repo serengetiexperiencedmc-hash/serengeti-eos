@@ -3,7 +3,7 @@
 > **CURRENT STATE (2026-08-24 documentation hygiene — supersession banner, not a rewrite of Stage 1)**  
 > **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`c55b608001e6af764fc80bd41ce9844b24da60d8`**  
 > ITC1 Stage 2 is **COMPLETE / CLOSED** for Development/Test. The Stage 1 fields below (`IMPLEMENTATION_AUTHORIZED=NO`, `STATUS=STAGE_1_AUTHORIZED`) remain the **historical authorization**. They must not be read as a pending execution queue.  
-> ITC1 remains **CLOSED**. No ITC1.x. **ITR1** Stage 2 is **IMPLEMENTED / CLOSED** for Development/Test (not an ITC1 reopen). See [`itr1-it-release-register-authorized.md`](itr1-it-release-register-authorized.md) and [`../architecture/itr1-it-release-register-preview.md`](../architecture/itr1-it-release-register-preview.md). **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED**
+> ITC1 remains **CLOSED**. No ITC1.x. **ITR1** Stage 2 remains **IMPLEMENTED / CLOSED**. **P2** DPIA Register is **SELECTED**; Stage 1 is **approved**; Stage 2 is **IMPLEMENTED / CLOSED** for Development/Test (not an ITC1 reopen). See [`p2-dpia-register-authorized.md`](p2-dpia-register-authorized.md) and [`../architecture/p2-dpia-register-preview.md`](../architecture/p2-dpia-register-preview.md). **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED**
 
 **Date:** 2026-08-24  
 **Authority:** Operator / product-owner decision **CANDIDATE=IT_CHANGE_REGISTER / FAMILY=ITSM / CAPABILITY_ID=ITC1 / DECISION=APPROVE / CONTRACT=APPROVE / EXCLUSIONS=APPROVE / PREVIEW=AUTHORIZE / IMPLEMENTATION=NOT_YET_AUTHORIZED**.  

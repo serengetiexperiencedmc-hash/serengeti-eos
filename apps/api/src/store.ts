@@ -139,6 +139,7 @@ import {
   type ItsmChange,
   type ItsmProblem,
   type ItsmRelease,
+  type PrivacyDpia,
   type KnowledgeDocument,
   type PamJitGrant,
   type PamSecretRef,
@@ -166,6 +167,7 @@ import { seedDefaultHrCertifications } from "./hr-certifications/collections.js"
 import { seedDefaultItsmChanges } from "./itsm-changes/collections.js";
 import { seedDefaultItsmProblems } from "./itsm-problems/collections.js";
 import { seedDefaultItsmReleases } from "./itsm-releases/collections.js";
+import { seedDefaultPrivacyDpias } from "./privacy-dpias/collections.js";
 
 export type Payment = {
   id: string;
@@ -304,6 +306,7 @@ export type Store = {
   complianceObligations: ComplianceObligation[];
   privacyProcessingActivities: PrivacyProcessingActivity[];
   privacyDsrCases: PrivacyDsrCase[];
+  privacyDpias: PrivacyDpia[];
   grcControls: GrcControl[];
   findingRecords: FindingRecord[];
   controlTestCampaigns: ControlTestCampaign[];
@@ -471,6 +474,7 @@ const CERTIFICATION_PERMS = ["hr:read:certification", "hr:write:certification"] 
 const CHANGE_PERMS = ["itsm:read:change", "itsm:write:change"] as const;
 const PROBLEM_PERMS = ["itsm:read:problem", "itsm:write:problem"] as const;
 const RELEASE_PERMS = ["itsm:read:release", "itsm:write:release"] as const;
+const DPIA_PERMS = ["privacy:read:dpia", "privacy:write:dpia"] as const;
 
 const ANALYTICS_PERMS = ["analytics:read:commercial", "analytics:read:operations", "analytics:read:finance"] as const;
 
@@ -632,6 +636,7 @@ const PERMS = {
   itsmChange: [...CHANGE_PERMS],
   itsmProblem: [...PROBLEM_PERMS],
   itsmRelease: [...RELEASE_PERMS],
+  privacyDpia: [...DPIA_PERMS],
   platformAdmin: [
     "org:read:unit",
     "org:write:unit",
@@ -681,6 +686,7 @@ const PERMS = {
     ...CHANGE_PERMS,
     ...PROBLEM_PERMS,
     ...RELEASE_PERMS,
+    ...DPIA_PERMS,
     ...ANALYTICS_PERMS,
     ...FINANCE_MODULE_PERMS,
     "finance:create:payment",
@@ -838,6 +844,7 @@ export function seedStore(
       "itsm.change",
       "itsm.problem",
       "itsm.release",
+      "privacy.dpia",
     ],
     permissions: [
       ...PERMS.financeApprover,
@@ -858,6 +865,7 @@ export function seedStore(
       ...PERMS.itsmChange,
       ...PERMS.itsmProblem,
       ...PERMS.itsmRelease,
+      ...PERMS.privacyDpia,
     ],
     passwordHash: hashPassword(bootstrap.bobPassword),
     attributes: { department: "finance" },
@@ -1066,6 +1074,13 @@ export function seedStore(
       key: "itsm.release",
       name: "IT Release",
       permissionKeys: [...PERMS.itsmRelease],
+    },
+    {
+      id: "role-privacy-dpia",
+      tenantId,
+      key: "privacy.dpia",
+      name: "Privacy DPIA",
+      permissionKeys: [...PERMS.privacyDpia],
     },
     {
       id: "role-audit-member",
@@ -1300,6 +1315,14 @@ export function seedStore(
         grantedByPrincipalId: carolId,
       },
       {
+        id: "grant-bob-privacy-dpia",
+        tenantId,
+        principalId: bobId,
+        roleKey: "privacy.dpia",
+        grantedAt: new Date().toISOString(),
+        grantedByPrincipalId: carolId,
+      },
+      {
         id: "grant-carol",
         tenantId,
         principalId: carolId,
@@ -1483,6 +1506,7 @@ export function seedStore(
     complianceObligations: [],
     privacyProcessingActivities: [],
     privacyDsrCases: [],
+    privacyDpias: [],
     grcControls: [],
     findingRecords: [],
     controlTestCampaigns: [],
@@ -1549,6 +1573,7 @@ export function seedStore(
   seedDefaultItsmChanges(store);
   seedDefaultItsmProblems(store);
   seedDefaultItsmReleases(store);
+  seedDefaultPrivacyDpias(store);
   return store;
 }
 

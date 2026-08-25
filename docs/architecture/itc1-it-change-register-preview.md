@@ -4,7 +4,7 @@
 > **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`c55b608001e6af764fc80bd41ce9844b24da60d8`**  
 > ITC1 Stage 2 is **IMPLEMENTED / COMPLETE / CLOSED** for Development/Test (additive SQL `101_itc1_itsm_changes.sql`).  
 > The lifecycle table and contract body below are the **historical Stage 1** record (`IMPLEMENTATION_AUTHORIZED=NO`, `STATUS=STAGE_1_AUTHORIZED` at authorization time). They answer “what was authorized at Stage 1?” They must not be read as a pending implementation queue.  
-> ITC1 remains **CLOSED**. No ITC1.x. **ITR1** Stage 2 is **IMPLEMENTED / CLOSED** for Development/Test (not an ITC1 reopen). See [`../governance/itr1-it-release-register-authorized.md`](../governance/itr1-it-release-register-authorized.md) and [`itr1-it-release-register-preview.md`](itr1-it-release-register-preview.md). **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED**
+> ITC1 remains **CLOSED**. No ITC1.x. **ITR1** Stage 2 remains **IMPLEMENTED / CLOSED**. **P2** DPIA Register is **SELECTED**; Stage 1 is **approved**; Stage 2 is **IMPLEMENTED / CLOSED** for Development/Test (not an ITC1 reopen). See [`../governance/p2-dpia-register-authorized.md`](../governance/p2-dpia-register-authorized.md) and [`p2-dpia-register-preview.md`](p2-dpia-register-preview.md). **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED**
 
 ## Lifecycle status (historical Stage 1)
 
