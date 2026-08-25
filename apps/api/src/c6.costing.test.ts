@@ -117,7 +117,24 @@ describe("C6 costing API", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(byProgramme.statusCode).toBe(200);
+    expect(byProgramme.json().sheet).not.toHaveProperty("tenantId");
     expect(byProgramme.json().sheet.categoryTotals.accommodation).toBe(86400);
+    expect(byProgramme.json().sheet.totalCost).toBe(198400);
+    expect(byProgramme.json().sheet.sellPrice).toBe(285000);
+    expect(byProgramme.json().versions.length).toBeGreaterThanOrEqual(1);
+    expect(byProgramme.json().versions[0]).not.toHaveProperty("tenantId");
+    expect(byProgramme.json().versions[0].createdByPrincipalId).toBeTruthy();
+    expect(byProgramme.json().versions[0].costSheetId).toBe(created.json().sheet.id);
+
+    const byId = await app.inject({
+      method: "GET",
+      url: `/v1/costing/sheets/${created.json().sheet.id}`,
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(byId.statusCode).toBe(200);
+    expect(byId.json().sheet).not.toHaveProperty("tenantId");
+    expect(byId.json().versions[0]).not.toHaveProperty("tenantId");
+    expect(byId.json().sheet.marginPercent).toBe(30.39);
   });
 
   it("adds line item and recalculates totals", async () => {
@@ -210,6 +227,13 @@ describe("C6 costing API", () => {
       headers: { authorization: `Bearer ${partnerToken}` },
     });
     expect(foreign.statusCode).toBe(404);
+
+    const foreignByProgramme = await app.inject({
+      method: "GET",
+      url: `/v1/costing/sheets/by-programme/${programmeId}`,
+      headers: { authorization: `Bearer ${partnerToken}` },
+    });
+    expect([403, 404]).toContain(foreignByProgramme.statusCode);
   });
 
   it("rejects unauthenticated costing reads", async () => {

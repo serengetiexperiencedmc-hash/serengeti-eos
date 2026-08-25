@@ -86,6 +86,21 @@ function sanitizeSheet(s: CostSheet, categoryTotals: Record<CostLineCategory, nu
   };
 }
 
+function sanitizeVersion(v: CostSheetVersion) {
+  return {
+    id: v.id,
+    costSheetId: v.costSheetId,
+    versionNumber: v.versionNumber,
+    summary: v.summary,
+    totalCost: v.totalCost,
+    sellPrice: v.sellPrice,
+    marginPercent: v.marginPercent,
+    lineCount: v.lineCount,
+    createdAt: v.createdAt,
+    createdByPrincipalId: v.createdByPrincipalId,
+  };
+}
+
 function sheetDetail(store: Store, sheet: CostSheet) {
   recalculateSheet(store, sheet);
   const lines = store.costLineItems
@@ -171,7 +186,8 @@ export function getCostSheet(store: Store, principal: Principal, id: string) {
 
   const versions = store.costSheetVersions
     .filter((v) => v.costSheetId === id && v.tenantId === sheet.tenantId)
-    .sort((a, b) => b.versionNumber - a.versionNumber);
+    .sort((a, b) => b.versionNumber - a.versionNumber)
+    .map(sanitizeVersion);
 
   return { ...sheetDetail(store, sheet), versions };
 }

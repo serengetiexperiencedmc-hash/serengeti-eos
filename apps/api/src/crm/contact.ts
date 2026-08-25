@@ -36,6 +36,37 @@ export function contactResource(contact: CrmContact): ContactResource {
   };
 }
 
+function sanitizeContact(c: CrmContact) {
+  return {
+    id: c.id,
+    givenName: c.givenName,
+    familyName: c.familyName,
+    ...(c.preferredName !== undefined ? { preferredName: c.preferredName } : {}),
+    ...(c.jobTitle !== undefined ? { jobTitle: c.jobTitle } : {}),
+    ...(c.department !== undefined ? { department: c.department } : {}),
+    ...(c.email !== undefined ? { email: c.email } : {}),
+    ...(c.telephone !== undefined ? { telephone: c.telephone } : {}),
+    ...(c.mobile !== undefined ? { mobile: c.mobile } : {}),
+    ...(c.country !== undefined ? { country: c.country } : {}),
+    ...(c.timezone !== undefined ? { timezone: c.timezone } : {}),
+    ...(c.language !== undefined ? { language: c.language } : {}),
+    status: c.status,
+    dataQualityStatus: c.dataQualityStatus,
+    classification: c.classification,
+    ...(c.communicationPreferences !== undefined
+      ? { communicationPreferences: c.communicationPreferences }
+      : {}),
+    ...(c.source !== undefined ? { source: c.source } : {}),
+    ...(c.mergedIntoId !== undefined ? { mergedIntoId: c.mergedIntoId } : {}),
+    ...(c.archivedAt !== undefined ? { archivedAt: c.archivedAt } : {}),
+    version: c.version,
+    createdAt: c.createdAt,
+    updatedAt: c.updatedAt,
+    createdByPrincipalId: c.createdByPrincipalId,
+    updatedByPrincipalId: c.updatedByPrincipalId,
+  };
+}
+
 function findContactForTenant(store: Store, tenantId: string, id: string): CrmContact | undefined {
   const contact = store.crmContacts.find((c) => c.id === id);
   if (!contact || contact.tenantId !== tenantId) return undefined;
@@ -106,7 +137,7 @@ export function listContacts(
     const nameB = `${b.familyName} ${b.givenName}`;
     return nameA.localeCompare(nameB);
   });
-  return { items };
+  return { items: items.map(sanitizeContact) };
 }
 
 export function getContact(store: Store, principal: Principal, contactId: string) {
@@ -121,7 +152,7 @@ export function getContact(store: Store, principal: Principal, contactId: string
     resource: contactResource(contact),
   });
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
-  return { contact };
+  return { contact: sanitizeContact(contact) };
 }
 
 export type CreateContactInput = {
@@ -234,7 +265,7 @@ export function createContact(
     },
   });
   if (!committed.ok) return { error: "conflict" as const, reason: committed.reason };
-  return { contact };
+  return { contact: sanitizeContact(contact) };
 }
 
 export type UpdateContactInput = Partial<
@@ -371,7 +402,7 @@ export function updateContact(
     },
   });
   if (!committed.ok) return { error: "conflict" as const, reason: committed.reason };
-  return { contact };
+  return { contact: sanitizeContact(contact) };
 }
 
 export function archiveContact(store: Store, principal: Principal, contactId: string, correlationId: string) {
@@ -425,5 +456,5 @@ export function archiveContact(store: Store, principal: Principal, contactId: st
     },
   });
   if (!committed.ok) return { error: "conflict" as const, reason: committed.reason };
-  return { contact };
+  return { contact: sanitizeContact(contact) };
 }

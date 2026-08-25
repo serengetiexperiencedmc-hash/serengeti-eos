@@ -35,6 +35,38 @@ export function orgResource(org: CrmOrganization): OrgResource {
   };
 }
 
+function sanitizeOrganization(o: CrmOrganization) {
+  return {
+    id: o.id,
+    legalName: o.legalName,
+    ...(o.tradingName !== undefined ? { tradingName: o.tradingName } : {}),
+    organizationTypeId: o.organizationTypeId,
+    ...(o.country !== undefined ? { country: o.country } : {}),
+    ...(o.region !== undefined ? { region: o.region } : {}),
+    ...(o.market !== undefined ? { market: o.market } : {}),
+    ...(o.website !== undefined ? { website: o.website } : {}),
+    ...(o.domain !== undefined ? { domain: o.domain } : {}),
+    ...(o.primaryEmail !== undefined ? { primaryEmail: o.primaryEmail } : {}),
+    ...(o.primaryTelephone !== undefined ? { primaryTelephone: o.primaryTelephone } : {}),
+    ...(o.address !== undefined ? { address: o.address } : {}),
+    status: o.status,
+    dataQualityStatus: o.dataQualityStatus,
+    classification: o.classification,
+    ...(o.ownerPrincipalId !== undefined ? { ownerPrincipalId: o.ownerPrincipalId } : {}),
+    ...(o.source !== undefined ? { source: o.source } : {}),
+    ...(o.sourceSystem !== undefined ? { sourceSystem: o.sourceSystem } : {}),
+    ...(o.sourceRecordId !== undefined ? { sourceRecordId: o.sourceRecordId } : {}),
+    ...(o.importBatchId !== undefined ? { importBatchId: o.importBatchId } : {}),
+    version: o.version,
+    ...(o.mergedIntoId !== undefined ? { mergedIntoId: o.mergedIntoId } : {}),
+    ...(o.archivedAt !== undefined ? { archivedAt: o.archivedAt } : {}),
+    createdAt: o.createdAt,
+    updatedAt: o.updatedAt,
+    createdByPrincipalId: o.createdByPrincipalId,
+    updatedByPrincipalId: o.updatedByPrincipalId,
+  };
+}
+
 function findOrganizationForTenant(store: Store, tenantId: string, id: string): CrmOrganization | undefined {
   const org = store.crmOrganizations.find((o) => o.id === id);
   if (!org || org.tenantId !== tenantId) return undefined;
@@ -78,7 +110,7 @@ export function listOrganizations(
     items = items.filter((o) => o.organizationTypeId === query.organizationTypeId);
   }
   items.sort((a, b) => a.legalName.localeCompare(b.legalName));
-  return { items };
+  return { items: items.map(sanitizeOrganization) };
 }
 
 export function getOrganization(store: Store, principal: Principal, organizationId: string) {
@@ -94,7 +126,7 @@ export function getOrganization(store: Store, principal: Principal, organization
     resource: orgResource(org),
   });
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
-  return { organization: org };
+  return { organization: sanitizeOrganization(org) };
 }
 
 export type CreateOrganizationInput = {
@@ -220,7 +252,7 @@ export function createOrganization(
     },
   });
   if (!committed.ok) return { error: "conflict" as const, reason: committed.reason };
-  return { organization };
+  return { organization: sanitizeOrganization(organization) };
 }
 
 export type UpdateOrganizationInput = Partial<
@@ -353,7 +385,7 @@ export function updateOrganization(
     },
   });
   if (!committed.ok) return { error: "conflict" as const, reason: committed.reason };
-  return { organization: org };
+  return { organization: sanitizeOrganization(org) };
 }
 
 export function transitionOrganization(
@@ -437,7 +469,7 @@ export function transitionOrganization(
     },
   });
   if (!committed.ok) return { error: "conflict" as const, reason: committed.reason };
-  return { organization: org };
+  return { organization: sanitizeOrganization(org) };
 }
 
 export function archiveOrganization(store: Store, principal: Principal, organizationId: string, correlationId: string) {
@@ -500,5 +532,5 @@ export function archiveOrganization(store: Store, principal: Principal, organiza
     },
   });
   if (!committed.ok) return { error: "conflict" as const, reason: committed.reason };
-  return { organization: org };
+  return { organization: sanitizeOrganization(org) };
 }

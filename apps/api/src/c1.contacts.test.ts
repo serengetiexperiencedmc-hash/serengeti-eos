@@ -79,6 +79,9 @@ describe("C1.3 CRM contacts + relationships", () => {
       const contact = created.json().contact;
       expect(contact.status).toBe("Active");
       expect(contact.version).toBe(1);
+      expect(contact).not.toHaveProperty("tenantId");
+      expect(contact.createdByPrincipalId).toBeTruthy();
+      expect(contact.updatedByPrincipalId).toBeTruthy();
 
       const fetched = await app.inject({
         method: "GET",
@@ -86,6 +89,7 @@ describe("C1.3 CRM contacts + relationships", () => {
         headers: { authorization: `Bearer ${token}` },
       });
       expect(fetched.statusCode).toBe(200);
+      expect(fetched.json().contact).not.toHaveProperty("tenantId");
 
       const listed = await app.inject({
         method: "GET",
@@ -93,6 +97,7 @@ describe("C1.3 CRM contacts + relationships", () => {
         headers: { authorization: `Bearer ${token}` },
       });
       expect(listed.json().items.some((c: { id: string }) => c.id === contact.id)).toBe(true);
+      expect(listed.json().items.every((c: { tenantId?: string }) => c.tenantId === undefined)).toBe(true);
 
       const updated = await app.inject({
         method: "PATCH",
@@ -214,6 +219,16 @@ describe("C1.3 CRM contacts + relationships", () => {
         headers: { authorization: `Bearer ${partner.json().accessToken}` },
       });
       expect(peek.statusCode).toBe(404);
+
+      const partnerList = await app.inject({
+        method: "GET",
+        url: "/v1/crm/contacts",
+        headers: { authorization: `Bearer ${partner.json().accessToken}` },
+      });
+      expect([403, 404]).toContain(partnerList.statusCode);
+      if (partnerList.statusCode === 200) {
+        expect(partnerList.json().items.some((c: { id: string }) => c.id === contactId)).toBe(false);
+      }
     });
   });
 

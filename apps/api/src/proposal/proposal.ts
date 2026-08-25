@@ -44,6 +44,18 @@ function sanitizeProposal(p: PropProposal) {
   };
 }
 
+function sanitizeVersion(v: PropProposalVersion) {
+  return {
+    id: v.id,
+    proposalId: v.proposalId,
+    versionNumber: v.versionNumber,
+    summary: v.summary,
+    snapshot: v.snapshot,
+    createdAt: v.createdAt,
+    createdByPrincipalId: v.createdByPrincipalId,
+  };
+}
+
 function findProposal(store: Store, tenantId: string, id: string): PropProposal | undefined {
   return store.propProposals.find((p) => p.id === id && p.tenantId === tenantId && !p.archivedAt);
 }
@@ -137,8 +149,9 @@ export function getProposalDetail(store: Store, principal: Principal, id: string
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
 
   const versions = store.propProposalVersions
-    .filter((v) => v.proposalId === id)
-    .sort((a, b) => b.versionNumber - a.versionNumber);
+    .filter((v) => v.proposalId === id && v.tenantId === proposal.tenantId)
+    .sort((a, b) => b.versionNumber - a.versionNumber)
+    .map(sanitizeVersion);
 
   const programme = store.prgProgrammes.find((p) => p.id === proposal.programmeId);
   const days = store.prgDays

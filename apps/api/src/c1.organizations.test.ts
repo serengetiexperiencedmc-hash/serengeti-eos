@@ -70,6 +70,9 @@ describe("C1.2 CRM organizations + units", () => {
       const org = created.json().organization;
       expect(org.status).toBe("Prospect");
       expect(org.legalName).toBe("Global Travel Group Ltd");
+      expect(org).not.toHaveProperty("tenantId");
+      expect(org.createdByPrincipalId).toBeTruthy();
+      expect(org.updatedByPrincipalId).toBeTruthy();
 
       const fetched = await app.inject({
         method: "GET",
@@ -78,6 +81,7 @@ describe("C1.2 CRM organizations + units", () => {
       });
       expect(fetched.statusCode).toBe(200);
       expect(fetched.json().organization.id).toBe(org.id);
+      expect(fetched.json().organization).not.toHaveProperty("tenantId");
 
       const listed = await app.inject({
         method: "GET",
@@ -86,6 +90,7 @@ describe("C1.2 CRM organizations + units", () => {
       });
       expect(listed.statusCode).toBe(200);
       expect(listed.json().items.some((o: { id: string }) => o.id === org.id)).toBe(true);
+      expect(listed.json().items.every((o: { tenantId?: string }) => o.tenantId === undefined)).toBe(true);
 
       const updated = await app.inject({
         method: "PATCH",
@@ -184,6 +189,16 @@ describe("C1.2 CRM organizations + units", () => {
         headers: { authorization: `Bearer ${partnerToken}` },
       });
       expect(peek.statusCode).toBe(404);
+
+      const partnerList = await app.inject({
+        method: "GET",
+        url: "/v1/crm/organizations",
+        headers: { authorization: `Bearer ${partnerToken}` },
+      });
+      expect([403, 404]).toContain(partnerList.statusCode);
+      if (partnerList.statusCode === 200) {
+        expect(partnerList.json().items.some((o: { id: string }) => o.id === orgId)).toBe(false);
+      }
     });
 
     it("transitions lifecycle and archives when permitted", async () => {

@@ -134,6 +134,29 @@ describe("C8 proposal API", () => {
     expect(created.json().proposal.sellPrice).toBe(285000);
     const proposalId = created.json().proposal.id as string;
 
+    const detail = await app.inject({
+      method: "GET",
+      url: `/v1/proposals/${proposalId}`,
+      headers: { authorization: `Bearer ${carolToken}` },
+    });
+    expect(detail.statusCode).toBe(200);
+    expect(detail.json().proposal).not.toHaveProperty("tenantId");
+    expect(detail.json().proposal.sellPrice).toBe(285000);
+    expect(detail.json().versions.length).toBeGreaterThanOrEqual(1);
+    expect(detail.json().versions[0]).not.toHaveProperty("tenantId");
+    expect(detail.json().versions[0].createdByPrincipalId).toBeTruthy();
+    expect(detail.json().versions[0].proposalId).toBe(proposalId);
+
+    const byRfp = await app.inject({
+      method: "GET",
+      url: `/v1/proposals/by-rfp/${rfpId}`,
+      headers: { authorization: `Bearer ${carolToken}` },
+    });
+    expect(byRfp.statusCode).toBe(200);
+    expect(byRfp.json().proposal).not.toHaveProperty("tenantId");
+    expect(byRfp.json().versions[0]).not.toHaveProperty("tenantId");
+    expect(byRfp.json().proposal.id).toBe(proposalId);
+
     const sent = await app.inject({
       method: "POST",
       url: `/v1/proposals/${proposalId}/transitions`,
@@ -214,6 +237,24 @@ describe("C8 proposal API", () => {
     expect(created.statusCode).toBe(201);
     expect(created.json().proposal).not.toHaveProperty("tenantId");
     const proposalId = created.json().proposal.id as string;
+
+    store.propProposalVersions.push({
+      ...store.propProposalVersions[0]!,
+      id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      tenantId: "22222222-2222-4222-8222-222222222222",
+      summary: "foreign-version-must-not-leak",
+    });
+
+    const scoped = await app.inject({
+      method: "GET",
+      url: `/v1/proposals/${proposalId}`,
+      headers: { authorization: `Bearer ${carolToken}` },
+    });
+    expect(scoped.statusCode).toBe(200);
+    expect(scoped.json().versions.every((v: { tenantId?: string }) => v.tenantId === undefined)).toBe(true);
+    expect(scoped.json().versions.some((v: { summary: string }) => v.summary === "foreign-version-must-not-leak")).toBe(
+      false,
+    );
 
     store.propProposals.push({
       ...store.propProposals[0]!,
