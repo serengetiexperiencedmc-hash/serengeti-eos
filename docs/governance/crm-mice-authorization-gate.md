@@ -4,7 +4,7 @@
 > This file remains the **2026-08-22** CRM/MICE *development-dependency* gate. It is **historical** for C1 implementation status.  
 > **Superseded for C1 implementation / C1 Gate outcome** by [`c1-implementation-authorized.md`](./c1-implementation-authorized.md) and [`c1-gate-decision.md`](./c1-gate-decision.md) (**PASS — Development/Test only**). C1–C10 are **CLOSED**.  
 > **UAT, Production, AI agents, and ADR-0006 / 0012 / 0013 rows below are still in force.**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`c55b608001e6af764fc80bd41ce9844b24da60d8`** · **EXECUTION_QUEUE=EMPTY**
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`fdf2436b1655fbe70a18117e64f54cc101cb71ae`** · **EXECUTION_QUEUE=EMPTY**
 
 ## Gate decision
 

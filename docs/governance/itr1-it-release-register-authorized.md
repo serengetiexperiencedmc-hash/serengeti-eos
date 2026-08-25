@@ -1,7 +1,7 @@
 # ITR1 Selection — IT Release Register
 
 > **CURRENT STATE (2026-08-24 Path B P2 selection + Stage 1 authoring — supersession banner, not a rewrite of ITR1)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`c55b608001e6af764fc80bd41ce9844b24da60d8`** (this HEAD **is** the ITR1 implementation commit)  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`fdf2436b1655fbe70a18117e64f54cc101cb71ae`** (current product HEAD is the P2 implementation; ITR1 remains closed at `c55b608001e6af764fc80bd41ce9844b24da60d8`)  
 > ITR1 Stage 2 remains **COMPLETE / CLOSED** for Development/Test. The selection/Stage 1 fields below remain the **historical ITR1 selection**. They must not be read as a pending execution queue.  
 > ITR1 remains **CLOSED** for further expansion. No ITR1.x. I11, ITC1, and ITP1 remain **CLOSED**. **P2** DPIA Register is **SELECTED**; Stage 1 is **approved**; Stage 2 is **IMPLEMENTED / CLOSED** for Development/Test (not an ITR1 reopen). See [`p2-dpia-register-authorized.md`](p2-dpia-register-authorized.md) and [`../architecture/p2-dpia-register-preview.md`](../architecture/p2-dpia-register-preview.md). **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **PUSH=NOT_AUTHORIZED**  
 > ITR1 historical: **CAPABILITY_SELECTED=YES** · **CAPABILITY=IT_RELEASE_REGISTER** · **CAPABILITY_ID=ITR1** · **STAGE_1_CREATED=YES** · **STAGE_1_APPROVED=YES** · **IMPLEMENTATION_AUTHORIZED=YES** (Dev/Test; Stage 2 complete)

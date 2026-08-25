@@ -1,7 +1,7 @@
 # ITR1 IT Release Register — Stage 1 Preview
 
 > **CURRENT STATE (2026-08-24 Path B P2 selection + Stage 1 authoring — supersession banner, not a rewrite of ITR1)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`c55b608001e6af764fc80bd41ce9844b24da60d8`** (this HEAD **is** the ITR1 implementation commit)  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`fdf2436b1655fbe70a18117e64f54cc101cb71ae`** (current product HEAD is the P2 implementation; ITR1 remains closed at `c55b608001e6af764fc80bd41ce9844b24da60d8`)  
 > ITR1 Stage 2 remains **IMPLEMENTED / COMPLETE / CLOSED** for Development/Test (additive SQL `103_itr1_itsm_releases.sql`).  
 > The lifecycle table and contract body below are the **historical Stage 1** record (authored before Operator approval). They answer “what was contracted at Stage 1?” They must not be read as a pending implementation queue.  
 > ITR1 remains **CLOSED** for further expansion. No ITR1.x. No Release Management, deployment, CAB, or CI/CD. I11, ITC1, and ITP1 remain **CLOSED**. **P2** DPIA Register is **SELECTED**; Stage 1 is **approved**; Stage 2 is **IMPLEMENTED / CLOSED** for Development/Test (not an ITR1 reopen). See [`../governance/p2-dpia-register-authorized.md`](../governance/p2-dpia-register-authorized.md) and [`p2-dpia-register-preview.md`](p2-dpia-register-preview.md). **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **PUSH=NOT_AUTHORIZED**  

@@ -4,7 +4,7 @@
 > This file is a **historical procedure** for how a C1 Dev/Test Gate outcome could be reached. It is **not** a live gate and does not authorize implementation.  
 > **Current C1 Gate outcome:** **PASS — Development/Test only** in committed [`c1-gate-decision.md`](./c1-gate-decision.md). `ba8cf9e` is the **prior** PENDING / NOT PASSED record.  
 > C1.1–C1.11 remain COMPLETE. C2–C10 CLOSED. C11+ not created.  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`c55b608001e6af764fc80bd41ce9844b24da60d8`** · **EXECUTION_QUEUE=EMPTY** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED**
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`fdf2436b1655fbe70a18117e64f54cc101cb71ae`** · **EXECUTION_QUEUE=EMPTY** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED**
 
 **Status:** MECHANISM DEFINED — historical procedure. **Current Gate outcome is recorded elsewhere** (`c1-gate-decision.md` PASS Dev/Test only).  
 **Environment:** Development/Test only  

@@ -1,7 +1,8 @@
 # P2 Selection — DPIA Register
 
-> **CURRENT STATE (2026-08-25 Stage 1 approved + Stage 2 implemented Dev/Test)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · last committed implementation HEAD=`c55b608001e6af764fc80bd41ce9844b24da60d8` (ITR1). P2 Stage 2 is **in the working tree**; commit is **not** authorized by this record.  
+> **CURRENT STATE (2026-08-25 documentation hygiene)**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`fdf2436b1655fbe70a18117e64f54cc101cb71ae`** (this HEAD **is** the P2 implementation commit)  
+> P2 Stage 2 is **COMPLETE / CLOSED** for Development/Test. The selection/Stage 1 fields below remain the **historical selection**. They must not be read as a pending execution queue.  
 > This record **selects** P2 and records **Stage 1 approval** plus **Dev/Test implementation**. It is **not** UAT or Production authorization.  
 > P1 remains **CLOSED**. No P1.x. ITR1 remains **CLOSED**. **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **PUSH=NOT_AUTHORIZED**  
 > **CAPABILITY_SELECTED=YES** · **CAPABILITY=DPIA_REGISTER** · **CAPABILITY_ID=P2** · **STAGE_1_CREATED=YES** · **STAGE_1_APPROVED=YES** · **IMPLEMENTATION_AUTHORIZED=YES** (Dev/Test; Stage 2 complete)
@@ -68,7 +69,7 @@ DPIA product; legal opinions; PDPA/GDPR interpretation engines; lawful-basis det
 - Does **not** reopen P1, I15, G1–G5, or ITR1.
 - Does **not** authorize UAT or Production.
 - Does **not** close or resolve ADR-0006, ADR-0012, or ADR-0013.
-- Does **not** authorize push or commit.
+- Does **not** authorize push.
 
 ## Contract
 

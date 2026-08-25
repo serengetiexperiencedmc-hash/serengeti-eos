@@ -1,7 +1,7 @@
 # Development backlog — independently deployable increments
 
-> **CURRENT STATE (2026-08-25 P2 Stage 2 implemented Dev/Test)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · last committed implementation HEAD=`c55b608001e6af764fc80bd41ce9844b24da60d8` (ITR1; P2 Stage 2 is in the working tree)  
+> **CURRENT STATE (2026-08-25 documentation hygiene)**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`fdf2436b1655fbe70a18117e64f54cc101cb71ae`**  
 > **CAPABILITY_SELECTED=YES** · **CAPABILITY=DPIA_REGISTER** · **CAPABILITY_ID=P2** · **STAGE_1_CREATED=YES** · **STAGE_1_APPROVED=YES**  
 > **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **IMPLEMENTATION_AUTHORIZED=YES** (Dev/Test; Stage 2 complete)  
 > **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **PUSH=NOT_AUTHORIZED**  
@@ -64,4 +64,4 @@ This section is **not** a live build order. All items below are **CLOSED** for D
 
 AI agents (beyond bounded I20 L0–L1), UAT and Production remain blocked. ADR-0006 / ADR-0012 / ADR-0013 + Production Readiness Review still required for Production.
 
-Official status: **frozen Development/Test product** at HEAD `c55b608001e6af764fc80bd41ce9844b24da60d8` — not UAT-ready, not Production-ready. Do not treat remaining backlog or roadmap bullets as core-exit work.
+Official status: **frozen Development/Test product** at HEAD `fdf2436b1655fbe70a18117e64f54cc101cb71ae` — not UAT-ready, not Production-ready. Do not treat remaining backlog or roadmap bullets as core-exit work.

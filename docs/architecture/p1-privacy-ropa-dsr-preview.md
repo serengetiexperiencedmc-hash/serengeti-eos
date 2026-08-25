@@ -1,7 +1,7 @@
 # P1 Privacy RoPA + DSR — Preview
 
 > **CURRENT STATE (2026-08-24 Path B P2 selection + Stage 1 authoring — supersession banner, not a rewrite of Stage 1)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · last implementation HEAD=`c55b608001e6af764fc80bd41ce9844b24da60d8` (ITR1; P1 remains closed)  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · last implementation HEAD=`fdf2436b1655fbe70a18117e64f54cc101cb71ae` (P2; P1 remains closed)  
 > P1 Stage 2 remains **IMPLEMENTED / COMPLETE / CLOSED** for Development/Test (additive SQL `092_p1_privacy_ropa_dsr.sql`).  
 > Consent / DPIA **product** / DLP / live erasure remain inventory / **NOT AUTHORIZED** as P1 work. No P1.x. **P2** DPIA Register is **SELECTED**; Stage 1 is **approved**; Stage 2 is **IMPLEMENTED / CLOSED** for Development/Test (not a P1 reopen). See [`../governance/p2-dpia-register-authorized.md`](../governance/p2-dpia-register-authorized.md) and [`p2-dpia-register-preview.md`](p2-dpia-register-preview.md). **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED**
 

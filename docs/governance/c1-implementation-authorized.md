@@ -1,7 +1,7 @@
 # C1 Implementation Authorization — 2026-08-22
 
 > **CURRENT STATE (2026-08-24 documentation hygiene)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`c55b608001e6af764fc80bd41ce9844b24da60d8`**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`fdf2436b1655fbe70a18117e64f54cc101cb71ae`**  
 > C1 remains **COMPLETE / CLOSED** (Dev/Test). C1 Gate **PASS**. **C2–C10 CLOSED** under later authorizations. **C11+ is not created and not authorized.**  
 > This record does not authorize new implementation. **EXECUTION_QUEUE=EMPTY** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED**
 

@@ -1,7 +1,7 @@
 # Commercial Domain Roadmap — C1 to C10
 
 > **CURRENT STATE (2026-08-24 documentation hygiene)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`c55b608001e6af764fc80bd41ce9844b24da60d8`**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`fdf2436b1655fbe70a18117e64f54cc101cb71ae`**  
 > C1–C10 are **IMPLEMENTED / CLOSED** for Development/Test. This document is no longer an open commercial programme.  
 > **C11+ is not created and not authorized.** Procurement (**PO**) and Calendar (**CAL**) remain **DEFERRED**.  
 > **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED**
