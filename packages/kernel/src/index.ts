@@ -68,6 +68,7 @@ export * from "./hr-certifications.js";
 export * from "./itsm-changes.js";
 export * from "./itsm-problems.js";
 export * from "./itsm-releases.js";
+export * from "./it-assets.js";
 export * from "./itsm.js";
 export * from "./cmdb.js";
 export * from "./observability.js";

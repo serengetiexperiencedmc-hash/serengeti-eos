@@ -139,6 +139,7 @@ import {
   type ItsmChange,
   type ItsmProblem,
   type ItsmRelease,
+  type ItAsset,
   type PrivacyDpia,
   type KnowledgeDocument,
   type PamJitGrant,
@@ -167,6 +168,7 @@ import { seedDefaultHrCertifications } from "./hr-certifications/collections.js"
 import { seedDefaultItsmChanges } from "./itsm-changes/collections.js";
 import { seedDefaultItsmProblems } from "./itsm-problems/collections.js";
 import { seedDefaultItsmReleases } from "./itsm-releases/collections.js";
+import { seedDefaultItAssets } from "./it-assets/collections.js";
 import { seedDefaultPrivacyDpias } from "./privacy-dpias/collections.js";
 
 export type Payment = {
@@ -318,6 +320,7 @@ export type Store = {
   itsmChanges: ItsmChange[];
   itsmProblems: ItsmProblem[];
   itsmReleases: ItsmRelease[];
+  itAssets: ItAsset[];
   notifDismissals: NotifDismissal[];
   notifEmailOutbox: NotifEmailOutboxEntry[];
   notifEmailDeliveryEvents: NotifEmailDeliveryEvent[];
@@ -474,6 +477,7 @@ const CERTIFICATION_PERMS = ["hr:read:certification", "hr:write:certification"] 
 const CHANGE_PERMS = ["itsm:read:change", "itsm:write:change"] as const;
 const PROBLEM_PERMS = ["itsm:read:problem", "itsm:write:problem"] as const;
 const RELEASE_PERMS = ["itsm:read:release", "itsm:write:release"] as const;
+const ASSET_PERMS = ["asset:read:register", "asset:write:register"] as const;
 const DPIA_PERMS = ["privacy:read:dpia", "privacy:write:dpia"] as const;
 
 const ANALYTICS_PERMS = ["analytics:read:commercial", "analytics:read:operations", "analytics:read:finance"] as const;
@@ -636,6 +640,7 @@ const PERMS = {
   itsmChange: [...CHANGE_PERMS],
   itsmProblem: [...PROBLEM_PERMS],
   itsmRelease: [...RELEASE_PERMS],
+  itAsset: [...ASSET_PERMS],
   privacyDpia: [...DPIA_PERMS],
   platformAdmin: [
     "org:read:unit",
@@ -686,6 +691,7 @@ const PERMS = {
     ...CHANGE_PERMS,
     ...PROBLEM_PERMS,
     ...RELEASE_PERMS,
+    ...ASSET_PERMS,
     ...DPIA_PERMS,
     ...ANALYTICS_PERMS,
     ...FINANCE_MODULE_PERMS,
@@ -844,6 +850,7 @@ export function seedStore(
       "itsm.change",
       "itsm.problem",
       "itsm.release",
+      "it.asset",
       "privacy.dpia",
     ],
     permissions: [
@@ -865,6 +872,7 @@ export function seedStore(
       ...PERMS.itsmChange,
       ...PERMS.itsmProblem,
       ...PERMS.itsmRelease,
+      ...PERMS.itAsset,
       ...PERMS.privacyDpia,
     ],
     passwordHash: hashPassword(bootstrap.bobPassword),
@@ -1074,6 +1082,13 @@ export function seedStore(
       key: "itsm.release",
       name: "IT Release",
       permissionKeys: [...PERMS.itsmRelease],
+    },
+    {
+      id: "role-it-asset",
+      tenantId,
+      key: "it.asset",
+      name: "IT Asset",
+      permissionKeys: [...PERMS.itAsset],
     },
     {
       id: "role-privacy-dpia",
@@ -1315,6 +1330,14 @@ export function seedStore(
         grantedByPrincipalId: carolId,
       },
       {
+        id: "grant-bob-it-asset",
+        tenantId,
+        principalId: bobId,
+        roleKey: "it.asset",
+        grantedAt: new Date().toISOString(),
+        grantedByPrincipalId: carolId,
+      },
+      {
         id: "grant-bob-privacy-dpia",
         tenantId,
         principalId: bobId,
@@ -1518,6 +1541,7 @@ export function seedStore(
     itsmChanges: [],
     itsmProblems: [],
     itsmReleases: [],
+    itAssets: [],
     notifDismissals: [],
     notifEmailOutbox: [],
     notifEmailDeliveryEvents: [],
@@ -1573,6 +1597,7 @@ export function seedStore(
   seedDefaultItsmChanges(store);
   seedDefaultItsmProblems(store);
   seedDefaultItsmReleases(store);
+  seedDefaultItAssets(store);
   seedDefaultPrivacyDpias(store);
   return store;
 }

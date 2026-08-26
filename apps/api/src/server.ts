@@ -88,6 +88,7 @@ import { registerHrCertificationRoutes } from "./hr-certifications/routes.js";
 import { registerItsmChangeRoutes } from "./itsm-changes/routes.js";
 import { registerItsmProblemRoutes } from "./itsm-problems/routes.js";
 import { registerItsmReleaseRoutes } from "./itsm-releases/routes.js";
+import { registerItAssetRoutes } from "./it-assets/routes.js";
 import { registerComplianceRoutes } from "./compliance/routes.js";
 import { registerPrivacyRoutes } from "./privacy/routes.js";
 import { registerPrivacyDpiaRoutes } from "./privacy-dpias/routes.js";
@@ -160,6 +161,7 @@ export function buildServer(options: ServerOptions | Store = {}) {
   registerItsmChangeRoutes(app, store);
   registerItsmProblemRoutes(app, store);
   registerItsmReleaseRoutes(app, store);
+  registerItAssetRoutes(app, store);
   registerComplianceRoutes(app, store);
   registerPrivacyRoutes(app, store);
   registerPrivacyDpiaRoutes(app, store);
