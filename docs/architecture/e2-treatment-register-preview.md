@@ -1,12 +1,12 @@
 # E2 Treatment Register — Stage 1 Preview
 
-> **CURRENT STATE (2026-08-25 Path B Treatment Register Stage 1 authoring — proposed contract, not approval, not execution)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · last committed implementation HEAD=`fdf2436b1655fbe70a18117e64f54cc101cb71ae` (P2). ITA1 Stage 2 and ITL1 Stage 2 remain **in the working tree**; commit is **not** authorized by this document.  
-> ITA1 Stage 2 remains **IMPLEMENTED / COMPLETE / CLOSED** for Development/Test. ITL1 Stage 2 remains **IMPLEMENTED / COMPLETE / CLOSED** for Development/Test. This document does **not** reopen ITA1 or ITL1 and is **not** ITA1.x / ITL1.x.  
+> **CURRENT STATE (2026-08-26 Operator E2 GOVERNANCE CLOSURE — Development/Test complete / accepted)**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`68ed0994de8703b89e7c233282af8f3c0f38108e`** (this HEAD **is** the E2 implementation commit)  
+> E2 Stage 2 is **IMPLEMENTED / COMPLETE / CLOSED / ACCEPTED** for Development/Test (additive SQL `108_e2_erm_treatments.sql`).  
 > I15 ERM remains **CLOSED**. This document does **not** reopen I15 and is **not** I15.x. I15 risk `status`, likelihood, impact, and residual-risk scoring remain untouched.  
-> E1 KRI remains **CLOSED**. This document does **not** reopen E1 and is **not** E1.x. E1 implementation authorization remains spent.  
-> I11, ITC1, ITP1, ITR1, P1, P2, G1–G5, K1, and K2 remain **CLOSED**. **EXECUTION_QUEUE=EMPTY** · **PREVIEW=NOT_AUTHORIZED** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **PUSH=NOT_AUTHORIZED** · **COMMIT=NOT_AUTHORIZED**  
-> **CAPABILITY_SELECTED=YES** · **CAPABILITY=TREATMENT_REGISTER** · **CAPABILITY_ID=E2** · **STAGE_1_CREATED=YES** · **STAGE_1_STATUS=PROPOSED** · **STAGE_1_APPROVED=NO** · **IMPLEMENTATION_AUTHORIZED=NO**
+> E1 KRI remains **CLOSED**. This document does **not** reopen E1 and is **not** E1.x.  
+> ITA1 and ITL1 remain **CLOSED** (Stage 2 is on `master`; not an E2 reopen). I11, ITC1, ITP1, ITR1, P1, P2, G1–G5, K1, and K2 remain **CLOSED**. **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **PREVIEW_RESULT=PASS** · **OWNER/HUMAN_PREVIEW_RESULT=PASS** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED**  
+> **CAPABILITY_SELECTED=YES** · **CAPABILITY=TREATMENT_REGISTER** · **CAPABILITY_ID=E2** · **STAGE_1_CREATED=YES** · **STAGE_1_STATUS=APPROVED** · **STAGE_1_APPROVED=YES** · **IMPLEMENTATION_AUTHORIZED=YES** (Dev/Test; Stage 2 complete)
 
 ## Lifecycle status
 
@@ -19,28 +19,35 @@
 | Predecessor | I2 kernel (complete); I15 ERM risk register complete and **not** reopened; E1 KRI register complete and **not** reopened |
 | Architecture status | This document is the E2 Stage 1 contract |
 | Stage | Stage 1 |
-| **STATUS** | **STAGE 1 PROPOSED / AWAITING APPROVAL** |
-| Implementation status | **NOT AUTHORIZED** |
+| **STATUS** | **STAGE 1 APPROVED; STAGE 2 COMPLETE / ACCEPTED (DEV/TEST)** |
+| Implementation status | **IMPLEMENTED / COMPLETE** (Dev/Test) |
 | Environment | Development/Test only |
-| Persistence | Conceptual only in this Stage 1. If later authorized: in-memory `Store` + additive SQL. ADR-0017 not reopened. Live PostgreSQL UNVERIFIED. PostgreSQL is **not** established as a new system of record by this contract. |
+| Persistence | In-memory `Store` + additive SQL `108_e2_erm_treatments.sql`. ADR-0017 not reopened. Live PostgreSQL UNVERIFIED. PostgreSQL is **not** established as a new system of record by this contract. |
 | Runtime health increment | `E2` (must not replace I15 `/v1/erm/health` or E1 `/v1/erm/kris/health`) |
 | Production / UAT / AI | Not authorized |
 | **CAPABILITY_ID** | **E2** |
 | **STAGE_1_CREATED** | **YES** |
-| **STAGE_1_STATUS** | **PROPOSED** |
-| **STAGE_1_APPROVED** | **NO** |
-| **IMPLEMENTATION_AUTHORIZED** | **NO** |
-| **PREVIEW** | **NOT_AUTHORIZED** |
+| **STAGE_1_STATUS** | **APPROVED** |
+| **STAGE_1_APPROVED** | **YES** |
+| **IMPLEMENTATION_AUTHORIZED** | **YES** (Dev/Test; Stage 2 complete) |
+| **COMMIT** | **EXECUTED** (`68ed0994de8703b89e7c233282af8f3c0f38108e`) |
+| **PUSH** | **EXECUTED** |
+| **PREVIEW** | **AUTHORIZED** (Development/Test; executed) |
+| **PREVIEW_RESULT** | **PASS** |
+| **OWNER/HUMAN_PREVIEW_RESULT** | **PASS** |
+| **UAT** | **NOT_AUTHORIZED** |
+| **PRODUCTION** | **NOT_AUTHORIZED** |
 | **EXECUTION_QUEUE** | **EMPTY** |
+| **NEW_CAPABILITY_AUTHORIZED** | **NONE** |
 
-Authority: 2026-08-25 Operator **PATH B — OPERATOR SELECTION ONLY** (`CAPABILITY=TREATMENT_REGISTER` recorded by [`treatment-register-authorized.md`](../governance/treatment-register-authorized.md)), and 2026-08-25 Operator **PATH B — TREATMENT REGISTER STAGE 1 AUTHORING ONLY**. This Stage 1 document is a **proposed** architecture contract. ID **E2** is assigned at this Stage 1 authoring gate because Path B Stage 1 contracts require an increment identity (filename, lifecycle table, health `increment`). Repository search found **no** existing use of `E2` as a capability ID. It is **not** I15, **not** I15.x, **not** E1, **not** E1.x, **not** T1, **not** G6, **not** K3, and **not** a treatment engine. This document does **not** approve Stage 1, does **not** authorize implementation, preview, UAT, Production, commit, or push, and does **not** reopen I15 / E1 / ITA1 / ITL1 / I11 / ITC1 / ITP1 / ITR1 / P1 / P2 / G1–G5.
+Authority: 2026-08-25 Operator **PATH B — OPERATOR SELECTION ONLY** (`CAPABILITY=TREATMENT_REGISTER` recorded by [`treatment-register-authorized.md`](../governance/treatment-register-authorized.md)); 2026-08-25 Operator **PATH B — TREATMENT REGISTER STAGE 1 AUTHORING ONLY**; 2026-08-25 Operator **E2 TREATMENT REGISTER STAGE 1 APPROVAL** and **IMPLEMENTATION AUTHORIZATION**; 2026-08-26 Operator **E2 DEVELOPMENT/TEST PREVIEW** (**PREVIEW_RESULT=PASS** / **OWNER/HUMAN_PREVIEW_RESULT=PASS**); 2026-08-26 Operator **E2 GOVERNANCE CLOSURE**. ID **E2** is assigned at the Stage 1 authoring gate because Path B Stage 1 contracts require an increment identity (filename, lifecycle table, health `increment`). It is **not** I15, **not** I15.x, **not** E1, **not** E1.x, **not** T1, **not** G6, **not** K3, and **not** a treatment engine. This document does **not** authorize UAT, Production, hosting, ADR-0006 closure, or a next increment, and does **not** reopen I15 / E1 / ITA1 / ITL1 / I11 / ITC1 / ITP1 / ITR1 / P1 / P2 / G1–G5.
 
 **Stage 1 contract ≠ Stage 1 approval.**  
 **Stage 1 approval ≠ implementation authorization.**  
 **Implementation authorization ≠ UAT authorization.**  
 **UAT authorization ≠ Production authorization.**
 
-The sections after this heading are the **proposed** architecture contract. Implementation must not begin until a separate explicit execution instruction (`IMPLEMENTATION_AUTHORIZED=YES` / `ENVIRONMENT=DEVTEST`) after Stage 1 approval.
+The sections after this heading are the **approved** architecture contract. The lifecycle table above is the **current** Development/Test closure state. The contract body is not a pending implementation queue.
 
 ---
 
@@ -393,15 +400,20 @@ No **BLOCKER** or **REVISION REQUIRED** items were found in this authoring pass.
 ```text
 CAPABILITY=TREATMENT_REGISTER
 CAPABILITY_ID=E2
-STAGE_1_STATUS=PROPOSED
-STAGE_1_APPROVED=NO
-IMPLEMENTATION_AUTHORIZED=NO
+STAGE_1_STATUS=APPROVED
+STAGE_1_APPROVED=YES
+IMPLEMENTATION_AUTHORIZED=YES
+IMPLEMENTATION=COMPLETE
+COMMIT=EXECUTED
+COMMIT_SHA=68ed0994de8703b89e7c233282af8f3c0f38108e
+PUSH=EXECUTED
+PREVIEW=AUTHORIZED
+PREVIEW_RESULT=PASS
+OWNER/HUMAN_PREVIEW_RESULT=PASS
 EXECUTION_QUEUE=EMPTY
-PREVIEW=NOT_AUTHORIZED
+NEW_CAPABILITY_AUTHORIZED=NONE
 UAT=NOT_AUTHORIZED
 PRODUCTION=NOT_AUTHORIZED
-COMMIT=NOT_AUTHORIZED
-PUSH=NOT_AUTHORIZED
 ```
 
-Operator next step: **Stage 1 approval** (separate). Then, only if granted, implementation authorization. This is not I15.x, not E1.x, not a treatment engine, not Endpoint/UEM/Consent/Dataset, and not a commit/push authorization.
+Operator next step: **none selected**. **EXECUTION_QUEUE=EMPTY.** UAT and Production remain **NOT_AUTHORIZED**. This is not I15.x, not E1.x, not a treatment engine, not Endpoint/UEM/Consent/Dataset, not O7/ITE1/PQL selection, and not ADR-0006 closure.
