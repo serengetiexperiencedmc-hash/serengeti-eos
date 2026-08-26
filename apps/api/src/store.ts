@@ -144,6 +144,7 @@ import {
   type ItAsset,
   type ItLicense,
   type ItEndpoint,
+  type ConsentRecord,
   type PrivacyDpia,
   type KnowledgeDocument,
   type PamJitGrant,
@@ -177,6 +178,7 @@ import { seedDefaultItsmReleases } from "./itsm-releases/collections.js";
 import { seedDefaultItAssets } from "./it-assets/collections.js";
 import { seedDefaultItLicenses } from "./it-licenses/collections.js";
 import { seedDefaultItEndpoints } from "./it-endpoints/collections.js";
+import { seedDefaultConsentRecords } from "./consent-register/collections.js";
 import { seedDefaultPrivacyDpias } from "./privacy-dpias/collections.js";
 
 export type Payment = {
@@ -333,6 +335,7 @@ export type Store = {
   itAssets: ItAsset[];
   itLicenses: ItLicense[];
   itEndpoints: ItEndpoint[];
+  consentRecords: ConsentRecord[];
   notifDismissals: NotifDismissal[];
   notifEmailOutbox: NotifEmailOutboxEntry[];
   notifEmailDeliveryEvents: NotifEmailDeliveryEvent[];
@@ -492,6 +495,7 @@ const RELEASE_PERMS = ["itsm:read:release", "itsm:write:release"] as const;
 const ASSET_PERMS = ["asset:read:register", "asset:write:register"] as const;
 const LICENSE_PERMS = ["license:read:register", "license:write:register"] as const;
 const ENDPOINT_PERMS = ["endpoint:read:register", "endpoint:write:register"] as const;
+const CONSENT_PERMS = ["consent:read:register", "consent:write:register"] as const;
 const DPIA_PERMS = ["privacy:read:dpia", "privacy:write:dpia"] as const;
 
 const ANALYTICS_PERMS = ["analytics:read:commercial", "analytics:read:operations", "analytics:read:finance"] as const;
@@ -663,6 +667,7 @@ const PERMS = {
   itAsset: [...ASSET_PERMS],
   itLicense: [...LICENSE_PERMS],
   itEndpoint: [...ENDPOINT_PERMS],
+  consentRegister: [...CONSENT_PERMS],
   privacyDpia: [...DPIA_PERMS],
   platformAdmin: [
     "org:read:unit",
@@ -716,6 +721,7 @@ const PERMS = {
     ...ASSET_PERMS,
     ...LICENSE_PERMS,
     ...ENDPOINT_PERMS,
+    ...CONSENT_PERMS,
     ...DPIA_PERMS,
     ...ANALYTICS_PERMS,
     ...FINANCE_MODULE_PERMS,
@@ -879,6 +885,7 @@ export function seedStore(
       "it.asset",
       "it.license",
       "it.endpoint",
+      "consent.register",
       "privacy.dpia",
       "erm.kri",
       "erm.treatment",
@@ -905,6 +912,7 @@ export function seedStore(
       ...PERMS.itAsset,
       ...PERMS.itLicense,
       ...PERMS.itEndpoint,
+      ...PERMS.consentRegister,
       ...PERMS.privacyDpia,
       ...PERMS.ermKri,
       ...PERMS.ermTreatment,
@@ -1137,6 +1145,13 @@ export function seedStore(
       key: "it.endpoint",
       name: "IT Endpoint",
       permissionKeys: [...PERMS.itEndpoint],
+    },
+    {
+      id: "role-consent-register",
+      tenantId,
+      key: "consent.register",
+      name: "Consent Register",
+      permissionKeys: [...PERMS.consentRegister],
     },
     {
       id: "role-privacy-dpia",
@@ -1416,6 +1431,14 @@ export function seedStore(
         grantedByPrincipalId: carolId,
       },
       {
+        id: "grant-bob-consent-register",
+        tenantId,
+        principalId: bobId,
+        roleKey: "consent.register",
+        grantedAt: new Date().toISOString(),
+        grantedByPrincipalId: carolId,
+      },
+      {
         id: "grant-bob-privacy-dpia",
         tenantId,
         principalId: bobId,
@@ -1640,6 +1663,7 @@ export function seedStore(
     itAssets: [],
     itLicenses: [],
     itEndpoints: [],
+    consentRecords: [],
     notifDismissals: [],
     notifEmailOutbox: [],
     notifEmailDeliveryEvents: [],
@@ -1700,6 +1724,7 @@ export function seedStore(
   seedDefaultItAssets(store);
   seedDefaultItLicenses(store);
   seedDefaultItEndpoints(store);
+  seedDefaultConsentRecords(store);
   seedDefaultPrivacyDpias(store);
   return store;
 }
