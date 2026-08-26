@@ -1,10 +1,12 @@
 # ITE1 Endpoint Register — Stage 1 Preview
 
-> **CURRENT STATE (2026-08-26 Operator ITE1 DEV/TEST COMMIT — authorized)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · last committed HEAD=`a24888523cd82242b341c77e2db7d076374fa8e2` (E2 governance closure). ITE1 Stage 2 is authorized for this Development/Test commit. Push is **not** authorized.  
+> **CURRENT STATE (2026-08-26 Operator ITE1 GOVERNANCE CLOSURE — Development/Test complete / accepted)**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`0ccf1d7a560b8293bbf5a202a8d12a4e4cdecdd9`** (this HEAD **is** the ITE1 implementation commit)  
+> Parent of that commit is `a24888523cd82242b341c77e2db7d076374fa8e2` (E2 governance closure).  
+> ITE1 Stage 2 is **IMPLEMENTED / COMPLETE / CLOSED / ACCEPTED** for Development/Test (additive SQL `109_ite1_it_endpoints.sql`).  
 > ITA1, ITL1, E1, and E2 remain **CLOSED** on `master`. This document does **not** reopen ITA1, ITL1, I11, E1, or E2.  
 > **PATH_B_ENDPOINT_STAGE_1=APPROVED** · **PATH_B_GENERAL_AUTO_SELECTION=PAUSED**  
-> **CAPABILITY_SELECTED=YES** · **CAPABILITY=ENDPOINT_REGISTER** · **CAPABILITY_ID=ITE1** · **STAGE_1_CREATED=YES** · **STAGE_1_STATUS=APPROVED** · **STAGE_1_APPROVED=YES** · **ITE1_IMPLEMENTATION_AUTHORIZED=YES** · **ITE1_IMPLEMENTATION_ENVIRONMENT=DEV_TEST_ONLY** · **ITE1_PREVIEW=AUTHORIZED** · **ITE1_PREVIEW_RESULT=PASS** · **HUMAN_ACCEPTANCE=PASS** · **COMMIT=AUTHORIZED** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **PUSH=NOT_AUTHORIZED** · **ADR-0006=OPEN** · **EXECUTION_QUEUE=ITE1 — Endpoint Register**
+> **CAPABILITY_SELECTED=YES** · **CAPABILITY=ENDPOINT_REGISTER** · **CAPABILITY_ID=ITE1** · **STAGE_1_CREATED=YES** · **STAGE_1_STATUS=APPROVED** · **STAGE_1_APPROVED=YES** · **IMPLEMENTATION_AUTHORIZED=YES** (Dev/Test; Stage 2 complete) · **ITE1_IMPLEMENTATION=COMPLETE** · **ITE1_PREVIEW=AUTHORIZED** · **ITE1_PREVIEW_RESULT=PASS** · **OWNER/HUMAN_PREVIEW_RESULT=PASS** · **COMMIT=EXECUTED** · **PUSH=EXECUTED** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **ADR-0006=OPEN** · **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE**
 
 ## Lifecycle status
 
@@ -17,8 +19,8 @@
 | Predecessor | I2 kernel (complete); ITA1 Asset register complete and **not** reopened; ITL1 License register complete and **not** reopened; I11 ITSM + CMDB complete and **not** reopened |
 | Architecture status | This document is the ITE1 Stage 1 contract |
 | Stage | Stage 1 |
-| **STATUS** | **STAGE 1 APPROVED; IMPLEMENTATION AUTHORIZED (DEVTEST); PREVIEW PASS; HUMAN ACCEPTANCE PASS; COMMIT AUTHORIZED** |
-| Implementation status | **AUTHORIZED / IN WORKING TREE** (Dev/Test). Commit not authorized |
+| **STATUS** | **STAGE 1 APPROVED; STAGE 2 COMPLETE / ACCEPTED (DEV/TEST)** |
+| Implementation status | **IMPLEMENTED / COMPLETE** (Dev/Test) |
 | Environment | Development/Test only |
 | Persistence | In-memory `Store` (`itEndpoints`) + additive SQL `109_ite1_it_endpoints.sql` (next unused after committed `108_e2_erm_treatments.sql`; do **not** use local draft `116`). ADR-0017 not reopened. Live PostgreSQL UNVERIFIED. PostgreSQL is **not** established as a new system of record by this contract. |
 | Runtime health increment | `ITE1` (must not replace ITA1 `/v1/assets/health`, ITL1 `/v1/licenses/health`, or I11 `/v1/itsm/health` / `/v1/cmdb/health`) |
@@ -27,32 +29,38 @@
 | **STAGE_1_CREATED** | **YES** |
 | **STAGE_1_STATUS** | **APPROVED** |
 | **STAGE_1_APPROVED** | **YES** |
-| **IMPLEMENTATION_AUTHORIZED** | **YES** (Dev/Test only) |
+| **IMPLEMENTATION_AUTHORIZED** | **YES** (Dev/Test; Stage 2 complete) |
 | **ITE1_IMPLEMENTATION_AUTHORIZED** | **YES** |
+| **ITE1_IMPLEMENTATION** | **COMPLETE** |
 | **ITE1_IMPLEMENTATION_ENVIRONMENT** | **DEV_TEST_ONLY** |
-| **ITE1_PREVIEW** | **AUTHORIZED** (Dev/Test executed) |
-| **PREVIEW** | **AUTHORIZED** (Dev/Test executed) |
+| **DEVTEST_STATUS** | **CLOSED / ACCEPTED** |
+| **ITE1_PREVIEW** | **AUTHORIZED** (Development/Test; executed) |
+| **PREVIEW** | **AUTHORIZED** (Development/Test; executed) |
 | **ITE1_PREVIEW_RESULT** | **PASS** |
 | **BROWSER_E2E** | **EXECUTED** |
+| **OWNER/HUMAN_PREVIEW_RESULT** | **PASS** |
 | **HUMAN_ACCEPTANCE** | **PASS** |
+| **COMMIT** | **EXECUTED** (`0ccf1d7a560b8293bbf5a202a8d12a4e4cdecdd9`) |
+| **ITE1_COMMIT_SHA** | **`0ccf1d7a560b8293bbf5a202a8d12a4e4cdecdd9`** |
+| **PUSH** | **EXECUTED** |
 | **UAT** | **NOT_AUTHORIZED** |
 | **PRODUCTION** | **NOT_AUTHORIZED** |
-| **COMMIT** | **AUTHORIZED** |
-| **PUSH** | **NOT_AUTHORIZED** |
 | **ADR-0006** | **OPEN** |
-| **EXECUTION_QUEUE** | **ITE1 — Endpoint Register** |
+| **EXECUTION_QUEUE** | **EMPTY** |
+| **NEW_CAPABILITY_AUTHORIZED** | **NONE** |
 
 Authority: 2026-08-25 Operator **PATH B — OPERATOR SELECTION ONLY** (`CAPABILITY=ENDPOINT_REGISTER` recorded by [`endpoint-register-authorized.md`](../governance/endpoint-register-authorized.md)), and 2026-08-26 Operator **PATH B — ENDPOINT REGISTER — STAGE 1 CONTRACT AUTHORING ONLY** (`PATH_B_UNPAUSE_FOR_ENDPOINT_STAGE_1=YES`). ID **ITE1** is assigned at this Stage 1 authoring gate. Repository search found **no** existing use of `ITE1` as a capability ID, no `/v1/endpoints` collection, no `itEndpoints` store key, and no `END-` allocator. It is **not** ITA1, **not** ITA1.x, **not** ITL1, **not** ITL1.x, **not** ITA2, **not** I11.x, **not** E3, and **not** a UEM/MDM/EDR product.
 
-This Stage 1 document is the **approved** architecture contract. Dev/Test implementation is **authorized**. Dev/Test Preview was **authorized and executed** with **ITE1_PREVIEW_RESULT=PASS** and **HUMAN_ACCEPTANCE=PASS**. The ITE1 Development/Test **commit is authorized**. UAT, Production, and push are **not** authorized. **ADR-0006** remains **OPEN**. It does **not** reopen ITA1 / ITL1 / I11 / ITC1 / ITP1 / ITR1 / E1 / E2 / P1 / P2. Path B leftover-noun **auto-selection remains paused**. This pass does **not** select another capability after Endpoint Register.
+This Stage 1 document is the **approved** architecture contract. Dev/Test Stage 2 is **COMPLETE / CLOSED / ACCEPTED**. Dev/Test Preview was **authorized and executed** with **ITE1_PREVIEW_RESULT=PASS** and **OWNER/HUMAN_PREVIEW_RESULT=PASS**. Commit **EXECUTED** at `0ccf1d7a560b8293bbf5a202a8d12a4e4cdecdd9`. Push **EXECUTED**. UAT and Production remain **not** authorized. **ADR-0006** remains **OPEN**. It does **not** reopen ITA1 / ITL1 / I11 / ITC1 / ITP1 / ITR1 / E1 / E2 / P1 / P2. Path B leftover-noun **auto-selection remains paused**. This record does **not** select or authorize another capability.
 
 **Stage 1 contract ≠ Stage 1 approval.**  
 **Stage 1 approval ≠ implementation authorization.**  
 **Implementation authorization ≠ Preview authorization.**  
 **Preview authorization ≠ UAT authorization.**  
-**UAT authorization ≠ Production authorization.**
+**UAT authorization ≠ Production authorization.**  
+**Dev/Test closure ≠ next-increment authorization.**
 
-The sections after this heading are the **approved** architecture contract. Substance is unchanged from the authored Stage 1.
+The sections after this heading are the **approved** architecture contract. The lifecycle table above is the **current** Development/Test closure state. The contract body is not a pending implementation queue.
 
 ```text
 ITE1_STAGE_1_APPROVED = YES
@@ -60,19 +68,23 @@ STAGE_1_AUTHORING = AUTHORIZED
 STAGE_1_APPROVED = YES
 ITE1_IMPLEMENTATION_AUTHORIZED = YES
 ITE1_IMPLEMENTATION_ENVIRONMENT = DEV_TEST_ONLY
-ITE1_IMPLEMENTATION = AUTHORIZED_DEVTEST_ONLY
-IMPLEMENTATION = AUTHORIZED_DEVTEST_ONLY
+ITE1_IMPLEMENTATION = COMPLETE
+IMPLEMENTATION = COMPLETE
+DEVTEST_STATUS = CLOSED / ACCEPTED
 ITE1_PREVIEW = AUTHORIZED
 PREVIEW = AUTHORIZED
 ITE1_PREVIEW_RESULT = PASS
-HUMAN_ACCEPTANCE = PASS
+OWNER/HUMAN_PREVIEW_RESULT = PASS
 UAT = NOT_AUTHORIZED
 PRODUCTION = NOT_AUTHORIZED
-COMMIT = AUTHORIZED
-PUSH = NOT_AUTHORIZED
+COMMIT = EXECUTED
+ITE1_COMMIT_SHA = 0ccf1d7a560b8293bbf5a202a8d12a4e4cdecdd9
+PUSH = EXECUTED
 ADR_0006 = OPEN
 PATH_B_ENDPOINT_STAGE_1 = APPROVED
 PATH_B_GENERAL_AUTO_SELECTION = PAUSED
+EXECUTION_QUEUE = EMPTY
+NEW_CAPABILITY_AUTHORIZED = NONE
 ```
 
 ---
@@ -431,7 +443,7 @@ CAPABILITY = ENDPOINT_REGISTER
 CAPABILITY_ID = ITE1
 CAPABILITY_NAME = Endpoint Register
 STAGE = 1
-STATUS = STAGE_1_APPROVED_IMPLEMENTATION_AUTHORIZED_DEVTEST
+STATUS = STAGE_1_APPROVED_STAGE_2_COMPLETE_ACCEPTED_DEVTEST
 STAGE_1_CREATED = YES
 STAGE_1_STATUS = APPROVED
 STAGE_1_APPROVED = YES
@@ -439,24 +451,29 @@ ITE1_STAGE_1_APPROVED = YES
 STAGE_1_AUTHORING = AUTHORIZED
 ITE1_IMPLEMENTATION_AUTHORIZED = YES
 ITE1_IMPLEMENTATION_ENVIRONMENT = DEV_TEST_ONLY
-ITE1_IMPLEMENTATION = AUTHORIZED_DEVTEST_ONLY
+ITE1_IMPLEMENTATION = COMPLETE
 IMPLEMENTATION_AUTHORIZED = YES
-IMPLEMENTATION = AUTHORIZED_DEVTEST_ONLY
+IMPLEMENTATION = COMPLETE
+DEVTEST_STATUS = CLOSED / ACCEPTED
 ITE1_PREVIEW = AUTHORIZED
 PREVIEW = AUTHORIZED
 ITE1_PREVIEW_RESULT = PASS
+OWNER/HUMAN_PREVIEW_RESULT = PASS
 HUMAN_ACCEPTANCE = PASS
 UAT = NOT_AUTHORIZED
 PRODUCTION = NOT_AUTHORIZED
-COMMIT = AUTHORIZED
-PUSH = NOT_AUTHORIZED
+COMMIT = EXECUTED
+ITE1_COMMIT_SHA = 0ccf1d7a560b8293bbf5a202a8d12a4e4cdecdd9
+PUSH = EXECUTED
 ADR_0006 = OPEN
 PATH_B_ENDPOINT_STAGE_1 = APPROVED
 PATH_B_GENERAL_AUTO_SELECTION = PAUSED
+EXECUTION_QUEUE = EMPTY
+NEW_CAPABILITY_AUTHORIZED = NONE
 HOSTING_OPTION_SELECTED = NO
 ADR_0006_DECISION_READINESS = NOT_READY
 DP_0006_EVIDENCE_ANALYSIS = NOT_AUTHORIZED
 DP_0006_SUBSTANTIVE_RESPONSES_RECEIVED = 0
 ```
 
-Operator next step: push only if separately authorized. This is not UAT, Production, ITA1.x, ITL1.x, UEM, or ADR-0006 closure.
+This is not UAT, Production, ITA1.x, ITL1.x, UEM, ADR-0006 closure, or next-increment authorization. **NEXT_INCREMENT=NONE_AUTHORIZED**.
