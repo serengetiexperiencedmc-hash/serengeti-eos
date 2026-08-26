@@ -1,11 +1,11 @@
 # Development backlog — independently deployable increments
 
-> **CURRENT STATE (2026-08-25 documentation hygiene)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`fdf2436b1655fbe70a18117e64f54cc101cb71ae`**  
-> **CAPABILITY_SELECTED=YES** · **CAPABILITY=DPIA_REGISTER** · **CAPABILITY_ID=P2** · **STAGE_1_CREATED=YES** · **STAGE_1_APPROVED=YES**  
-> **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **IMPLEMENTATION_AUTHORIZED=YES** (Dev/Test; Stage 2 complete)  
-> **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **PUSH=NOT_AUTHORIZED**  
-> ITR1 Stage 2 remains **IMPLEMENTED / CLOSED**. P2 Stage 2 is **IMPLEMENTED / CLOSED** for Development/Test. Do not infer UAT or Production from this row.
+> **CURRENT STATE (2026-08-26 documentation catch-up — post-DG1 HOLD)**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`7bf6e0fb049c8dd05c19eaba06eb90a7d9a6b181`** (`origin/master`; `feat(dg1): implement dataset register`)  
+> Latest completed capability = **DG1 Dataset Register** (**DG1=COMPLETE**). **HOLD.** No capability is selected.  
+> **NEW_CAPABILITY_AUTHORIZED=NONE** · **NEXT_INCREMENT=NONE_AUTHORIZED** · **EXECUTION_QUEUE=EMPTY** · **PATH_B_GENERAL_AUTO_SELECTION=PAUSED**  
+> **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **ADR-0006=OPEN**  
+> ITA1, ITL1, E1, E2, ITE1, P3, and DG1 remain **IMPLEMENTED / CLOSED** for Development/Test. Do not infer UAT, Production, or a next increment from this row.
 
 Each increment must be releasable to **Test** on its own (Production only after ADRs and gates). Dependencies are listed; do not skip.
 
@@ -28,13 +28,20 @@ Each increment must be releasable to **Test** on its own (Production only after 
 | **ITC1** | IT Change Register | I11 | Change register — **IMPLEMENTED / CLOSED** (Dev/Test), [`itc1-it-change-register-preview.md`](../architecture/itc1-it-change-register-preview.md) | CAB / ITC1.x not created. ITR1 is a separate selected capability, not ITC1 |
 | **ITP1** | IT Problem Register | I11, ITC1 | Problem register — **IMPLEMENTED / CLOSED** (Dev/Test) at last implementation HEAD, [`itp1-it-problem-register-preview.md`](../architecture/itp1-it-problem-register-preview.md) | RCA engine / ITP1.x not created. ITR1 is a separate selected capability, not ITP1 |
 | **ITR1** | IT Release Register | I11 | Release register — **IMPLEMENTED / CLOSED** (Dev/Test), [`itr1-it-release-register-preview.md`](../architecture/itr1-it-release-register-preview.md), [`itr1-it-release-register-authorized.md`](../governance/itr1-it-release-register-authorized.md) | Release Management / deploy / CAB / CI/CD; ITR1.x not created; UAT/Production not authorized; not I11.x / ITC1.x / ITP1.x |
+| **ITA1** | IT Asset Register | I11 | Asset register — **IMPLEMENTED / CLOSED** (Dev/Test), [`ita1-it-asset-register-preview.md`](../architecture/ita1-it-asset-register-preview.md), [`ita1-it-asset-register-authorized.md`](../governance/ita1-it-asset-register-authorized.md) | Asset management / discovery / UEM / license engine; I11.x not created; UAT/Production not authorized; not I11 reopen |
+| **ITL1** | IT License Register | I11 | License register — **IMPLEMENTED / CLOSED** (Dev/Test), [`itl1-it-license-register-preview.md`](../architecture/itl1-it-license-register-preview.md), [`itl1-it-license-register-authorized.md`](../governance/itl1-it-license-register-authorized.md) | License-compliance engine / entitlement / seats / discovery / UEM / ITA1.x; UAT/Production not authorized; not ITA1 reopen |
+| **ITE1** | IT Endpoint Register | I11 | Endpoint register — **IMPLEMENTED / CLOSED** (Dev/Test), [`ite1-endpoint-register-preview.md`](../architecture/ite1-endpoint-register-preview.md), [`ite1-endpoint-register-authorized.md`](../governance/ite1-endpoint-register-authorized.md) | UEM / MDM / discovery / agent; ITE1.x not created; UAT/Production not authorized; not ITA1 reopen |
 | **I12** | Observability | I11 | OTel, health dependency map — **IMPLEMENTED** (Dev/Test), [`i12-observability-preview.md`](../architecture/i12-observability-preview.md) | Full AIOps |
 | **I13** | Defensive SOC integration | I12 | Alert ingest, IR casefile — **IMPLEMENTED** (Dev/Test), [`i13-defensive-soc-preview.md`](../architecture/i13-defensive-soc-preview.md) | Homegrown SIEM |
 | **I14** | PAM / secrets / ZTNA | I1, ADR-0012/13 | JIT, vault refs — **IMPLEMENTED** bounded Dev/Test (opaque refs + in-memory JIT; not production vault), [`i14-pam-preview.md`](../architecture/i14-pam-preview.md) | Custom VPN |
 | **I15** | ERM + compliance + privacy | I2 | Registers, RoPA, DSR workflow — **IMPLEMENTED** risk register only (obligations = G1; RoPA/DSR = P1; controls = G2; findings = G3; campaigns = G4; mappings = G5; I15 not reopened), [`i15-erm-risk-register-preview.md`](../architecture/i15-erm-risk-register-preview.md) | Legal opinion automation |
+| **E1** | KRI Register | I15 | KRI register — **IMPLEMENTED / CLOSED** (Dev/Test), [`e1-kri-register-preview.md`](../architecture/e1-kri-register-preview.md), [`e1-kri-register-authorized.md`](../governance/e1-kri-register-authorized.md) | KRI calculation engine / time-series / thresholds / alerting; I15.x not created; UAT/Production not authorized; not I15 reopen |
+| **E2** | Treatment Register | I15 | Treatment register — **IMPLEMENTED / CLOSED** (Dev/Test), [`e2-treatment-register-preview.md`](../architecture/e2-treatment-register-preview.md), [`treatment-register-authorized.md`](../governance/treatment-register-authorized.md) | Treatment engine / residual scoring; E1.x / I15.x not created; UAT/Production not authorized; not I15 reopen |
 | **G1** | Compliance obligations | I2 | Obligation register — **IMPLEMENTED** (Dev/Test), [`g1-compliance-obligations-preview.md`](../architecture/g1-compliance-obligations-preview.md). Authorized COMP=A; not I15.x | Tests |
 | **P1** | Privacy RoPA + DSR | I2 | Processing activities + DSR cases — **IMPLEMENTED / CLOSED** (Dev/Test), [`p1-privacy-ropa-dsr-preview.md`](../architecture/p1-privacy-ropa-dsr-preview.md). Authorized PRIV=A; not I15.x. P2 is a separate selected capability, not P1 | Consent / DPIA product / DLP / live erasure; P1.x not created |
 | **P2** | DPIA Register | P1 | DPIA case register — **IMPLEMENTED / CLOSED** (Dev/Test), [`p2-dpia-register-preview.md`](../architecture/p2-dpia-register-preview.md), [`p2-dpia-register-authorized.md`](../governance/p2-dpia-register-authorized.md) | DPIA product / legal opinion / consent / DLP / live erasure; P1.x not created; UAT/Production not authorized; not P1 reopen |
+| **P3** | Consent Register | P1 | Consent register — **IMPLEMENTED / CLOSED** (Dev/Test), [`consent-register-preview.md`](../architecture/consent-register-preview.md), [`consent-register-authorized.md`](../governance/consent-register-authorized.md) | Consent-management platform / CMP / capture / lawful-basis; P1.x / P2.x not created; UAT/Production not authorized; not P1 or P2 reopen |
+| **DG1** | Dataset Register | I0 | Dataset register — **IMPLEMENTED / CLOSED** (Dev/Test), [`dataset-register-preview.md`](../architecture/dataset-register-preview.md), [`dataset-register-authorized.md`](../governance/dataset-register-authorized.md) | Classification / Lineage / QualityRule engines; lakehouse / DLP; DG2+ not created; UAT/Production not authorized |
 | **G2** | GRC Control Catalogue | I2 | Internal controls + optional G1 obligation reference — **IMPLEMENTED** (Dev/Test), [`g2-grc-control-catalogue-preview.md`](../architecture/g2-grc-control-catalogue-preview.md). Authorized GRC=A; not I15.x | Tests |
 | **G3** | Findings register | I2 | Findings + optional G2 control reference — **IMPLEMENTED** (Dev/Test), [`g3-findings-register-preview.md`](../architecture/g3-findings-register-preview.md). Authorized FIND=A; not I15.x | Sampled execution |
 | **G4** | Control-test campaign register | I2 | Campaigns + optional G2 control reference — **IMPLEMENTED** (Dev/Test), [`g4-control-test-campaigns-preview.md`](../architecture/g4-control-test-campaigns-preview.md). Authorized TEST=A; not I15.x | Sampled execution |
@@ -64,4 +71,4 @@ This section is **not** a live build order. All items below are **CLOSED** for D
 
 AI agents (beyond bounded I20 L0–L1), UAT and Production remain blocked. ADR-0006 / ADR-0012 / ADR-0013 + Production Readiness Review still required for Production.
 
-Official status: **frozen Development/Test product** at HEAD `fdf2436b1655fbe70a18117e64f54cc101cb71ae` — not UAT-ready, not Production-ready. Do not treat remaining backlog or roadmap bullets as core-exit work.
+Official status: **frozen Development/Test product** at HEAD `7bf6e0fb049c8dd05c19eaba06eb90a7d9a6b181` — **HOLD**; not UAT-ready, not Production-ready. Do not treat remaining backlog or roadmap bullets as core-exit work.

@@ -1,11 +1,11 @@
 # 20. Phased Implementation Roadmap
 
-> **CURRENT STATE (2026-08-25 documentation hygiene)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`fdf2436b1655fbe70a18117e64f54cc101cb71ae`**  
-> **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED**  
-> **CAPABILITY_SELECTED=YES** · **CAPABILITY=DPIA_REGISTER** · **CAPABILITY_ID=P2** · **STAGE_1_CREATED=YES** · **STAGE_1_APPROVED=YES** · **IMPLEMENTATION_AUTHORIZED=YES** (Dev/Test; Stage 2 complete)  
+> **CURRENT STATE (2026-08-26 documentation catch-up — post-DG1 HOLD)**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`7bf6e0fb049c8dd05c19eaba06eb90a7d9a6b181`** (`origin/master`; `feat(dg1): implement dataset register`)  
+> **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **NEXT_INCREMENT=NONE_AUTHORIZED** · **PATH_B_GENERAL_AUTO_SELECTION=PAUSED** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **ADR-0006=OPEN**  
+> Latest completed capability = **DG1 Dataset Register** (**DG1=COMPLETE**). **HOLD.** No capability is selected.  
 > Phase 0 “approval before expanding beyond Increment 0” is **historical**. Expansion already occurred in Development/Test and is **frozen**.  
-> Remaining Phase 2–7 bullets that are not already shipped are **deferred / architecture inventory**, not a live implementation queue. Do not infer PO, CAL, Asset, UEM, EMCOMMS, EXER, I21–I23, or C11 from this roadmap. **ITR1** Stage 2 remains **IMPLEMENTED / CLOSED**. **P2** Stage 2 is **IMPLEMENTED / CLOSED** for Development/Test ([`p2-dpia-register-preview.md`](p2-dpia-register-preview.md)) — not inferred from this roadmap; UAT/Production not authorized.
+> Remaining Phase 2–7 bullets that are not already shipped are **deferred / architecture inventory**, not a live implementation queue. Do not infer PO, CAL, UEM, EMCOMMS, EXER, I21–I23, or C11 from this roadmap. **ITA1** Asset Register and **ITL1** License Register are **IMPLEMENTED / CLOSED** for Development/Test. **E1**, **E2**, **ITE1**, **P3**, and **DG1** are **IMPLEMENTED / CLOSED** for Development/Test. This does **not** undefer UEM or authorize any new capability.
 
 Human approval of Phase 0 was required before expanding beyond the Increment 0 kernel. The kernel was **Development-only**. *(Historical.)* The current frozen Dev/Test product is far beyond I0; Production remains unauthorized.
 
@@ -34,7 +34,7 @@ ITSM, CMDB, assets, monitoring, SOC integration, vulnerability, patch, UEM, PAM,
 
 **Exit:** Unified incident model live; privileged paths PAM-gated.
 
-> **Inventory, not authorized:** remaining Phase 3 bullets (assets, UEM, etc.) and later-phase items are **not** an execution queue. I11, ITC1, ITP1, ITR1, I12–I14 bounded slices already shipped. Asset / License remain deferred/inventory.
+> **Inventory, not authorized:** remaining Phase 3 bullets (UEM, etc.) and later-phase items are **not** an execution queue. I11, ITC1, ITP1, ITR1, I12–I14 bounded slices already shipped. **ITA1** Asset Register and **ITL1** License Register have already shipped and are **CLOSED** for Development/Test. This does **not** undefer UEM or any other deferred Asset capability, and does **not** authorize any new Asset capability.
 
 ## Phase 4 — Governance
 
@@ -42,7 +42,7 @@ ERM, Compliance, Internal Audit, Privacy, DLP, Data Governance, BCM, Crisis, Eme
 
 **Exit:** Regulation→control mapping configurable; crisis declaration human-only.
 
-> Bounded GRC/privacy/BCM/crisis **registers** shipped in Dev/Test. **P2** DPIA Register Stage 2 is **IMPLEMENTED / CLOSED** (not a P1 reopen). **EMCOMMS** and **EXER** remain **DEFERRED**.
+> Bounded GRC/privacy/BCM/crisis **registers** shipped in Dev/Test. **P2** DPIA Register is **IMPLEMENTED / CLOSED**. **P3** Consent Register is **COMPLETE**. **DG1** Dataset Register is **COMPLETE**. Classification, Lineage, and QualityRule remain **unselected** and are **not** a queue. **EMCOMMS** and **EXER** remain **DEFERRED**.
 
 ## Phase 5 — Data and AI
 

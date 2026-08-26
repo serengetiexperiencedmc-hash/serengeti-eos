@@ -1,11 +1,11 @@
 # Dataset Register — Stage 1 contract (approved)
 
-> **CURRENT STATE (2026-08-26 Operator DG1 DATASET REGISTER — COMMIT AUTHORIZATION — COMMIT EXECUTED)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · parent HEAD **`0dfb948f1d5618f3a2dc60b8f191fcd4a574e358`** (P3 Consent Register). P3 remains **COMPLETE**. ITE1 and E2 remain **CLOSED / ACCEPTED**.  
-> This document is the **approved** Stage 1 architecture contract. Dev/Test implementation is **complete**. Dev/Test Preview **PASS**. Commit **EXECUTED**. It is **not** push, UAT, or Production authorization.  
+> **CURRENT STATE (2026-08-26 documentation catch-up — DG1 push EXECUTED; Product Owner HOLD)**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`7bf6e0fb049c8dd05c19eaba06eb90a7d9a6b181`** (`origin/master`; `feat(dg1): implement dataset register`). Parent **`0dfb948f1d5618f3a2dc60b8f191fcd4a574e358`** (P3 Consent Register). P3 remains **COMPLETE**. ITE1 and E2 remain **CLOSED / ACCEPTED**.  
+> This document is the **approved** Stage 1 architecture contract. Dev/Test implementation is **complete**. Dev/Test Preview **PASS**. Commit **EXECUTED**. Push **EXECUTED**. **DG1=COMPLETE.** **HOLD.** It is **not** UAT or Production authorization. No next capability is selected.  
 > **CAPABILITY=DATASET_REGISTER** · **SELECTION_STATUS=SELECTED** · **CAPABILITY_ID=DG1** · **ID_ASSIGNMENT=EXECUTED**  
 > **STAGE_1_AUTHORING=AUTHORIZED** · **STAGE_1_CREATED=YES** · **STAGE_1_STATUS=APPROVED** · **STAGE_1_APPROVED=YES**  
-> **IMPLEMENTATION_AUTHORIZED=YES** (Dev/Test) · **IMPLEMENTATION=COMPLETE** · **PREVIEW=PASS** · **COMMIT=EXECUTED** · **PUSH=NOT_AUTHORIZED**  
+> **IMPLEMENTATION_AUTHORIZED=YES** (Dev/Test) · **IMPLEMENTATION=COMPLETE** · **PREVIEW=PASS** · **COMMIT=EXECUTED** · **PUSH=EXECUTED**  
 > **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **ADR-0006=OPEN** · **EXECUTION_QUEUE=EMPTY** · **NEXT_INCREMENT=NONE_AUTHORIZED** · **PATH_B_GENERAL_AUTO_SELECTION=PAUSED**  
 > Authority record: [`../governance/dataset-register-authorized.md`](../governance/dataset-register-authorized.md).
 
@@ -20,7 +20,7 @@
 | Predecessor | I0 kernel (complete). P1 / P2 / P3 / I16 / I17 / I19 / ITE1 / E1 / E2 complete and **not** reopened |
 | Architecture status | Approved Stage 1 contract; Dev/Test implementation complete |
 | Stage | Stage 1 |
-| **STATUS** | **SELECTED; ID ASSIGNED (DG1); STAGE 1 APPROVED; IMPLEMENTATION COMPLETE; PREVIEW PASS; COMMIT EXECUTED** |
+| **STATUS** | **SELECTED; ID ASSIGNED (DG1); STAGE 1 APPROVED; IMPLEMENTATION COMPLETE; PREVIEW PASS; COMMIT EXECUTED; PUSH EXECUTED; COMPLETE** |
 | Implementation status | **COMPLETE** (Dev/Test) |
 | Environment | Development/Test only |
 | Persistence | In-memory `Store` is the Dev/Test SoR. Additive SQL `111_dg1_dataset_records.sql` (next unused after committed `110_p3_consent_records.sql`; do **not** use local uncommitted PQL drafts). Live PostgreSQL UNVERIFIED. PostgreSQL is **not** established as a new system of record. |
@@ -34,14 +34,14 @@
 | **IMPLEMENTATION_AUTHORIZED** | **YES** (Dev/Test) |
 | **PREVIEW** | **PASS** |
 | **COMMIT** | **EXECUTED** |
-| **PUSH** | **NOT_AUTHORIZED** |
+| **PUSH** | **EXECUTED** |
 | **UAT** | **NOT_AUTHORIZED** |
 | **PRODUCTION** | **NOT_AUTHORIZED** |
 | **ADR-0006** | **OPEN** |
 | **EXECUTION_QUEUE** | **EMPTY** |
 | **NEXT_INCREMENT** | **NONE_AUTHORIZED** |
 
-Authority: 2026-08-26 Operator **PRODUCT OWNER DECISION — SELECT DATASET / DATA GOVERNANCE FOR STAGE 1**, interpreted as **Dataset Register** only; 2026-08-26 Operator **GOVERNANCE ACTION — ASSIGN DG1 TO DATASET REGISTER** (`CAPABILITY_ID=DG1`); 2026-08-26 Operator **DG1 DATASET REGISTER — STAGE 1 REVIEW / APPROVAL GATE** (`STAGE_1_APPROVED=YES`); 2026-08-26 Operator **DG1 Dataset Register — IMPLEMENTATION AUTHORIZATION** (`IMPLEMENTATION_AUTHORIZED=YES`, Dev/Test only). Committed `master` uniqueness re-check found no existing `DG1`. It is **not** D1, **not** G6, **not** C11, **not** I24, **not** O7, **not** H2, **not** P1/P2/P3, **not** ITE1/ITA1/ITL1, and **not** E1/E2. This document does **not** authorize push, UAT, Production, hosting, or ADR-0006 closure, and does **not** reopen P1 / P2 / P3 / ITE1 / E1 / E2 / I16 / I17 / I19 / I0 classification. Preview **PASS** and commit **EXECUTED** are recorded by the 2026-08-26 commit authorization.
+Authority: 2026-08-26 Operator **PRODUCT OWNER DECISION — SELECT DATASET / DATA GOVERNANCE FOR STAGE 1**, interpreted as **Dataset Register** only; 2026-08-26 Operator **GOVERNANCE ACTION — ASSIGN DG1 TO DATASET REGISTER** (`CAPABILITY_ID=DG1`); 2026-08-26 Operator **DG1 DATASET REGISTER — STAGE 1 REVIEW / APPROVAL GATE** (`STAGE_1_APPROVED=YES`); 2026-08-26 Operator **DG1 Dataset Register — IMPLEMENTATION AUTHORIZATION** (`IMPLEMENTATION_AUTHORIZED=YES`, Dev/Test only). Committed `master` uniqueness re-check found no existing `DG1`. It is **not** D1, **not** G6, **not** C11, **not** I24, **not** O7, **not** H2, **not** P1/P2/P3, **not** ITE1/ITA1/ITL1, and **not** E1/E2. This document does **not** authorize UAT, Production, hosting, or ADR-0006 closure, and does **not** reopen P1 / P2 / P3 / ITE1 / E1 / E2 / I16 / I17 / I19 / I0 classification. Preview **PASS**, commit **EXECUTED**, and push **EXECUTED** at `7bf6e0fb049c8dd05c19eaba06eb90a7d9a6b181` are recorded facts.
 
 **Selection ≠ Stage 1 approval.**  
 **Stage 1 contract ≠ implementation authorization.**  
@@ -58,7 +58,7 @@ CAPABILITY = DATASET_REGISTER
 CAPABILITY_ID = DG1
 CAPABILITY_NAME = Dataset Register
 STAGE = 1
-STATUS = SELECTED_ID_ASSIGNED_STAGE_1_APPROVED_IMPLEMENTATION_COMPLETE_PREVIEW_PASS_COMMIT_EXECUTED
+STATUS = SELECTED_ID_ASSIGNED_STAGE_1_APPROVED_IMPLEMENTATION_COMPLETE_PREVIEW_PASS_COMMIT_EXECUTED_PUSH_EXECUTED
 STAGE_1_AUTHORING = AUTHORIZED
 STAGE_1_CREATED = YES
 STAGE_1_STATUS = APPROVED
@@ -66,7 +66,7 @@ STAGE_1_APPROVED = YES
 IMPLEMENTATION_AUTHORIZED = YES
 PREVIEW = PASS
 COMMIT = EXECUTED
-PUSH = NOT_AUTHORIZED
+PUSH = EXECUTED
 UAT = NOT_AUTHORIZED
 PRODUCTION = NOT_AUTHORIZED
 ADR_0006 = OPEN
@@ -328,7 +328,7 @@ Kernel and API Dataset Register tests cover title/notes validation, `DST-` gener
 
 ## Verification limitations
 
-This Stage 1 contract is implemented in Development/Test. Live PostgreSQL UNVERIFIED. Preview is **not** authorized. Capability ID **DG1** is assigned; Stage 1 is **approved**; implementation is **complete**; Preview is **not** authorized.
+This Stage 1 contract is implemented in Development/Test. Live PostgreSQL UNVERIFIED. Preview is **PASS**. Capability ID **DG1** is assigned; Stage 1 is **approved**; implementation is **complete**; commit is **EXECUTED**; push is **EXECUTED**. UAT and Production remain **NOT_AUTHORIZED**.
 
 ---
 
@@ -351,7 +351,7 @@ CAPABILITY = DATASET_REGISTER
 CAPABILITY_ID = DG1
 CAPABILITY_NAME = Dataset Register
 STAGE = 1
-STATUS = SELECTED_ID_ASSIGNED_STAGE_1_APPROVED_IMPLEMENTATION_COMPLETE_PREVIEW_PASS_COMMIT_EXECUTED
+STATUS = SELECTED_ID_ASSIGNED_STAGE_1_APPROVED_IMPLEMENTATION_COMPLETE_PREVIEW_PASS_COMMIT_EXECUTED_PUSH_EXECUTED
 STAGE_1_AUTHORING = AUTHORIZED
 STAGE_1_CREATED = YES
 STAGE_1_STATUS = APPROVED
@@ -359,7 +359,7 @@ STAGE_1_APPROVED = YES
 IMPLEMENTATION_AUTHORIZED = YES
 PREVIEW = PASS
 COMMIT = EXECUTED
-PUSH = NOT_AUTHORIZED
+PUSH = EXECUTED
 UAT = NOT_AUTHORIZED
 PRODUCTION = NOT_AUTHORIZED
 ADR_0006 = OPEN
@@ -372,4 +372,4 @@ PATH_B_GENERAL_AUTO_SELECTION = PAUSED
 
 Approved Stage 1 fields: code prefix `DST-`; store key `datasetRecords`; API `/v1/datasets` (not `/v1/privacy/*`, not `/v1/dg/*`); health `/v1/datasets/health` (`increment` **DG1**, `module` `dataset-register`); UI `/commercial/datasets`; permissions `dataset:read:register` / `dataset:write:register`; role `dataset.register`; lifecycle `open` / `done` / `cancelled`. Additive SQL `111_dg1_dataset_records.sql`. Runtime SoR remains in-memory `Store`.
 
-Next gate: **PUSH AUTHORIZATION STILL REQUIRED**. This is not push, UAT, Production, or ADR-0006 closure.
+Next gate: **HOLD.** **EXECUTION_QUEUE=EMPTY.** **NEW_CAPABILITY_AUTHORIZED=NONE.** **NEXT_INCREMENT=NONE_AUTHORIZED.** Push is **EXECUTED**. This is not UAT, Production, or ADR-0006 closure.
