@@ -81,7 +81,10 @@ export const navItems = [
   },
   {
     section: "Risk",
-    items: [{ href: "/commercial/erm", label: "Register", icon: "erm" }],
+    items: [
+      { href: "/commercial/erm", label: "Register", icon: "erm" },
+      { href: "/commercial/erm/kris", label: "KRIs", icon: "erm" },
+    ],
   },
   {
     section: "Compliance",

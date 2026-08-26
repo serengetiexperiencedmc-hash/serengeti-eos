@@ -78,6 +78,7 @@ import { registerObsRoutes } from "./obs/routes.js";
 import { registerSecurityRoutes } from "./security/routes.js";
 import { registerPamRoutes } from "./pam/routes.js";
 import { registerErmRoutes } from "./erm/routes.js";
+import { registerErmKriRoutes } from "./erm-kris/routes.js";
 import { registerKnowledgeRoutes } from "./knowledge/routes.js";
 import { registerAuditIaRoutes } from "./audit-ia/routes.js";
 import { registerBcmRoutes } from "./bcm/routes.js";
@@ -152,6 +153,7 @@ export function buildServer(options: ServerOptions | Store = {}) {
   registerSecurityRoutes(app, store);
   registerPamRoutes(app, store);
   registerErmRoutes(app, store);
+  registerErmKriRoutes(app, store);
   registerKnowledgeRoutes(app, store);
   registerAuditIaRoutes(app, store);
   registerBcmRoutes(app, store);
