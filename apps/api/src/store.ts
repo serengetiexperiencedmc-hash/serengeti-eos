@@ -120,6 +120,7 @@ import {
   type SecurityAlert,
   type ErmRisk,
   type ErmKri,
+  type ErmTreatment,
   type IaEngagement,
   type IaWorkpaper,
   type BcmBackupJob,
@@ -154,6 +155,7 @@ import { seedDefaultSoc } from "./security/collections.js";
 import { seedDefaultPam } from "./pam/collections.js";
 import { seedDefaultErm } from "./erm/collections.js";
 import { seedDefaultErmKris } from "./erm-kris/collections.js";
+import { seedDefaultErmTreatments } from "./erm-treatments/collections.js";
 import { seedDefaultKnowledge } from "./knowledge/collections.js";
 import { seedDefaultAuditIa } from "./audit-ia/collections.js";
 import { seedDefaultBcm } from "./bcm/collections.js";
@@ -303,6 +305,7 @@ export type Store = {
   pamJitGrants: PamJitGrant[];
   ermRisks: ErmRisk[];
   ermKris: ErmKri[];
+  ermTreatments: ErmTreatment[];
   knowledgeDocuments: KnowledgeDocument[];
   iaEngagements: IaEngagement[];
   iaWorkpapers: IaWorkpaper[];
@@ -566,6 +569,8 @@ const ERM_PERMS = ["erm:read:risk", "erm:write:risk"] as const;
 
 const ERM_KRI_PERMS = ["erm:read:kri", "erm:write:kri"] as const;
 
+const ERM_TREATMENT_PERMS = ["erm:read:treatment", "erm:write:treatment"] as const;
+
 const KNOWLEDGE_PERMS = ["knowledge:read:document", "knowledge:write:document"] as const;
 
 const AUDIT_IA_PERMS = [
@@ -634,6 +639,7 @@ const PERMS = {
   securityAnalyst: [...SECURITY_ANALYST_PERMS],
   riskMember: [...ERM_PERMS],
   ermKri: [...ERM_KRI_PERMS],
+  ermTreatment: [...ERM_TREATMENT_PERMS],
   auditMember: [...AUDIT_IA_PERMS],
   bcmMember: [...BCM_PERMS],
   crisisCommander: [...CRISIS_PERMS],
@@ -717,6 +723,7 @@ const PERMS = {
     ...PAM_PERMS,
     ...ERM_PERMS,
     ...ERM_KRI_PERMS,
+    ...ERM_TREATMENT_PERMS,
     ...KNOWLEDGE_PERMS,
     ...AUDIT_IA_PERMS,
     ...BCM_PERMS,
@@ -867,6 +874,7 @@ export function seedStore(
       "it.license",
       "privacy.dpia",
       "erm.kri",
+      "erm.treatment",
     ],
     permissions: [
       ...PERMS.financeApprover,
@@ -891,6 +899,7 @@ export function seedStore(
       ...PERMS.itLicense,
       ...PERMS.privacyDpia,
       ...PERMS.ermKri,
+      ...PERMS.ermTreatment,
     ],
     passwordHash: hashPassword(bootstrap.bobPassword),
     attributes: { department: "finance" },
@@ -1127,6 +1136,13 @@ export function seedStore(
       key: "erm.kri",
       name: "ERM KRI",
       permissionKeys: [...PERMS.ermKri],
+    },
+    {
+      id: "role-erm-treatment",
+      tenantId,
+      key: "erm.treatment",
+      name: "ERM Treatment",
+      permissionKeys: [...PERMS.ermTreatment],
     },
     {
       id: "role-audit-member",
@@ -1393,6 +1409,14 @@ export function seedStore(
         grantedByPrincipalId: carolId,
       },
       {
+        id: "grant-bob-erm-treatment",
+        tenantId,
+        principalId: bobId,
+        roleKey: "erm.treatment",
+        grantedAt: new Date().toISOString(),
+        grantedByPrincipalId: carolId,
+      },
+      {
         id: "grant-carol",
         tenantId,
         principalId: carolId,
@@ -1567,6 +1591,7 @@ export function seedStore(
     pamJitGrants: [],
     ermRisks: [],
     ermKris: [],
+    ermTreatments: [],
     knowledgeDocuments: [],
     iaEngagements: [],
     iaWorkpapers: [],
@@ -1630,6 +1655,7 @@ export function seedStore(
   seedDefaultPam(store);
   seedDefaultErm(store);
   seedDefaultErmKris(store);
+  seedDefaultErmTreatments(store);
   seedDefaultKnowledge(store);
   seedDefaultAuditIa(store);
   seedDefaultBcm(store);

@@ -94,9 +94,14 @@ export default function ErmPage() {
         title="Risk register"
         subtitle="Residual risks only · compliance obligations and Privacy RoPA/DSR are deferred"
         actions={
-          <Btn variant="secondary" href="/commercial">
-            ← Dashboard
-          </Btn>
+          <div className="flex gap-2">
+            <Btn variant="secondary" href="/commercial/erm/treatments">
+              Treatments
+            </Btn>
+            <Btn variant="secondary" href="/commercial">
+              ← Dashboard
+            </Btn>
+          </div>
         }
       />
 
