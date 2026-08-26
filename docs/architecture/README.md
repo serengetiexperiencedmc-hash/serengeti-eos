@@ -6,10 +6,11 @@
 **Version:** 0.1.0  
 **Date:** 2026-08-21 (index); current-state annotation 2026-08-24  
 
-> **CURRENT STATE (2026-08-26 documentation catch-up — post-DG1 HOLD)**
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`7bf6e0fb049c8dd05c19eaba06eb90a7d9a6b181`** (`origin/master`; `feat(dg1): implement dataset register`) · **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE**
-> Latest completed capability = **DG1 Dataset Register** (**DG1=COMPLETE**). **HOLD.** No capability is selected. **NEXT_INCREMENT=NONE_AUTHORIZED** · **PATH_B_GENERAL_AUTO_SELECTION=PAUSED** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **ADR-0006=OPEN**
-> Increment 0 through the closed commercial, ops, GRC, HR, ITSM-register, privacy-register, ERM-register, and bounded I20 surfaces already shipped in Development/Test. **ITA1**, **ITL1**, **E1**, **E2**, **ITE1**, **P3**, and **DG1** remain **IMPLEMENTED / CLOSED** for Development/Test. This index must not be read as “stop at I0”, as UAT/Production authorization, as selection of a next capability, or as a licence to start deferred streams (PO, CAL, UEM, etc.).
+> **CURRENT STATE (2026-08-27 Operator PR1 PROCUREMENT — IMPLEMENTATION AUTHORIZATION — Dev/Test implementation complete; Preview not authorized)**
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`27066dadb35bdec643b41caa998bbab1c72aeae6`** (`origin/master`; post-DG1 documentation catch-up) · **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE**
+> Latest completed capability = **PR1 Procurement Catalogue** (**IMPLEMENTATION=COMPLETED** in Dev/Test; Preview **not** authorized). **DG1** Dataset Register remains **COMPLETE**. **HOLD** remains **IN FORCE** for Preview / commit / push / UAT / Production. **NEXT_INCREMENT=PR1** (selected identity only) · **PATH_B_GENERAL_AUTO_SELECTION=PAUSED** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **ADR-0006=OPEN**
+> **PROCUREMENT=SELECTED** · **CAPABILITY_NAME=PROCUREMENT (PO)** · **CAPABILITY_ID=PR1** ([`../governance/pr1-procurement-authorized.md`](../governance/pr1-procurement-authorized.md)) · **STAGE_1_STATUS=APPROVED** · **STAGE_1_APPROVED=YES** · **IMPLEMENTATION=COMPLETED** ([`pr1-procurement-preview.md`](pr1-procurement-preview.md)). This is not Preview authorization.
+> Increment 0 through the closed commercial, ops, GRC, HR, ITSM-register, privacy-register, ERM-register, and bounded I20 surfaces already shipped in Development/Test. **ITA1**, **ITL1**, **E1**, **E2**, **ITE1**, **P3**, **DG1**, and **PR1** remain **IMPLEMENTED / CLOSED** for Development/Test (PR1 Preview not authorized). This index must not be read as “stop at I0”, as UAT/Production authorization, as Preview authorization, or as a licence to start remaining deferred streams (CAL, UEM, etc.).
 > Open Production blockers remain **ADR-0006, ADR-0012, ADR-0013**.
 
 This index maps the 30 required Phase 0 deliverables. Architecture is **normative**. Where code and architecture diverge, architecture wins until an ADR is approved.

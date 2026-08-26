@@ -1,11 +1,12 @@
 # 20. Phased Implementation Roadmap
 
-> **CURRENT STATE (2026-08-26 documentation catch-up — post-DG1 HOLD)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`7bf6e0fb049c8dd05c19eaba06eb90a7d9a6b181`** (`origin/master`; `feat(dg1): implement dataset register`)  
-> **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **NEXT_INCREMENT=NONE_AUTHORIZED** · **PATH_B_GENERAL_AUTO_SELECTION=PAUSED** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **ADR-0006=OPEN**  
-> Latest completed capability = **DG1 Dataset Register** (**DG1=COMPLETE**). **HOLD.** No capability is selected.  
+> **CURRENT STATE (2026-08-27 Operator PR1 PROCUREMENT — IMPLEMENTATION AUTHORIZATION — Dev/Test implementation complete; Preview not authorized)**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`27066dadb35bdec643b41caa998bbab1c72aeae6`** (`origin/master`; post-DG1 documentation catch-up)  
+> **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **NEXT_INCREMENT=PR1** (selected identity only) · **PATH_B_GENERAL_AUTO_SELECTION=PAUSED** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **ADR-0006=OPEN**  
+> Latest completed capability = **PR1 Procurement Catalogue** (**IMPLEMENTATION=COMPLETED** in Dev/Test; Preview **not** authorized). **DG1** Dataset Register remains **COMPLETE**. **HOLD** remains **IN FORCE** for Preview / commit / push / UAT / Production.  
+> **PROCUREMENT=SELECTED** · **CAPABILITY_NAME=PROCUREMENT (PO)** · **CAPABILITY_ID=PR1** ([`../governance/pr1-procurement-authorized.md`](../governance/pr1-procurement-authorized.md)) · **STAGE_1_STATUS=APPROVED** · **STAGE_1_APPROVED=YES** · **IMPLEMENTATION=COMPLETED** ([`pr1-procurement-preview.md`](pr1-procurement-preview.md)). **CAL** remains **DEFERRED**.  
 > Phase 0 “approval before expanding beyond Increment 0” is **historical**. Expansion already occurred in Development/Test and is **frozen**.  
-> Remaining Phase 2–7 bullets that are not already shipped are **deferred / architecture inventory**, not a live implementation queue. Do not infer PO, CAL, UEM, EMCOMMS, EXER, I21–I23, or C11 from this roadmap. **ITA1** Asset Register and **ITL1** License Register are **IMPLEMENTED / CLOSED** for Development/Test. **E1**, **E2**, **ITE1**, **P3**, and **DG1** are **IMPLEMENTED / CLOSED** for Development/Test. This does **not** undefer UEM or authorize any new capability.
+> Remaining Phase 2–7 bullets that are not already shipped are **deferred / architecture inventory**, not a live implementation queue. Do not infer CAL, UEM, EMCOMMS, EXER, I21–I23, or C11 from this roadmap. **ITA1** Asset Register and **ITL1** License Register are **IMPLEMENTED / CLOSED** for Development/Test. **E1**, **E2**, **ITE1**, **P3**, **DG1**, and **PR1** are **IMPLEMENTED / CLOSED** for Development/Test (PR1 Preview not authorized). This does **not** undefer UEM or authorize PR1 Preview.
 
 Human approval of Phase 0 was required before expanding beyond the Increment 0 kernel. The kernel was **Development-only**. *(Historical.)* The current frozen Dev/Test product is far beyond I0; Production remains unauthorized.
 
@@ -24,7 +25,7 @@ IAM, RBAC/ABAC, audit, org structure, workflow kernel, business rules kernel, no
 ## Phase 2 — Core business
 
 CRM, Sales, MICE, Operations, Supplier, Finance, HR: **delivered in Development/Test and CLOSED.**  
-**Procurement (PO) and Calendar (CAL) remain DEFERRED** — they are **not** pending Phase 2 exit work. Offline field for assigned tasks: bounded I9 delivered.
+**Procurement (PO)** is **SELECTED** as **PR1**. Stage 1 is **APPROVED**. Development/Test implementation is **COMPLETED**. Preview is **not** authorized. **Calendar (CAL) remains DEFERRED.** Neither is pending Phase 2 exit work. Offline field for assigned tasks: bounded I9 delivered.
 
 **Exit:** RFP → programme → costing → approval path with SoD; field sync conflict tests. *(Commercial/ops path delivered without a PO or CAL product.)*
 

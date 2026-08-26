@@ -25,6 +25,7 @@ export const navItems = [
       { href: "/commercial/programme", label: "Programme Builder", icon: "programme" },
       { href: "/commercial/proposals", label: "Proposals", icon: "proposals" },
       { href: "/commercial/bookings", label: "Bookings", icon: "bookings" },
+      { href: "/commercial/procurement", label: "Procurement", icon: "programme" },
     ],
   },
   {
