@@ -108,6 +108,10 @@ export const navItems = [
     ],
   },
   {
+    section: "Data",
+    items: [{ href: "/commercial/datasets", label: "Datasets", icon: "dataset" }],
+  },
+  {
     section: "Knowledge",
     items: [{ href: "/commercial/knowledge", label: "Documents", icon: "knowledge" }],
   },

@@ -72,6 +72,7 @@ export * from "./it-assets.js";
 export * from "./it-licenses.js";
 export * from "./it-endpoints.js";
 export * from "./consent-register.js";
+export * from "./dataset-register.js";
 export * from "./itsm.js";
 export * from "./cmdb.js";
 export * from "./observability.js";
