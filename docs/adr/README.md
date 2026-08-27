@@ -2,8 +2,8 @@
 
 Status values: `proposed` (needs human approval), `accepted` (approved), `superseded`, `open` (explicitly pending).
 
-> **CURRENT STATE (2026-08-24 documentation hygiene)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`7bf6e0fb049c8dd05c19eaba06eb90a7d9a6b181`** · **EXECUTION_QUEUE=EMPTY**  
+> **CURRENT STATE (2026-08-27 documentation catch-up — PR1 push COMPLETED; Product Owner HOLD)**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`01d62322453af837026827018caf278f7b8f8071`** (`origin/master`; `feat(pr1): implement procurement catalogue`) · **EXECUTION_QUEUE=EMPTY**  
 > ADR-0004 / 0007 / 0008 / 0010 index rows below match Development/Test reality. **ADR-0006, ADR-0012, ADR-0013 remain OPEN.** This register does not authorize new implementation, UAT, or Production.
 
 **Phase 0 baseline:** approved for continued development (see `docs/governance/phase0-i0-approval.md`).  

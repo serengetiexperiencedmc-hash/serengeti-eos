@@ -1,14 +1,14 @@
 # Development backlog — independently deployable increments
 
-> **CURRENT STATE (2026-08-27 Operator PR1 PROCUREMENT — IMPLEMENTATION AUTHORIZATION — Dev/Test implementation complete; Preview not authorized)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`27066dadb35bdec643b41caa998bbab1c72aeae6`** (`origin/master`; post-DG1 documentation catch-up)  
-> Latest completed capability = **PR1 Procurement Catalogue** (**IMPLEMENTATION=COMPLETED** in Dev/Test; Preview **not** authorized). **DG1** Dataset Register remains **COMPLETE**. **HOLD** remains **IN FORCE** for Preview / commit / push / UAT / Production.  
+> **CURRENT STATE (2026-08-27 documentation catch-up — PR1 push COMPLETED; Product Owner HOLD)**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`01d62322453af837026827018caf278f7b8f8071`** (`origin/master`; `feat(pr1): implement procurement catalogue`)  
+> Latest completed capability = **PR1 Procurement Catalogue** (**IMPLEMENTATION=COMPLETED**; Preview **PASS**; commit **COMPLETED**; push **COMPLETED**). **DG1** Dataset Register remains **COMPLETE**. **HOLD** remains **IN FORCE** for UAT / Production. No next capability is selected.  
 > **PROCUREMENT=SELECTED** · **CAPABILITY_NAME=PROCUREMENT (PO)** · **CAPABILITY_ID=PR1** · **SELECTION_STATUS=SELECTED** ([`pr1-procurement-authorized.md`](../governance/pr1-procurement-authorized.md))  
-> **STAGE_1_CREATED=YES** · **STAGE_1_STATUS=APPROVED** · **STAGE_1_APPROVED=YES** · **IMPLEMENTATION=COMPLETED** ([`pr1-procurement-preview.md`](../architecture/pr1-procurement-preview.md))  
-> **NEXT_INCREMENT=PR1** (selected identity only) · **NEW_CAPABILITY_AUTHORIZED=NONE** · **IMPLEMENTATION_AUTHORIZED=YES** (Dev/Test)  
-> **PREVIEW=NOT_AUTHORIZED** · **COMMIT=NOT_AUTHORIZED** · **PUSH=NOT_AUTHORIZED** · **EXECUTION_QUEUE=EMPTY** · **PATH_B_GENERAL_AUTO_SELECTION=PAUSED**  
+> **STAGE_1_CREATED=YES** · **STAGE_1_STATUS=APPROVED** · **STAGE_1_APPROVED=YES** · **IMPLEMENTATION=COMPLETED** · **PREVIEW=PASS** · **COMMIT=COMPLETED** · **PUSH=COMPLETED** ([`pr1-procurement-preview.md`](../architecture/pr1-procurement-preview.md))  
+> **NEXT_INCREMENT=NONE_AUTHORIZED** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **IMPLEMENTATION_AUTHORIZED=YES** (Dev/Test)  
+> **EXECUTION_QUEUE=EMPTY** · **PATH_B_GENERAL_AUTO_SELECTION=PAUSED**  
 > **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **ADR-0006=OPEN**  
-> ITA1, ITL1, E1, E2, ITE1, P3, DG1, and PR1 remain **IMPLEMENTED / CLOSED** for Development/Test. PR1 Preview is **not** authorized. Do not infer UAT or Production from PR1 implementation.
+> ITA1, ITL1, E1, E2, ITE1, P3, DG1, and PR1 remain **IMPLEMENTED / CLOSED** for Development/Test. Do not infer UAT or Production from PR1 Preview PASS, commit, or push.
 
 Each increment must be releasable to **Test** on its own (Production only after ADRs and gates). Dependencies are listed; do not skip.
 
@@ -25,7 +25,7 @@ Each increment must be releasable to **Test** on its own (Production only after 
 | **I8** | Finance quotes/invoices | I7 | Quotes, invoices, SoD payments (no bank file until provider known) — **IMPLEMENTED** (Dev/Test), [`i8-finance-preview.md`](../architecture/i8-finance-preview.md) | GL replacement |
 | **I9** | Operations + field offline | I7 | Tasks, assignments, encrypted cache — **IMPLEMENTED** (Dev/Test) as **O1–O6** + I9 field | UEM |
 | **C1–C10** | Commercial chain | I0–I4 | CRM Foundation through Booking Command Center — **IMPLEMENTED / CLOSED** (Dev/Test), [`commercial-roadmap.md`](../architecture/commercial-roadmap.md), [`c10-booking-command-center-preview.md`](../architecture/c10-booking-command-center-preview.md) | C11+ not created; **CAL** Calendar remains **DEFERRED** |
-| **PR1** | Procurement (PO) | I0 | Selected; ID **PR1** assigned. Stage 1 **APPROVED**. **IMPLEMENTED** (Dev/Test) ([`pr1-procurement-preview.md`](../architecture/pr1-procurement-preview.md), [`pr1-procurement-authorized.md`](../governance/pr1-procurement-authorized.md)). Preview **not** authorized | C11 / C10.x / PO1 / SourcingEvent / RFQ / rates / AP / GL / C4 mutation / C9–C10 mutation |
+| **PR1** | Procurement (PO) | I0 | Selected; ID **PR1** assigned. Stage 1 **APPROVED**. **IMPLEMENTED** (Dev/Test). Preview **PASS**. Commit **COMPLETED**. Push **COMPLETED** ([`pr1-procurement-preview.md`](../architecture/pr1-procurement-preview.md), [`pr1-procurement-authorized.md`](../governance/pr1-procurement-authorized.md)) | C11 / C10.x / PO1 / SourcingEvent / RFQ / rates / AP / GL / C4 mutation / C9–C10 mutation |
 | **I10** | HR core | I1 | Employee, leave, skills — **IMPLEMENTED** (Dev/Test), [`i10-hr-core-preview.md`](../architecture/i10-hr-core-preview.md) | Payroll engine |
 | **H1** | HR Certification Register | I10 | Certification register — **IMPLEMENTED / CLOSED** (Dev/Test), [`h1-hr-certification-register-preview.md`](../architecture/h1-hr-certification-register-preview.md) | Payroll / LMS / H1.x not created |
 | **I11** | ITSM + CMDB | I4 | Tickets, CIs — **IMPLEMENTED** (Dev/Test), [`i11-itsm-cmdb-preview.md`](../architecture/i11-itsm-cmdb-preview.md) | Discovery |
@@ -71,8 +71,8 @@ This section is **not** a live build order. All items below are **CLOSED** for D
 3. ~~I2 workflow/rules~~ — **HARDENED** for Dev/Test  
 4. ~~I4 outbox/events~~ — **ACCEPTED** + hardened for Dev/Test  
 5. ~~C1 CRM Foundation~~ — **CLOSED / IMPLEMENTED** (Dev/Test). Gate **PASS** ([`c1-implementation-authorized.md`](../governance/c1-implementation-authorized.md), [`c1-gate-decision.md`](../governance/c1-gate-decision.md)). [`c1-crm-preview.md`](../architecture/c1-crm-preview.md) is a historical contract.  
-6. ~~C2–C10 commercial chain~~ — **CLOSED / IMPLEMENTED** (Dev/Test) ([commercial-roadmap.md](../architecture/commercial-roadmap.md)). **C11+ is not created and not authorized.** Procurement (**PO**) is **SELECTED** as **PR1**; Stage 1 **APPROVED**; **IMPLEMENTED** (Dev/Test) ([`pr1-procurement-preview.md`](../architecture/pr1-procurement-preview.md)) — Preview **not** authorized. Calendar (**CAL**) remains **DEFERRED**.
+6. ~~C2–C10 commercial chain~~ — **CLOSED / IMPLEMENTED** (Dev/Test) ([commercial-roadmap.md](../architecture/commercial-roadmap.md)). **C11+ is not created and not authorized.** Procurement (**PO**) is **SELECTED** as **PR1**; Stage 1 **APPROVED**; **IMPLEMENTED** (Dev/Test); Preview **PASS**; commit **COMPLETED**; push **COMPLETED** ([`pr1-procurement-preview.md`](../architecture/pr1-procurement-preview.md)). Calendar (**CAL**) remains **DEFERRED**.
 
 AI agents (beyond bounded I20 L0–L1), UAT and Production remain blocked. ADR-0006 / ADR-0012 / ADR-0013 + Production Readiness Review still required for Production.
 
-Official status: **frozen Development/Test product** at HEAD `7bf6e0fb049c8dd05c19eaba06eb90a7d9a6b181` — **HOLD**; not UAT-ready, not Production-ready. Do not treat remaining backlog or roadmap bullets as core-exit work.
+Official status: **frozen Development/Test product** at HEAD `01d62322453af837026827018caf278f7b8f8071` — **HOLD**; not UAT-ready, not Production-ready. Do not treat remaining backlog or roadmap bullets as core-exit work.

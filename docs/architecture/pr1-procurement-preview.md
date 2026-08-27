@@ -1,13 +1,14 @@
 # PR1 Procurement Catalogue — Stage 1 contract (approved)
 
-> **CURRENT STATE (2026-08-27 Operator PR1 PROCUREMENT — IMPLEMENTATION AUTHORIZATION — Dev/Test implementation complete; Preview not authorized)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`27066dadb35bdec643b41caa998bbab1c72aeae6`** (`origin/master`; post-DG1 documentation catch-up). **DG1** Dataset Register remains **COMPLETE**.  
-> This document remains the **approved** Stage 1 architecture contract. Development/Test implementation is **COMPLETED**. It does **not** authorize Preview, commit, push, UAT, or Production.  
+> **CURRENT STATE (2026-08-27 documentation catch-up — PR1 push COMPLETED; Product Owner HOLD)**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`01d62322453af837026827018caf278f7b8f8071`** (`origin/master`; `feat(pr1): implement procurement catalogue`). Parent **`27066dadb35bdec643b41caa998bbab1c72aeae6`**. **DG1** Dataset Register remains **COMPLETE**.  
+> This document remains the **approved** Stage 1 architecture contract. Development/Test implementation is **COMPLETED**. Preview **PASS**. Commit **COMPLETED**. Push **COMPLETED**. It does **not** authorize UAT or Production.  
+> Preview **PASS** includes a **non-blocking** browser-automation / environment finding (Cursor browser MCP not attached). That finding is environmental, not a PR1 product defect.  
 > **CAPABILITY=PROCUREMENT (PO)** · **SELECTION_STATUS=SELECTED** · **CAPABILITY_ID=PR1** · **ID_ASSIGNMENT=EXECUTED**  
 > **STAGE_1_AUTHORING=AUTHORIZED** · **STAGE_1_CREATED=YES** · **STAGE_1_STATUS=APPROVED** · **STAGE_1_APPROVED=YES**  
-> **IMPLEMENTATION_AUTHORIZED=YES** · **IMPLEMENTATION=COMPLETED** · **PREVIEW=NOT_AUTHORIZED** · **COMMIT=NOT_AUTHORIZED** · **PUSH=NOT_AUTHORIZED**  
+> **IMPLEMENTATION_AUTHORIZED=YES** · **IMPLEMENTATION=COMPLETED** · **PREVIEW=PASS** · **COMMIT=COMPLETED** · **PUSH=COMPLETED**  
 > **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **ADR-0006=OPEN** · **ADR-0012=OPEN** · **ADR-0013=OPEN**  
-> **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **NEXT_INCREMENT=PR1** (selected identity) · **PATH_B_GENERAL_AUTO_SELECTION=PAUSED**  
+> **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **NEXT_INCREMENT=NONE_AUTHORIZED** · **PATH_B_GENERAL_AUTO_SELECTION=PAUSED**  
 > Authority record: [`../governance/pr1-procurement-authorized.md`](../governance/pr1-procurement-authorized.md). Predecessor undefer: [`../governance/procurement-po-undefer-authorized.md`](../governance/procurement-po-undefer-authorized.md).
 
 ## Lifecycle status
@@ -22,8 +23,8 @@
 | Predecessor | I0 kernel (complete). C4 Supplier master complete and **not** reopened. C1–C10 / C6 / C9 / C10 / I8 complete and **not** reopened |
 | Architecture status | This document is the PR1 Stage 1 contract |
 | Stage | Stage 1 |
-| **STATUS** | **STAGE 1 APPROVED; IMPLEMENTATION COMPLETED (Dev/Test); PREVIEW NOT AUTHORIZED** |
-| Implementation status | **COMPLETED** (Development/Test only; not Preview PASS) |
+| **STATUS** | **STAGE 1 APPROVED; IMPLEMENTATION COMPLETED (Dev/Test); PREVIEW PASS; COMMIT COMPLETED; PUSH COMPLETED** |
+| Implementation status | **COMPLETED** (Development/Test only; Preview **PASS**; not UAT) |
 | Environment | Development/Test only |
 | Persistence | In-memory `Store` is Dev/Test SoR. Additive SQL `117_pr1_procurement_records.sql`. ADR-0017 not reopened. Live PostgreSQL UNVERIFIED. PostgreSQL is **not** established as a new system of record. |
 | Runtime health increment | **PR1** (must not replace C4 supplier health or I8 finance health) |
@@ -35,12 +36,12 @@
 | **STAGE_1_APPROVED** | **YES** |
 | **IMPLEMENTATION_AUTHORIZED** | **YES** (Development/Test only) |
 | **IMPLEMENTATION** | **COMPLETED** |
-| **PREVIEW** | **NOT_AUTHORIZED** |
-| **COMMIT** | **NOT_AUTHORIZED** |
-| **PUSH** | **NOT_AUTHORIZED** |
+| **PREVIEW** | **PASS** |
+| **COMMIT** | **COMPLETED** |
+| **PUSH** | **COMPLETED** |
 | **EXECUTION_QUEUE** | **EMPTY** |
 
-Authority: 2026-08-27 Operator **PROCUREMENT (PO) — PRODUCT OWNER SELECTION + ID ASSIGNMENT ONLY** (`CAPABILITY_ID=PR1`, recorded by [`pr1-procurement-authorized.md`](../governance/pr1-procurement-authorized.md)); 2026-08-27 Operator **PR1 STAGE 1 CONTRACT AUTHORING — GOVERNANCE-BOUNDED**; 2026-08-27 Operator **PR1 PROCUREMENT — STAGE 1 APPROVAL** (`STAGE_1_APPROVED=YES`); 2026-08-27 Operator **PR1 PROCUREMENT — IMPLEMENTATION AUTHORIZATION** (`IMPLEMENTATION=COMPLETED`, Development/Test only). This Stage 1 document remains the **approved** architecture contract. Implementation does **not** authorize Preview, UAT, Production, commit, or push, and does **not** reopen C1–C10 / C4 / C6 / C9 / C10 / I8 / DG1. It is **not** C11, **not** C10.x, **not** PO (stream label), **not** PO1, **not** P4, **not** I24, and **not** a sourcing, rate, AP, or booking engine.
+Authority: 2026-08-27 Operator **PROCUREMENT (PO) — PRODUCT OWNER SELECTION + ID ASSIGNMENT ONLY** (`CAPABILITY_ID=PR1`, recorded by [`pr1-procurement-authorized.md`](../governance/pr1-procurement-authorized.md)); 2026-08-27 Operator **PR1 STAGE 1 CONTRACT AUTHORING — GOVERNANCE-BOUNDED**; 2026-08-27 Operator **PR1 PROCUREMENT — STAGE 1 APPROVAL** (`STAGE_1_APPROVED=YES`); 2026-08-27 Operator **PR1 PROCUREMENT — IMPLEMENTATION AUTHORIZATION** (`IMPLEMENTATION=COMPLETED`, Development/Test only); subsequent Operator Preview / commit / push gates (Preview **PASS**, commit **COMPLETED**, push **COMPLETED** at `01d62322453af837026827018caf278f7b8f8071`). This Stage 1 document remains the **approved** architecture contract. Preview PASS, commit, and push do **not** authorize UAT or Production, and do **not** reopen C1–C10 / C4 / C6 / C9 / C10 / I8 / DG1. It is **not** C11, **not** C10.x, **not** PO (stream label), **not** PO1, **not** P4, **not** I24, and **not** a sourcing, rate, AP, or booking engine.
 
 **Stage 1 contract ≠ Stage 1 approval.**  
 **Stage 1 approval ≠ implementation authorization.**  
@@ -48,30 +49,30 @@ Authority: 2026-08-27 Operator **PROCUREMENT (PO) — PRODUCT OWNER SELECTION + 
 **Preview ≠ UAT.**  
 **UAT ≠ Production.**
 
-The sections after this heading are the **approved** architecture contract. Development/Test implementation of this contract is **COMPLETED**. Preview remains a separate gate.
+The sections after this heading are the **approved** architecture contract. Development/Test implementation of this contract is **COMPLETED**. Preview **PASS**. Commit **COMPLETED**. Push **COMPLETED**. UAT remains unauthorized.
 
 ```text
 CAPABILITY = PROCUREMENT (PO)
 CAPABILITY_ID = PR1
 CAPABILITY_NAME = PROCUREMENT (PO)
 STAGE = 1
-STATUS = SELECTED_ID_ASSIGNED_STAGE_1_APPROVED_IMPLEMENTED_DEVTEST
+STATUS = SELECTED_ID_ASSIGNED_STAGE_1_APPROVED_IMPLEMENTED_DEVTEST_PREVIEW_PASS_PUSHED
 STAGE_1_AUTHORING = AUTHORIZED
 STAGE_1_CREATED = YES
 STAGE_1_STATUS = APPROVED
 STAGE_1_APPROVED = YES
 IMPLEMENTATION_AUTHORIZED = YES
 IMPLEMENTATION = COMPLETED
-PREVIEW = NOT_AUTHORIZED
-COMMIT = NOT_AUTHORIZED
-PUSH = NOT_AUTHORIZED
+PREVIEW = PASS
+COMMIT = COMPLETED
+PUSH = COMPLETED
 UAT = NOT_AUTHORIZED
 PRODUCTION = NOT_AUTHORIZED
 ADR_0006 = OPEN
 ADR_0012 = OPEN
 ADR_0013 = OPEN
 EXECUTION_QUEUE = EMPTY
-NEXT_INCREMENT = PR1
+NEXT_INCREMENT = NONE_AUTHORIZED
 NEW_CAPABILITY_AUTHORIZED = NONE
 PATH_B_GENERAL_AUTO_SELECTION = PAUSED
 ```
@@ -473,11 +474,11 @@ STAGE_1_APPROVED=YES
 IMPLEMENTATION_AUTHORIZED=YES
 IMPLEMENTATION=COMPLETED
 EXECUTION_QUEUE=EMPTY
-PREVIEW=NOT_AUTHORIZED
+PREVIEW=PASS
 UAT=NOT_AUTHORIZED
 PRODUCTION=NOT_AUTHORIZED
-COMMIT=NOT_AUTHORIZED
-PUSH=NOT_AUTHORIZED
+COMMIT=COMPLETED
+PUSH=COMPLETED
 ```
 
-Operator next step: **PR1 DEV/TEST PREVIEW AUTHORIZATION** (separate). Implementation completion is not Preview. This is not C11, not C10.x, not a sourcing engine, not AP/GL, not C4 replacement, and not a commit/push authorization.
+Operator next step: **HOLD.** No next capability is selected. Preview PASS, commit, and push are **not** UAT or Production. This is not C11, not C10.x, not a sourcing engine, not AP/GL, and not C4 replacement.

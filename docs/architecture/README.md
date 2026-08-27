@@ -2,15 +2,15 @@
 
 **System:** Serengeti Experience DMC Enterprise Operating System (EOS)  
 **Classification:** Internal  
-**Status:** Phase 0 architecture remains **normative**. The Development/Test **product is frozen** at HEAD `7bf6e0fb049c8dd05c19eaba06eb90a7d9a6b181` — not limited to Increment 0. **UAT=NOT_AUTHORIZED. PRODUCTION=NOT_AUTHORIZED.**  
+**Status:** Phase 0 architecture remains **normative**. The Development/Test **product is frozen** at HEAD `01d62322453af837026827018caf278f7b8f8071` — not limited to Increment 0. **UAT=NOT_AUTHORIZED. PRODUCTION=NOT_AUTHORIZED.**  
 **Version:** 0.1.0  
-**Date:** 2026-08-21 (index); current-state annotation 2026-08-24  
+**Date:** 2026-08-21 (index); current-state annotation 2026-08-27  
 
-> **CURRENT STATE (2026-08-27 Operator PR1 PROCUREMENT — IMPLEMENTATION AUTHORIZATION — Dev/Test implementation complete; Preview not authorized)**
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`27066dadb35bdec643b41caa998bbab1c72aeae6`** (`origin/master`; post-DG1 documentation catch-up) · **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE**
-> Latest completed capability = **PR1 Procurement Catalogue** (**IMPLEMENTATION=COMPLETED** in Dev/Test; Preview **not** authorized). **DG1** Dataset Register remains **COMPLETE**. **HOLD** remains **IN FORCE** for Preview / commit / push / UAT / Production. **NEXT_INCREMENT=PR1** (selected identity only) · **PATH_B_GENERAL_AUTO_SELECTION=PAUSED** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **ADR-0006=OPEN**
-> **PROCUREMENT=SELECTED** · **CAPABILITY_NAME=PROCUREMENT (PO)** · **CAPABILITY_ID=PR1** ([`../governance/pr1-procurement-authorized.md`](../governance/pr1-procurement-authorized.md)) · **STAGE_1_STATUS=APPROVED** · **STAGE_1_APPROVED=YES** · **IMPLEMENTATION=COMPLETED** ([`pr1-procurement-preview.md`](pr1-procurement-preview.md)). This is not Preview authorization.
-> Increment 0 through the closed commercial, ops, GRC, HR, ITSM-register, privacy-register, ERM-register, and bounded I20 surfaces already shipped in Development/Test. **ITA1**, **ITL1**, **E1**, **E2**, **ITE1**, **P3**, **DG1**, and **PR1** remain **IMPLEMENTED / CLOSED** for Development/Test (PR1 Preview not authorized). This index must not be read as “stop at I0”, as UAT/Production authorization, as Preview authorization, or as a licence to start remaining deferred streams (CAL, UEM, etc.).
+> **CURRENT STATE (2026-08-27 documentation catch-up — PR1 push COMPLETED; Product Owner HOLD)**
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`01d62322453af837026827018caf278f7b8f8071`** (`origin/master`; `feat(pr1): implement procurement catalogue`) · **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE**
+> Latest completed capability = **PR1 Procurement Catalogue** (**IMPLEMENTATION=COMPLETED**; Preview **PASS**; commit **COMPLETED**; push **COMPLETED**). **DG1** Dataset Register remains **COMPLETE**. **HOLD** remains **IN FORCE** for UAT / Production. **NEXT_INCREMENT=NONE_AUTHORIZED** · **PATH_B_GENERAL_AUTO_SELECTION=PAUSED** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **ADR-0006=OPEN**
+> **PROCUREMENT=SELECTED** · **CAPABILITY_NAME=PROCUREMENT (PO)** · **CAPABILITY_ID=PR1** ([`../governance/pr1-procurement-authorized.md`](../governance/pr1-procurement-authorized.md)) · **STAGE_1_STATUS=APPROVED** · **STAGE_1_APPROVED=YES** · **IMPLEMENTATION=COMPLETED** · **PREVIEW=PASS** · **COMMIT=COMPLETED** · **PUSH=COMPLETED** ([`pr1-procurement-preview.md`](pr1-procurement-preview.md)). This is not UAT or Production authorization.
+> Increment 0 through the closed commercial, ops, GRC, HR, ITSM-register, privacy-register, ERM-register, and bounded I20 surfaces already shipped in Development/Test. **ITA1**, **ITL1**, **E1**, **E2**, **ITE1**, **P3**, **DG1**, and **PR1** remain **IMPLEMENTED / CLOSED** for Development/Test. This index must not be read as “stop at I0”, as UAT/Production authorization, or as a licence to start remaining deferred streams (CAL, UEM, etc.).
 > Open Production blockers remain **ADR-0006, ADR-0012, ADR-0013**.
 
 This index maps the 30 required Phase 0 deliverables. Architecture is **normative**. Where code and architecture diverge, architecture wins until an ADR is approved.
