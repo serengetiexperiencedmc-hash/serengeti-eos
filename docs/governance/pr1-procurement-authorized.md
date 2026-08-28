@@ -1,17 +1,18 @@
 # Selection — Procurement (PO) / PR1
 
-> **CURRENT STATE (2026-08-27 documentation catch-up — PR1 push COMPLETED; Product Owner HOLD)**  
+> **CURRENT STATE (2026-08-28 successor pointer — PR2 SourcingEvent selected separately; this file remains the PR1 CLOSED record)**  
 > **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`01d62322453af837026827018caf278f7b8f8071`** (`origin/master`; `feat(pr1): implement procurement catalogue`). Parent **`27066dadb35bdec643b41caa998bbab1c72aeae6`** (post-DG1 documentation catch-up). **DG1** Dataset Register remains **COMPLETE**.  
 > Predecessor undefer (name only; not rewritten): [`procurement-po-undefer-authorized.md`](procurement-po-undefer-authorized.md).  
-> This record **selects** **PROCUREMENT (PO)**, **assigns** **CAPABILITY_ID=PR1**, records **STAGE_1_APPROVED=YES**, **IMPLEMENTATION=COMPLETED**, Dev/Test Preview **PASS**, **COMMIT=COMPLETED**, and **PUSH=COMPLETED**. **PR1=PUSHED.** **HOLD.** No next capability is selected.  
+> This record **selects** **PROCUREMENT (PO)**, **assigns** **CAPABILITY_ID=PR1**, records **STAGE_1_APPROVED=YES**, **IMPLEMENTATION=COMPLETED**, Dev/Test Preview **PASS**, **COMMIT=COMPLETED**, and **PUSH=COMPLETED**. **PR1=PUSHED.** **HOLD** remains **IN FORCE** for UAT / Production.  
+> **Successor (not this record):** Path-B leftover **SourcingEvent** is **SELECTED** with Owner-assigned **CAPABILITY_ID=PR2**. Stage 1 is **APPROVED**. Dev/Test implementation is **WRITTEN**. Tests **PASS**. This in-memory API preview **EXECUTED**. Commit is **NOT AUTHORIZED**. See [`pr2-sourcing-event-authorized.md`](pr2-sourcing-event-authorized.md). This PR1 record does **not** authorize PR2 commit or push.  
 > Preview **PASS** includes a **non-blocking** browser-automation / environment finding (Cursor browser MCP not attached). That finding is environmental, not a PR1 product defect.  
 > Approved Stage 1 contract: [`../architecture/pr1-procurement-preview.md`](../architecture/pr1-procurement-preview.md).  
 > **PROCUREMENT=SELECTED** · **CAPABILITY_NAME=PROCUREMENT (PO)** · **CAPABILITY_ID=PR1** · **ID_ASSIGNMENT=EXECUTED**  
 > **SELECTION_STATUS=SELECTED** · **NEXT_INCREMENT=NONE_AUTHORIZED** · **NEW_CAPABILITY_AUTHORIZED=NONE**  
 > **STAGE_1_AUTHORING=AUTHORIZED** · **STAGE_1_CREATED=YES** · **STAGE_1_STATUS=APPROVED** · **STAGE_1_APPROVED=YES**  
 > **IMPLEMENTATION_AUTHORIZED=YES** · **IMPLEMENTATION=COMPLETED** · **PREVIEW=PASS** · **COMMIT=COMPLETED** · **PUSH=COMPLETED**  
-> **EXECUTION_QUEUE=EMPTY** · **PATH_B_GENERAL_AUTO_SELECTION=PAUSED**  
-> **HOLD=IN FORCE** (UAT / Production not authorized; no next capability selected)  
+> **PATH_B_GENERAL_AUTO_SELECTION=PAUSED**  
+> **HOLD=IN FORCE** (UAT / Production not authorized; PR2 commit / push not authorized by this file)  
 > **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **ADR-0006=OPEN** · **ADR-0012=OPEN** · **ADR-0013=OPEN**
 
 **Date:** 2026-08-27  

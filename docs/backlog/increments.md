@@ -1,14 +1,14 @@
 # Development backlog — independently deployable increments
 
-> **CURRENT STATE (2026-08-27 documentation catch-up — PR1 push COMPLETED; Product Owner HOLD)**  
+> **CURRENT STATE (2026-08-29 Owner PR2 DEV/TEST PREVIEW — authorized for this PR2 in-memory API run only; EXECUTED)**  
 > **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`01d62322453af837026827018caf278f7b8f8071`** (`origin/master`; `feat(pr1): implement procurement catalogue`)  
-> Latest completed capability = **PR1 Procurement Catalogue** (**IMPLEMENTATION=COMPLETED**; Preview **PASS**; commit **COMPLETED**; push **COMPLETED**). **DG1** Dataset Register remains **COMPLETE**. **HOLD** remains **IN FORCE** for UAT / Production. No next capability is selected.  
-> **PROCUREMENT=SELECTED** · **CAPABILITY_NAME=PROCUREMENT (PO)** · **CAPABILITY_ID=PR1** · **SELECTION_STATUS=SELECTED** ([`pr1-procurement-authorized.md`](../governance/pr1-procurement-authorized.md))  
-> **STAGE_1_CREATED=YES** · **STAGE_1_STATUS=APPROVED** · **STAGE_1_APPROVED=YES** · **IMPLEMENTATION=COMPLETED** · **PREVIEW=PASS** · **COMMIT=COMPLETED** · **PUSH=COMPLETED** ([`pr1-procurement-preview.md`](../architecture/pr1-procurement-preview.md))  
-> **NEXT_INCREMENT=NONE_AUTHORIZED** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **IMPLEMENTATION_AUTHORIZED=YES** (Dev/Test)  
-> **EXECUTION_QUEUE=EMPTY** · **PATH_B_GENERAL_AUTO_SELECTION=PAUSED**  
+> Latest completed capability = **PR1 Procurement Catalogue** (**IMPLEMENTATION=COMPLETED**; Preview **PASS**; commit **COMPLETED**; push **COMPLETED**). **DG1** Dataset Register remains **COMPLETE**. **HOLD** remains **IN FORCE** for UAT / Production.  
+> **PR2** **SourcingEvent** is **SELECTED**; **CAPABILITY_ID=PR2** Owner-assigned ([`pr2-sourcing-event-authorized.md`](../governance/pr2-sourcing-event-authorized.md)). Approved Stage 1: [`../architecture/pr2-sourcing-event-preview.md`](../architecture/pr2-sourcing-event-preview.md). **STAGE_1_APPROVED=YES** · **IMPLEMENTATION_AUTHORIZED=YES**  
+> **PR1** remains **IMPLEMENTED / CLOSED** ([`pr1-procurement-authorized.md`](../governance/pr1-procurement-authorized.md)).  
+> **NEXT_INCREMENT=NONE_AUTHORIZED** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **TEST EXECUTION=COMPLETED / PASS** · **PREVIEW=AUTHORIZED FOR THIS PR2 DEV/TEST RUN ONLY (EXECUTED)**  
+> **EXECUTION_QUEUE=PR2 — SourcingEvent** (this in-memory API preview EXECUTED; commit / push not authorized) · **PATH_B_GENERAL_AUTO_SELECTION=PAUSED**  
 > **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **ADR-0006=OPEN**  
-> ITA1, ITL1, E1, E2, ITE1, P3, DG1, and PR1 remain **IMPLEMENTED / CLOSED** for Development/Test. Do not infer UAT or Production from PR1 Preview PASS, commit, or push.
+> ITA1, ITL1, E1, E2, ITE1, P3, DG1, and PR1 remain **IMPLEMENTED / CLOSED** for Development/Test. Do not infer UAT, Production, commit, or push from this PR2 preview.
 
 Each increment must be releasable to **Test** on its own (Production only after ADRs and gates). Dependencies are listed; do not skip.
 
@@ -25,7 +25,8 @@ Each increment must be releasable to **Test** on its own (Production only after 
 | **I8** | Finance quotes/invoices | I7 | Quotes, invoices, SoD payments (no bank file until provider known) — **IMPLEMENTED** (Dev/Test), [`i8-finance-preview.md`](../architecture/i8-finance-preview.md) | GL replacement |
 | **I9** | Operations + field offline | I7 | Tasks, assignments, encrypted cache — **IMPLEMENTED** (Dev/Test) as **O1–O6** + I9 field | UEM |
 | **C1–C10** | Commercial chain | I0–I4 | CRM Foundation through Booking Command Center — **IMPLEMENTED / CLOSED** (Dev/Test), [`commercial-roadmap.md`](../architecture/commercial-roadmap.md), [`c10-booking-command-center-preview.md`](../architecture/c10-booking-command-center-preview.md) | C11+ not created; **CAL** Calendar remains **DEFERRED** |
-| **PR1** | Procurement (PO) | I0 | Selected; ID **PR1** assigned. Stage 1 **APPROVED**. **IMPLEMENTED** (Dev/Test). Preview **PASS**. Commit **COMPLETED**. Push **COMPLETED** ([`pr1-procurement-preview.md`](../architecture/pr1-procurement-preview.md), [`pr1-procurement-authorized.md`](../governance/pr1-procurement-authorized.md)) | C11 / C10.x / PO1 / SourcingEvent / RFQ / rates / AP / GL / C4 mutation / C9–C10 mutation |
+| **PR1** | Procurement (PO) | I0 | Selected; ID **PR1** assigned. Stage 1 **APPROVED**. **IMPLEMENTED** (Dev/Test). Preview **PASS**. Commit **COMPLETED**. Push **COMPLETED** ([`pr1-procurement-preview.md`](../architecture/pr1-procurement-preview.md), [`pr1-procurement-authorized.md`](../governance/pr1-procurement-authorized.md)) | C11 / C10.x / PO1 / RFQ / rates / AP / GL / C4 mutation / C9–C10 mutation. **SourcingEvent** is a separate selected capability (**PR2**), not PR1 |
+| **PR2** | SourcingEvent | PR1 (closed; not reopened) | **SELECTED**; ID **PR2** Owner-assigned. Stage 1 **APPROVED**. Implementation **WRITTEN** (Dev/Test). Tests **PASS**. This in-memory API preview **EXECUTED**. Commit **NOT AUTHORIZED** ([`pr2-sourcing-event-preview.md`](../architecture/pr2-sourcing-event-preview.md), [`pr2-sourcing-event-authorized.md`](../governance/pr2-sourcing-event-authorized.md)) | RFQ / tender / bidding / scoring / auction / automated sourcing / supplier discovery / PR1 replacement / C4 C6 I8 expansion; UAT/Production not authorized |
 | **I10** | HR core | I1 | Employee, leave, skills — **IMPLEMENTED** (Dev/Test), [`i10-hr-core-preview.md`](../architecture/i10-hr-core-preview.md) | Payroll engine |
 | **H1** | HR Certification Register | I10 | Certification register — **IMPLEMENTED / CLOSED** (Dev/Test), [`h1-hr-certification-register-preview.md`](../architecture/h1-hr-certification-register-preview.md) | Payroll / LMS / H1.x not created |
 | **I11** | ITSM + CMDB | I4 | Tickets, CIs — **IMPLEMENTED** (Dev/Test), [`i11-itsm-cmdb-preview.md`](../architecture/i11-itsm-cmdb-preview.md) | Discovery |

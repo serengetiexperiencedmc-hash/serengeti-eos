@@ -4,12 +4,13 @@
 **Classification:** Internal  
 **Status:** Phase 0 architecture remains **normative**. The Development/Test **product is frozen** at HEAD `01d62322453af837026827018caf278f7b8f8071` — not limited to Increment 0. **UAT=NOT_AUTHORIZED. PRODUCTION=NOT_AUTHORIZED.**  
 **Version:** 0.1.0  
-**Date:** 2026-08-21 (index); current-state annotation 2026-08-27  
+**Date:** 2026-08-21 (index); current-state annotation 2026-08-28  
 
-> **CURRENT STATE (2026-08-27 documentation catch-up — PR1 push COMPLETED; Product Owner HOLD)**
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`01d62322453af837026827018caf278f7b8f8071`** (`origin/master`; `feat(pr1): implement procurement catalogue`) · **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE**
-> Latest completed capability = **PR1 Procurement Catalogue** (**IMPLEMENTATION=COMPLETED**; Preview **PASS**; commit **COMPLETED**; push **COMPLETED**). **DG1** Dataset Register remains **COMPLETE**. **HOLD** remains **IN FORCE** for UAT / Production. **NEXT_INCREMENT=NONE_AUTHORIZED** · **PATH_B_GENERAL_AUTO_SELECTION=PAUSED** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **ADR-0006=OPEN**
-> **PROCUREMENT=SELECTED** · **CAPABILITY_NAME=PROCUREMENT (PO)** · **CAPABILITY_ID=PR1** ([`../governance/pr1-procurement-authorized.md`](../governance/pr1-procurement-authorized.md)) · **STAGE_1_STATUS=APPROVED** · **STAGE_1_APPROVED=YES** · **IMPLEMENTATION=COMPLETED** · **PREVIEW=PASS** · **COMMIT=COMPLETED** · **PUSH=COMPLETED** ([`pr1-procurement-preview.md`](pr1-procurement-preview.md)). This is not UAT or Production authorization.
+> **CURRENT STATE (2026-08-29 Owner PR2 DEV/TEST PREVIEW — authorized for this PR2 in-memory API run only; EXECUTED)**
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`01d62322453af837026827018caf278f7b8f8071`** (`origin/master`; `feat(pr1): implement procurement catalogue`) · **NEW_CAPABILITY_AUTHORIZED=NONE** · **NEXT_INCREMENT=NONE_AUTHORIZED**
+> Latest completed capability = **PR1 Procurement Catalogue** (**IMPLEMENTATION=COMPLETED**; Preview **PASS**; commit **COMPLETED**; push **COMPLETED**). **DG1** Dataset Register remains **COMPLETE**. **HOLD** remains **IN FORCE** for UAT / Production. **PATH_B_GENERAL_AUTO_SELECTION=PAUSED** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **ADR-0006=OPEN**
+> **PR2** **SourcingEvent** is **SELECTED**; **CAPABILITY_ID=PR2** Owner-assigned ([`../governance/pr2-sourcing-event-authorized.md`](../governance/pr2-sourcing-event-authorized.md)). Approved Stage 1: [`pr2-sourcing-event-preview.md`](pr2-sourcing-event-preview.md). **STAGE_1_APPROVED=YES** · **IMPLEMENTATION_AUTHORIZED=YES**. **TEST EXECUTION=COMPLETED / PASS**. **PREVIEW=AUTHORIZED FOR THIS PR2 DEV/TEST RUN ONLY (EXECUTED)**. **EXECUTION_QUEUE=PR2 — SourcingEvent** (this in-memory API preview EXECUTED; commit / push not authorized).
+> **PR1** remains **IMPLEMENTED / CLOSED** ([`../governance/pr1-procurement-authorized.md`](../governance/pr1-procurement-authorized.md)). This is not UAT or Production authorization.
 > Increment 0 through the closed commercial, ops, GRC, HR, ITSM-register, privacy-register, ERM-register, and bounded I20 surfaces already shipped in Development/Test. **ITA1**, **ITL1**, **E1**, **E2**, **ITE1**, **P3**, **DG1**, and **PR1** remain **IMPLEMENTED / CLOSED** for Development/Test. This index must not be read as “stop at I0”, as UAT/Production authorization, or as a licence to start remaining deferred streams (CAL, UEM, etc.).
 > Open Production blockers remain **ADR-0006, ADR-0012, ADR-0013**.
 

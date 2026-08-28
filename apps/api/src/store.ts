@@ -147,6 +147,7 @@ import {
   type ConsentRecord,
   type DatasetRecord,
   type ProcurementRecord,
+  type SourcingEvent,
   type PrivacyDpia,
   type KnowledgeDocument,
   type PamJitGrant,
@@ -183,6 +184,7 @@ import { seedDefaultItEndpoints } from "./it-endpoints/collections.js";
 import { seedDefaultConsentRecords } from "./consent-register/collections.js";
 import { seedDefaultDatasetRecords } from "./dataset-register/collections.js";
 import { seedDefaultProcurementRecords } from "./procurement/collections.js";
+import { seedDefaultSourcingEventRecords } from "./sourcing-events/collections.js";
 import { seedDefaultPrivacyDpias } from "./privacy-dpias/collections.js";
 
 export type Payment = {
@@ -342,6 +344,7 @@ export type Store = {
   consentRecords: ConsentRecord[];
   datasetRecords: DatasetRecord[];
   procurementRecords: ProcurementRecord[];
+  sourcingEventRecords: SourcingEvent[];
   notifDismissals: NotifDismissal[];
   notifEmailOutbox: NotifEmailOutboxEntry[];
   notifEmailDeliveryEvents: NotifEmailDeliveryEvent[];
@@ -504,6 +507,7 @@ const ENDPOINT_PERMS = ["endpoint:read:register", "endpoint:write:register"] as 
 const CONSENT_PERMS = ["consent:read:register", "consent:write:register"] as const;
 const DATASET_PERMS = ["dataset:read:register", "dataset:write:register"] as const;
 const PROCURE_PERMS = ["procure:read:record", "procure:write:record"] as const;
+const SOURCING_EVENT_PERMS = ["sourcingEvent:read:register", "sourcingEvent:write:register"] as const;
 const DPIA_PERMS = ["privacy:read:dpia", "privacy:write:dpia"] as const;
 
 const ANALYTICS_PERMS = ["analytics:read:commercial", "analytics:read:operations", "analytics:read:finance"] as const;
@@ -678,6 +682,7 @@ const PERMS = {
   consentRegister: [...CONSENT_PERMS],
   datasetRegister: [...DATASET_PERMS],
   procureCatalogue: [...PROCURE_PERMS],
+  sourcingEventRegister: [...SOURCING_EVENT_PERMS],
   privacyDpia: [...DPIA_PERMS],
   platformAdmin: [
     "org:read:unit",
@@ -734,6 +739,7 @@ const PERMS = {
     ...CONSENT_PERMS,
     ...DATASET_PERMS,
     ...PROCURE_PERMS,
+    ...SOURCING_EVENT_PERMS,
     ...DPIA_PERMS,
     ...ANALYTICS_PERMS,
     ...FINANCE_MODULE_PERMS,
@@ -900,6 +906,7 @@ export function seedStore(
       "consent.register",
       "dataset.register",
       "procure.catalogue",
+      "sourcingEvent.register",
       "privacy.dpia",
       "erm.kri",
       "erm.treatment",
@@ -929,6 +936,7 @@ export function seedStore(
       ...PERMS.consentRegister,
       ...PERMS.datasetRegister,
       ...PERMS.procureCatalogue,
+      ...PERMS.sourcingEventRegister,
       ...PERMS.privacyDpia,
       ...PERMS.ermKri,
       ...PERMS.ermTreatment,
@@ -1182,6 +1190,13 @@ export function seedStore(
       key: "procure.catalogue",
       name: "Procurement Catalogue",
       permissionKeys: [...PERMS.procureCatalogue],
+    },
+    {
+      id: "role-sourcing-event-register",
+      tenantId,
+      key: "sourcingEvent.register",
+      name: "Sourcing Event Register",
+      permissionKeys: [...PERMS.sourcingEventRegister],
     },
     {
       id: "role-privacy-dpia",
@@ -1485,6 +1500,14 @@ export function seedStore(
         grantedByPrincipalId: carolId,
       },
       {
+        id: "grant-bob-sourcing-event-register",
+        tenantId,
+        principalId: bobId,
+        roleKey: "sourcingEvent.register",
+        grantedAt: new Date().toISOString(),
+        grantedByPrincipalId: carolId,
+      },
+      {
         id: "grant-bob-privacy-dpia",
         tenantId,
         principalId: bobId,
@@ -1712,6 +1735,7 @@ export function seedStore(
     consentRecords: [],
     datasetRecords: [],
     procurementRecords: [],
+    sourcingEventRecords: [],
     notifDismissals: [],
     notifEmailOutbox: [],
     notifEmailDeliveryEvents: [],
@@ -1775,6 +1799,7 @@ export function seedStore(
   seedDefaultConsentRecords(store);
   seedDefaultDatasetRecords(store);
   seedDefaultProcurementRecords(store);
+  seedDefaultSourcingEventRecords(store);
   seedDefaultPrivacyDpias(store);
   return store;
 }

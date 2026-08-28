@@ -1,10 +1,11 @@
 # 20. Phased Implementation Roadmap
 
-> **CURRENT STATE (2026-08-27 documentation catch-up — PR1 push COMPLETED; Product Owner HOLD)**  
+> **CURRENT STATE (2026-08-29 Owner PR2 DEV/TEST PREVIEW — authorized for this PR2 in-memory API run only; EXECUTED)**  
 > **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`01d62322453af837026827018caf278f7b8f8071`** (`origin/master`; `feat(pr1): implement procurement catalogue`)  
-> **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **NEXT_INCREMENT=NONE_AUTHORIZED** · **PATH_B_GENERAL_AUTO_SELECTION=PAUSED** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **ADR-0006=OPEN**  
-> Latest completed capability = **PR1 Procurement Catalogue** (**IMPLEMENTATION=COMPLETED**; Preview **PASS**; commit **COMPLETED**; push **COMPLETED**). **DG1** Dataset Register remains **COMPLETE**. **HOLD** remains **IN FORCE** for UAT / Production. No next capability is selected.  
-> **PROCUREMENT=SELECTED** · **CAPABILITY_NAME=PROCUREMENT (PO)** · **CAPABILITY_ID=PR1** ([`../governance/pr1-procurement-authorized.md`](../governance/pr1-procurement-authorized.md)) · **STAGE_1_STATUS=APPROVED** · **STAGE_1_APPROVED=YES** · **IMPLEMENTATION=COMPLETED** · **PREVIEW=PASS** · **COMMIT=COMPLETED** · **PUSH=COMPLETED** ([`pr1-procurement-preview.md`](pr1-procurement-preview.md)). **CAL** remains **DEFERRED**.  
+> **NEW_CAPABILITY_AUTHORIZED=NONE** · **NEXT_INCREMENT=NONE_AUTHORIZED** · **PATH_B_GENERAL_AUTO_SELECTION=PAUSED** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **ADR-0006=OPEN**  
+> Latest completed capability = **PR1 Procurement Catalogue** (**IMPLEMENTATION=COMPLETED**; Preview **PASS**; commit **COMPLETED**; push **COMPLETED**). **DG1** Dataset Register remains **COMPLETE**. **HOLD** remains **IN FORCE** for UAT / Production.  
+> **PR2** **SourcingEvent** is **SELECTED**; **CAPABILITY_ID=PR2** Owner-assigned ([`../governance/pr2-sourcing-event-authorized.md`](../governance/pr2-sourcing-event-authorized.md)). Approved Stage 1: [`pr2-sourcing-event-preview.md`](pr2-sourcing-event-preview.md). **STAGE_1_APPROVED=YES** · **IMPLEMENTATION_AUTHORIZED=YES**. **TEST EXECUTION=COMPLETED / PASS**. **PREVIEW=AUTHORIZED FOR THIS PR2 DEV/TEST RUN ONLY (EXECUTED)**. **EXECUTION_QUEUE=PR2 — SourcingEvent** (this in-memory API preview EXECUTED; commit / push not authorized).  
+> **PR1** remains **IMPLEMENTED / CLOSED** ([`../governance/pr1-procurement-authorized.md`](../governance/pr1-procurement-authorized.md)). **CAL** remains **DEFERRED**.  
 > Phase 0 “approval before expanding beyond Increment 0” is **historical**. Expansion already occurred in Development/Test and is **frozen**.  
 > Remaining Phase 2–7 bullets that are not already shipped are **deferred / architecture inventory**, not a live implementation queue. Do not infer CAL, UEM, EMCOMMS, EXER, I21–I23, or C11 from this roadmap. **ITA1** Asset Register and **ITL1** License Register are **IMPLEMENTED / CLOSED** for Development/Test. **E1**, **E2**, **ITE1**, **P3**, **DG1**, and **PR1** are **IMPLEMENTED / CLOSED** for Development/Test. This does **not** undefer UEM or authorize UAT or Production.
 
