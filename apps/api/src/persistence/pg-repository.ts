@@ -35,7 +35,7 @@ export async function insertAuditEvent(pool: DbPool, event: ChainedAuditRecord):
   await pool.query(
     `INSERT INTO audit_events (
       id, tenant_id, occurred_at, actor_type, actor_principal_id, action,
-      resource_type, resource_id, correlation_id, authorization,
+      resource_type, resource_id, correlation_id, "authorization",
       previous_state, new_state, evidence, prev_hash, row_hash
     ) VALUES (
       $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb,$12::jsonb,$13::jsonb,$14,$15

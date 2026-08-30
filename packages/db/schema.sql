@@ -143,7 +143,7 @@ CREATE TABLE audit_events (
   resource_type TEXT NOT NULL,
   resource_id TEXT,
   correlation_id UUID NOT NULL,
-  authorization TEXT NOT NULL CHECK (authorization IN ('allow', 'deny')),
+  "authorization" TEXT NOT NULL CHECK ("authorization" IN ('allow', 'deny')),
   previous_state JSONB,
   new_state JSONB,
   evidence JSONB,
