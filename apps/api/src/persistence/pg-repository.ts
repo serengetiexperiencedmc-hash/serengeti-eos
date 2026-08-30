@@ -259,15 +259,14 @@ export async function insertConfigVersion(
   const configItemId = item.rows[0]?.id as string;
   await pool.query(
     `INSERT INTO config_versions (
-      id, config_item_id, version, value, status, created_at, created_by_principal_id,
+      config_item_id, version, value, status, created_at, created_by_principal_id,
       approved_by_principal_id, approved_at
-    ) VALUES ($1,$2,$3,$4::jsonb,$5,$6,$7,$8,$9)
+    ) VALUES ($1,$2,$3::jsonb,$4,$5,$6,$7,$8)
     ON CONFLICT (config_item_id, version) DO UPDATE SET
       status = EXCLUDED.status,
       approved_by_principal_id = EXCLUDED.approved_by_principal_id,
       approved_at = EXCLUDED.approved_at`,
     [
-      version.id,
       configItemId,
       version.version,
       JSON.stringify(version.value),
