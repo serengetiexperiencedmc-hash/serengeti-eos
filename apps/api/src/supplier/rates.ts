@@ -37,6 +37,11 @@ function sanitizeRate(r: SupRate) {
     taxPercent: r.taxPercent,
     status: r.status,
     preferredInConflict: Boolean(r.preferredInConflict),
+    contractId: r.contractId,
+    occupancy: r.occupancy,
+    mealPlan: r.mealPlan,
+    blackoutNotes: r.blackoutNotes,
+    supplementsNotes: r.supplementsNotes,
     version: r.version,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
@@ -85,6 +90,12 @@ export type CreateRateInput = {
   status?: string;
   notes?: string;
   preferredInConflict?: boolean;
+  /** CD Phase 1 */
+  contractId?: string;
+  occupancy?: string;
+  mealPlan?: string;
+  blackoutNotes?: string;
+  supplementsNotes?: string;
 };
 
 export type UpdateRateInput = {
@@ -154,6 +165,17 @@ export function createSupplierRate(
     if (!bounds.ok) return { error: "invalid_request" as const, reason: bounds.error };
   }
 
+  if (input.contractId) {
+    const contract = (store.supContracts ?? []).find(
+      (c) =>
+        c.id === input.contractId &&
+        c.supplierId === supplierId &&
+        c.tenantId === principal.tenantId &&
+        !c.archivedAt,
+    );
+    if (!contract) return { error: "invalid_request" as const, reason: "invalid_contract" };
+  }
+
   const now = new Date().toISOString();
   const rate: SupRate = {
     id: newId(),
@@ -174,6 +196,11 @@ export function createSupplierRate(
     ...(input.notes?.trim() ? { notes: input.notes.trim() } : {}),
     status,
     ...(input.preferredInConflict ? { preferredInConflict: true } : {}),
+    ...(input.contractId ? { contractId: input.contractId } : {}),
+    ...(input.occupancy?.trim() ? { occupancy: input.occupancy.trim() } : {}),
+    ...(input.mealPlan?.trim() ? { mealPlan: input.mealPlan.trim() } : {}),
+    ...(input.blackoutNotes?.trim() ? { blackoutNotes: input.blackoutNotes.trim() } : {}),
+    ...(input.supplementsNotes?.trim() ? { supplementsNotes: input.supplementsNotes.trim() } : {}),
     version: 1,
     createdAt: now,
     updatedAt: now,

@@ -37,6 +37,15 @@ import {
   createSupplierContentBlock,
   updateSupplierContentBlock,
 } from "./content-blocks.js";
+import {
+  attachContractDocument,
+  createContractVersion,
+  createSupplierContract,
+  getHotelProfile,
+  getSupplierContract,
+  listSupplierContracts,
+  upsertHotelProfile,
+} from "./contracts.js";
 
 function sendSupplierError(
   reply: { code: (n: number) => { send: (b: unknown) => unknown } },
@@ -52,6 +61,10 @@ function sendSupplierError(
     default:
       return reply.code(400).send(result);
   }
+}
+
+function isPhase1ServiceError(result: object): result is { error: string; reason?: string } {
+  return "error" in result && typeof (result as { error?: unknown }).error === "string";
 }
 
 export function registerSupplierRoutes(app: FastifyInstance, store: Store): void {
@@ -620,6 +633,96 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
     const params = req.params as { id: string; blockId: string };
     const result = archiveSupplierContentBlock(store, principal, params.id, params.blockId, correlationId);
     if ("error" in result) return sendSupplierError(reply, result);
+    return result;
+  });
+
+  // CD Phase 1 — contracts & hotel profiles
+  app.post("/v1/suppliers/:id/contracts", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const correlationId = getCorrelationId(req);
+    const result = createSupplierContract(
+      store,
+      principal,
+      (req.params as { id: string }).id,
+      (req.body ?? {}) as Parameters<typeof createSupplierContract>[3],
+      correlationId,
+    );
+    if (isPhase1ServiceError(result)) return sendSupplierError(reply, result);
+    return reply.code(201).send(result);
+  });
+
+  app.get("/v1/suppliers/:id/contracts", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = listSupplierContracts(store, principal, (req.params as { id: string }).id);
+    if (isPhase1ServiceError(result)) return sendSupplierError(reply, result);
+    return result;
+  });
+
+  app.get("/v1/suppliers/:id/contracts/:contractId", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const params = req.params as { id: string; contractId: string };
+    const result = getSupplierContract(store, principal, params.id, params.contractId);
+    if (isPhase1ServiceError(result)) return sendSupplierError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/suppliers/:id/contracts/:contractId/versions", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const correlationId = getCorrelationId(req);
+    const params = req.params as { id: string; contractId: string };
+    const result = createContractVersion(
+      store,
+      principal,
+      params.id,
+      params.contractId,
+      (req.body ?? {}) as Parameters<typeof createContractVersion>[4],
+      correlationId,
+    );
+    if (isPhase1ServiceError(result)) return sendSupplierError(reply, result);
+    return reply.code(201).send(result);
+  });
+
+  app.post("/v1/suppliers/:id/contracts/:contractId/documents", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const correlationId = getCorrelationId(req);
+    const params = req.params as { id: string; contractId: string };
+    const result = await attachContractDocument(
+      store,
+      principal,
+      params.id,
+      params.contractId,
+      (req.body ?? {}) as Parameters<typeof attachContractDocument>[4],
+      correlationId,
+    );
+    if (isPhase1ServiceError(result)) return sendSupplierError(reply, result);
+    return reply.code(201).send(result);
+  });
+
+  app.get("/v1/suppliers/:id/hotel-profile", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = getHotelProfile(store, principal, (req.params as { id: string }).id);
+    if (isPhase1ServiceError(result)) return sendSupplierError(reply, result);
+    return result;
+  });
+
+  app.put("/v1/suppliers/:id/hotel-profile", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const correlationId = getCorrelationId(req);
+    const result = upsertHotelProfile(
+      store,
+      principal,
+      (req.params as { id: string }).id,
+      (req.body ?? {}) as Parameters<typeof upsertHotelProfile>[3],
+      correlationId,
+    );
+    if (isPhase1ServiceError(result)) return sendSupplierError(reply, result);
     return result;
   });
 }

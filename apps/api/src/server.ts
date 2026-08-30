@@ -97,6 +97,7 @@ import { registerConsentRegisterRoutes } from "./consent-register/routes.js";
 import { registerDatasetRegisterRoutes } from "./dataset-register/routes.js";
 import { registerProcurementRoutes } from "./procurement/routes.js";
 import { registerSourcingEventRoutes } from "./sourcing-events/routes.js";
+import { registerCommercialDocumentRoutes } from "./commercial-documents/routes.js";
 import { registerComplianceRoutes } from "./compliance/routes.js";
 import { registerPrivacyRoutes } from "./privacy/routes.js";
 import { registerPrivacyDpiaRoutes } from "./privacy-dpias/routes.js";
@@ -144,6 +145,7 @@ export function buildServer(options: ServerOptions | Store = {}) {
   registerSupplierRoutes(app, store);
   registerPipelineRoutes(app, store);
   registerRfpRoutes(app, store);
+  registerCommercialDocumentRoutes(app, store);
   registerProgrammeRoutes(app, store);
   registerCostingRoutes(app, store);
   registerCommercialApprovalRoutes(app, store);

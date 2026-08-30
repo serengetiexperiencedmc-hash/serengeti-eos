@@ -6,10 +6,13 @@ import {
   addProgrammeDay,
   addProgrammeItem,
   createProgramme,
+  createProgrammeVersion,
   getProgrammeByRfp,
   getProgrammeDetail,
   getProgrammeModuleHealth,
   listProgrammes,
+  patchProgramme,
+  patchProgrammeItem,
 } from "./programme.js";
 
 function sendError(
@@ -26,6 +29,10 @@ function sendError(
     default:
       return reply.code(400).send(result);
   }
+}
+
+function isPhase1ProgrammeError(result: object): result is { error: string; reason?: string } {
+  return "error" in result && typeof (result as { error?: unknown }).error === "string";
 }
 
 export function registerProgrammeRoutes(app: FastifyInstance, store: Store): void {
@@ -105,6 +112,54 @@ export function registerProgrammeRoutes(app: FastifyInstance, store: Store): voi
       correlationId,
     );
     if ("error" in result) return sendError(reply, result);
+    return reply.code(201).send(result);
+  });
+
+  app.patch("/v1/programmes/:id", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const correlationId = getCorrelationId(req);
+    const result = patchProgramme(
+      store,
+      principal,
+      (req.params as { id: string }).id,
+      (req.body ?? {}) as Parameters<typeof patchProgramme>[3],
+      correlationId,
+    );
+    if (isPhase1ProgrammeError(result)) return sendError(reply, result);
+    return result;
+  });
+
+  app.patch("/v1/programmes/:id/items/:itemId", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const correlationId = getCorrelationId(req);
+    const params = req.params as { id: string; itemId: string };
+    const result = patchProgrammeItem(
+      store,
+      principal,
+      params.id,
+      params.itemId,
+      (req.body ?? {}) as Parameters<typeof patchProgrammeItem>[4],
+      correlationId,
+    );
+    if (isPhase1ProgrammeError(result)) return sendError(reply, result);
+    return result;
+  });
+
+  app.post("/v1/programmes/:id/versions", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const correlationId = getCorrelationId(req);
+    const body = (req.body ?? {}) as { summary?: string };
+    const result = createProgrammeVersion(
+      store,
+      principal,
+      (req.params as { id: string }).id,
+      body.summary ?? "",
+      correlationId,
+    );
+    if (isPhase1ProgrammeError(result)) return sendError(reply, result);
     return reply.code(201).send(result);
   });
 }

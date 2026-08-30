@@ -9,6 +9,7 @@ import {
   getRfpModuleHealth,
   listRfpWorkflowStages,
   listRfps,
+  patchRfp,
   transitionRfpStage,
 } from "./rfp.js";
 
@@ -26,6 +27,10 @@ function sendError(
     default:
       return reply.code(400).send(result);
   }
+}
+
+function isPhase1RfpError(result: object): result is { error: string; reason?: string } {
+  return "error" in result && typeof (result as { error?: unknown }).error === "string";
 }
 
 export function registerRfpRoutes(app: FastifyInstance, store: Store): void {
@@ -68,6 +73,21 @@ export function registerRfpRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getRfp(store, principal, (req.params as { id: string }).id);
     if ("error" in result) return sendError(reply, result);
+    return result;
+  });
+
+  app.patch("/v1/rfps/:id", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const correlationId = getCorrelationId(req);
+    const result = patchRfp(
+      store,
+      principal,
+      (req.params as { id: string }).id,
+      (req.body ?? {}) as Parameters<typeof patchRfp>[3],
+      correlationId,
+    );
+    if (isPhase1RfpError(result)) return sendError(reply, result);
     return result;
   });
 
