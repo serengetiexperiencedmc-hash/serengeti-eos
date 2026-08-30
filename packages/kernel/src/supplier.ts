@@ -116,6 +116,16 @@ export type SupRate = {
   cancellationPolicyRef?: string;
   notes?: string;
   status: string;
+  /** CD Phase 1 — optional link to versioned supplier contract. */
+  contractId?: string;
+  /** CD Phase 1 — occupancy label (e.g. single, double, twin). */
+  occupancy?: string;
+  /** CD Phase 1 — meal/board plan label (e.g. BB, HB, FB, AI, RO). */
+  mealPlan?: string;
+  /** CD Phase 1 — free-text blackout dates (structured blackouts later). */
+  blackoutNotes?: string;
+  /** CD Phase 1 — free-text supplements. */
+  supplementsNotes?: string;
   /** PG.16 — preferred winner when overlapping same-type rates conflict. */
   preferredInConflict?: boolean;
   importBatchId?: string;

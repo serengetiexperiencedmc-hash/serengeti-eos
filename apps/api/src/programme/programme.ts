@@ -2,11 +2,14 @@ import {
   authorize,
   buildProgrammeCode,
   canTransitionRfpStage,
+  isValidProgrammeItemType,
+  isValidProgrammeItemVisibility,
   newId,
   type Principal,
   type PrgDay,
   type PrgItem,
   type PrgProgramme,
+  type PrgProgrammeVersion,
 } from "@sedmc/kernel";
 import type { Store } from "../store.js";
 import { allowProgrammeAudit, denyProgrammeAudit } from "./audit.js";
@@ -26,6 +29,8 @@ function sanitizeProgramme(p: PrgProgramme) {
     endDate: p.endDate,
     paxCount: p.paxCount,
     destinations: p.destinations,
+    internalNotes: p.internalNotes,
+    clientNotes: p.clientNotes,
     classification: p.classification,
     version: p.version,
     createdAt: p.createdAt,
@@ -56,6 +61,11 @@ function sanitizeItem(i: PrgItem) {
     supplierId: i.supplierId,
     supplierRateId: i.supplierRateId,
     supplierLabel: i.supplierLabel,
+    itemType: i.itemType,
+    quantity: i.quantity,
+    unit: i.unit,
+    notes: i.notes,
+    visibility: i.visibility,
   };
 }
 
@@ -219,10 +229,10 @@ export function createProgramme(
     title: input.title?.trim() || rfp.title,
     status: "draft",
     dayCount: input.days?.length ?? 0,
-    ...(input.startDate !== undefined ? { startDate: input.startDate } : rfp.travelDates ? {} : {}),
+    ...(input.startDate !== undefined ? { startDate: input.startDate } : {}),
     ...(input.endDate !== undefined ? { endDate: input.endDate } : {}),
-    paxCount: input.paxCount ?? rfp.paxCount,
-    destinations: input.destinations ?? rfp.destinations,
+    ...(input.paxCount !== undefined ? { paxCount: input.paxCount } : rfp.paxCount !== undefined ? { paxCount: rfp.paxCount } : {}),
+    ...(input.destinations !== undefined ? { destinations: input.destinations } : rfp.destinations ? { destinations: rfp.destinations } : {}),
     classification: rfp.classification,
     version: 1,
     createdAt: now,
@@ -367,6 +377,11 @@ export type AddProgrammeItemInput = {
   supplierId?: string;
   supplierRateId?: string;
   supplierLabel?: string;
+  itemType?: string;
+  quantity?: number;
+  unit?: string;
+  notes?: string;
+  visibility?: string;
 };
 
 export function addProgrammeItem(
@@ -405,6 +420,15 @@ export function addProgrammeItem(
   if (!input.title?.trim()) {
     return { error: "invalid_request" as const, reason: "title_required" };
   }
+  if (input.itemType !== undefined && !isValidProgrammeItemType(input.itemType)) {
+    return { error: "invalid_request" as const, reason: "invalid_item_type" };
+  }
+  if (input.visibility !== undefined && !isValidProgrammeItemVisibility(input.visibility)) {
+    return { error: "invalid_request" as const, reason: "invalid_visibility" };
+  }
+  if (input.quantity !== undefined && (typeof input.quantity !== "number" || input.quantity < 0)) {
+    return { error: "invalid_request" as const, reason: "invalid_quantity" };
+  }
 
   const now = new Date().toISOString();
   const sortOrder = store.prgItems.filter((i) => i.dayId === dayId).length;
@@ -420,6 +444,11 @@ export function addProgrammeItem(
     ...(input.supplierId !== undefined ? { supplierId: input.supplierId } : {}),
     ...(input.supplierRateId !== undefined ? { supplierRateId: input.supplierRateId } : {}),
     ...(input.supplierLabel !== undefined ? { supplierLabel: input.supplierLabel } : {}),
+    ...(input.itemType !== undefined ? { itemType: input.itemType } : {}),
+    ...(input.quantity !== undefined ? { quantity: input.quantity } : {}),
+    ...(input.unit !== undefined ? { unit: input.unit } : {}),
+    ...(input.notes !== undefined ? { notes: input.notes } : {}),
+    ...(input.visibility !== undefined ? { visibility: input.visibility } : {}),
     createdAt: now,
     updatedAt: now,
   };
@@ -429,4 +458,266 @@ export function addProgrammeItem(
 
   allowProgrammeAudit(store, principal, "programme:write:item", "prg_item", item.id, correlationId, sanitizeItem(item));
   return { item: sanitizeItem(item) };
+}
+
+export type PatchProgrammeInput = {
+  title?: string;
+  internalNotes?: string | null;
+  clientNotes?: string | null;
+  destinations?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  paxCount?: number | null;
+};
+
+export function patchProgramme(
+  store: Store,
+  principal: Principal,
+  programmeId: string,
+  input: PatchProgrammeInput,
+  correlationId: string,
+) {
+  ensureProgrammeCollections(store);
+  const programme = findProgramme(store, principal.tenantId, programmeId);
+  if (!programme) return { error: "not_found" as const };
+  const decision = authorize({
+    principal,
+    permission: "programme:write:programme",
+    action: "patch:prg_programme",
+    resource: {
+      tenantId: programme.tenantId,
+      type: "programme",
+      id: programme.id,
+      classification: programme.classification,
+    },
+  });
+  if (decision.result === "deny") {
+    denyProgrammeAudit(store, principal, "programme:write:programme", "prg_programme", correlationId, decision.reason, programmeId);
+    return { error: "forbidden" as const, reason: decision.reason };
+  }
+  if (input.title !== undefined) {
+    const title = input.title?.trim();
+    if (!title) return { error: "invalid_request" as const, reason: "title_required" };
+    programme.title = title;
+  }
+  if (input.internalNotes !== undefined) {
+    const internalNotes = input.internalNotes?.trim();
+    if (internalNotes) programme.internalNotes = internalNotes;
+    else delete programme.internalNotes;
+  }
+  if (input.clientNotes !== undefined) {
+    const clientNotes = input.clientNotes?.trim();
+    if (clientNotes) programme.clientNotes = clientNotes;
+    else delete programme.clientNotes;
+  }
+  if (input.destinations !== undefined) {
+    const destinations = input.destinations?.trim();
+    if (destinations) programme.destinations = destinations;
+    else delete programme.destinations;
+  }
+  if (input.startDate !== undefined) {
+    if (input.startDate) programme.startDate = input.startDate;
+    else delete programme.startDate;
+  }
+  if (input.endDate !== undefined) {
+    if (input.endDate) programme.endDate = input.endDate;
+    else delete programme.endDate;
+  }
+  if (input.paxCount !== undefined) {
+    if (input.paxCount !== null && (typeof input.paxCount !== "number" || input.paxCount < 0)) {
+      return { error: "invalid_request" as const, reason: "invalid_pax_count" };
+    }
+    if (input.paxCount === null) delete programme.paxCount;
+    else programme.paxCount = input.paxCount;
+  }
+  const now = new Date().toISOString();
+  programme.updatedAt = now;
+  programme.updatedByPrincipalId = principal.id;
+  programme.version += 1;
+  allowProgrammeAudit(store, principal, "programme:write:programme", "prg_programme", programme.id, correlationId, sanitizeProgramme(programme));
+  return { programme: sanitizeProgramme(programme) };
+}
+
+export type PatchProgrammeItemInput = {
+  title?: string;
+  description?: string | null;
+  startTime?: string | null;
+  supplierId?: string | null;
+  supplierRateId?: string | null;
+  supplierLabel?: string | null;
+  itemType?: string | null;
+  quantity?: number | null;
+  unit?: string | null;
+  notes?: string | null;
+  visibility?: string | null;
+  sortOrder?: number;
+};
+
+export function patchProgrammeItem(
+  store: Store,
+  principal: Principal,
+  programmeId: string,
+  itemId: string,
+  input: PatchProgrammeItemInput,
+  correlationId: string,
+) {
+  ensureProgrammeCollections(store);
+  const programme = findProgramme(store, principal.tenantId, programmeId);
+  if (!programme) return { error: "not_found" as const };
+  const item = store.prgItems.find(
+    (i) => i.id === itemId && i.programmeId === programmeId && i.tenantId === programme.tenantId,
+  );
+  if (!item) return { error: "not_found" as const };
+  const decision = authorize({
+    principal,
+    permission: "programme:write:item",
+    action: "patch:prg_item",
+    resource: {
+      tenantId: programme.tenantId,
+      type: "programme",
+      id: programme.id,
+      classification: programme.classification,
+    },
+  });
+  if (decision.result === "deny") {
+    denyProgrammeAudit(store, principal, "programme:write:item", "prg_item", correlationId, decision.reason, programmeId);
+    return { error: "forbidden" as const, reason: decision.reason };
+  }
+  if (input.title !== undefined) {
+    const title = input.title?.trim();
+    if (!title) return { error: "invalid_request" as const, reason: "title_required" };
+    item.title = title;
+  }
+  if (input.description !== undefined) {
+    const description = input.description?.trim();
+    if (description) item.description = description;
+    else delete item.description;
+  }
+  if (input.startTime !== undefined) {
+    if (input.startTime) item.startTime = input.startTime;
+    else delete item.startTime;
+  }
+  if (input.supplierId !== undefined) {
+    if (input.supplierId) item.supplierId = input.supplierId;
+    else delete item.supplierId;
+  }
+  if (input.supplierRateId !== undefined) {
+    if (input.supplierRateId) item.supplierRateId = input.supplierRateId;
+    else delete item.supplierRateId;
+  }
+  if (input.supplierLabel !== undefined) {
+    const supplierLabel = input.supplierLabel?.trim();
+    if (supplierLabel) item.supplierLabel = supplierLabel;
+    else delete item.supplierLabel;
+  }
+  if (input.itemType !== undefined) {
+    if (input.itemType !== null && !isValidProgrammeItemType(input.itemType)) {
+      return { error: "invalid_request" as const, reason: "invalid_item_type" };
+    }
+    if (input.itemType) item.itemType = input.itemType;
+    else delete item.itemType;
+  }
+  if (input.visibility !== undefined) {
+    if (input.visibility !== null && !isValidProgrammeItemVisibility(input.visibility)) {
+      return { error: "invalid_request" as const, reason: "invalid_visibility" };
+    }
+    if (input.visibility) item.visibility = input.visibility;
+    else delete item.visibility;
+  }
+  if (input.quantity !== undefined) {
+    if (input.quantity !== null && (typeof input.quantity !== "number" || input.quantity < 0)) {
+      return { error: "invalid_request" as const, reason: "invalid_quantity" };
+    }
+    if (input.quantity === null) delete item.quantity;
+    else item.quantity = input.quantity;
+  }
+  if (input.unit !== undefined) {
+    const unit = input.unit?.trim();
+    if (unit) item.unit = unit;
+    else delete item.unit;
+  }
+  if (input.notes !== undefined) {
+    const notes = input.notes?.trim();
+    if (notes) item.notes = notes;
+    else delete item.notes;
+  }
+  if (input.sortOrder !== undefined) {
+    if (!Number.isFinite(input.sortOrder) || input.sortOrder < 0) {
+      return { error: "invalid_request" as const, reason: "invalid_sort_order" };
+    }
+    item.sortOrder = input.sortOrder;
+  }
+  const now = new Date().toISOString();
+  item.updatedAt = now;
+  programme.updatedAt = now;
+  programme.version += 1;
+  allowProgrammeAudit(store, principal, "programme:write:item", "prg_item", item.id, correlationId, sanitizeItem(item));
+  return { item: sanitizeItem(item) };
+}
+
+export function createProgrammeVersion(
+  store: Store,
+  principal: Principal,
+  programmeId: string,
+  summary: string,
+  correlationId: string,
+) {
+  ensureProgrammeCollections(store);
+  if (!store.prgProgrammeVersions) store.prgProgrammeVersions = [];
+  const programme = findProgramme(store, principal.tenantId, programmeId);
+  if (!programme) return { error: "not_found" as const };
+  const decision = authorize({
+    principal,
+    permission: "programme:write:programme",
+    action: "create:prg_programme_version",
+    resource: {
+      tenantId: programme.tenantId,
+      type: "programme",
+      id: programme.id,
+      classification: programme.classification,
+    },
+  });
+  if (decision.result === "deny") {
+    denyProgrammeAudit(store, principal, "programme:write:programme", "prg_programme_version", correlationId, decision.reason, programmeId);
+    return { error: "forbidden" as const, reason: decision.reason };
+  }
+  if (!summary?.trim()) return { error: "invalid_request" as const, reason: "summary_required" };
+  const days = store.prgDays.filter((d) => d.programmeId === programmeId);
+  const items = store.prgItems.filter((i) => i.programmeId === programmeId);
+  const versionNumber =
+    store.prgProgrammeVersions.filter((v) => v.programmeId === programmeId).reduce((m, v) => Math.max(m, v.versionNumber), 0) +
+    1;
+  const now = new Date().toISOString();
+  const version: PrgProgrammeVersion = {
+    id: newId(),
+    tenantId: principal.tenantId,
+    programmeId,
+    versionNumber,
+    summary: summary.trim(),
+    snapshot: {
+      title: programme.title,
+      dayCount: days.length,
+      itemCount: items.length,
+      ...(programme.destinations ? { destinations: programme.destinations } : {}),
+    },
+    createdAt: now,
+    createdByPrincipalId: principal.id,
+  };
+  store.prgProgrammeVersions.push(version);
+  programme.updatedAt = now;
+  programme.version += 1;
+  allowProgrammeAudit(store, principal, "programme:write:programme", "prg_programme_version", version.id, correlationId, {
+    versionNumber,
+    summary: version.summary,
+  });
+  return {
+    version: {
+      id: version.id,
+      programmeId: version.programmeId,
+      versionNumber: version.versionNumber,
+      summary: version.summary,
+      snapshot: version.snapshot,
+      createdAt: version.createdAt,
+    },
+  };
 }

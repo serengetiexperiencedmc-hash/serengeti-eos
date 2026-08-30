@@ -75,6 +75,8 @@ export * from "./consent-register.js";
 export * from "./dataset-register.js";
 export * from "./procurement-catalogue.js";
 export * from "./sourcing-event-register.js";
+export * from "./commercial-document.js";
+export * from "./supplier-contract.js";
 export * from "./itsm.js";
 export * from "./cmdb.js";
 export * from "./observability.js";

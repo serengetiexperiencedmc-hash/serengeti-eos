@@ -57,6 +57,11 @@ import {
   type PrgProgramme,
   type PrgDay,
   type PrgItem,
+  type PrgProgrammeVersion,
+  type CommercialDocument,
+  type SupContract,
+  type SupContractVersion,
+  type SupHotelProfile,
   type CostSheet,
   type CostLineItem,
   type CostSheetVersion,
@@ -280,6 +285,15 @@ export type Store = {
   prgProgrammes: PrgProgramme[];
   prgDays: PrgDay[];
   prgItems: PrgItem[];
+  /** CD Phase 1 — programme version snapshots. */
+  prgProgrammeVersions: PrgProgrammeVersion[];
+  /** CD Phase 1 — commercial document metadata. */
+  commercialDocuments: CommercialDocument[];
+  /** CD Phase 1 — supplier contracts. */
+  supContracts: SupContract[];
+  supContractVersions: SupContractVersion[];
+  /** CD Phase 1 — optional hotel profiles. */
+  supHotelProfiles: SupHotelProfile[];
   costSheets: CostSheet[];
   costLineItems: CostLineItem[];
   costSheetVersions: CostSheetVersion[];
@@ -401,6 +415,8 @@ export type Store = {
   aiRecommendStaleAuditExportPresetUsages: AiRecommendStaleAuditExportPresetUsage[];
   /** Optional PostgreSQL pool for dual-write persistence (PG.1+) */
   dbPool?: DbPool;
+  /** CD Phase 1 — Dev/Test document bytes (DocumentStorage). */
+  documentStorage?: import("@sedmc/kernel").DocumentStorage;
 };
 
 const CRM_PERMS = [
@@ -434,6 +450,13 @@ const SUPPLIER_PERMS = [
   "supplier:read:supplier",
   "supplier:write:supplier",
   "supplier:import:bulk",
+  "supplier:read:contract",
+  "supplier:write:contract",
+] as const;
+
+const COMMERCIAL_DOCUMENT_PERMS = [
+  "commercialDocument:read:document",
+  "commercialDocument:write:document",
 ] as const;
 
 const PIPELINE_PERMS = [
@@ -718,6 +741,7 @@ const PERMS = {
     "events:register:catalogue",
     ...CRM_PERMS,
     ...SUPPLIER_PERMS,
+    ...COMMERCIAL_DOCUMENT_PERMS,
     ...PIPELINE_PERMS,
     ...RFP_PERMS,
     ...PROGRAMME_PERMS,
@@ -791,6 +815,9 @@ const PERMS = {
     "supplier:read:supplier",
     "supplier:write:supplier",
     "supplier:import:bulk",
+    "supplier:read:contract",
+    "supplier:write:contract",
+    ...COMMERCIAL_DOCUMENT_PERMS,
     ...PIPELINE_PERMS,
     ...RFP_PERMS,
     ...PROGRAMME_PERMS,
@@ -1671,6 +1698,11 @@ export function seedStore(
     prgProgrammes: [],
     prgDays: [],
     prgItems: [],
+    prgProgrammeVersions: [],
+    commercialDocuments: [],
+    supContracts: [],
+    supContractVersions: [],
+    supHotelProfiles: [],
     costSheets: [],
     costLineItems: [],
     costSheetVersions: [],

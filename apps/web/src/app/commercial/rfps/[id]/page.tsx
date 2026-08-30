@@ -18,6 +18,11 @@ import {
   type RfpSummary,
   type RfpVersion,
 } from "@/lib/rfp-api";
+import {
+  listRfpDocuments,
+  uploadRfpDocument,
+  type CommercialDocumentSummary,
+} from "@/lib/commercial-documents-api";
 import { getCostSheetByRfp, formatCost, type CostSheetDetail } from "@/lib/costing-api";
 import {
   approvalStatusLabel,
@@ -49,6 +54,9 @@ export default function RfpDetailPage() {
   const { token, ready } = useEosSession();
   const [rfp, setRfp] = useState<RfpSummary | null>(null);
   const [versions, setVersions] = useState<RfpVersion[]>([]);
+  const [documents, setDocuments] = useState<CommercialDocumentSummary[]>([]);
+  const [documentsError, setDocumentsError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [costing, setCosting] = useState<CostSheetDetail | null>(null);
   const [approval, setApproval] = useState<CommercialApprovalRequest | null>(null);
   const [proposal, setProposal] = useState<ProposalSummary | null>(null);
@@ -63,15 +71,32 @@ export default function RfpDetailPage() {
     if (!token || !params.id) {
       setRfp(null);
       setVersions([]);
+      setDocuments([]);
+      setDocumentsError(null);
       return;
     }
     setLoading(true);
     setError(null);
+    setDocumentsError(null);
     Promise.all([getRfp(token, params.id), listOrganizations(token)])
       .then(async ([detail, orgList]) => {
         setRfp(detail.rfp);
         setVersions(detail.versions);
         setOrgs(orgList.items);
+        try {
+          const docs = await listRfpDocuments(token, params.id);
+          setDocuments(docs.items);
+          setDocumentsError(null);
+        } catch (err) {
+          setDocuments([]);
+          if (err instanceof EosApiError && err.status === 401) {
+            setDocumentsError("Not authenticated to view documents.");
+          } else if (err instanceof EosApiError && err.status === 403) {
+            setDocumentsError("Not authorized to view documents.");
+          } else {
+            setDocumentsError("Failed to load documents.");
+          }
+        }
         try {
           const sheet = await getCostSheetByRfp(token, params.id);
           setCosting(sheet);
@@ -225,6 +250,58 @@ export default function RfpDetailPage() {
             {rfp.requirementsText && (
               <p className="mt-4 text-sm text-muted">{rfp.requirementsText}</p>
             )}
+          </Card>
+
+          <Card title="RFP Documents">
+            <ul className="mb-3 space-y-2 text-sm">
+              {documentsError && <li className="text-muted">{documentsError}</li>}
+              {!documentsError && documents.length === 0 && (
+                <li className="text-muted">No documents uploaded yet.</li>
+              )}
+              {!documentsError &&
+                documents.map((doc) => (
+                  <li key={doc.id} className="flex justify-between gap-2 border-b border-line py-2">
+                    <span className="font-medium text-ink">{doc.filename}</span>
+                    <span className="text-muted">
+                      {doc.mimeType} · {(doc.sizeBytes / 1024).toFixed(1)} KB
+                    </span>
+                  </li>
+                ))}
+            </ul>
+            <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-gold-deep">
+              <span>{uploading ? "Uploading…" : "Upload PDF / DOCX / XLSX"}</span>
+              <input
+                type="file"
+                className="hidden"
+                accept=".pdf,.docx,.xlsx,application/pdf"
+                disabled={uploading || !token}
+                onChange={async (event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = "";
+                  if (!file || !token || !params.id) return;
+                  setUploading(true);
+                  setError(null);
+                  try {
+                    const buf = await file.arrayBuffer();
+                    const bytes = new Uint8Array(buf);
+                    let binary = "";
+                    for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]!);
+                    const contentBase64 = btoa(binary);
+                    const res = await uploadRfpDocument(token, params.id, {
+                      filename: file.name,
+                      mimeType: file.type || "application/pdf",
+                      contentBase64,
+                    });
+                    setDocuments((prev) => [res.document, ...prev]);
+                    setDocumentsError(null);
+                  } catch (err) {
+                    setError(err instanceof EosApiError ? err.message : "Upload failed");
+                  } finally {
+                    setUploading(false);
+                  }
+                }}
+              />
+            </label>
           </Card>
 
           <Card title="Workflow" padding={false}>

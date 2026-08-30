@@ -1,4 +1,5 @@
 import type { Classification } from "./types.js";
+import type { ProgrammeItemType, ProgrammeItemVisibility } from "./supplier-contract.js";
 
 export type ProgrammeStatus = "draft" | "active" | "archived";
 
@@ -16,6 +17,10 @@ export type PrgProgramme = {
   endDate?: string;
   paxCount?: number;
   destinations?: string;
+  /** CD Phase 1 — internal operational notes. */
+  internalNotes?: string;
+  /** CD Phase 1 — client-facing notes. */
+  clientNotes?: string;
   classification: Classification;
   version: number;
   archivedAt?: string;
@@ -50,8 +55,30 @@ export type PrgItem = {
   supplierId?: string;
   supplierRateId?: string;
   supplierLabel?: string;
+  /** CD Phase 1 — typed itinerary component. */
+  itemType?: ProgrammeItemType;
+  quantity?: number;
+  unit?: string;
+  notes?: string;
+  visibility?: ProgrammeItemVisibility;
   createdAt: string;
   updatedAt: string;
+};
+
+export type PrgProgrammeVersion = {
+  id: string;
+  tenantId: string;
+  programmeId: string;
+  versionNumber: number;
+  summary: string;
+  snapshot: {
+    title: string;
+    dayCount: number;
+    itemCount: number;
+    destinations?: string;
+  };
+  createdAt: string;
+  createdByPrincipalId: string;
 };
 
 export function buildProgrammeCode(rfpCode: string): string {

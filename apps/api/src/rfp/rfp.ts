@@ -33,6 +33,9 @@ function sanitizeRfp(r: RfpRecord) {
     budgetMax: r.budgetMax,
     currency: r.currency,
     requirementsText: r.requirementsText,
+    notes: r.notes,
+    source: r.source,
+    receivedAt: r.receivedAt,
     slaDueAt: r.slaDueAt,
     slaStatus,
     assignedPrincipalId: r.assignedPrincipalId,
@@ -151,6 +154,9 @@ export type CreateRfpInput = {
   budgetMax?: number;
   currency?: string;
   requirementsText?: string;
+  notes?: string;
+  source?: string;
+  receivedAt?: string;
   slaDueAt?: string;
   assignedPrincipalId?: string;
   initialVersionSummary?: string;
@@ -202,6 +208,9 @@ export function createRfp(store: Store, principal: Principal, input: CreateRfpIn
     ...(input.budgetMax !== undefined ? { budgetMax: input.budgetMax } : {}),
     currency: input.currency ?? "USD",
     ...(input.requirementsText !== undefined ? { requirementsText: input.requirementsText } : {}),
+    ...(input.notes !== undefined ? { notes: input.notes } : {}),
+    ...(input.source !== undefined ? { source: input.source } : {}),
+    receivedAt: input.receivedAt ?? now,
     slaDueAt,
     slaStatus: computeSlaStatus(slaDueAt),
     assignedPrincipalId: input.assignedPrincipalId ?? principal.id,
@@ -336,6 +345,96 @@ export function createRfpVersion(
   allowRfpAudit(store, principal, "rfp:write:version", "rfp_version", version.id, correlationId, sanitizeVersion(version));
   return { version: sanitizeVersion(version), rfp: sanitizeRfp(rfp) };
 }
+
+export type PatchRfpInput = {
+  title?: string;
+  notes?: string | null;
+  source?: string | null;
+  receivedAt?: string | null;
+  travelDates?: string | null;
+  destinations?: string | null;
+  paxCount?: number | null;
+  requirementsText?: string | null;
+  assignedPrincipalId?: string | null;
+};
+
+export function patchRfp(
+  store: Store,
+  principal: Principal,
+  id: string,
+  input: PatchRfpInput,
+  correlationId: string,
+) {
+  ensureRfpCollections(store);
+  const rfp = findRfp(store, principal.tenantId, id);
+  if (!rfp) return { error: "not_found" as const };
+
+  const decision = authorize({
+    principal,
+    permission: "rfp:write:rfp",
+    action: "patch:rfp",
+    resource: { tenantId: rfp.tenantId, type: "rfp", id: rfp.id, classification: rfp.classification },
+  });
+  if (decision.result === "deny") {
+    denyRfpAudit(store, principal, "rfp:write:rfp", "rfp", correlationId, decision.reason, id);
+    return { error: "forbidden" as const, reason: decision.reason };
+  }
+
+  if (input.title !== undefined) {
+    const title = input.title?.trim();
+    if (!title) return { error: "invalid_request" as const, reason: "title_required" };
+    rfp.title = title;
+  }
+  if (input.notes !== undefined) {
+    const notes = input.notes?.trim();
+    if (notes) rfp.notes = notes;
+    else delete rfp.notes;
+  }
+  if (input.source !== undefined) {
+    const source = input.source?.trim();
+    if (source) rfp.source = source;
+    else delete rfp.source;
+  }
+  if (input.receivedAt !== undefined) {
+    if (input.receivedAt) rfp.receivedAt = input.receivedAt;
+    else delete rfp.receivedAt;
+  }
+  if (input.travelDates !== undefined) {
+    const travelDates = input.travelDates?.trim();
+    if (travelDates) rfp.travelDates = travelDates;
+    else delete rfp.travelDates;
+  }
+  if (input.destinations !== undefined) {
+    const destinations = input.destinations?.trim();
+    if (destinations) rfp.destinations = destinations;
+    else delete rfp.destinations;
+  }
+  if (input.paxCount !== undefined) {
+    if (input.paxCount !== null && (typeof input.paxCount !== "number" || input.paxCount < 0)) {
+      return { error: "invalid_request" as const, reason: "invalid_pax_count" };
+    }
+    if (input.paxCount === null) delete rfp.paxCount;
+    else rfp.paxCount = input.paxCount;
+  }
+  if (input.requirementsText !== undefined) {
+    const requirementsText = input.requirementsText?.trim();
+    if (requirementsText) rfp.requirementsText = requirementsText;
+    else delete rfp.requirementsText;
+  }
+  if (input.assignedPrincipalId !== undefined) {
+    if (input.assignedPrincipalId) rfp.assignedPrincipalId = input.assignedPrincipalId;
+    else delete rfp.assignedPrincipalId;
+  }
+
+  const now = new Date().toISOString();
+  rfp.updatedAt = now;
+  rfp.updatedByPrincipalId = principal.id;
+  rfp.version += 1;
+  allowRfpAudit(store, principal, "rfp:write:rfp", "rfp", rfp.id, correlationId, sanitizeRfp(rfp));
+  return { rfp: sanitizeRfp(rfp) };
+}
+
+export { sanitizeRfp };
 
 export function refreshRfpSlaStatuses(store: Store, tenantId: string): void {
   ensureRfpCollections(store);

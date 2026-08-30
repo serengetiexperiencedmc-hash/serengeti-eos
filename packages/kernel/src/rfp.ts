@@ -82,6 +82,12 @@ export type RfpRecord = {
   budgetMax?: number;
   currency?: string;
   requirementsText?: string;
+  /** CD Phase 1 — free-text commercial notes. */
+  notes?: string;
+  /** CD Phase 1 — intake channel (email, portal, advisor, other). */
+  source?: string;
+  /** CD Phase 1 — when the RFP was received (ISO). Distinct from createdAt. */
+  receivedAt?: string;
   slaDueAt?: string;
   slaStatus?: RfpSlaStatus;
   assignedPrincipalId?: string;
