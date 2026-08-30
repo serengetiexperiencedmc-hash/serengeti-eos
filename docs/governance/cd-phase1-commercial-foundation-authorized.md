@@ -1,9 +1,9 @@
 # Selection — CD Phase 1 Commercial Foundation
 
-> **CURRENT STATE (2026-08-30 — Owner push authorization granted; authorized commit pushed; UAT not authorized)**  
+> **CURRENT STATE (2026-08-30 — Owner UAT authorized and executed; UAT PASS; this worktree record is uncommitted until a separate governance commit)**  
 > **PRODUCT_STATE=FROZEN_DEVTEST** · **BASE_SHA=`7c75a16ca942755421bc4ef8a528e0bf2d579e41`** (`origin/master`)  
 > **WORKTREE:** `C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1`  
-> **BRANCH:** `feat/cd-phase1-foundation` · **COMMIT=`eb09ca00b6bdb4ee51c9a2376de1cf19ceda0b43`** (pushed to `origin`)  
+> **BRANCH:** `feat/cd-phase1-foundation` · **HEAD=`8cc9796f20dd400338e6fabc809f4695138924c5`** (pushed) · implementation `eb09ca00b6bdb4ee51c9a2376de1cf19ceda0b43`  
 > **PR1 / PR2:** IMPLEMENTED / CLOSED — not reopened; not expanded.  
 > **ADR-0006 / ADR-0012 / ADR-0013:** OPEN — not closed. This record does **not** decide hosting or Production storage.  
 > **DP-0006:** NOT APPROVED.  
@@ -11,7 +11,8 @@
 > **REMEDIATION_AUTHORIZED=YES** · **REMEDIATION_STATUS=COMPLETED** · **REMEDIATION_REVIEW=PASS / COMMIT READY** (technical; **not** Owner commit authorization)  
 > **COMMIT_AUTHORIZED=YES** · **COMMIT=COMPLETED**  
 > **PUSH_AUTHORIZED=YES** · **PUSH=COMPLETED**  
-> **UAT=NOT_AUTHORIZED / NOT_EXECUTED** · **PRODUCTION=NOT_AUTHORIZED**  
+> **UAT_AUTHORIZED=YES** · **UAT_SCOPE=DEV/TEST ONLY** · **UAT=PASS**  
+> **PRODUCTION=NOT_AUTHORIZED / NOT_TOUCHED**  
 > **MIGRATION_EXECUTION=NOT_AUTHORIZED / NOT_EXECUTED** (migrations **119–122** included as files only; **must not** be executed)  
 > Frozen Stage 1 contract: [`../architecture/cd-phase1-commercial-foundation-preview.md`](../architecture/cd-phase1-commercial-foundation-preview.md)
 
@@ -27,6 +28,11 @@ REMEDIATION AUTHORIZATION  ≠ TECHNICAL COMMIT READINESS
 TECHNICAL COMMIT READINESS ≠ OWNER COMMIT AUTHORIZATION
 OWNER COMMIT AUTHORIZATION ≠ PUSH AUTHORIZATION
 PUSH AUTHORIZATION         ≠ UAT AUTHORIZATION
+UAT AUTHORIZATION          ≠ MIGRATION EXECUTION AUTHORIZATION
+UAT AUTHORIZATION          ≠ PRODUCTION AUTHORIZATION
+UAT AUTHORIZATION          ≠ DEPLOYMENT AUTHORIZATION
+UAT AUTHORIZATION          ≠ PR MERGE AUTHORIZATION
+UAT PASS                   ≠ ANY OF THE ABOVE
 IMPLEMENTATION AUTHORIZATION ≠ TEST AUTHORIZATION
 TEST AUTHORIZATION         ≠ PREVIEW AUTHORIZATION
 PREVIEW AUTHORIZATION      ≠ COMMIT AUTHORIZATION
@@ -51,13 +57,18 @@ Observed sequence:
 9. On **2026-08-30**, the Owner **explicitly** granted **COMMIT_AUTHORIZED=YES** for creating **one local Git commit** of the already-reviewed Phase 1 changeset only. That grant did **not** exist before it was given. It is **not** push, UAT, PR, migration execution, or Production authorization.
 10. That local commit was created as `eb09ca00b6bdb4ee51c9a2376de1cf19ceda0b43`. At that time **PUSH remained NOT_AUTHORIZED / NOT_EXECUTED.**
 11. On **2026-08-30**, the Owner **explicitly** granted **PUSH_AUTHORIZED=YES** for pushing **only** commit `eb09ca00b6bdb4ee51c9a2376de1cf19ceda0b43` on `feat/cd-phase1-foundation`. That grant did **not** exist before it was given. It is **not** UAT, PR merge, migration execution, or Production authorization.
-12. That authorized commit was pushed to `origin` (`https://github.com/serengetiexperiencedmc-hash/serengeti-eos.git`). **PUSH=COMPLETED**. **UAT remains NOT_AUTHORIZED / NOT_EXECUTED.** This worktree update of the present paragraph is **not** a second commit.
+12. That authorized commit was pushed to `origin` (`https://github.com/serengetiexperiencedmc-hash/serengeti-eos.git`). **PUSH=COMPLETED**. At that time **UAT remained NOT_AUTHORIZED / NOT_EXECUTED.**
+13. A later **governance-only** commit `8cc9796f20dd400338e6fabc809f4695138924c5` recorded the completed push. That commit is current **HEAD**. It still recorded **UAT = NOT_AUTHORIZED / NOT_EXECUTED** because UAT had not yet been granted.
+14. On **2026-08-30**, the Owner **explicitly** granted **UAT_AUTHORIZED=YES** for **Dev/Test only**, existing pushed implementation, frozen Stage 1 contract, existing authorized UAT procedure. That grant did **not** exist before it was given. It is **not** migration execution, Production, deployment, PR merge, or additional implementation authorization.
+15. That UAT executed the existing in-memory frozen-contract procedure only (`seedStore` / Fastify inject / kernel Vitest): `commercial-document.test.ts` (3), `cd-phase1-foundation.test.ts` (7), `pr1-procurement.test.ts` (3), `pr2-sourcing-events.test.ts` (3). **UAT_TESTS = 16 PASS / 0 FAIL / 0 BLOCKED.** **UAT=PASS.** **UAT_MIGRATIONS=NOT_EXECUTED.** **DATABASE=UNCHANGED.** **PRODUCTION=NOT_TOUCHED.** Residual coverage limitations (browser R-01, hotel GET, max-bytes HTTP, empty-list HTTP, AI-principal HTTP, separate internal/client notes, dedicated C7/C8 suite) remain **NOT TESTED**, not defects, and do **not** authorize remediation.
+16. This worktree update records items 14–15. It is **not** a Git commit unless the Owner separately authorizes a governance commit.
 
 **Authority (implementation):** Product Owner **CD PHASE 1 DEV/TEST IMPLEMENTATION AUTHORIZATION** (2026-08-30) **IMPLEMENTATION_AUTHORIZED=YES** / **ENVIRONMENT=DEVTEST** / **SCOPE=EXISTING UNCOMMITTED IMPLEMENTATION ONLY**.  
 **Authority (remediation):** Product Owner **CD PHASE 1 DEV/TEST REMEDIATION AUTHORIZATION** (2026-08-30) **REMEDIATION_AUTHORIZED=YES** / **SCOPE=R-01–R-05 ONLY**.  
 **Technical review (not Owner grant):** Commit Readiness Review **PASS / COMMIT READY**.  
 **Authority (commit):** Product Owner **CD PHASE 1 LOCAL COMMIT AUTHORIZATION** (2026-08-30) **COMMIT_AUTHORIZED=YES** / **SCOPE=ONE LOCAL GIT COMMIT OF THE REVIEWED PHASE 1 CHANGESET ONLY**.  
-**Authority (push):** Product Owner **CD PHASE 1 PUSH AUTHORIZATION** (2026-08-30) **PUSH_AUTHORIZED=YES** / **SCOPE=`eb09ca00b6bdb4ee51c9a2376de1cf19ceda0b43` ON `feat/cd-phase1-foundation` TO CONFIGURED `origin` ONLY**. **UAT AUTHORIZATION = NOT GRANTED.**
+**Authority (push):** Product Owner **CD PHASE 1 PUSH AUTHORIZATION** (2026-08-30) **PUSH_AUTHORIZED=YES** / **SCOPE=`eb09ca00b6bdb4ee51c9a2376de1cf19ceda0b43` ON `feat/cd-phase1-foundation` TO CONFIGURED `origin` ONLY**.  
+**Authority (UAT):** Product Owner **CD PHASE 1 DEV/TEST UAT AUTHORIZATION** (2026-08-30) **UAT_AUTHORIZED=YES** / **UAT_SCOPE=DEV/TEST ONLY** / **PROCEDURE=EXISTING IN-MEMORY FROZEN-CONTRACT SUITE**. **MIGRATION EXECUTION = NOT GRANTED.** **PRODUCTION = NOT GRANTED.** **DEPLOYMENT = NOT GRANTED.** **PR MERGE = NOT GRANTED.**
 
 ## Authorization state
 
@@ -71,8 +82,14 @@ Observed sequence:
 | **REMEDIATION_STATUS** | **COMPLETED** |
 | **REMEDIATION_REVIEW** | **PASS / COMMIT READY** (technical readiness only) |
 | **ENVIRONMENT** | Development/Test only |
-| **UAT** | **NOT_AUTHORIZED / NOT_EXECUTED** |
-| **PRODUCTION** | **NOT_AUTHORIZED** |
+| **UAT_AUTHORIZED** | **YES** (Dev/Test only; granted after push of `8cc9796…`) |
+| **UAT_SCOPE** | **DEV/TEST ONLY** |
+| **UAT_EXECUTION** | existing in-memory frozen-contract procedure (`seedStore` / Fastify inject / kernel Vitest) |
+| **UAT_TESTS** | **16 PASS / 0 FAIL / 0 BLOCKED** |
+| **UAT_MIGRATIONS** | **NOT_EXECUTED** |
+| **DATABASE** | **UNCHANGED** |
+| **UAT** | **PASS** |
+| **PRODUCTION** | **NOT_AUTHORIZED / NOT_TOUCHED** |
 | **COMMIT_AUTHORIZED** | **YES** (one local Git commit; granted after technical commit readiness) |
 | **COMMIT** | **COMPLETED** |
 | **PUSH_AUTHORIZED** | **YES** (authorized commit `eb09ca00b6bdb4ee51c9a2376de1cf19ceda0b43` only) |
@@ -83,7 +100,7 @@ Observed sequence:
 | **ADR-0006** | **OPEN** — no Production hosting / object-storage decision |
 | **DP-0006** | **NOT APPROVED** |
 | **STAGE_1_CONTRACT** | **FROZEN** (2026-08-30 contract amendment; retrospective authorization preserved) |
-| **NEXT GATE** | **NOT GRANTED BY THIS PUSH** (UAT, PR merge, migration execution, and Production remain **NOT_AUTHORIZED**) |
+| **NEXT GATE** | **GOVERNANCE COMMIT DECISION** (this worktree UAT record is not a Git commit; UAT PASS does **not** grant migration, Production, deployment, or PR merge) |
 
 ## Exact authorization boundary
 
@@ -95,12 +112,12 @@ Authorized:
 - The **already-existing** implementation in `serengeti-eos-cd-phase1` / `feat/cd-phase1-foundation` / base `7c75a16ca942755421bc4ef8a528e0bf2d579e41`
 - One **local Git commit** of the reviewed Phase 1 changeset (`eb09ca00b6bdb4ee51c9a2376de1cf19ceda0b43`)
 - Push of **that commit only** on `feat/cd-phase1-foundation` to configured `origin`
+- Dev/Test **UAT** of the existing in-memory frozen-contract procedure only
 - Migrations 119–122 as **files only** (not executed)
 
 Not authorized:
 
 - pull request merge
-- UAT
 - migration execution against UAT
 - migration execution against Production
 - Production deployment
@@ -140,7 +157,7 @@ Not authorized:
 
 ## Non-goals
 
-AI extraction, OCR, portals, email/WhatsApp ingest, Production storage, FX engine, proposal render, PQL resurrection, PR1/PR2 API changes, UAT, Production.
+AI extraction, OCR, portals, email/WhatsApp ingest, Production storage, FX engine, proposal render, PQL resurrection, PR1/PR2 API changes, migration execution, Production.
 
 ## Stage 1 contract freeze (2026-08-30)
 
@@ -158,15 +175,25 @@ That technical result is **not** Owner **COMMIT** authorization. Distinctions in
 2. **Remediation authorization** — YES (R-01–R-05; granted later the same calendar day).
 3. **Technical commit readiness** — PASS (reviewer finding).
 4. **Owner commit authorization** — **GRANTED** (2026-08-30; one local Git commit only).
-5. **Owner push authorization** — **GRANTED** (2026-08-30; commit `eb09ca00b6bdb4ee51c9a2376de1cf19ceda0b43` on `feat/cd-phase1-foundation` to `origin` only). **Not** UAT, PR merge, migration execution, or Production authorization.
+5. **Owner push authorization** — **GRANTED** (2026-08-30; commit `eb09ca00b6bdb4ee51c9a2376de1cf19ceda0b43` on `feat/cd-phase1-foundation` to `origin` only).
+6. **Owner UAT authorization** — **GRANTED** (2026-08-30; Dev/Test; existing in-memory frozen-contract procedure only). **UAT=PASS.** **Not** migration execution, Production, deployment, or PR merge authorization.
 
 ## Next authorized action
 
 **COMMIT = COMPLETED.**  
-**PUSH_AUTHORIZED = YES.**  
 **PUSH = COMPLETED.**  
-**UAT = NOT_AUTHORIZED / NOT_EXECUTED.**  
+**UAT_AUTHORIZED = YES.**  
+**UAT_SCOPE = DEV/TEST ONLY.**  
+**UAT_EXECUTION = existing in-memory frozen-contract procedure.**  
+**UAT_TESTS = 16 PASS / 0 FAIL / 0 BLOCKED.**  
+**UAT = PASS.**  
+**UAT_MIGRATIONS = NOT_EXECUTED.**  
+**DATABASE = UNCHANGED.**  
 **MIGRATION_EXECUTION = NOT_AUTHORIZED / NOT_EXECUTED.**  
-**PRODUCTION = NOT_AUTHORIZED.**
+**PRODUCTION = NOT_AUTHORIZED / NOT_TOUCHED.**
 
-Push authorization does **not** constitute UAT, PR merge, migration execution, deployment, or Production authorization. **NEXT GATE is not granted by this push.** This worktree governance update is **not** a second Git commit.
+UAT authorization does **not** constitute migration execution, Production, deployment, or PR merge authorization. **UAT PASS does not grant those permissions.**
+
+**NEXT GATE = GOVERNANCE COMMIT DECISION**
+
+This worktree update is **not** a Git commit and is **not** a push.
