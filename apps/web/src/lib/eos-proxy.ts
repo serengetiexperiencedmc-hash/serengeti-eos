@@ -1,4 +1,14 @@
-const HOP_BY_HOP = new Set(["host", "connection", "content-length", "transfer-encoding", "keep-alive", "upgrade", "proxy-connection"]);
+// `expect` is dropped as well: undici rejects it outright, which would surface as a bogus 502.
+const HOP_BY_HOP = new Set([
+  "host",
+  "connection",
+  "content-length",
+  "transfer-encoding",
+  "keep-alive",
+  "upgrade",
+  "proxy-connection",
+  "expect",
+]);
 
 export function buildUpstreamUrl(apiOrigin: string, pathSegments: string[], searchParams: URLSearchParams): string {
   const path = pathSegments.join("/");

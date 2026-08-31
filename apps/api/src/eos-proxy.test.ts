@@ -17,12 +17,14 @@ describe("eos-api proxy helpers", () => {
       host: "localhost:3001",
       connection: "keep-alive",
       "content-length": "42",
+      expect: "100-continue",
       authorization: "Bearer x",
       "content-type": "application/json",
     });
     const filtered = filterProxyRequestHeaders(source);
     expect(filtered.has("host")).toBe(false);
     expect(filtered.has("content-length")).toBe(false);
+    expect(filtered.has("expect")).toBe(false);
     expect(filtered.get("authorization")).toBe("Bearer x");
   });
 
