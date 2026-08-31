@@ -521,6 +521,9 @@ export async function upsertAiRecommendStaleAuditExportPreset(
     ? {
         ...existing,
         name,
+        ...(parsed.action ? { action: parsed.action } : {}),
+        ...(parsed.since ? { since: parsed.since } : {}),
+        ...(parsed.until ? { until: parsed.until } : {}),
         updatedAt: now,
       }
     : {
