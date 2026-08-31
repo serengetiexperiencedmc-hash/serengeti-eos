@@ -167,7 +167,6 @@ function SupplierDetailDrawer({
     status: "draft",
   });
 
-  if (!detail && !loading) return null;
   const supplier = detail?.supplier;
 
   async function loadCalendar() {
@@ -207,6 +206,8 @@ function SupplierDetailDrawer({
     void loadCalendar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, supplier?.id, calendarFrom, calendarTo, heatmapUnresolvedOnly, heatmapSeasonLabel, detail?.rates.length]);
+
+  if (!detail && !loading) return null;
 
   async function handleAddContact(e: React.FormEvent) {
     e.preventDefault();
