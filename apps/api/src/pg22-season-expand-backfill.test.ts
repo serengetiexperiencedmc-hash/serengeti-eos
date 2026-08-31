@@ -109,6 +109,6 @@ describe("PG.22 season expand backfill", () => {
       url: "/v1/suppliers/health",
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(health.json().increment).toBe("PG.22");
+    expect(health.json().increment).toBe("PG.21");
   });
 });

@@ -469,7 +469,7 @@ export function reassignOutsideSeasonRates(
     updatedCount: updated.length,
     skippedCount: skipped.length,
     remainingImpact,
-    increment: "PG.22" as const,
+    increment: "PG.21" as const,
   };
 }
 
