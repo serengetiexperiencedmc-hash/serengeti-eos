@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import type { Store } from "../store.js";
 import { principalFromAuthHeader } from "../app.js";
 import { getCorrelationId } from "../observability.js";
+import { isHttpErrorResult, sendHttpError } from "../http-error.js";
 import {
   createSupplierImportBatch,
   executeSupplierImportBatch,
@@ -73,7 +74,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     void getCorrelationId(req);
     const result = getSupplierModuleHealth(store, principal);
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -85,7 +86,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       ...(query.archived === "1" || query.archived === "true" ? { archived: true } : {}),
       format: query.format === "csv" ? "csv" : "json",
     });
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -96,7 +97,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
     const result = listSupplierSeasons(store, principal, {
       ...(query.archived === "1" || query.archived === "true" ? { archived: true } : {}),
     });
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -127,7 +128,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       },
       getCorrelationId(req),
     );
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -140,7 +141,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       (req.params as { id: string }).id,
       (req.body ?? {}) as Parameters<typeof previewSeasonShrinkImpact>[3],
     );
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -166,7 +167,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       },
       getCorrelationId(req),
     );
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -179,7 +180,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       (req.params as { id: string }).id,
       (req.body ?? {}) as Parameters<typeof previewSeasonExpandBackfill>[3],
     );
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -194,7 +195,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       body,
       getCorrelationId(req),
     );
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -208,7 +209,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       (req.body ?? {}) as Parameters<typeof updateSupplierSeason>[3],
       getCorrelationId(req),
     );
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -221,7 +222,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       (req.params as { id: string }).id,
       getCorrelationId(req),
     );
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -229,7 +230,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listSupplierCategories(store, principal);
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -256,7 +257,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       ...(query.q !== undefined ? { q: query.q } : {}),
       ...(query.archived === "1" || query.archived === "true" ? { archived: true } : {}),
     });
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -282,7 +283,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       ...(query.seasonId ? { seasonId: query.seasonId } : {}),
       ...(query.unresolvedOnly === "1" || query.unresolvedOnly === "true" ? { unresolvedOnly: true } : {}),
     });
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -290,7 +291,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getHeatmapRollupStatus(store, principal);
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -317,7 +318,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       format: query.format === "csv" ? "csv" : "json",
       view: query.view === "suppliers" ? "suppliers" : "cells",
     });
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -340,7 +341,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       ...(query.seasonLabel ? { seasonLabel: query.seasonLabel } : {}),
       ...(query.seasonId ? { seasonId: query.seasonId } : {}),
     });
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -363,7 +364,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       ...(query.seasonLabel ? { seasonLabel: query.seasonLabel } : {}),
       ...(query.seasonId ? { seasonId: query.seasonId } : {}),
     });
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -377,7 +378,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       req.body as Parameters<typeof createSupplierImportBatch>[2],
       correlationId,
     );
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -386,7 +387,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = validateSupplierImportBatch(store, principal, (req.params as { id: string }).id, correlationId);
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -394,7 +395,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getSupplierImportBatch(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -410,7 +411,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       correlationId,
       typeof idempotencyKey === "string" ? idempotencyKey : undefined,
     );
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -441,7 +442,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       ...(query.limit ? { limit: Number(query.limit) } : {}),
       ...(query.offset ? { offset: Number(query.offset) } : {}),
     });
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -455,7 +456,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       req.body as Parameters<typeof createSupplier>[2],
       correlationId,
     );
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -463,7 +464,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getSupplier(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -478,7 +479,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       req.body as Parameters<typeof updateSupplier>[3],
       correlationId,
     );
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -487,7 +488,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = archiveSupplier(store, principal, (req.params as { id: string }).id, correlationId);
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -496,7 +497,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = restoreSupplier(store, principal, (req.params as { id: string }).id, correlationId);
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -511,7 +512,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       req.body as Parameters<typeof createSupplierContact>[3],
       correlationId,
     );
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -528,7 +529,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       req.body as Parameters<typeof updateSupplierContact>[4],
       correlationId,
     );
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -538,7 +539,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
     const correlationId = getCorrelationId(req);
     const params = req.params as { id: string; contactId: string };
     const result = archiveSupplierContact(store, principal, params.id, params.contactId, correlationId);
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -553,7 +554,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       req.body as Parameters<typeof createSupplierRate>[3],
       correlationId,
     );
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -570,7 +571,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       req.body as Parameters<typeof updateSupplierRate>[4],
       correlationId,
     );
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -580,7 +581,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
     const correlationId = getCorrelationId(req);
     const params = req.params as { id: string; rateId: string };
     const result = preferSupplierRate(store, principal, params.id, params.rateId, correlationId);
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -590,7 +591,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
     const correlationId = getCorrelationId(req);
     const params = req.params as { id: string; rateId: string };
     const result = archiveSupplierRate(store, principal, params.id, params.rateId, correlationId);
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -605,7 +606,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       req.body as Parameters<typeof createSupplierContentBlock>[3],
       correlationId,
     );
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -622,7 +623,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       req.body as Parameters<typeof updateSupplierContentBlock>[4],
       correlationId,
     );
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -632,7 +633,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
     const correlationId = getCorrelationId(req);
     const params = req.params as { id: string; blockId: string };
     const result = archiveSupplierContentBlock(store, principal, params.id, params.blockId, correlationId);
-    if ("error" in result) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -648,7 +649,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       (req.body ?? {}) as Parameters<typeof createSupplierContract>[3],
       correlationId,
     );
-    if (isPhase1ServiceError(result)) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -656,7 +657,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listSupplierContracts(store, principal, (req.params as { id: string }).id);
-    if (isPhase1ServiceError(result)) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -665,7 +666,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const params = req.params as { id: string; contractId: string };
     const result = getSupplierContract(store, principal, params.id, params.contractId);
-    if (isPhase1ServiceError(result)) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -682,7 +683,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       (req.body ?? {}) as Parameters<typeof createContractVersion>[4],
       correlationId,
     );
-    if (isPhase1ServiceError(result)) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -699,7 +700,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       (req.body ?? {}) as Parameters<typeof attachContractDocument>[4],
       correlationId,
     );
-    if (isPhase1ServiceError(result)) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -707,7 +708,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getHotelProfile(store, principal, (req.params as { id: string }).id);
-    if (isPhase1ServiceError(result)) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -722,7 +723,7 @@ export function registerSupplierRoutes(app: FastifyInstance, store: Store): void
       (req.body ?? {}) as Parameters<typeof upsertHotelProfile>[3],
       correlationId,
     );
-    if (isPhase1ServiceError(result)) return sendSupplierError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 }

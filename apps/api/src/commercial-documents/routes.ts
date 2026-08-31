@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { principalFromAuthHeader } from "../app.js";
 import { getCorrelationId } from "../observability.js";
 import type { Store } from "../store.js";
+import { isHttpErrorResult, sendHttpError } from "../http-error.js";
 import {
   getCommercialDocument,
   getCommercialDocumentContent,
@@ -43,7 +44,7 @@ export function registerCommercialDocumentRoutes(app: FastifyInstance, store: St
       { ...body, rfpId: (req.params as { id: string }).id, kind: body.kind ?? "rfp" },
       correlationId,
     );
-    if (isErrorResult(result)) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -51,7 +52,7 @@ export function registerCommercialDocumentRoutes(app: FastifyInstance, store: St
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listRfpDocuments(store, principal, (req.params as { id: string }).id);
-    if (isErrorResult(result)) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -59,7 +60,7 @@ export function registerCommercialDocumentRoutes(app: FastifyInstance, store: St
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getCommercialDocument(store, principal, (req.params as { id: string }).id);
-    if (isErrorResult(result)) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -67,7 +68,7 @@ export function registerCommercialDocumentRoutes(app: FastifyInstance, store: St
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = await getCommercialDocumentContent(store, principal, (req.params as { id: string }).id);
-    if (isErrorResult(result)) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 }

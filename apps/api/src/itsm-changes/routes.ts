@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { principalFromAuthHeader } from "../app.js";
 import type { Store } from "../store.js";
+import { isHttpErrorResult, sendHttpError } from "../http-error.js";
 import {
   createItsmChange,
   getItsmChange,
@@ -30,7 +31,7 @@ export function registerItsmChangeRoutes(app: FastifyInstance, store: Store): vo
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getItsmChangesHealth(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -42,7 +43,7 @@ export function registerItsmChangeRoutes(app: FastifyInstance, store: Store): vo
       principal,
       req.query as { q?: string; status?: string; ciId?: string },
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -50,7 +51,7 @@ export function registerItsmChangeRoutes(app: FastifyInstance, store: Store): vo
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = createItsmChange(store, principal, (req.body ?? {}) as Parameters<typeof createItsmChange>[2]);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -58,7 +59,7 @@ export function registerItsmChangeRoutes(app: FastifyInstance, store: Store): vo
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getItsmChange(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -71,7 +72,7 @@ export function registerItsmChangeRoutes(app: FastifyInstance, store: Store): vo
       (req.params as { id: string }).id,
       (req.body ?? {}) as Parameters<typeof patchItsmChange>[3],
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 }

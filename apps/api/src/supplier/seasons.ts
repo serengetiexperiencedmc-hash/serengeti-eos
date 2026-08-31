@@ -116,7 +116,11 @@ export function exportSupplierSeasons(
   principal: Principal,
   query: { archived?: boolean; format?: "json" | "csv" } = {},
 ) {
-  const listed = listSupplierSeasons(store, principal, { archived: query.archived });
+  const listed = listSupplierSeasons(
+    store,
+    principal,
+    query.archived !== undefined ? { archived: query.archived } : {},
+  );
   if ("error" in listed) return listed;
   const generatedAt = new Date().toISOString();
   const format = query.format === "csv" ? "csv" : "json";

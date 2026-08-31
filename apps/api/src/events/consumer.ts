@@ -38,7 +38,11 @@ export function processEventEnvelope(
   });
 
   if ("delivered" in result && result.delivered) {
-    return { delivered: true, processed: result.processed, reason: result.reason };
+    return {
+      delivered: true,
+      processed: result.processed,
+      ...(result.reason !== undefined ? { reason: result.reason } : {}),
+    };
   }
   return { delivered: false, processed: false, reason: result.reason };
 }

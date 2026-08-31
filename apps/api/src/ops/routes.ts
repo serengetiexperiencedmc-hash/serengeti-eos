@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { principalFromAuthHeader } from "../app.js";
 import { getCorrelationId } from "../observability.js";
 import type { Store } from "../store.js";
+import { isHttpErrorResult, sendHttpError } from "../http-error.js";
 import {
   completeFieldTask,
   createAssignment,
@@ -61,7 +62,7 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getOpsModuleHealth(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -70,7 +71,7 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const query = req.query as { attention?: string; status?: string; q?: string };
     const result = listOpsWorkbench(store, principal, query);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -79,7 +80,7 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const query = req.query as { bookingId?: string; status?: string };
     const result = listSupplierConfirmations(store, principal, query);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -88,7 +89,7 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const { bookingId } = req.body as { bookingId: string };
     const result = generateSupplierConfirmations(store, principal, bookingId, getCorrelationId(req));
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -103,7 +104,7 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
       req.body as { supplierReference?: string; notes?: string },
       getCorrelationId(req),
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -118,7 +119,7 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
       req.body as { notes?: string },
       getCorrelationId(req),
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -126,7 +127,7 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getManifestByBooking(store, principal, (req.params as { bookingId: string }).bookingId);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -134,7 +135,7 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = createOrGetManifest(store, principal, (req.params as { bookingId: string }).bookingId, getCorrelationId(req));
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -148,7 +149,7 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
       req.body as Parameters<typeof addManifestEntry>[3],
       getCorrelationId(req),
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -156,7 +157,7 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = publishManifest(store, principal, (req.params as { id: string }).id, getCorrelationId(req));
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -165,7 +166,7 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const query = req.query as { bookingId?: string };
     const result = listAssignments(store, principal, query);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -173,7 +174,7 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = createAssignment(store, principal, req.body as Parameters<typeof createAssignment>[2], getCorrelationId(req));
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -182,7 +183,7 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const query = req.query as { bookingId?: string };
     const result = listFieldTasks(store, principal, query);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -190,7 +191,7 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = createFieldTask(store, principal, req.body as Parameters<typeof createFieldTask>[2], getCorrelationId(req));
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -198,7 +199,7 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = completeFieldTask(store, principal, (req.params as { id: string }).id, getCorrelationId(req));
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -206,7 +207,7 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getBriefByBooking(store, principal, (req.params as { bookingId: string }).bookingId);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -215,7 +216,7 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const { content } = req.body as { content: string };
     const result = createOrUpdateBrief(store, principal, (req.params as { bookingId: string }).bookingId, content, getCorrelationId(req));
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -223,7 +224,7 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = issueOpsBrief(store, principal, (req.params as { bookingId: string }).bookingId, getCorrelationId(req));
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -232,7 +233,7 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const query = req.query as { bookingId?: string; status?: string };
     const result = listVouchers(store, principal, query);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -241,7 +242,7 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const { bookingId } = req.body as { bookingId: string };
     const result = generateVouchersFromManifest(store, principal, bookingId, getCorrelationId(req));
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -249,7 +250,7 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = issueVoucher(store, principal, (req.params as { id: string }).id, getCorrelationId(req));
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -258,7 +259,7 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const { bookingId } = req.body as { bookingId: string };
     const result = issueAllVouchers(store, principal, bookingId, getCorrelationId(req));
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -272,7 +273,7 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getSyncPolicy(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -280,7 +281,7 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = pullSyncBundle(store, principal, req.body as Parameters<typeof pullSyncBundle>[2]);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -288,7 +289,7 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = pushSyncDeltas(store, principal, req.body as Parameters<typeof pushSyncDeltas>[2]);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -297,7 +298,7 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const query = req.query as { bookingId?: string };
     const result = listSyncConflicts(store, principal, query);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -306,7 +307,7 @@ export function registerOpsRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const { resolution } = req.body as { resolution: "server_wins" | "client_wins" };
     const result = resolveSyncConflict(store, principal, (req.params as { id: string }).id, resolution);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 }

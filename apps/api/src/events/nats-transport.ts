@@ -1,11 +1,4 @@
-import {
-  AckPolicy,
-  DeliverPolicy,
-  connect,
-  StringCodec,
-  type JetStreamClient,
-  type JetStreamManager,
-} from "nats";
+import { AckPolicy, DeliverPolicy, connect, StringCodec, type JetStreamManager } from "nats";
 import type { EventTransport } from "@sedmc/kernel";
 import type { EnterpriseEventEnvelope } from "@sedmc/kernel";
 
@@ -79,7 +72,7 @@ export async function createNatsJetStreamTransport(opts: NatsTransportOptions): 
   const provisionedTenants = new Set<string>();
 
   try {
-    await js.streams.add({
+    await jsm.streams.add({
       name: opts.stream,
       subjects: [`${opts.subjectPrefix}.>`],
     });
@@ -124,8 +117,8 @@ export function createNatsTransportFromEnv(): NatsTransportOptions | null {
 export async function probeNatsJetStream(url: string): Promise<{ ok: boolean; detail: string }> {
   try {
     const nc = await connect({ servers: url, timeout: 3000 });
-    const js: JetStreamClient = nc.jetstream();
-    await js.streams.info(process.env.EOS_NATS_STREAM ?? "EOS_EVENTS").catch(() => undefined);
+    const jsm = await nc.jetstreamManager();
+    await jsm.streams.info(process.env.EOS_NATS_STREAM ?? "EOS_EVENTS").catch(() => undefined);
     await nc.drain();
     await nc.close();
     return { ok: true, detail: "nats_reachable" };

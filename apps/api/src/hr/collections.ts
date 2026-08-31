@@ -36,12 +36,14 @@ export function seedDefaultHr(store: Store): void {
 
   const now = "2026-08-01T08:00:00.000Z";
   const orgUnitId = alice.orgUnitId;
-  const locationId = store.locations.find((l) => l.tenantId === tenant.id)?.id;
+  const tenantId = tenant.id;
+  const carolId = carol.id;
+  const locationId = store.locations.find((l) => l.tenantId === tenantId)?.id;
 
   function staff(
     id: string,
     code: string,
-    person: typeof alice,
+    person: NonNullable<typeof alice>,
     givenName: string,
     familyName: string,
     jobTitle: string,
@@ -49,7 +51,7 @@ export function seedDefaultHr(store: Store): void {
   ): HrEmployee {
     const row: HrEmployee = {
       id,
-      tenantId: tenant.id,
+      tenantId,
       employeeCode: code,
       givenName,
       familyName,
@@ -59,8 +61,8 @@ export function seedDefaultHr(store: Store): void {
       startDate,
       createdAt: now,
       updatedAt: now,
-      createdByPrincipalId: carol.id,
-      updatedByPrincipalId: carol.id,
+      createdByPrincipalId: carolId,
+      updatedByPrincipalId: carolId,
     };
     if (person.email) row.email = person.email;
     return row;

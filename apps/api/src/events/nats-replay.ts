@@ -48,7 +48,6 @@ export async function replayNatsStreamFromSeq(
 
   const nc = await connect({ servers: opts.url });
   try {
-    const js = nc.jetstream();
     const jsm = await nc.jetstreamManager();
     const info = await jsm.streams.info(stream);
     const lastSeq = info.state.last_seq;
@@ -59,7 +58,7 @@ export async function replayNatsStreamFromSeq(
     for (let seq = input.fromSeq; seq <= lastSeq && results.length < maxMessages; seq++) {
       let stored;
       try {
-        stored = await js.getMessage(stream, { seq });
+        stored = await jsm.streams.getMessage(stream, { seq });
       } catch {
         continue;
       }

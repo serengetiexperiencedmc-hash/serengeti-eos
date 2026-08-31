@@ -82,7 +82,8 @@ export function noteAllowlistSesOverlap(
     entry.sesSyncNote = sesSyncNote;
     if (entry.sesDualControlStatus !== "approved") {
       entry.sesDualControlStatus = "pending";
-      entry.sesApprovalRequestedByPrincipalId = entry.createdByPrincipalId ?? entry.sesApprovalRequestedByPrincipalId;
+      const requester = entry.createdByPrincipalId ?? entry.sesApprovalRequestedByPrincipalId;
+      if (requester !== undefined) entry.sesApprovalRequestedByPrincipalId = requester;
       delete entry.sesApprovedAt;
       delete entry.sesApprovedByPrincipalId;
     }

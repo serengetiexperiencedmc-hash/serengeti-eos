@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { principalFromAuthHeader } from "../app.js";
 import type { Store } from "../store.js";
+import { isHttpErrorResult, sendHttpError } from "../http-error.js";
 import {
   createCampaign,
   getCampaign,
@@ -31,7 +32,7 @@ export function registerControlTestRoutes(app: FastifyInstance, store: Store): v
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getCampaignsHealth(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -39,7 +40,7 @@ export function registerControlTestRoutes(app: FastifyInstance, store: Store): v
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listCampaigns(store, principal, req.query as { q?: string; status?: string });
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -51,7 +52,7 @@ export function registerControlTestRoutes(app: FastifyInstance, store: Store): v
       principal,
       (req.body ?? {}) as Parameters<typeof createCampaign>[2],
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -59,7 +60,7 @@ export function registerControlTestRoutes(app: FastifyInstance, store: Store): v
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getCampaign(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -72,7 +73,7 @@ export function registerControlTestRoutes(app: FastifyInstance, store: Store): v
       (req.params as { id: string }).id,
       (req.body ?? {}) as Parameters<typeof patchCampaign>[3],
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -81,7 +82,7 @@ export function registerControlTestRoutes(app: FastifyInstance, store: Store): v
       const principal = principalFromAuthHeader(store, req.headers.authorization);
       if (!principal) return reply.code(401).send({ error: "unauthenticated" });
       const result = transitionCampaign(store, principal, (req.params as { id: string }).id, action);
-      if ("error" in result) return sendError(reply, result);
+      if (isHttpErrorResult(result)) return sendHttpError(reply, result);
       return result;
     });
   }

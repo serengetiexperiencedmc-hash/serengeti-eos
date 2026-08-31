@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { principalFromAuthHeader } from "../app.js";
 import type { Store } from "../store.js";
 import { createErmKri, getErmKri, getErmKrisHealth, listErmKris, patchErmKri } from "./service.js";
+import { isHttpErrorResult, sendHttpError } from "../http-error.js";
 
 function sendError(
   reply: { code: (n: number) => { send: (b: unknown) => unknown } },
@@ -24,7 +25,7 @@ export function registerErmKriRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getErmKrisHealth(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -32,7 +33,7 @@ export function registerErmKriRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listErmKris(store, principal, req.query as { q?: string; status?: string });
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -40,7 +41,7 @@ export function registerErmKriRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = createErmKri(store, principal, (req.body ?? {}) as Parameters<typeof createErmKri>[2]);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -48,7 +49,7 @@ export function registerErmKriRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getErmKri(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -61,7 +62,7 @@ export function registerErmKriRoutes(app: FastifyInstance, store: Store): void {
       (req.params as { id: string }).id,
       (req.body ?? {}) as Parameters<typeof patchErmKri>[3],
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 }

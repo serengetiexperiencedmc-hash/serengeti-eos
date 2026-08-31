@@ -342,6 +342,7 @@ export function validateSupplierImportRow(row: ParsedCsvRow): SupplierImportRow 
   if (typeof latitude === "object") errors.push(latitude.error);
   const longitude = parseOptionalDecimal(row.longitude);
   if (typeof longitude === "object") errors.push(longitude.error);
+  const preferredPartner = parseOptionalBoolean(row.preferredPartner);
 
   if (errors.length > 0) return { errors };
 
@@ -365,9 +366,7 @@ export function validateSupplierImportRow(row: ParsedCsvRow): SupplierImportRow 
     ...(row.telephone?.trim() ? { telephone: row.telephone.trim() } : {}),
     ...(row.email?.trim() ? { email: row.email.trim().toLowerCase() } : {}),
     ...(row.website?.trim() ? { website: row.website.trim() } : {}),
-    ...(parseOptionalBoolean(row.preferredPartner) !== undefined
-      ? { preferredPartner: parseOptionalBoolean(row.preferredPartner) }
-      : {}),
+    ...(preferredPartner !== undefined ? { preferredPartner } : {}),
     ...(typeof paymentTerms === "number" ? { paymentTermsDays: paymentTerms } : {}),
     ...(row.defaultCurrency?.trim()
       ? { defaultCurrency: row.defaultCurrency.trim().toUpperCase() }
@@ -407,6 +406,7 @@ export function validateSupplierContactImportRow(
 
   if (errors.length > 0) return { errors };
 
+  const isPrimary = parseOptionalBoolean(row.isPrimary);
   return {
     supplierCode: normalizeSupplierCode(supplierCodeRaw!),
     contactRole: roleResult as (typeof SUPPLIER_CONTACT_ROLES)[number],
@@ -415,9 +415,7 @@ export function validateSupplierContactImportRow(
     ...(row.email?.trim() ? { email: row.email.trim().toLowerCase() } : {}),
     ...(row.telephone?.trim() ? { telephone: row.telephone.trim() } : {}),
     ...(row.whatsapp?.trim() ? { whatsapp: row.whatsapp.trim() } : {}),
-    ...(parseOptionalBoolean(row.isPrimary) !== undefined
-      ? { isPrimary: parseOptionalBoolean(row.isPrimary) }
-      : {}),
+    ...(isPrimary !== undefined ? { isPrimary } : {}),
     ...(row.notes?.trim() ? { notes: row.notes.trim() } : {}),
   };
 }
@@ -467,6 +465,7 @@ export function validateSupplierRateImportRow(row: ParsedCsvRow): SupplierRateIm
 
   if (errors.length > 0) return { errors };
 
+  const includesTax = parseOptionalBoolean(row.includesTax);
   return {
     supplierCode: normalizeSupplierCode(supplierCodeRaw!),
     rateCode: normalizeSupplierCode(rateCodeRaw!),
@@ -484,9 +483,7 @@ export function validateSupplierRateImportRow(row: ParsedCsvRow): SupplierRateIm
       ? { cancellationPolicyRef: row.cancellationPolicyRef.trim() }
       : {}),
     ...(row.notes?.trim() ? { notes: row.notes.trim() } : {}),
-    ...(parseOptionalBoolean(row.includesTax) !== undefined
-      ? { includesTax: parseOptionalBoolean(row.includesTax) }
-      : {}),
+    ...(includesTax !== undefined ? { includesTax } : {}),
   };
 }
 
@@ -519,6 +516,7 @@ export function validateSupplierContentBlockImportRow(
   const tags = row.tags?.trim()
     ? row.tags.split("|").map((t) => t.trim()).filter(Boolean)
     : undefined;
+  const isDefault = parseOptionalBoolean(row.isDefault);
 
   return {
     supplierCode: normalizeSupplierCode(supplierCodeRaw!),
@@ -531,9 +529,7 @@ export function validateSupplierContentBlockImportRow(
     ...(row.assetFilename?.trim() ? { assetFilename: row.assetFilename.trim() } : {}),
     ...(row.assetAltText?.trim() ? { assetAltText: row.assetAltText.trim() } : {}),
     ...(tags && tags.length > 0 ? { tags } : {}),
-    ...(parseOptionalBoolean(row.isDefault) !== undefined
-      ? { isDefault: parseOptionalBoolean(row.isDefault) }
-      : {}),
+    ...(isDefault !== undefined ? { isDefault } : {}),
   };
 }
 

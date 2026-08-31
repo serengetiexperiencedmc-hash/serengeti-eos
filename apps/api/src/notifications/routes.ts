@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { principalFromAuthHeader } from "../app.js";
 import type { Store } from "../store.js";
 import { dispatchEmailDigest, getEmailAdapterHealth, listEmailOutbox, listEmailTemplates, previewEmailTemplate, upsertEmailTemplate } from "./email.js";
+import { isHttpErrorResult, sendHttpError, withoutUndefined } from "../http-error.js";
 import {
   acknowledgeDlqSlaDigestStale,
   dispatchDlqSlaDigest,
@@ -81,7 +82,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listNotifications(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -89,7 +90,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listNotifications(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return { unreadCount: result.unreadCount };
   });
 
@@ -98,7 +99,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const key = decodeURIComponent((req.params as { key: string }).key);
     const result = await dismissNotification(store, principal, key);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -118,7 +119,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listEmailOutbox(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -126,7 +127,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = await dispatchEmailDigest(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -134,7 +135,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = await dispatchDlqSlaDigest(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -142,7 +143,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getDlqSlaDigestStatus(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -150,7 +151,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = await dispatchDlqSlaDigestStaleAlert(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -158,8 +159,8 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const body = (req.body ?? {}) as { hours?: number };
-    const result = snoozeDlqSlaDigestStale(store, principal, { hours: body.hours });
-    if ("error" in result) return sendError(reply, result);
+    const result = snoozeDlqSlaDigestStale(store, principal, withoutUndefined({ hours: body.hours }));
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -167,17 +168,19 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = acknowledgeDlqSlaDigestStale(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
   app.get("/v1/notifications/email/dlq-sla-digest-stale/export/presets/usage", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const result = exportDlqSlaDigestStaleAuditExportPresetUsage(store, principal, {
-      format: (req.query as { format?: string }).format,
-    });
-    if ("error" in result) return sendError(reply, result);
+    const result = exportDlqSlaDigestStaleAuditExportPresetUsage(
+      store,
+      principal,
+      withoutUndefined({ format: (req.query as { format?: string }).format }),
+    );
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -185,7 +188,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listDlqSlaDigestStaleAuditExportPresets(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -194,7 +197,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const body = (req.body ?? {}) as { name?: string; action?: string; since?: string; until?: string };
     const result = await upsertDlqSlaDigestStaleAuditExportPreset(store, principal, body);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -208,7 +211,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
       (req.params as { id: string }).id,
       body,
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -220,7 +223,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
       principal,
       (req.params as { id: string }).id,
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -237,13 +240,15 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     };
     const result = await exportDlqSlaDigestStaleSuppression(store, principal, {
       format: query.format === "csv" ? "csv" : "json",
-      action: query.action,
-      since: query.since,
-      until: query.until,
-      preset: query.preset,
-      presetId: query.presetId,
+      ...withoutUndefined({
+        action: query.action,
+        since: query.since,
+        until: query.until,
+        preset: query.preset,
+        presetId: query.presetId,
+      }),
     });
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -254,7 +259,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const result = exportDlqSlaDigestLastRun(store, principal, {
       format: query.format === "csv" ? "csv" : "json",
     });
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -262,7 +267,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = await dispatchAllowlistDualDigest(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -270,7 +275,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = await dispatchAllowlistDualDigestStaleAlert(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -278,8 +283,8 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const body = (req.body ?? {}) as { hours?: number };
-    const result = snoozeAllowlistDualDigestStale(store, principal, { hours: body.hours });
-    if ("error" in result) return sendError(reply, result);
+    const result = snoozeAllowlistDualDigestStale(store, principal, withoutUndefined({ hours: body.hours }));
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -287,17 +292,19 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = acknowledgeAllowlistDualDigestStale(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
   app.get("/v1/notifications/email/allowlist-dual-digest-stale/export/presets/usage", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const result = exportAllowlistDualDigestStaleAuditExportPresetUsage(store, principal, {
-      format: (req.query as { format?: string }).format,
-    });
-    if ("error" in result) return sendError(reply, result);
+    const result = exportAllowlistDualDigestStaleAuditExportPresetUsage(
+      store,
+      principal,
+      withoutUndefined({ format: (req.query as { format?: string }).format }),
+    );
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -305,7 +312,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listAllowlistDualDigestStaleAuditExportPresets(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -314,7 +321,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const body = (req.body ?? {}) as { name?: string; action?: string; since?: string; until?: string };
     const result = await upsertAllowlistDualDigestStaleAuditExportPreset(store, principal, body);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -328,7 +335,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
       (req.params as { id: string }).id,
       body,
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -340,7 +347,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
       principal,
       (req.params as { id: string }).id,
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -357,13 +364,15 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     };
     const result = await exportAllowlistDualDigestStaleSuppression(store, principal, {
       format: query.format === "csv" ? "csv" : "json",
-      action: query.action,
-      since: query.since,
-      until: query.until,
-      preset: query.preset,
-      presetId: query.presetId,
+      ...withoutUndefined({
+        action: query.action,
+        since: query.since,
+        until: query.until,
+        preset: query.preset,
+        presetId: query.presetId,
+      }),
     });
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -371,7 +380,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getAllowlistDualDigestStatus(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -379,7 +388,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listAllowlistDualDigestRecipients(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -392,7 +401,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
       email: body.email,
       ...(body.note !== undefined ? { note: body.note } : {}),
     });
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(result.updated ? 200 : 201).send(result);
   });
 
@@ -400,7 +409,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = revokeAllowlistDualDigestRecipient(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -408,7 +417,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listDlqSlaDigestRecipients(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -421,7 +430,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
       email: body.email,
       ...(body.note !== undefined ? { note: body.note } : {}),
     });
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(result.updated ? 200 : 201).send(result);
   });
 
@@ -430,7 +439,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const id = (req.params as { id: string }).id;
     const result = revokeDlqSlaDigestRecipient(store, principal, id);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -438,7 +447,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listEmailTemplates(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -447,7 +456,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const templateKey = decodeURIComponent((req.params as { key: string }).key);
     const result = previewEmailTemplate(store, principal, templateKey);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -462,7 +471,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
       bodyText: body.bodyText,
       ...(body.bodyHtml !== undefined ? { bodyHtml: body.bodyHtml } : {}),
     });
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -503,7 +512,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const result = getEmailDeliveryAnalytics(store, principal, {
       windowHours: Number.isFinite(windowHours) && windowHours > 0 ? windowHours : 168,
     });
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -515,7 +524,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
       format: query.format === "csv" ? "csv" : "json",
       includeLifted: query.includeLifted === "1" || query.includeLifted === "true",
     });
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -542,7 +551,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
       ...(dualControlStatus ? { dualControlStatus } : {}),
       pendingOnly: query.pendingOnly === "1" || query.pendingOnly === "true",
     });
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -565,7 +574,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
       includeRevoked: query.includeRevoked === "1" || query.includeRevoked === "true",
       ...(dualControlStatus ? { dualControlStatus } : {}),
     });
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -579,7 +588,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
       ...(body.note !== undefined ? { note: body.note } : {}),
       ...(body.expiresAt !== undefined ? { expiresAt: body.expiresAt } : {}),
     });
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(result.updated ? 200 : 201).send(result);
   });
 
@@ -587,7 +596,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = await revokeEmailAllowlistEntry(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -595,7 +604,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = await approveSesNotedAllowlistEntry(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -604,7 +613,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const body = (req.body ?? {}) as { until?: string; hours?: number };
     const result = await snoozeDualControlReminder(store, principal, (req.params as { id: string }).id, body);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -613,7 +622,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const body = (req.body ?? {}) as { reason?: string };
     const result = await dismissDualControlReminder(store, principal, (req.params as { id: string }).id, body);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -625,7 +634,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
       principal,
       (req.params as { id: string }).id,
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -633,7 +642,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listEmailSuppressions(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -641,7 +650,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = await syncEmailSuppressionsFromSes(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -650,7 +659,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const body = (req.body ?? {}) as { ids?: string[]; emails?: string[] };
     const result = await bulkLiftEmailSuppressions(store, principal, body);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -662,7 +671,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
       csv?: string;
     };
     const result = await importEmailSuppressions(store, principal, body);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -670,7 +679,7 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = await liftEmailSuppression(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 }

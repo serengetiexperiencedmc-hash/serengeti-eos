@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { principalFromAuthHeader } from "../app.js";
 import { getCorrelationId } from "../observability.js";
 import type { Store } from "../store.js";
+import { isHttpErrorResult, sendHttpError } from "../http-error.js";
 import {
   createRfp,
   createRfpVersion,
@@ -38,7 +39,7 @@ export function registerRfpRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getRfpModuleHealth(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -46,7 +47,7 @@ export function registerRfpRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listRfpWorkflowStages(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -55,7 +56,7 @@ export function registerRfpRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const query = req.query as { opportunityId?: string; workflowStage?: string; status?: string };
     const result = listRfps(store, principal, query);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -64,7 +65,7 @@ export function registerRfpRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = createRfp(store, principal, req.body as Parameters<typeof createRfp>[2], correlationId);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -72,7 +73,7 @@ export function registerRfpRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getRfp(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -87,7 +88,7 @@ export function registerRfpRoutes(app: FastifyInstance, store: Store): void {
       (req.body ?? {}) as Parameters<typeof patchRfp>[3],
       correlationId,
     );
-    if (isPhase1RfpError(result)) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -103,7 +104,7 @@ export function registerRfpRoutes(app: FastifyInstance, store: Store): void {
       body.toStage,
       correlationId,
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -119,7 +120,7 @@ export function registerRfpRoutes(app: FastifyInstance, store: Store): void {
       body.summary,
       correlationId,
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 }

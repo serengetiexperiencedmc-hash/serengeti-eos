@@ -81,7 +81,7 @@ export function generateVouchersFromManifest(
       guestName: entry.guestName,
       supplierLabel: "Programme supplier",
       status: "draft",
-      notes: entry.dietary ? `Dietary: ${entry.dietary}` : undefined,
+      ...(entry.dietary ? { notes: `Dietary: ${entry.dietary}` } : {}),
       classification: booking.classification,
       version: 1,
       createdAt: now,

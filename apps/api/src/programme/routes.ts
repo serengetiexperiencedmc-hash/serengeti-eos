@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { principalFromAuthHeader } from "../app.js";
 import { getCorrelationId } from "../observability.js";
 import type { Store } from "../store.js";
+import { isHttpErrorResult, sendHttpError } from "../http-error.js";
 import {
   addProgrammeDay,
   addProgrammeItem,
@@ -40,7 +41,7 @@ export function registerProgrammeRoutes(app: FastifyInstance, store: Store): voi
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getProgrammeModuleHealth(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -49,7 +50,7 @@ export function registerProgrammeRoutes(app: FastifyInstance, store: Store): voi
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const query = req.query as { rfpId?: string; status?: string };
     const result = listProgrammes(store, principal, query);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -63,7 +64,7 @@ export function registerProgrammeRoutes(app: FastifyInstance, store: Store): voi
       req.body as Parameters<typeof createProgramme>[2],
       correlationId,
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -71,7 +72,7 @@ export function registerProgrammeRoutes(app: FastifyInstance, store: Store): voi
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getProgrammeByRfp(store, principal, (req.params as { rfpId: string }).rfpId);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -79,7 +80,7 @@ export function registerProgrammeRoutes(app: FastifyInstance, store: Store): voi
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getProgrammeDetail(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -94,7 +95,7 @@ export function registerProgrammeRoutes(app: FastifyInstance, store: Store): voi
       req.body as Parameters<typeof addProgrammeDay>[3],
       correlationId,
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -111,7 +112,7 @@ export function registerProgrammeRoutes(app: FastifyInstance, store: Store): voi
       req.body as Parameters<typeof addProgrammeItem>[4],
       correlationId,
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -126,7 +127,7 @@ export function registerProgrammeRoutes(app: FastifyInstance, store: Store): voi
       (req.body ?? {}) as Parameters<typeof patchProgramme>[3],
       correlationId,
     );
-    if (isPhase1ProgrammeError(result)) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -143,7 +144,7 @@ export function registerProgrammeRoutes(app: FastifyInstance, store: Store): voi
       (req.body ?? {}) as Parameters<typeof patchProgrammeItem>[4],
       correlationId,
     );
-    if (isPhase1ProgrammeError(result)) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -159,7 +160,7 @@ export function registerProgrammeRoutes(app: FastifyInstance, store: Store): voi
       body.summary ?? "",
       correlationId,
     );
-    if (isPhase1ProgrammeError(result)) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 }

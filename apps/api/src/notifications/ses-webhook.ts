@@ -127,9 +127,7 @@ async function applyDeliveryEvent(
 export async function handleSesDeliveryWebhook(
   store: Store,
   input: { secret?: string; body: unknown },
-):
-  | { ok: true; result: string; outboxId?: string }
-  | { ok: false; reason: string } {
+): Promise<{ ok: true; result: string; outboxId?: string } | { ok: false; reason: string }> {
   if (!webhookSecretOk(input.secret)) return { ok: false, reason: "webhook_unauthorized" };
 
   const body = input.body as Record<string, unknown>;

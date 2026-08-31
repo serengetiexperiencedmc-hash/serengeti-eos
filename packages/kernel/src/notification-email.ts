@@ -302,14 +302,15 @@ export function buildEmailFromNotification(
     { severity: item.severity, title: item.title, body: item.body, href: item.href },
     templateOverrides,
   );
-  return {
+  const msg: EmailNotificationMessage = {
     to: recipientEmail,
     subject: resolved.subject,
     bodyText: resolved.bodyText,
-    bodyHtml: resolved.bodyHtml,
     notificationKey: item.key,
     templateKey: resolved.templateKey,
   };
+  if (resolved.bodyHtml !== undefined) msg.bodyHtml = resolved.bodyHtml;
+  return msg;
 }
 
 export function shouldEmailNotification(item: NotifItem): boolean {

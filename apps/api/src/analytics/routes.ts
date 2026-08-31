@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { principalFromAuthHeader } from "../app.js";
 import type { Store } from "../store.js";
+import { isHttpErrorResult, sendHttpError } from "../http-error.js";
 import {
   getAnalyticsModuleHealth,
   getCommercialAnalyticsSummary,
@@ -23,7 +24,7 @@ export function registerAnalyticsRoutes(app: FastifyInstance, store: Store): voi
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getAnalyticsModuleHealth(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -31,7 +32,7 @@ export function registerAnalyticsRoutes(app: FastifyInstance, store: Store): voi
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getCommercialAnalyticsSummary(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -39,7 +40,7 @@ export function registerAnalyticsRoutes(app: FastifyInstance, store: Store): voi
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getCommercialPipelineRollup(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -47,7 +48,7 @@ export function registerAnalyticsRoutes(app: FastifyInstance, store: Store): voi
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getCommercialMarginRollup(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -55,7 +56,7 @@ export function registerAnalyticsRoutes(app: FastifyInstance, store: Store): voi
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getOperationsAnalyticsSummary(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -63,7 +64,7 @@ export function registerAnalyticsRoutes(app: FastifyInstance, store: Store): voi
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getOperationsBookingReadiness(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -72,7 +73,7 @@ export function registerAnalyticsRoutes(app: FastifyInstance, store: Store): voi
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const query = req.query as { from?: string; to?: string };
     const result = getFinanceAnalyticsSummary(store, principal, query);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 }

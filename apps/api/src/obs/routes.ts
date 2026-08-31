@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { principalFromAuthHeader } from "../app.js";
 import { getCorrelationId } from "../observability.js";
 import type { Store } from "../store.js";
+import { isHttpErrorResult, sendHttpError } from "../http-error.js";
 import {
   getObservabilityHealth,
   getObservabilityMap,
@@ -64,7 +65,7 @@ export function registerObsRoutes(
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getObservabilityHealth(store, principal, await probesFromReady(dbHealth));
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -77,7 +78,7 @@ export function registerObsRoutes(
       await probesFromReady(dbHealth),
       req.query as { lifecycle?: string },
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -85,7 +86,7 @@ export function registerObsRoutes(
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listObservabilityTraces(store, principal, req.query as { limit?: string });
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 }

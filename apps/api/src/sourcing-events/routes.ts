@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { principalFromAuthHeader } from "../app.js";
 import type { Store } from "../store.js";
+import { isHttpErrorResult, sendHttpError } from "../http-error.js";
 import {
   createSourcingEvent,
   getSourcingEvent,
@@ -30,7 +31,7 @@ export function registerSourcingEventRoutes(app: FastifyInstance, store: Store):
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getSourcingEventHealth(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -38,7 +39,7 @@ export function registerSourcingEventRoutes(app: FastifyInstance, store: Store):
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listSourcingEvents(store, principal, req.query as { q?: string; status?: string });
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -50,7 +51,7 @@ export function registerSourcingEventRoutes(app: FastifyInstance, store: Store):
       principal,
       (req.body ?? {}) as Parameters<typeof createSourcingEvent>[2],
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -58,7 +59,7 @@ export function registerSourcingEventRoutes(app: FastifyInstance, store: Store):
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getSourcingEvent(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -71,7 +72,7 @@ export function registerSourcingEventRoutes(app: FastifyInstance, store: Store):
       (req.params as { id: string }).id,
       (req.body ?? {}) as Parameters<typeof patchSourcingEvent>[3],
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 }

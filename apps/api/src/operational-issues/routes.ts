@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { principalFromAuthHeader } from "../app.js";
 import type { Store } from "../store.js";
+import { isHttpErrorResult, sendHttpError } from "../http-error.js";
 import {
   createOperationalIssue,
   getOperationalIssue,
@@ -31,7 +32,7 @@ export function registerOperationalIssueRoutes(app: FastifyInstance, store: Stor
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getOperationalIssuesHealth(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -43,7 +44,7 @@ export function registerOperationalIssueRoutes(app: FastifyInstance, store: Stor
       principal,
       req.query as { q?: string; status?: string; bookingId?: string },
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -55,7 +56,7 @@ export function registerOperationalIssueRoutes(app: FastifyInstance, store: Stor
       principal,
       (req.body ?? {}) as Parameters<typeof createOperationalIssue>[2],
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -63,7 +64,7 @@ export function registerOperationalIssueRoutes(app: FastifyInstance, store: Stor
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getOperationalIssue(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -76,7 +77,7 @@ export function registerOperationalIssueRoutes(app: FastifyInstance, store: Stor
       (req.params as { id: string }).id,
       (req.body ?? {}) as Parameters<typeof patchOperationalIssue>[3],
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -85,7 +86,7 @@ export function registerOperationalIssueRoutes(app: FastifyInstance, store: Stor
       const principal = principalFromAuthHeader(store, req.headers.authorization);
       if (!principal) return reply.code(401).send({ error: "unauthenticated" });
       const result = transitionOperationalIssue(store, principal, (req.params as { id: string }).id, action);
-      if ("error" in result) return sendError(reply, result);
+      if (isHttpErrorResult(result)) return sendHttpError(reply, result);
       return result;
     });
   }
