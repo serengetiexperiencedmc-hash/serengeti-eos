@@ -132,7 +132,15 @@ export function computeCostTotals(input: CostTotalsInput): CostTotalsResult {
   const perPerson =
     input.paxCount && input.paxCount > 0 ? Math.round((sellPrice / input.paxCount) * 100) / 100 : undefined;
 
-  return { totalCost, sellPrice, marginPercent, marginAmount, perPerson, categoryTotals };
+  const totals: CostTotalsResult = {
+    totalCost,
+    sellPrice,
+    marginPercent,
+    marginAmount,
+    categoryTotals,
+  };
+  if (perPerson !== undefined) totals.perPerson = perPerson;
+  return totals;
 }
 
 export function buildCostSheetCode(programmeCode: string): string {

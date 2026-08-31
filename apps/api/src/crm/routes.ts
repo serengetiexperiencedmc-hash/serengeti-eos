@@ -5,6 +5,7 @@ import type { Store } from "../store.js";
 import { getCorrelationId } from "../observability.js";
 import { listCrmOutboxEvents } from "./events.js";
 import { getCrmModuleHealth, listActivityTypes, listOrganizationTypes, listRelationshipTypes } from "./module.js";
+import { isHttpErrorResult, sendHttpError } from "../http-error.js";
 import {
   archiveOrganization,
   createOrganization,
@@ -151,7 +152,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listOrganizationTypes(store, principal);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -159,7 +160,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listRelationshipTypes(store, principal);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -167,7 +168,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listActivityTypes(store, principal);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -176,7 +177,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const query = req.query as { status?: string; organizationTypeId?: string };
     const result = listOrganizations(store, principal, query);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -185,7 +186,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = createOrganization(store, principal, req.body as Parameters<typeof createOrganization>[2], correlationId);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -194,7 +195,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const { id } = req.params as { id: string };
     const result = getOrganization(store, principal, id);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -214,7 +215,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
       correlationId,
       Number.isFinite(expectedVersion) ? expectedVersion : undefined,
     );
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -230,7 +231,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
       req.body as Parameters<typeof transitionOrganization>[3],
       correlationId,
     );
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -240,7 +241,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     const correlationId = getCorrelationId(req);
     const { id } = req.params as { id: string };
     const result = archiveOrganization(store, principal, id, correlationId);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -249,7 +250,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const { orgId } = req.params as { orgId: string };
     const result = listOrganizationUnits(store, principal, orgId);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -265,7 +266,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
       req.body as Parameters<typeof createOrganizationUnit>[3],
       correlationId,
     );
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -274,7 +275,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const { id } = req.params as { id: string };
     const result = getOrganizationUnit(store, principal, id);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -290,7 +291,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
       req.body as Parameters<typeof updateOrganizationUnit>[3],
       correlationId,
     );
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -299,7 +300,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const query = req.query as { status?: string; organizationId?: string; email?: string };
     const result = listContacts(store, principal, query);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -308,7 +309,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = createContact(store, principal, req.body as Parameters<typeof createContact>[2], correlationId);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -317,7 +318,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const { id } = req.params as { id: string };
     const result = getContact(store, principal, id);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -337,7 +338,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
       correlationId,
       Number.isFinite(expectedVersion) ? expectedVersion : undefined,
     );
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -347,7 +348,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     const correlationId = getCorrelationId(req);
     const { id } = req.params as { id: string };
     const result = archiveContact(store, principal, id, correlationId);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -357,7 +358,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     const { id } = req.params as { id: string };
     const query = req.query as { organizationId?: string; status?: string };
     const result = listContactRelationships(store, principal, id, query);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -371,7 +372,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
       status?: string;
     };
     const result = listRelationships(store, principal, query);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -385,7 +386,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
       req.body as Parameters<typeof createRelationship>[2],
       correlationId,
     );
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -394,7 +395,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const { id } = req.params as { id: string };
     const result = getRelationship(store, principal, id);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -414,7 +415,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
       correlationId,
       Number.isFinite(expectedVersion) ? expectedVersion : undefined,
     );
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -430,7 +431,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
       req.body as Parameters<typeof transitionRelationship>[3],
       correlationId,
     );
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -440,7 +441,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     const { orgId } = req.params as { orgId: string };
     const query = req.query as { contactId?: string; status?: string };
     const result = listOrganizationRelationships(store, principal, orgId, query);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -471,7 +472,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
       ...(query.limit !== undefined ? { limit: Number.parseInt(query.limit, 10) } : {}),
       ...(query.cursor !== undefined ? { cursor: query.cursor } : {}),
     });
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -480,7 +481,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = createActivity(store, principal, req.body as Parameters<typeof createActivity>[2], correlationId);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -489,7 +490,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const { id } = req.params as { id: string };
     const result = getActivity(store, principal, id);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -509,7 +510,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
       correlationId,
       Number.isFinite(expectedVersion) ? expectedVersion : undefined,
     );
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -519,7 +520,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     const correlationId = getCorrelationId(req);
     const { id } = req.params as { id: string };
     const result = archiveActivity(store, principal, id, correlationId);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -533,7 +534,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
       ...(query.cursor !== undefined ? { cursor: query.cursor } : {}),
       ...(query.activityType !== undefined ? { activityType: query.activityType } : {}),
     });
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -547,7 +548,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
       ...(query.cursor !== undefined ? { cursor: query.cursor } : {}),
       ...(query.activityType !== undefined ? { activityType: query.activityType } : {}),
     });
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -560,7 +561,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
       ...(query.limit !== undefined ? { limit: Number.parseInt(query.limit, 10) } : {}),
       ...(query.cursor !== undefined ? { cursor: query.cursor } : {}),
     });
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -573,7 +574,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
       ...(query.limit !== undefined ? { limit: Number.parseInt(query.limit, 10) } : {}),
       ...(query.cursor !== undefined ? { cursor: query.cursor } : {}),
     });
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -588,7 +589,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
       ...(query.limit !== undefined ? { limit: Number.parseInt(query.limit, 10) } : {}),
       ...(query.cursor !== undefined ? { cursor: query.cursor } : {}),
     });
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -597,7 +598,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = createAccount(store, principal, req.body as Parameters<typeof createAccount>[2], correlationId);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -605,7 +606,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getAccount(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -617,7 +618,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     const ifMatch = req.headers["if-match"];
     const expectedVersion = typeof ifMatch === "string" && ifMatch.trim() !== "" ? Number.parseInt(ifMatch, 10) : undefined;
     const result = updateAccount(store, principal, id, req.body as Parameters<typeof updateAccount>[3], correlationId, Number.isFinite(expectedVersion) ? expectedVersion : undefined);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -626,7 +627,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = transitionAccount(store, principal, (req.params as { id: string }).id, req.body as Parameters<typeof transitionAccount>[3], correlationId);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -635,7 +636,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = archiveAccount(store, principal, (req.params as { id: string }).id, correlationId);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -644,7 +645,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = reassignAccountOwner(store, principal, (req.params as { id: string }).id, req.body as Parameters<typeof reassignAccountOwner>[3], correlationId);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -652,7 +653,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listOrganizationAccounts(store, principal, (req.params as { orgId: string }).orgId);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -666,7 +667,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
       ...(query.limit !== undefined ? { limit: Number.parseInt(query.limit, 10) } : {}),
       ...(query.cursor !== undefined ? { cursor: query.cursor } : {}),
     });
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -675,7 +676,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = createNote(store, principal, req.body as Parameters<typeof createNote>[2], correlationId);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -683,7 +684,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getNote(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -695,7 +696,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     const ifMatch = req.headers["if-match"];
     const expectedVersion = typeof ifMatch === "string" && ifMatch.trim() !== "" ? Number.parseInt(ifMatch, 10) : undefined;
     const result = updateNote(store, principal, id, req.body as Parameters<typeof updateNote>[3], correlationId, Number.isFinite(expectedVersion) ? expectedVersion : undefined);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -704,7 +705,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = archiveNote(store, principal, (req.params as { id: string }).id, correlationId);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -713,7 +714,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const { id } = req.params as { id: string };
     const result = listEntityNotes(store, principal, "contact", id);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -721,7 +722,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listEntityNotes(store, principal, "organization", (req.params as { orgId: string }).orgId);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -735,7 +736,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
       ...(query.limit !== undefined ? { limit: Number.parseInt(query.limit, 10) } : {}),
       ...(query.cursor !== undefined ? { cursor: query.cursor } : {}),
     });
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -744,7 +745,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = createTask(store, principal, req.body as Parameters<typeof createTask>[2], correlationId);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -752,7 +753,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getTask(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -764,7 +765,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     const ifMatch = req.headers["if-match"];
     const expectedVersion = typeof ifMatch === "string" && ifMatch.trim() !== "" ? Number.parseInt(ifMatch, 10) : undefined;
     const result = updateTask(store, principal, id, req.body as Parameters<typeof updateTask>[3], correlationId, Number.isFinite(expectedVersion) ? expectedVersion : undefined);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -773,7 +774,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = completeTask(store, principal, (req.params as { id: string }).id, correlationId);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -782,7 +783,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = cancelTask(store, principal, (req.params as { id: string }).id, correlationId);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -811,7 +812,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
       ...(query.country !== undefined ? { country: query.country } : {}),
       ...(query.type !== undefined ? { type: query.type } : {}),
     });
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -825,7 +826,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
       ...(query.limit !== undefined ? { limit: Number.parseInt(query.limit, 10) } : {}),
       ...(query.cursor !== undefined ? { cursor: query.cursor } : {}),
     });
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -833,7 +834,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getDuplicateCandidate(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -848,7 +849,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
       req.body as Parameters<typeof reviewDuplicateCandidate>[3],
       correlationId,
     );
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -864,7 +865,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
       correlationId,
       typeof idempotencyKey === "string" ? idempotencyKey : undefined,
     );
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(result.replay ? 200 : 201).send(result);
   });
 
@@ -872,7 +873,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getMergeRecord(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -881,7 +882,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = createImportBatch(store, principal, req.body as Parameters<typeof createImportBatch>[2], correlationId);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -890,7 +891,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = validateImportBatch(store, principal, (req.params as { id: string }).id, correlationId);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -898,7 +899,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getImportBatch(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -914,7 +915,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
       correlationId,
       typeof idempotencyKey === "string" ? idempotencyKey : undefined,
     );
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -925,7 +926,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     const result = listTags(store, principal, {
       includeArchived: query.includeArchived === "true",
     });
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -934,7 +935,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = createTag(store, principal, req.body as Parameters<typeof createTag>[2], correlationId);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -942,7 +943,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getTag(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -962,7 +963,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
       correlationId,
       Number.isFinite(expectedVersion) ? expectedVersion : undefined,
     );
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -971,7 +972,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = archiveTag(store, principal, (req.params as { id: string }).id, correlationId);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -992,7 +993,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
       ...(query.limit !== undefined ? { limit: Number.parseInt(query.limit, 10) } : {}),
       ...(query.cursor !== undefined ? { cursor: query.cursor } : {}),
     });
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -1001,7 +1002,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = assignTag(store, principal, req.body as Parameters<typeof assignTag>[2], correlationId);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -1010,7 +1011,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = removeTagAssignment(store, principal, (req.params as { id: string }).id, correlationId);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -1019,7 +1020,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const { systemKey, externalId } = req.params as { systemKey: string; externalId: string };
     const result = lookupExternalIdentifier(store, principal, decodeURIComponent(systemKey), decodeURIComponent(externalId));
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -1033,7 +1034,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
       req.body as Parameters<typeof createExternalIdentifier>[2],
       correlationId,
     );
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -1041,7 +1042,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getExternalIdentifier(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -1050,7 +1051,7 @@ export function registerCrmRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = deleteExternalIdentifier(store, principal, (req.params as { id: string }).id, correlationId);
-    if ("error" in result) return sendCrmError(reply, result as { error: string; reason?: string });
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 }

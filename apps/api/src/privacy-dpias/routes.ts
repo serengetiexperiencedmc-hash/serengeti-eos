@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { principalFromAuthHeader } from "../app.js";
 import type { Store } from "../store.js";
+import { isHttpErrorResult, sendHttpError } from "../http-error.js";
 import {
   createPrivacyDpia,
   getPrivacyDpia,
@@ -30,7 +31,7 @@ export function registerPrivacyDpiaRoutes(app: FastifyInstance, store: Store): v
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getPrivacyDpiasHealth(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -38,7 +39,7 @@ export function registerPrivacyDpiaRoutes(app: FastifyInstance, store: Store): v
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listPrivacyDpias(store, principal, req.query as { q?: string; status?: string });
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -46,7 +47,7 @@ export function registerPrivacyDpiaRoutes(app: FastifyInstance, store: Store): v
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = createPrivacyDpia(store, principal, (req.body ?? {}) as Parameters<typeof createPrivacyDpia>[2]);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -54,7 +55,7 @@ export function registerPrivacyDpiaRoutes(app: FastifyInstance, store: Store): v
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getPrivacyDpia(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -67,7 +68,7 @@ export function registerPrivacyDpiaRoutes(app: FastifyInstance, store: Store): v
       (req.params as { id: string }).id,
       (req.body ?? {}) as Parameters<typeof patchPrivacyDpia>[3],
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 }

@@ -136,13 +136,14 @@ export function getSupplierFacets(store: Store, principal: Principal, query: Sup
   }
 
   const base = { ...query };
-  const forCategory = filterSupplierRecords(store, principal.tenantId, { ...base, category: undefined });
-  const forStatus = filterSupplierRecords(store, principal.tenantId, { ...base, status: undefined });
-  const forCountry = filterSupplierRecords(store, principal.tenantId, { ...base, country: undefined });
-  const forPreferred = filterSupplierRecords(store, principal.tenantId, {
-    ...base,
-    preferredPartner: undefined,
-  });
+  const { category: _category, ...withoutCategory } = base;
+  const { status: _status, ...withoutStatus } = base;
+  const { country: _country, ...withoutCountry } = base;
+  const { preferredPartner: _preferred, ...withoutPreferred } = base;
+  const forCategory = filterSupplierRecords(store, principal.tenantId, withoutCategory);
+  const forStatus = filterSupplierRecords(store, principal.tenantId, withoutStatus);
+  const forCountry = filterSupplierRecords(store, principal.tenantId, withoutCountry);
+  const forPreferred = filterSupplierRecords(store, principal.tenantId, withoutPreferred);
   const total = filterSupplierRecords(store, principal.tenantId, base).length;
 
   return {

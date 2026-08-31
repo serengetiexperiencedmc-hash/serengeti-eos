@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { principalFromAuthHeader } from "../app.js";
 import { getCorrelationId } from "../observability.js";
 import type { Store } from "../store.js";
+import { isHttpErrorResult, sendHttpError } from "../http-error.js";
 import {
   generateProposal,
   createProposalVersion,
@@ -33,7 +34,7 @@ export function registerProposalRoutes(app: FastifyInstance, store: Store): void
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getProposalModuleHealth(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -42,7 +43,7 @@ export function registerProposalRoutes(app: FastifyInstance, store: Store): void
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const query = req.query as { rfpId?: string; status?: string; organizationId?: string };
     const result = listProposals(store, principal, query);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -56,7 +57,7 @@ export function registerProposalRoutes(app: FastifyInstance, store: Store): void
       req.body as Parameters<typeof generateProposal>[2],
       correlationId,
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -64,7 +65,7 @@ export function registerProposalRoutes(app: FastifyInstance, store: Store): void
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getProposalByRfp(store, principal, (req.params as { rfpId: string }).rfpId);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -72,7 +73,7 @@ export function registerProposalRoutes(app: FastifyInstance, store: Store): void
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getProposalDetail(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -88,7 +89,7 @@ export function registerProposalRoutes(app: FastifyInstance, store: Store): void
       body.toStatus,
       correlationId,
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -104,7 +105,7 @@ export function registerProposalRoutes(app: FastifyInstance, store: Store): void
       body.summary,
       correlationId,
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 }

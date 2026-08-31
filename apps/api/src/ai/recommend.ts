@@ -242,7 +242,8 @@ function clearAiRecommendStaleSuppression(store: Store, principal: Principal): v
 async function upsertAiRecommendStaleSuppression(
   store: Store,
   principal: Principal,
-  patch: Partial<Pick<AiRecommendStaleSuppression, "acknowledgedAt" | "snoozedUntil">>,
+  patch: { acknowledgedAt?: string; snoozedUntil?: string },
+  clear: { acknowledgedAt?: true; snoozedUntil?: true } = {},
 ): Promise<AiRecommendStaleSuppression> {
   ensureAiRecommendStaleSuppressions(store);
   const now = new Date().toISOString();
@@ -255,6 +256,8 @@ async function upsertAiRecommendStaleSuppression(
     updatedAt: now,
     updatedByPrincipalId: principal.id,
   };
+  if (clear.acknowledgedAt) delete next.acknowledgedAt;
+  if (clear.snoozedUntil) delete next.snoozedUntil;
   const idx = store.aiRecommendStaleSuppressions.findIndex(
     (row) => row.tenantId === principal.tenantId && row.principalId === principal.id,
   );
@@ -518,9 +521,9 @@ export async function upsertAiRecommendStaleAuditExportPreset(
     ? {
         ...existing,
         name,
-        action: parsed.action ?? undefined,
-        since: parsed.since ?? undefined,
-        until: parsed.until ?? undefined,
+        ...(parsed.action ? { action: parsed.action } : {}),
+        ...(parsed.since ? { since: parsed.since } : {}),
+        ...(parsed.until ? { until: parsed.until } : {}),
         updatedAt: now,
       }
     : {
@@ -619,10 +622,13 @@ export async function exportAiRecommendStaleSuppression(
     });
     if (!preset) return { error: "not_found" as const, reason: "preset_not_found" };
   }
+  const filterAction = query?.action || preset?.action;
+  const filterSince = query?.since || preset?.since;
+  const filterUntil = query?.until || preset?.until;
   const parsed = parseAiRecommendStaleAuditExportFilter({
-    action: query?.action || preset?.action,
-    since: query?.since || preset?.since,
-    until: query?.until || preset?.until,
+    ...(filterAction ? { action: filterAction } : {}),
+    ...(filterSince ? { since: filterSince } : {}),
+    ...(filterUntil ? { until: filterUntil } : {}),
   });
   if ("error" in parsed) return { error: "invalid_request" as const, reason: parsed.error };
   const viewed = lastRunView(store, principal);
@@ -724,10 +730,12 @@ export async function snoozeAiRecommendStale(store: Store, principal: Principal,
   if (!Number.isFinite(hours) || hours <= 0) {
     return { error: "invalid_request" as const, reason: "invalid_hours" };
   }
-  const suppression = await upsertAiRecommendStaleSuppression(store, principal, {
-    snoozedUntil: new Date(Date.now() + hours * 3_600_000).toISOString(),
-    acknowledgedAt: undefined,
-  });
+  const suppression = await upsertAiRecommendStaleSuppression(
+    store,
+    principal,
+    { snoozedUntil: new Date(Date.now() + hours * 3_600_000).toISOString() },
+    { acknowledgedAt: true },
+  );
   return {
     suppression: sanitizeAiRecommendStaleSuppression(suppression),
     suppressed: true,
@@ -744,10 +752,12 @@ export async function acknowledgeAiRecommendStale(store: Store, principal: Princ
   if (decision.result === "deny") {
     return { error: "forbidden" as const, reason: decision.reason };
   }
-  const suppression = await upsertAiRecommendStaleSuppression(store, principal, {
-    acknowledgedAt: new Date().toISOString(),
-    snoozedUntil: undefined,
-  });
+  const suppression = await upsertAiRecommendStaleSuppression(
+    store,
+    principal,
+    { acknowledgedAt: new Date().toISOString() },
+    { snoozedUntil: true },
+  );
   return {
     suppression: sanitizeAiRecommendStaleSuppression(suppression),
     suppressed: true,

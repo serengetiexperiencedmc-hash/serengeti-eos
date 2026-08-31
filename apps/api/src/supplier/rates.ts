@@ -13,6 +13,7 @@ import type { Store } from "../store.js";
 import { allowSupplierAudit, denySupplierAudit } from "./audit.js";
 import { ensureSupplierCollections } from "./collections.js";
 import { persistSupEntityAfterCommit, persistSupHeatmapRollupSnapshot } from "../persistence/supplier.js";
+import { isHttpErrorResult } from "../http-error.js";
 import { assertRateWithinSeason } from "./season-bounds.js";
 
 const ISO_CURRENCY_PATTERN = /^[A-Z]{3}$/;
@@ -337,7 +338,7 @@ type HeatmapFilters = {
 };
 
 function seasonMatchesRate(
-  rate: { seasonLabel?: string; seasonId?: string },
+  rate: { seasonLabel?: string | undefined; seasonId?: string | undefined },
   query: HeatmapFilters,
   catalogue: Array<{ id: string; label: string }>,
 ): boolean {
@@ -354,7 +355,10 @@ function seasonMatchesRate(
 }
 
 function conflictMatchesSeason(
-  conflict: { a: { seasonLabel?: string; seasonId?: string }; b: { seasonLabel?: string; seasonId?: string } },
+  conflict: {
+    a: { seasonLabel?: string | undefined; seasonId?: string | undefined };
+    b: { seasonLabel?: string | undefined; seasonId?: string | undefined };
+  },
   query: HeatmapFilters,
   catalogue: Array<{ id: string; label: string }>,
 ): boolean {
@@ -417,9 +421,7 @@ export function getSupplierRateCalendar(
       const bucket = monthMap.get(cursor) ?? [];
       if (!bucket.some((x) => x.id === rate.id)) bucket.push(rate);
       monthMap.set(cursor, bucket);
-      const [y, m] = cursor.split("-").map(Number);
-      const next = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
-      cursor = next;
+      cursor = advanceYearMonth(cursor);
     }
   }
   const months = [...monthMap.entries()]
@@ -622,14 +624,22 @@ function buildSupplierHeatmapRollup(
   );
 }
 
+function advanceYearMonth(cursor: string): string {
+  const yearPart = cursor.slice(0, 4);
+  const monthPart = cursor.slice(5, 7);
+  const y = Number(yearPart);
+  const m = Number(monthPart);
+  if (!Number.isFinite(y) || !Number.isFinite(m)) return cursor;
+  return m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
+}
+
 function eachMonth(from: string, to: string): string[] {
   const months: string[] = [];
   let cursor = from.slice(0, 7);
   const endMonth = to.slice(0, 7);
   while (cursor <= endMonth) {
     months.push(cursor);
-    const [y, m] = cursor.split("-").map(Number);
-    cursor = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
+    cursor = advanceYearMonth(cursor);
   }
   return months;
 }
@@ -640,8 +650,8 @@ function buildConflictHeatmap(
     overlapFrom: string;
     overlapTo: string;
     resolved: boolean;
-    a: { seasonLabel?: string };
-    b: { seasonLabel?: string };
+    a: { seasonLabel?: string | undefined };
+    b: { seasonLabel?: string | undefined };
   }>,
   from: string,
   to: string,
@@ -732,7 +742,7 @@ export function getSupplierRateConflictHeatmap(
   query: { supplierId?: string; from?: string; to?: string; unresolvedOnly?: boolean; seasonLabel?: string; seasonId?: string } = {},
 ) {
   const listed = getSupplierRateConflicts(store, principal, query);
-  if ("error" in listed) return listed;
+  if (isHttpErrorResult(listed)) return listed;
   const lastSnapshot = stampHeatmapRollupSnapshot(store, principal, {
     ...(query.from ? { from: query.from } : {}),
     ...(query.to ? { to: query.to } : {}),
@@ -787,7 +797,7 @@ export function exportSupplierRateConflictHeatmap(
   } = {},
 ) {
   const listed = getSupplierRateConflictHeatmap(store, principal, query);
-  if ("error" in listed) return listed;
+  if (isHttpErrorResult(listed)) return listed;
 
   const generatedAt = new Date().toISOString();
   const format = query.format === "csv" ? "csv" : "json";

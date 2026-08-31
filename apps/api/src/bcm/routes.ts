@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { principalFromAuthHeader } from "../app.js";
 import type { Store } from "../store.js";
+import { isHttpErrorResult, sendHttpError } from "../http-error.js";
 import {
   createBackupJob,
   createRestoreProbe,
@@ -34,7 +35,7 @@ export function registerBcmRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getBcmHealth(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -42,7 +43,7 @@ export function registerBcmRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listBackupJobs(store, principal, req.query as { q?: string; status?: string });
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -50,7 +51,7 @@ export function registerBcmRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = createBackupJob(store, principal, (req.body ?? {}) as Parameters<typeof createBackupJob>[2]);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -58,7 +59,7 @@ export function registerBcmRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getBackupJob(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -71,7 +72,7 @@ export function registerBcmRoutes(app: FastifyInstance, store: Store): void {
       (req.params as { id: string }).id,
       (req.body ?? {}) as Parameters<typeof patchBackupJob>[3],
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -80,7 +81,7 @@ export function registerBcmRoutes(app: FastifyInstance, store: Store): void {
       const principal = principalFromAuthHeader(store, req.headers.authorization);
       if (!principal) return reply.code(401).send({ error: "unauthenticated" });
       const result = transitionBackupJob(store, principal, (req.params as { id: string }).id, action);
-      if ("error" in result) return sendError(reply, result);
+      if (isHttpErrorResult(result)) return sendHttpError(reply, result);
       return result;
     });
   }
@@ -89,7 +90,7 @@ export function registerBcmRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listRestoreProbes(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -102,7 +103,7 @@ export function registerBcmRoutes(app: FastifyInstance, store: Store): void {
       (req.params as { id: string }).id,
       (req.body ?? {}) as Parameters<typeof createRestoreProbe>[3],
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -110,7 +111,7 @@ export function registerBcmRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getRestoreProbe(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 }

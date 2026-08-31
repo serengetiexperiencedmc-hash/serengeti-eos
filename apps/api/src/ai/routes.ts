@@ -3,6 +3,7 @@ import { principalFromAuthHeader } from "../app.js";
 import { getCorrelationId } from "../observability.js";
 import type { Store } from "../store.js";
 import { acceptAiDraft, createAiDraft, discardAiDraft, getAiDraftSummary, listAiDrafts } from "./drafts.js";
+import { isHttpErrorResult, sendHttpError } from "../http-error.js";
 import {
   acknowledgeAiRecommendStale,
   exportAiRecommendLastRun,
@@ -39,7 +40,7 @@ export function registerAiRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = await listAiRecommendations(store, principal, correlationId);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -48,7 +49,7 @@ export function registerAiRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const query = req.query as { format?: string };
     const result = exportAiRecommendStaleAuditExportPresetUsage(store, principal, query);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -56,7 +57,7 @@ export function registerAiRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listAiRecommendStaleAuditExportPresets(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -65,7 +66,7 @@ export function registerAiRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const body = (req.body ?? {}) as { name?: string; action?: string; since?: string; until?: string };
     const result = await upsertAiRecommendStaleAuditExportPreset(store, principal, body);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -79,7 +80,7 @@ export function registerAiRoutes(app: FastifyInstance, store: Store): void {
       (req.params as { id: string }).id,
       body,
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -87,7 +88,7 @@ export function registerAiRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = await deleteAiRecommendStaleAuditExportPreset(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -103,7 +104,7 @@ export function registerAiRoutes(app: FastifyInstance, store: Store): void {
       presetId?: string;
     };
     const result = await exportAiRecommendStaleSuppression(store, principal, query);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -112,7 +113,7 @@ export function registerAiRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const body = (req.body ?? {}) as { hours?: number };
     const result = await snoozeAiRecommendStale(store, principal, body);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -120,7 +121,7 @@ export function registerAiRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = await acknowledgeAiRecommendStale(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -129,7 +130,7 @@ export function registerAiRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const query = req.query as { key?: string; format?: string };
     const result = exportAiRecommendLastRun(store, principal, query);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -138,7 +139,7 @@ export function registerAiRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const query = req.query as { key?: string };
     const result = getAiRecommendLastRun(store, principal, query);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -146,7 +147,7 @@ export function registerAiRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getAiDraftSummary(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -155,7 +156,7 @@ export function registerAiRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const query = req.query as { status?: string; artefactType?: string };
     const result = listAiDrafts(store, principal, query);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -165,7 +166,7 @@ export function registerAiRoutes(app: FastifyInstance, store: Store): void {
     const correlationId = getCorrelationId(req);
     const body = (req.body ?? {}) as { recommendationKey?: string };
     const result = await createAiDraft(store, principal, body, correlationId);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -174,7 +175,7 @@ export function registerAiRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = await acceptAiDraft(store, principal, (req.params as { id: string }).id, correlationId);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -183,7 +184,7 @@ export function registerAiRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = await discardAiDraft(store, principal, (req.params as { id: string }).id, correlationId);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 }

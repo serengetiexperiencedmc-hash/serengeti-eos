@@ -82,7 +82,7 @@ export function getOperationsBookingReadiness(store: Store, principal: Principal
       handoverProgressPercent: computeHandoverProgress(completed, tasks.length),
       pendingHandoverTasks: tasks.filter((t) => t.status === "pending").length,
       supplierConfirmationsPending: supplierPending,
-      manifestStatus: manifest?.status,
+      ...(manifest?.status ? { manifestStatus: manifest.status } : {}),
       vouchersDraft,
       fieldTasksOpen: fieldOpen,
       syncConflicts: conflicts,

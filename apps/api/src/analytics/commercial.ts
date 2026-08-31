@@ -99,7 +99,7 @@ export function getCommercialMarginRollup(store: Store, principal: Principal) {
       costSheetId: s.id,
       rfpId: s.rfpId,
       totalCost: s.totalCost,
-      sellPrice: s.sellPrice,
+      sellPrice: s.sellPrice ?? 0,
       marginPercent: s.marginPercent ?? 0,
       currency: s.currency,
     }));

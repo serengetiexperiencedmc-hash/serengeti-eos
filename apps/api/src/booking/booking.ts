@@ -203,9 +203,15 @@ export function createBooking(
     organizationId: proposal.organizationId,
     title: proposal.title,
     status: "confirmed",
-    paxCount: proposal.paxCount ?? programme?.paxCount,
-    travelDates: rfp?.travelDates,
-    destinations: programme?.destinations ?? rfp?.destinations,
+    ...((): object => {
+      const paxCount = proposal.paxCount ?? programme?.paxCount;
+      return paxCount !== undefined ? { paxCount } : {};
+    })(),
+    ...(rfp?.travelDates ? { travelDates: rfp.travelDates } : {}),
+    ...((): object => {
+      const destinations = programme?.destinations ?? rfp?.destinations;
+      return destinations !== undefined ? { destinations } : {};
+    })(),
     currency: proposal.currency,
     sellPrice: proposal.sellPrice,
     confirmedAt: now,

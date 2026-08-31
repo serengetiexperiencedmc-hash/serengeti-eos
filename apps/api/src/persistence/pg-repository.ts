@@ -557,9 +557,9 @@ function mapOutboxRow(row: Record<string, unknown>): OutboxRecord {
     envelope,
     classification: row.classification as OutboxRecord["classification"],
     createdAt: (row.created_at as Date).toISOString(),
-    publishedAt: row.published_at ? (row.published_at as Date).toISOString() : undefined,
+    ...(row.published_at ? { publishedAt: (row.published_at as Date).toISOString() } : {}),
     attempts: row.attempts as number,
-    lastError: (row.last_error as string) ?? undefined,
+    ...(row.last_error ? { lastError: row.last_error as string } : {}),
     status: row.status as OutboxRecord["status"],
   };
 }
@@ -2907,7 +2907,7 @@ export async function loadAiDrafts(pool: DbPool): Promise<import("@sedmc/kernel"
       ...(row.discarded_by_principal_id ? { discardedByPrincipalId: row.discarded_by_principal_id as string } : {}),
       ...(row.applied_entity_type
         ? {
-            appliedEntityType: row.applied_entity_type as import("@sedmc/kernel").AiDraft["appliedEntityType"],
+            appliedEntityType: row.applied_entity_type as "crm_task" | "crm_activity",
             appliedEntityId: row.applied_entity_id as string,
           }
         : {}),

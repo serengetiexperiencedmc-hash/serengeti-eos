@@ -67,7 +67,7 @@ async function recordOutboxEntry(
     status,
     adapter,
     ...(sesMessageId ? { sesMessageId } : {}),
-    sentAt: status === "sent" ? now : undefined,
+    ...(status === "sent" ? { sentAt: now } : {}),
     createdAt: now,
   };
   store.notifEmailOutbox.push(entry);
@@ -211,7 +211,7 @@ export async function dispatchEmailDigest(store: Store, principal: Principal) {
     const message = buildEmailFromNotification(item, principal.email, overrides);
     const result = await adapter.send(message);
     if (result.status === "sent") dispatched.push(item.key);
-    else skipped.push({ key: item.key, reason: result.reason });
+    else skipped.push({ key: item.key, ...(result.reason !== undefined ? { reason: result.reason } : {}) });
   }
 
   return { dispatched, skipped, adapter: adapter.name };

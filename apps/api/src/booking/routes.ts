@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { principalFromAuthHeader } from "../app.js";
 import { getCorrelationId } from "../observability.js";
 import type { Store } from "../store.js";
+import { isHttpErrorResult, sendHttpError } from "../http-error.js";
 import {
   completeHandoverTask,
   createBooking,
@@ -33,7 +34,7 @@ export function registerBookingRoutes(app: FastifyInstance, store: Store): void 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getBookingModuleHealth(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -42,7 +43,7 @@ export function registerBookingRoutes(app: FastifyInstance, store: Store): void 
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const query = req.query as { status?: string; organizationId?: string };
     const result = listBookings(store, principal, query);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -51,7 +52,7 @@ export function registerBookingRoutes(app: FastifyInstance, store: Store): void 
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const result = createBooking(store, principal, req.body as Parameters<typeof createBooking>[2], correlationId);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -59,7 +60,7 @@ export function registerBookingRoutes(app: FastifyInstance, store: Store): void 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getBookingByProposal(store, principal, (req.params as { proposalId: string }).proposalId);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -67,7 +68,7 @@ export function registerBookingRoutes(app: FastifyInstance, store: Store): void 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getBookingDetail(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -75,7 +76,7 @@ export function registerBookingRoutes(app: FastifyInstance, store: Store): void 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getBookingCommandCenter(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -85,7 +86,7 @@ export function registerBookingRoutes(app: FastifyInstance, store: Store): void 
     const correlationId = getCorrelationId(req);
     const params = req.params as { id: string; taskId: string };
     const result = completeHandoverTask(store, principal, params.id, params.taskId, correlationId);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 }

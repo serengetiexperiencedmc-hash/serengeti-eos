@@ -1,5 +1,5 @@
 import { authorize, type Principal } from "@sedmc/kernel";
-import { connect, StringCodec } from "nats";
+import { connect, StringCodec, type JetStreamManager } from "nats";
 import type { Store } from "../store.js";
 import {
   buildNatsTenantFilterSubject,
@@ -84,7 +84,7 @@ function lagStatus(
 }
 
 async function scanTenantMessageIndex(
-  js: Awaited<ReturnType<Awaited<ReturnType<typeof connect>>["jetstream"]>>,
+  jsm: JetStreamManager,
   stream: string,
   tenantId: string,
   lastSeq: number,
@@ -99,7 +99,7 @@ async function scanTenantMessageIndex(
 
   for (let seq = startSeq; seq <= lastSeq; seq++) {
     try {
-      const stored = await js.getMessage(stream, { seq });
+      const stored = await jsm.streams.getMessage(stream, { seq });
       scanned += 1;
       const subjectTenant = parseTenantIdFromNatsSubject(stored.subject, subjectPrefix);
       if (subjectTenant) {
@@ -188,7 +188,6 @@ export async function getNatsConsumerLagMetrics(
   const durableName = process.env.EOS_NATS_CONSUMER ?? "EOS_PLATFORM_OBSERVER";
   const nc = await connect({ servers: opts.url });
   try {
-    const js = nc.jetstream();
     const jsm = await nc.jetstreamManager();
     const streamInfo = await jsm.streams.info(stream);
     let consumerInfo: Awaited<ReturnType<typeof jsm.consumers.info>> | null = null;
@@ -237,7 +236,7 @@ export async function getNatsConsumerLagMetrics(
     let tenantIndex: NatsLagMetrics["tenantIndex"] = null;
     if (lastSeq > 0) {
       tenantIndex = await scanTenantMessageIndex(
-        js,
+        jsm,
         stream,
         principal.tenantId,
         lastSeq,

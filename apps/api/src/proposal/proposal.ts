@@ -233,7 +233,7 @@ export function generateProposal(
   const gate = canGenerateProposal({
     hasProgramme: !!programme,
     hasCostSheet: !!sheet,
-    approvalStatus: approval?.status,
+    ...(approval?.status ? { approvalStatus: approval.status } : {}),
   });
   if (!gate.allowed) return { error: "conflict" as const, reason: gate.reason };
 
@@ -261,8 +261,14 @@ export function generateProposal(
     totalCost: sheet!.totalCost,
     sellPrice: sheet!.sellPrice ?? sheet!.totalCost,
     marginPercent: sheet!.marginPercent,
-    paxCount: sheet!.paxCount ?? programme!.paxCount,
-    programmeSummary: programme!.destinations ?? rfp.destinations,
+    ...((): object => {
+      const paxCount = sheet!.paxCount ?? programme!.paxCount;
+      return paxCount !== undefined ? { paxCount } : {};
+    })(),
+    ...((): object => {
+      const programmeSummary = programme!.destinations ?? rfp.destinations;
+      return programmeSummary !== undefined ? { programmeSummary } : {};
+    })(),
     itineraryDayCount: dayCount,
     currentVersion: 1,
     classification: rfp.classification,

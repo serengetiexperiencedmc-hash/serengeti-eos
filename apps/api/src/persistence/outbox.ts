@@ -21,9 +21,9 @@ export async function persistOutboxPublish(
   await updateOutboxEventStatus(pool, {
     id: outbox.id,
     status: outbox.status,
-    publishedAt: outbox.publishedAt,
+    ...(outbox.publishedAt !== undefined ? { publishedAt: outbox.publishedAt } : {}),
     attempts: outbox.attempts,
-    lastError: outbox.lastError,
+    ...(outbox.lastError !== undefined ? { lastError: outbox.lastError } : {}),
   });
 }
 

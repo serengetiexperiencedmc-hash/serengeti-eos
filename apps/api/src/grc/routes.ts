@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { principalFromAuthHeader } from "../app.js";
 import type { Store } from "../store.js";
+import { isHttpErrorResult, sendHttpError } from "../http-error.js";
 import {
   createControl,
   getControl,
@@ -31,7 +32,7 @@ export function registerGrcRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getGrcHealth(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -39,7 +40,7 @@ export function registerGrcRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listControls(store, principal, req.query as { q?: string; status?: string });
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -51,7 +52,7 @@ export function registerGrcRoutes(app: FastifyInstance, store: Store): void {
       principal,
       (req.body ?? {}) as Parameters<typeof createControl>[2],
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -59,7 +60,7 @@ export function registerGrcRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getControl(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -72,7 +73,7 @@ export function registerGrcRoutes(app: FastifyInstance, store: Store): void {
       (req.params as { id: string }).id,
       (req.body ?? {}) as Parameters<typeof patchControl>[3],
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -81,7 +82,7 @@ export function registerGrcRoutes(app: FastifyInstance, store: Store): void {
       const principal = principalFromAuthHeader(store, req.headers.authorization);
       if (!principal) return reply.code(401).send({ error: "unauthenticated" });
       const result = transitionControl(store, principal, (req.params as { id: string }).id, action);
-      if ("error" in result) return sendError(reply, result);
+      if (isHttpErrorResult(result)) return sendHttpError(reply, result);
       return result;
     });
   }

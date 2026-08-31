@@ -264,7 +264,10 @@ export function createCostSheet(
     totalCost: 0,
     marginPercent: 0,
     marginAmount: 0,
-    paxCount: input.paxCount ?? programme.paxCount,
+    ...((): object => {
+      const paxCount = input.paxCount ?? programme.paxCount;
+      return paxCount !== undefined ? { paxCount } : {};
+    })(),
     currentVersion: 1,
     classification: programme.classification,
     version: 1,

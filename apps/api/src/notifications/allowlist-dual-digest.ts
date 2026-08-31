@@ -86,7 +86,8 @@ export function isAllowlistDualDigestStaleSuppressed(store: Store, tenantId: str
 function upsertStaleSuppression(
   store: Store,
   principal: Principal,
-  patch: Partial<Pick<NotifAllowlistDualDigestStaleSuppression, "acknowledgedAt" | "snoozedUntil">>,
+  patch: { acknowledgedAt?: string; snoozedUntil?: string },
+  clear: { acknowledgedAt?: true; snoozedUntil?: true } = {},
 ) {
   ensureNotificationCollections(store);
   const now = new Date().toISOString();
@@ -98,6 +99,8 @@ function upsertStaleSuppression(
     updatedAt: now,
     updatedByPrincipalId: principal.id,
   };
+  if (clear.acknowledgedAt) delete next.acknowledgedAt;
+  if (clear.snoozedUntil) delete next.snoozedUntil;
   const idx = (store.notifAllowlistDualDigestStaleSuppressions ?? []).findIndex((s) => s.tenantId === principal.tenantId);
   if (idx >= 0) store.notifAllowlistDualDigestStaleSuppressions[idx] = next;
   else store.notifAllowlistDualDigestStaleSuppressions.push(next);
@@ -333,7 +336,7 @@ export async function dispatchAllowlistDualDigest(store: Store, principal: Princ
       templateKey: "notif.approval.allowlist_dual_digest",
     });
     if (result.status === "sent") dispatched.push(key);
-    else skipped.push({ key, reason: result.reason, to: email });
+    else skipped.push({ key, ...(result.reason !== undefined ? { reason: result.reason } : {}), to: email });
   }
 
   const lastRun = stampLastRun(store, principal, day, {
@@ -430,9 +433,9 @@ export async function upsertAllowlistDualDigestStaleAuditExportPreset(
     ? {
         ...existing,
         name,
-        action: parsed.action ?? undefined,
-        since: parsed.since ?? undefined,
-        until: parsed.until ?? undefined,
+        ...(parsed.action ? { action: parsed.action } : {}),
+        ...(parsed.since ? { since: parsed.since } : {}),
+        ...(parsed.until ? { until: parsed.until } : {}),
         updatedAt: now,
       }
     : {
@@ -593,7 +596,7 @@ export async function dispatchAllowlistDualDigestStaleAlert(store: Store, princi
       templateKey: "notif.approval.allowlist_dual_digest_stale",
     });
     if (result.status === "sent") dispatched.push(key);
-    else skipped.push({ key, reason: result.reason, to: email });
+    else skipped.push({ key, ...(result.reason !== undefined ? { reason: result.reason } : {}), to: email });
   }
 
   return {
@@ -622,10 +625,12 @@ export function snoozeAllowlistDualDigestStale(store: Store, principal: Principa
   }
   ensureNotificationCollections(store);
   const snoozedUntil = new Date(Date.now() + hours * 3_600_000).toISOString();
-  const suppression = upsertStaleSuppression(store, principal, {
-    snoozedUntil,
-    acknowledgedAt: undefined,
-  });
+  const suppression = upsertStaleSuppression(
+    store,
+    principal,
+    { snoozedUntil },
+    { acknowledgedAt: true },
+  );
   return { suppression, increment: INCREMENT };
 }
 
@@ -640,10 +645,12 @@ export function acknowledgeAllowlistDualDigestStale(store: Store, principal: Pri
     return { error: "forbidden" as const, reason: decision.reason };
   }
   ensureNotificationCollections(store);
-  const suppression = upsertStaleSuppression(store, principal, {
-    acknowledgedAt: new Date().toISOString(),
-    snoozedUntil: undefined,
-  });
+  const suppression = upsertStaleSuppression(
+    store,
+    principal,
+    { acknowledgedAt: new Date().toISOString() },
+    { snoozedUntil: true },
+  );
   return { suppression, increment: INCREMENT };
 }
 
@@ -673,10 +680,13 @@ export async function exportAllowlistDualDigestStaleSuppression(
     });
     if (!preset) return { error: "not_found" as const, reason: "preset_not_found" };
   }
+  const filterAction = options.action || preset?.action;
+  const filterSince = options.since || preset?.since;
+  const filterUntil = options.until || preset?.until;
   const parsed = parseNotifAllowlistDualDigestStaleAuditExportFilter({
-    action: options.action || preset?.action,
-    since: options.since || preset?.since,
-    until: options.until || preset?.until,
+    ...(filterAction ? { action: filterAction } : {}),
+    ...(filterSince ? { since: filterSince } : {}),
+    ...(filterUntil ? { until: filterUntil } : {}),
   });
   if ("error" in parsed) return { error: "invalid_request" as const, reason: parsed.error };
   const status = getAllowlistDualDigestStatus(store, principal);

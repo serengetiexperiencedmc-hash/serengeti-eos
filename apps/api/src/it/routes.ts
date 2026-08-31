@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { principalFromAuthHeader } from "../app.js";
 import type { Store } from "../store.js";
+import { isHttpErrorResult, sendHttpError } from "../http-error.js";
 import {
   createCi,
   createRelationship,
@@ -43,7 +44,7 @@ export function registerItRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getItsmModuleHealth(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -51,7 +52,7 @@ export function registerItRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listTickets(store, principal, req.query as { q?: string; status?: string; ticketType?: string });
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -59,7 +60,7 @@ export function registerItRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = createTicket(store, principal, (req.body ?? {}) as Parameters<typeof createTicket>[2]);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -67,7 +68,7 @@ export function registerItRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getTicket(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -80,7 +81,7 @@ export function registerItRoutes(app: FastifyInstance, store: Store): void {
       (req.params as { id: string }).id,
       (req.body ?? {}) as Parameters<typeof patchTicket>[3],
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -89,7 +90,7 @@ export function registerItRoutes(app: FastifyInstance, store: Store): void {
       const principal = principalFromAuthHeader(store, req.headers.authorization);
       if (!principal) return reply.code(401).send({ error: "unauthenticated" });
       const result = transitionTicket(store, principal, (req.params as { id: string }).id, action);
-      if ("error" in result) return sendError(reply, result);
+      if (isHttpErrorResult(result)) return sendHttpError(reply, result);
       return result;
     });
   }
@@ -104,7 +105,7 @@ export function registerItRoutes(app: FastifyInstance, store: Store): void {
       "assign",
       (req.body ?? {}) as { assignedToEmail?: string },
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -117,7 +118,7 @@ export function registerItRoutes(app: FastifyInstance, store: Store): void {
       (req.params as { id: string }).id,
       ((req.body ?? {}) as { ciId?: string }).ciId,
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -126,7 +127,7 @@ export function registerItRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const params = req.params as { id: string; ciId: string };
     const result = unlinkTicketCi(store, principal, params.id, params.ciId);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -134,7 +135,7 @@ export function registerItRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getCmdbModuleHealth(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -142,7 +143,7 @@ export function registerItRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listCis(store, principal, req.query as { q?: string; ciClass?: string; lifecycle?: string });
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -150,7 +151,7 @@ export function registerItRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = createCi(store, principal, (req.body ?? {}) as Parameters<typeof createCi>[2]);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -158,7 +159,7 @@ export function registerItRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getCi(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -171,7 +172,7 @@ export function registerItRoutes(app: FastifyInstance, store: Store): void {
       (req.params as { id: string }).id,
       (req.body ?? {}) as Parameters<typeof patchCi>[3],
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -179,7 +180,7 @@ export function registerItRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listRelationships(store, principal, req.query as { ciId?: string });
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -191,7 +192,7 @@ export function registerItRoutes(app: FastifyInstance, store: Store): void {
       principal,
       (req.body ?? {}) as { fromCiId?: string; toCiId?: string; relType?: string },
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -199,7 +200,7 @@ export function registerItRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = deleteRelationship(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 }

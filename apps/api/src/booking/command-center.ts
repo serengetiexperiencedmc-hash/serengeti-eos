@@ -40,7 +40,7 @@ function buildTimeline(
     {
       key: "guest_manifest",
       label: "Guest manifest published",
-      at: ops.manifestPublishedAt,
+      ...(ops.manifestPublishedAt ? { at: ops.manifestPublishedAt } : {}),
       status: ops.manifestStatus === "published" ? "complete" : "pending",
     },
     {
@@ -56,7 +56,7 @@ function buildTimeline(
     {
       key: "handover_complete",
       label: "Operational handover complete",
-      at: booking.handoverCompletedAt,
+      ...(booking.handoverCompletedAt ? { at: booking.handoverCompletedAt } : {}),
       status: handoverComplete ? "complete" : "pending",
     },
   ];
@@ -117,9 +117,9 @@ export function getBookingCommandCenter(store: Store, principal: Principal, book
     supplierConfirmationsTotal: supplierConfs.length,
     supplierConfirmationsPending: supplierConfs.filter((c) => c.status === "requested").length,
     supplierConfirmationsConfirmed: supplierConfs.filter((c) => c.status === "confirmed").length,
-    manifestStatus: manifest?.status,
+    ...(manifest?.status ? { manifestStatus: manifest.status } : {}),
     manifestGuestCount: manifestEntries.length,
-    manifestPublishedAt: manifest?.publishedAt,
+    ...(manifest?.publishedAt ? { manifestPublishedAt: manifest.publishedAt } : {}),
     vouchersDraft: vouchers.filter((v) => v.status === "draft").length,
     vouchersIssued: vouchers.filter((v) => v.status === "issued").length,
     fieldTasksOpen: fieldTasks.filter((t) => t.status !== "complete").length,

@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { principalFromAuthHeader } from "../app.js";
 import { getCorrelationId } from "../observability.js";
 import type { Store } from "../store.js";
+import { isHttpErrorResult, sendHttpError } from "../http-error.js";
 import {
   approveLeave,
   assignEmployeeSkill,
@@ -42,7 +43,7 @@ export function registerHrRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getHrModuleHealth(store, principal);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -51,7 +52,7 @@ export function registerHrRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const query = req.query as { q?: string; status?: string };
     const result = listEmployees(store, principal, query);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -64,7 +65,7 @@ export function registerHrRoutes(app: FastifyInstance, store: Store): void {
       (req.body ?? {}) as Parameters<typeof createEmployee>[2],
       getCorrelationId(req),
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -72,7 +73,7 @@ export function registerHrRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = getEmployee(store, principal, (req.params as { id: string }).id);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -86,7 +87,7 @@ export function registerHrRoutes(app: FastifyInstance, store: Store): void {
       (req.body ?? {}) as Parameters<typeof patchEmployee>[3],
       getCorrelationId(req),
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -99,7 +100,7 @@ export function registerHrRoutes(app: FastifyInstance, store: Store): void {
       (req.params as { id: string }).id,
       (req.body ?? {}) as { skillId?: string; proficiency?: string },
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -108,7 +109,7 @@ export function registerHrRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const params = req.params as { id: string; skillId: string };
     const result = removeEmployeeSkill(store, principal, params.id, params.skillId);
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -116,7 +117,7 @@ export function registerHrRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listSkills(store, principal, req.query as { q?: string });
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -129,7 +130,7 @@ export function registerHrRoutes(app: FastifyInstance, store: Store): void {
       (req.body ?? {}) as { name?: string; category?: string },
       getCorrelationId(req),
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -142,7 +143,7 @@ export function registerHrRoutes(app: FastifyInstance, store: Store): void {
       (req.params as { id: string }).id,
       (req.body ?? {}) as { name?: string; category?: string | null },
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -150,7 +151,7 @@ export function registerHrRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = listLeave(store, principal, req.query as { employeeId?: string; status?: string });
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -163,7 +164,7 @@ export function registerHrRoutes(app: FastifyInstance, store: Store): void {
       (req.body ?? {}) as Parameters<typeof createLeave>[2],
       getCorrelationId(req),
     );
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
 
@@ -171,7 +172,7 @@ export function registerHrRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = submitLeave(store, principal, (req.params as { id: string }).id, getCorrelationId(req));
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -179,7 +180,7 @@ export function registerHrRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = approveLeave(store, principal, (req.params as { id: string }).id, getCorrelationId(req));
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -187,7 +188,7 @@ export function registerHrRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = rejectLeave(store, principal, (req.params as { id: string }).id, getCorrelationId(req));
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 
@@ -195,7 +196,7 @@ export function registerHrRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const result = cancelLeave(store, principal, (req.params as { id: string }).id, getCorrelationId(req));
-    if ("error" in result) return sendError(reply, result);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
 }

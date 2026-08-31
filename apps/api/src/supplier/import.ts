@@ -136,6 +136,7 @@ export function createSupplierImportBatch(
   if (!isValidSupplierImportEntityType(input.entityType)) {
     return { error: "invalid_request" as const, reason: "invalid_entity_type" };
   }
+  const entityType = input.entityType;
   const sourceSystem = input.sourceSystem?.trim();
   if (!sourceSystem) return { error: "invalid_request" as const, reason: "source_system_required" };
   if (!input.csv?.trim()) return { error: "invalid_request" as const, reason: "csv_required" };
@@ -143,13 +144,13 @@ export function createSupplierImportBatch(
   const parsed = parseCsv(input.csv);
   if ("error" in parsed) return { error: "invalid_request" as const, reason: parsed.error };
 
-  for (const header of requiredSupplierImportHeaders(input.entityType)) {
+  for (const header of requiredSupplierImportHeaders(entityType)) {
     if (!parsed.headers.includes(header)) {
       return { error: "invalid_request" as const, reason: `missing_required_column:${header}` };
     }
   }
 
-  const unsupported = parsed.headers.filter((h) => !isAllowedSupplierImportHeader(input.entityType, h));
+  const unsupported = parsed.headers.filter((h) => !isAllowedSupplierImportHeader(entityType, h));
   if (unsupported.length > 0) {
     return { error: "invalid_request" as const, reason: "unsupported_column" };
   }
@@ -158,7 +159,7 @@ export function createSupplierImportBatch(
     id: newId(),
     tenantId: principal.tenantId,
     sourceSystem,
-    entityType: input.entityType,
+    entityType,
     mode: input.mode ?? "create_only",
     status: "pending",
     rowCount: parsed.rows.length,

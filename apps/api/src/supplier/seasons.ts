@@ -116,7 +116,11 @@ export function exportSupplierSeasons(
   principal: Principal,
   query: { archived?: boolean; format?: "json" | "csv" } = {},
 ) {
-  const listed = listSupplierSeasons(store, principal, { archived: query.archived });
+  const listed = listSupplierSeasons(
+    store,
+    principal,
+    query.archived !== undefined ? { archived: query.archived } : {},
+  );
   if ("error" in listed) return listed;
   const generatedAt = new Date().toISOString();
   const format = query.format === "csv" ? "csv" : "json";
@@ -465,7 +469,7 @@ export function reassignOutsideSeasonRates(
     updatedCount: updated.length,
     skippedCount: skipped.length,
     remainingImpact,
-    increment: "PG.22" as const,
+    increment: "PG.21" as const,
   };
 }
 

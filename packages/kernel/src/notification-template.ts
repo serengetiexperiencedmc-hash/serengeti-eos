@@ -73,12 +73,13 @@ export function resolveEmailTemplate(
     DEFAULT_EMAIL_TEMPLATES.find((t) => t.key === templateKey) ??
     DEFAULT_EMAIL_TEMPLATES.find((t) => t.key === "notif.rfp.urgent")!;
 
-  return {
+  const resolved: { subject: string; bodyText: string; bodyHtml?: string; templateKey: string } = {
     templateKey: template.key,
     subject: interpolate(template.subject, vars),
     bodyText: interpolate(template.bodyText, vars),
-    bodyHtml: template.bodyHtml ? interpolate(template.bodyHtml, vars) : undefined,
   };
+  if (template.bodyHtml) resolved.bodyHtml = interpolate(template.bodyHtml, vars);
+  return resolved;
 }
 
 export function listEmailTemplateKeys(overrides: EmailTemplate[] = []): string[] {
