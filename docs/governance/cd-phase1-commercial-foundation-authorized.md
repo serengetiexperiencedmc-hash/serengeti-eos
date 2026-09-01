@@ -1,10 +1,11 @@
 # Selection — CD Phase 1 Commercial Foundation
 
-> **CURRENT STATE (2026-08-30 — Owner UAT authorized and executed; UAT PASS; this worktree record is uncommitted until a separate governance commit)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **BASE_SHA=`7c75a16ca942755421bc4ef8a528e0bf2d579e41`** (`origin/master`)  
-> **WORKTREE:** `C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1`  
-> **BRANCH:** `feat/cd-phase1-foundation` · **HEAD=`8cc9796f20dd400338e6fabc809f4695138924c5`** (pushed) · implementation `eb09ca00b6bdb4ee51c9a2376de1cf19ceda0b43`  
-> **PR1 / PR2:** IMPLEMENTED / CLOSED — not reopened; not expanded.  
+> **CURRENT STATE (2026-08-31 — post-merge reconciliation of already-executed GitHub PR merges; does not authorize a new capability)**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **origin/master=`d918f98729f2f3fd0969d7cc6066700dcb21fb01`**  
+> **BASE_SHA=`7c75a16ca942755421bc4ef8a528e0bf2d579e41`** (historical Phase 1 baseline; this was `origin/master` on 2026-08-30)  
+> **IMPLEMENTATION_COMMIT=`eb09ca00b6bdb4ee51c9a2376de1cf19ceda0b43`**  
+> **Capability PR1 (Procurement Catalogue) / capability PR2 (SourcingEvent):** IMPLEMENTED / CLOSED — not reopened; not expanded. These identifiers are **not** GitHub PR #1 / #2 / #3.  
+> **GitHub PR #1 / #2 / #3:** merge vehicles only — subsequently **MERGED** (see Post-merge reconciliation).  
 > **ADR-0006 / ADR-0012 / ADR-0013:** OPEN — not closed. This record does **not** decide hosting or Production storage.  
 > **DP-0006:** NOT APPROVED.  
 > **STAGE_1_APPROVED=YES** · **STAGE_1_CONTRACT=FROZEN (2026-08-30 amendment)** · **IMPLEMENTATION_AUTHORIZED=YES** (Dev/Test only; existing isolated worktree only)  
@@ -14,6 +15,9 @@
 > **UAT_AUTHORIZED=YES** · **UAT_SCOPE=DEV/TEST ONLY** · **UAT=PASS**  
 > **PRODUCTION=NOT_AUTHORIZED / NOT_TOUCHED**  
 > **MIGRATION_EXECUTION=NOT_AUTHORIZED / NOT_EXECUTED** (migrations **119–122** included as files only; **must not** be executed)  
+> **EXECUTION_QUEUE=EMPTY** · **NEW_CAPABILITY_AUTHORIZED=NONE** · **NEXT_INCREMENT=NONE_AUTHORIZED** · **PATH_B_GENERAL_AUTO_SELECTION=PAUSED**  
+> **CAL=DEFERRED** · **C11+=NOT CREATED / NOT AUTHORIZED**  
+> **NEXT GATE=OWNER DECISION / HOLD**  
 > Frozen Stage 1 contract: [`../architecture/cd-phase1-commercial-foundation-preview.md`](../architecture/cd-phase1-commercial-foundation-preview.md)
 
 **CAPABILITY:** Commercial Department Phase 1 — RFP-to-Programme foundation (documents, contracts, hotel profile extensions, programme item richness).  
@@ -63,6 +67,69 @@ Observed sequence:
 15. That UAT executed the existing in-memory frozen-contract procedure only (`seedStore` / Fastify inject / kernel Vitest): `commercial-document.test.ts` (3), `cd-phase1-foundation.test.ts` (7), `pr1-procurement.test.ts` (3), `pr2-sourcing-events.test.ts` (3). **UAT_TESTS = 16 PASS / 0 FAIL / 0 BLOCKED.** **UAT=PASS.** **UAT_MIGRATIONS=NOT_EXECUTED.** **DATABASE=UNCHANGED.** **PRODUCTION=NOT_TOUCHED.** Residual coverage limitations (browser R-01, hotel GET, max-bytes HTTP, empty-list HTTP, AI-principal HTTP, separate internal/client notes, dedicated C7/C8 suite) remain **NOT TESTED**, not defects, and do **not** authorize remediation.
 16. This worktree update records items 14–15. It is **not** a Git commit unless the Owner separately authorizes a governance commit.
 
+## Post-merge reconciliation (2026-08-31)
+
+This section is a **later current-state reconciliation**. It does **not** rewrite sequence items 1–16. Those items remain the historical 2026-08-30 record. Sequence item 13 recorded `8cc9796f20dd400338e6fabc809f4695138924c5` as current **HEAD at that time**. Sequence item 16 recorded that the UAT worktree update was not yet a Git commit **at that time**. The 2026-08-30 UAT grant did **not** authorize pull-request merge, migration execution, Production, or deployment.
+
+These GitHub PR merges are **already-executed historical results** under later Owner grants. Recording them here is **not** a new authorization. Completion of CD Phase 1 and the remediation PRs does **not** authorize a new capability.
+
+### Current Git state
+
+- **origin/master** = `d918f98729f2f3fd0969d7cc6066700dcb21fb01`
+- The CD Phase 1 workstream is now represented on `origin/master`.
+- GitHub PR #1, #2, and #3 were subsequently merged.
+
+Name collision — do **not** conflate:
+
+| Name | Meaning |
+| --- | --- |
+| **GitHub PR #1 / #2 / #3** | Merge vehicles for CD Phase 1 and later remediations |
+| **Capability PR1** | Procurement Catalogue (IMPLEMENTED / CLOSED; not reopened; not expanded) |
+| **Capability PR2** | SourcingEvent (IMPLEMENTED / CLOSED; not reopened; not expanded) |
+
+GitHub PR #2 is **not** capability PR2.
+
+### Completed merge history
+
+1. **GitHub PR #1** — merged at `3485c377984343fd1692d46d7061948d21d2b50c` (Phase 1 foundation `eb09ca00` plus subsequent governance docs commits).
+2. **GitHub PR #2** — merged at `46c0b27ce6d6b5f6a5ff0f94dee1d511c317d9de`. Candidate A is merged through GitHub PR #2:
+   - `0efe0d79afdd6bc81a637427840073a6bf1c27a9`
+   - `e1c0d11243698d3e12ab855c6b89c486eacc28bc`
+   - `f7b57eb8de836ea2537fadcb84fd962504ee348a`
+3. **GitHub PR #3** — merged at `d918f98729f2f3fd0969d7cc6066700dcb21fb01`. Candidate B is merged through GitHub PR #3:
+   - `b5e866d0c364593a3c3f8d6414736aac3296eb3b`
+   - `d44eff38b08745587eedf4396e2e4fd788091cc5`
+
+### CI
+
+Post-merge GitHub Actions on `d918f987` (`eos-kernel-ci` / `push`) completed **SUCCESS**. Recorded from GitHub CI (not a locally executed full test suite):
+
+- `npm install` = PASS
+- `npm run typecheck` = PASS
+- `npm test` = PASS
+
+### Governance after merge
+
+- **EXECUTION_QUEUE=EMPTY**
+- **NEW_CAPABILITY_AUTHORIZED=NONE**
+- **NEXT_INCREMENT=NONE_AUTHORIZED**
+- **PATH_B_GENERAL_AUTO_SELECTION=PAUSED**
+- **MIGRATION_EXECUTION=NOT_AUTHORIZED / NOT_EXECUTED**
+- **DATABASE=UNCHANGED**
+- **PRODUCTION=NOT_AUTHORIZED / NOT_TOUCHED**
+- **DEPLOYMENT=NOT_AUTHORIZED / NOT_EXECUTED**
+- **ADR-0006=OPEN**
+- **DP-0006=NOT APPROVED**
+- **ADR-0012=OPEN**
+- **ADR-0013=OPEN**
+- **CAL=DEFERRED**
+- **C11+=NOT CREATED / NOT AUTHORIZED**
+- **NEXT GATE=OWNER DECISION / HOLD** — no next capability is selected; no next increment is authorized; no implementation should begin without a separate Owner grant.
+
+## Historical grants (2026-08-30)
+
+The following grant lines are the original 2026-08-30 authorization record. They are **not** part of the 2026-08-31 post-merge reconciliation.
+
 **Authority (implementation):** Product Owner **CD PHASE 1 DEV/TEST IMPLEMENTATION AUTHORIZATION** (2026-08-30) **IMPLEMENTATION_AUTHORIZED=YES** / **ENVIRONMENT=DEVTEST** / **SCOPE=EXISTING UNCOMMITTED IMPLEMENTATION ONLY**.  
 **Authority (remediation):** Product Owner **CD PHASE 1 DEV/TEST REMEDIATION AUTHORIZATION** (2026-08-30) **REMEDIATION_AUTHORIZED=YES** / **SCOPE=R-01–R-05 ONLY**.  
 **Technical review (not Owner grant):** Commit Readiness Review **PASS / COMMIT READY**.  
@@ -94,13 +161,21 @@ Observed sequence:
 | **COMMIT** | **COMPLETED** |
 | **PUSH_AUTHORIZED** | **YES** (authorized commit `eb09ca00b6bdb4ee51c9a2376de1cf19ceda0b43` only) |
 | **PUSH** | **COMPLETED** |
-| **PULL REQUEST MERGE** | **NOT_AUTHORIZED** |
+| **PULL REQUEST MERGE** | **Historical (2026-08-30 authoring):** **NOT_AUTHORIZED**. **Live (2026-08-31):** GitHub PR #1 / #2 / #3 **MERGED** (already-executed subsequent Owner merges; **not** granted by the 2026-08-30 UAT authorization) |
 | **MIGRATION_EXECUTION** | **NOT_AUTHORIZED / NOT_EXECUTED** |
 | **MIGRATION_IDS (files only)** | **119–122** additive; never 109–115 |
 | **ADR-0006** | **OPEN** — no Production hosting / object-storage decision |
 | **DP-0006** | **NOT APPROVED** |
+| **ADR-0012** | **OPEN** |
+| **ADR-0013** | **OPEN** |
 | **STAGE_1_CONTRACT** | **FROZEN** (2026-08-30 contract amendment; retrospective authorization preserved) |
-| **NEXT GATE** | **GOVERNANCE COMMIT DECISION** (this worktree UAT record is not a Git commit; UAT PASS does **not** grant migration, Production, deployment, or PR merge) |
+| **EXECUTION_QUEUE** | **EMPTY** |
+| **NEW_CAPABILITY_AUTHORIZED** | **NONE** |
+| **NEXT_INCREMENT** | **NONE_AUTHORIZED** |
+| **PATH_B_GENERAL_AUTO_SELECTION** | **PAUSED** |
+| **CAL** | **DEFERRED** |
+| **C11+** | **NOT CREATED / NOT AUTHORIZED** |
+| **NEXT GATE** | **Historical (2026-08-30 authoring):** **GOVERNANCE COMMIT DECISION**. **Live (2026-08-31):** **OWNER DECISION / HOLD** (no next capability selected; no next increment authorized; no implementation should begin without a separate Owner grant) |
 
 ## Exact authorization boundary
 
@@ -194,6 +269,6 @@ That technical result is **not** Owner **COMMIT** authorization. Distinctions in
 
 UAT authorization does **not** constitute migration execution, Production, deployment, or PR merge authorization. **UAT PASS does not grant those permissions.**
 
-**NEXT GATE = GOVERNANCE COMMIT DECISION**
+**Historical (2026-08-30 authoring):** **NEXT GATE = GOVERNANCE COMMIT DECISION.** This worktree update was **not** a Git commit and was **not** a push.
 
-This worktree update is **not** a Git commit and is **not** a push.
+**Live (2026-08-31):** **NEXT GATE = OWNER DECISION / HOLD.** No next capability is selected. No next increment is authorized. No implementation should begin without a separate Owner grant. Completion of CD Phase 1 and GitHub PR #1 / #2 / #3 does **not** authorize a new capability. See **Post-merge reconciliation (2026-08-31)**.
