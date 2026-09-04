@@ -1,9 +1,9 @@
-# Classification Register — Stage 1 contract (APPROVED; DG2 assigned)
+# Classification Register — Stage 1 contract (APPROVED; DG2 assigned; Dev/Test implementation written)
 
-> **CURRENT STATE (2026-09-01 Stage 1 approved; DG2 assigned — not implementation)**  
+> **CURRENT STATE (2026-09-01 Stage 1 approved; DG2 assigned; Dev/Test implementation authorized — not UAT, not Production)**  
 > **PRODUCT_STATE=FROZEN_DEVTEST** · **origin/master=`d918f98729f2f3fd0969d7cc6066700dcb21fb01`**  
 > **CAPABILITY_SELECTED=YES** · **CAPABILITY=CLASSIFICATION_REGISTER** · **CAPABILITY_ID=DG2** · **ID_ASSIGNMENT=DG2 / ASSIGNED** · **ID_ASSIGNMENT_STATUS=ASSIGNED**  
-> **STAGE_1_CREATED=YES** · **STAGE_1_STATUS=APPROVED** · **STAGE_1_APPROVED=YES** · **IMPLEMENTATION_AUTHORIZED=NO**  
+> **STAGE_1_CREATED=YES** · **STAGE_1_STATUS=APPROVED** · **STAGE_1_APPROVED=YES** · **IMPLEMENTATION_AUTHORIZED=YES** (Dev/Test)  
 > **PREVIEW=NOT_AUTHORIZED** · **COMMIT=NOT_AUTHORIZED** · **PUSH=NOT_AUTHORIZED** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **DEPLOYMENT=NOT_AUTHORIZED**  
 > **EXECUTION_QUEUE=EMPTY** · **NEXT_INCREMENT=NONE_AUTHORIZED** · **PATH_B_GENERAL_AUTO_SELECTION=PAUSED**  
 > Authority record: [`../governance/classification-register-authorized.md`](../governance/classification-register-authorized.md).  
@@ -18,13 +18,13 @@
 | Family | data governance |
 | Domain | Data Governance (`dg` — domain map 2.2 leftover noun **Classification** only) |
 | Predecessor | I0 kernel (complete). **DG1** Dataset Register complete and **not** reopened |
-| Architecture status | This document is the **approved** Stage 1 contract. Implementation is **not** authorized. |
+| Architecture status | This document is the **approved** Stage 1 contract. Dev/Test implementation is **authorized and written**. |
 | Stage | Stage 1 |
-| **STATUS** | **STAGE 1 APPROVED; ID ASSIGNED (DG2); IMPLEMENTATION NOT AUTHORIZED** |
-| Implementation status | **NOT AUTHORIZED** |
+| **STATUS** | **STAGE 1 APPROVED; ID ASSIGNED (DG2); IMPLEMENTATION AUTHORIZED (DEVTEST)** |
+| Implementation status | **AUTHORIZED** (Dev/Test; in-memory `Store` SoR; no SQL) |
 | Environment | Development/Test only **if** later authorized |
-| Persistence | Conceptual only in this Stage 1. If later authorized: in-memory `Store` is Dev/Test SoR; additive SQL only; ADR-0017 not reopened; live PostgreSQL UNVERIFIED |
-| Runtime health increment | **DG2** (assigned; health endpoint **not** implemented) — must not replace DG1 `/v1/datasets/health` |
+| Persistence | Dev/Test **in-memory** `Store` is the SoR. Additive SQL `123_dg2_classification_records.sql` remains a **future conditional reference only** and was **not** created. Live PostgreSQL UNVERIFIED. ADR-0017 not reopened. |
+| Runtime health increment | **DG2** (`module` `classification-register`; must not replace DG1 `/v1/datasets/health`) |
 | Production / UAT / AI | Not authorized |
 | **CAPABILITY_ID** | **DG2** |
 | **ID_ASSIGNMENT** | **DG2 / ASSIGNED** |
@@ -32,9 +32,9 @@
 | **STAGE_1_CREATED** | **YES** |
 | **STAGE_1_STATUS** | **APPROVED** |
 | **STAGE_1_APPROVED** | **YES** |
-| **IMPLEMENTATION_AUTHORIZED** | **NO** |
+| **IMPLEMENTATION_AUTHORIZED** | **YES** (Dev/Test) |
 
-Authority: 2026-09-01 Product Owner **SELECT CLASSIFICATION AS NEXT CANDIDATE CAPABILITY** and **STAGE 1 CONTRACT AUTHORING ONLY**; 2026-09-01 Product Owner **CLASSIFICATION REGISTER — STAGE 1 APPROVAL ONLY** (`STAGE_1_APPROVED=YES`); 2026-09-01 Product Owner **ASSIGN CAPABILITY ID DG2 ONLY** (`CAPABILITY_ID=DG2` / `ID_ASSIGNMENT=DG2 / ASSIGNED`) ([`classification-register-authorized.md`](../governance/classification-register-authorized.md)). This document is the **approved** Stage 1 contract with **DG2 assigned**. It does **not** authorize implementation, preview, UAT, Production, commit, or push, and does **not** reopen DG1 / P1–P3 / I0 classification / I16 / I17 / I19. It is **not** a classification engine, **not** I0 `Public|…|HighlyRestricted` clearance, **not** Lineage, **not** QualityRule, **not** CAL, and **not** C11+.
+Authority: 2026-09-01 Product Owner **SELECT CLASSIFICATION AS NEXT CANDIDATE CAPABILITY** and **STAGE 1 CONTRACT AUTHORING ONLY**; 2026-09-01 Product Owner **CLASSIFICATION REGISTER — STAGE 1 APPROVAL ONLY** (`STAGE_1_APPROVED=YES`); 2026-09-01 Product Owner **ASSIGN CAPABILITY ID DG2 ONLY** (`CAPABILITY_ID=DG2` / `ID_ASSIGNMENT=DG2 / ASSIGNED`); 2026-09-01 Product Owner **IMPLEMENT DG2 CLASSIFICATION REGISTER** (`IMPLEMENTATION_AUTHORIZED=YES`, Dev/Test only) ([`classification-register-authorized.md`](../governance/classification-register-authorized.md)). This document is the **approved** Stage 1 contract with **DG2 assigned** and **Dev/Test implementation authorized**. It does **not** authorize preview, UAT, Production, commit, or push, and does **not** reopen DG1 / P1–P3 / I0 classification / I16 / I17 / I19. It is **not** a classification engine, **not** I0 `Public|…|HighlyRestricted` clearance, **not** Lineage, **not** QualityRule, **not** CAL, and **not** C11+.
 
 **Selection ≠ Stage 1 approval.**  
 **Stage 1 approval ≠ ID assignment.**  
@@ -47,14 +47,14 @@ CAPABILITY = CLASSIFICATION_REGISTER
 CAPABILITY_ID = DG2
 CAPABILITY_NAME = Classification Register
 STAGE = 1
-STATUS = SELECTED_STAGE_1_APPROVED_ID_ASSIGNED_IMPLEMENTATION_NOT_AUTHORIZED
+STATUS = SELECTED_STAGE_1_APPROVED_ID_ASSIGNED_IMPLEMENTATION_AUTHORIZED_DEVTEST
 STAGE_1_AUTHORING = AUTHORIZED
 STAGE_1_CREATED = YES
 STAGE_1_STATUS = APPROVED
 STAGE_1_APPROVED = YES
 ID_ASSIGNMENT = DG2
 ID_ASSIGNMENT_STATUS = ASSIGNED
-IMPLEMENTATION_AUTHORIZED = NO
+IMPLEMENTATION_AUTHORIZED = YES
 PREVIEW = NOT_AUTHORIZED
 COMMIT = NOT_AUTHORIZED
 PUSH = NOT_AUTHORIZED
@@ -155,9 +155,9 @@ No `datasetId`, I0 clearance enum, lineage graph, quality score, scanner ID, or 
 
 ## Persistence / migration
 
-Conceptual only. **No SQL file is created in this ID-assignment pass.** `123_dg2_classification_records.sql` remains a **future conditional reference only**.
+Conceptual only for PostgreSQL. **No SQL file is created in this implementation pass.** `123_dg2_classification_records.sql` remains a **future conditional reference only**.
 
-If implementation is later authorized:
+Dev/Test runtime SoR is **in-memory** `Store` (`classificationRecords`):
 
 - runtime SoR remains Dev/Test **in-memory** `Store`;
 - additive SQL only (new `classification_records` table; do **not** `ALTER` `dataset_records` or privacy/knowledge tables);
@@ -168,7 +168,7 @@ If implementation is later authorized:
 - do **not** reuse PQL 109–115; do **not** execute CD Phase 1 files 119–122;
 - ADR-0017 **not** reopened.
 
-This approved Stage 1 contract does **not** authorize creating or applying that file.
+This approved Stage 1 contract does **not** authorize creating or applying a SQL file. Dev/Test implementation uses in-memory `Store` only.
 
 ---
 
@@ -235,7 +235,7 @@ Do not add classify, scan, lineage, quality, or dataset-nested routes.
 
 Role **`classification.register`** — both. Do **not** reuse `dataset.register`, `dpo`, or I0 clearance as a permission.
 
-Do not create permissions in source code in this approval pass.
+Do not create additional permissions beyond `classification:read:register` / `classification:write:register`.
 
 ---
 
@@ -258,15 +258,15 @@ Sibling Path B registers do **not** call `recordAudit` on the register service. 
 - Register a row; list; detail; mark `done` / `cancelled` while `open`
 - Copy: **Classification Register / catalogue**, never classification engine, never I0 clearance UI, never lineage/quality/lakehouse/DLP
 
-Do not create UI files in this approval pass.
+UI is implemented at `/commercial/classifications` with Data → Classifications nav.
 
 ---
 
 ## Testing
 
-If implementation is later authorized: kernel and API tests for title/notes validation, `CLS-` generation, tenant isolation, human-only mutation, lifecycle, health identity distinct from DG1, RBAC isolation, and non-mutation of DG1/P1–P3/I0.
+Kernel and API tests cover title/notes validation, `CLS-` generation, tenant isolation, human-only mutation, lifecycle, health identity distinct from DG1, RBAC isolation, and non-mutation of DG1/P1–P3/I0.
 
-This contract does **not** authorize writing or running those tests as implementation work.
+This contract does **not** authorize UAT or Production test campaigns.
 
 ---
 
@@ -285,14 +285,14 @@ This contract does **not** authorize writing or running those tests as implement
 
 ## Dependencies
 
-I0 kernel patterns (tenancy / RBAC / human actor). **DG1 is a closed sibling, not a write dependency.** No new vendors. ADR-0006 / 0012 / 0013 remain OPEN and unused by this Dev/Test draft. ADR-0017 not reopened. DP-0006 not consumed.
+I0 kernel patterns (tenancy / RBAC / human actor). **DG1 is a closed sibling, not a write dependency.** No new vendors. ADR-0006 / 0012 / 0013 remain OPEN and unused by this Dev/Test implementation. ADR-0017 not reopened. DP-0006 not consumed.
 
 ---
 
 ## Governance / authority matrix
 
 ```text
-IMPLEMENTATION_AUTHORIZED = NO
+IMPLEMENTATION_AUTHORIZED = YES
 STAGE_1_APPROVED = YES
 STAGE_1_STATUS = APPROVED
 ID_ASSIGNMENT = DG2 / ASSIGNED
@@ -304,4 +304,4 @@ PATH_B_GENERAL_AUTO_SELECTION = PAUSED
 EXECUTION_QUEUE = EMPTY
 ```
 
-Next gate: **Owner decision on implementation authorization.** DG2 assignment does **not** grant it.
+Next gate: **Owner decision on Preview / commit.** Dev/Test implementation authorization does **not** grant UAT, Production, push, or PR.

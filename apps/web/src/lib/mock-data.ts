@@ -111,7 +111,10 @@ export const navItems = [
   },
   {
     section: "Data",
-    items: [{ href: "/commercial/datasets", label: "Datasets", icon: "dataset" }],
+    items: [
+      { href: "/commercial/datasets", label: "Datasets", icon: "dataset" },
+      { href: "/commercial/classifications", label: "Classifications", icon: "classification" },
+    ],
   },
   {
     section: "Knowledge",
