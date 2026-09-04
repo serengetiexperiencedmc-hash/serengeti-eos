@@ -73,6 +73,7 @@ export * from "./it-licenses.js";
 export * from "./it-endpoints.js";
 export * from "./consent-register.js";
 export * from "./dataset-register.js";
+export * from "./classification-register.js";
 export * from "./procurement-catalogue.js";
 export * from "./sourcing-event-register.js";
 export * from "./commercial-document.js";

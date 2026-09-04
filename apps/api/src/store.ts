@@ -151,6 +151,7 @@ import {
   type ItEndpoint,
   type ConsentRecord,
   type DatasetRecord,
+  type ClassificationRecord,
   type ProcurementRecord,
   type SourcingEvent,
   type PrivacyDpia,
@@ -188,6 +189,7 @@ import { seedDefaultItLicenses } from "./it-licenses/collections.js";
 import { seedDefaultItEndpoints } from "./it-endpoints/collections.js";
 import { seedDefaultConsentRecords } from "./consent-register/collections.js";
 import { seedDefaultDatasetRecords } from "./dataset-register/collections.js";
+import { seedDefaultClassificationRecords } from "./classification-register/collections.js";
 import { seedDefaultProcurementRecords } from "./procurement/collections.js";
 import { seedDefaultSourcingEventRecords } from "./sourcing-events/collections.js";
 import { seedDefaultPrivacyDpias } from "./privacy-dpias/collections.js";
@@ -357,6 +359,7 @@ export type Store = {
   itEndpoints: ItEndpoint[];
   consentRecords: ConsentRecord[];
   datasetRecords: DatasetRecord[];
+  classificationRecords: ClassificationRecord[];
   procurementRecords: ProcurementRecord[];
   sourcingEventRecords: SourcingEvent[];
   notifDismissals: NotifDismissal[];
@@ -529,6 +532,7 @@ const LICENSE_PERMS = ["license:read:register", "license:write:register"] as con
 const ENDPOINT_PERMS = ["endpoint:read:register", "endpoint:write:register"] as const;
 const CONSENT_PERMS = ["consent:read:register", "consent:write:register"] as const;
 const DATASET_PERMS = ["dataset:read:register", "dataset:write:register"] as const;
+const CLASSIFICATION_PERMS = ["classification:read:register", "classification:write:register"] as const;
 const PROCURE_PERMS = ["procure:read:record", "procure:write:record"] as const;
 const SOURCING_EVENT_PERMS = ["sourcingEvent:read:register", "sourcingEvent:write:register"] as const;
 const DPIA_PERMS = ["privacy:read:dpia", "privacy:write:dpia"] as const;
@@ -704,6 +708,7 @@ const PERMS = {
   itEndpoint: [...ENDPOINT_PERMS],
   consentRegister: [...CONSENT_PERMS],
   datasetRegister: [...DATASET_PERMS],
+  classificationRegister: [...CLASSIFICATION_PERMS],
   procureCatalogue: [...PROCURE_PERMS],
   sourcingEventRegister: [...SOURCING_EVENT_PERMS],
   privacyDpia: [...DPIA_PERMS],
@@ -762,6 +767,7 @@ const PERMS = {
     ...ENDPOINT_PERMS,
     ...CONSENT_PERMS,
     ...DATASET_PERMS,
+    ...CLASSIFICATION_PERMS,
     ...PROCURE_PERMS,
     ...SOURCING_EVENT_PERMS,
     ...DPIA_PERMS,
@@ -932,6 +938,7 @@ export function seedStore(
       "it.endpoint",
       "consent.register",
       "dataset.register",
+      "classification.register",
       "procure.catalogue",
       "sourcingEvent.register",
       "privacy.dpia",
@@ -962,6 +969,7 @@ export function seedStore(
       ...PERMS.itEndpoint,
       ...PERMS.consentRegister,
       ...PERMS.datasetRegister,
+      ...PERMS.classificationRegister,
       ...PERMS.procureCatalogue,
       ...PERMS.sourcingEventRegister,
       ...PERMS.privacyDpia,
@@ -1210,6 +1218,13 @@ export function seedStore(
       key: "dataset.register",
       name: "Dataset Register",
       permissionKeys: [...PERMS.datasetRegister],
+    },
+    {
+      id: "role-classification-register",
+      tenantId,
+      key: "classification.register",
+      name: "Classification Register",
+      permissionKeys: [...PERMS.classificationRegister],
     },
     {
       id: "role-procure-catalogue",
@@ -1519,6 +1534,14 @@ export function seedStore(
         grantedByPrincipalId: carolId,
       },
       {
+        id: "grant-bob-classification-register",
+        tenantId,
+        principalId: bobId,
+        roleKey: "classification.register",
+        grantedAt: new Date().toISOString(),
+        grantedByPrincipalId: carolId,
+      },
+      {
         id: "grant-bob-procure-catalogue",
         tenantId,
         principalId: bobId,
@@ -1766,6 +1789,7 @@ export function seedStore(
     itEndpoints: [],
     consentRecords: [],
     datasetRecords: [],
+    classificationRecords: [],
     procurementRecords: [],
     sourcingEventRecords: [],
     notifDismissals: [],
@@ -1830,6 +1854,7 @@ export function seedStore(
   seedDefaultItEndpoints(store);
   seedDefaultConsentRecords(store);
   seedDefaultDatasetRecords(store);
+  seedDefaultClassificationRecords(store);
   seedDefaultProcurementRecords(store);
   seedDefaultSourcingEventRecords(store);
   seedDefaultPrivacyDpias(store);

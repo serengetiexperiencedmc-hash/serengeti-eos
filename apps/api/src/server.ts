@@ -95,6 +95,7 @@ import { registerItLicenseRoutes } from "./it-licenses/routes.js";
 import { registerItEndpointRoutes } from "./it-endpoints/routes.js";
 import { registerConsentRegisterRoutes } from "./consent-register/routes.js";
 import { registerDatasetRegisterRoutes } from "./dataset-register/routes.js";
+import { registerClassificationRegisterRoutes } from "./classification-register/routes.js";
 import { registerProcurementRoutes } from "./procurement/routes.js";
 import { registerSourcingEventRoutes } from "./sourcing-events/routes.js";
 import { registerCommercialDocumentRoutes } from "./commercial-documents/routes.js";
@@ -178,6 +179,7 @@ export function buildServer(options: ServerOptions | Store = {}) {
   registerItEndpointRoutes(app, store);
   registerConsentRegisterRoutes(app, store);
   registerDatasetRegisterRoutes(app, store);
+  registerClassificationRegisterRoutes(app, store);
   registerProcurementRoutes(app, store);
   registerSourcingEventRoutes(app, store);
   registerComplianceRoutes(app, store);
