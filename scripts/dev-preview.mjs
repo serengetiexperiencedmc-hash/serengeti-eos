@@ -132,7 +132,9 @@ async function main() {
   const api = await resolveService("api", API_PORT, () => fetchOk(`${API_ORIGIN}/health`));
   if (api.failed) process.exit(1);
 
-  const web = await resolveService("web", WEB_PORT, () => fetchOk(`${WEB_ORIGIN}/commercial`));
+  const web = await resolveService("web", WEB_PORT, () =>
+    fetchOk(`${WEB_ORIGIN}/commercial`).then((ok) => ok || fetchOk(`${WEB_ORIGIN}/commercial/`)),
+  );
   if (web.failed) process.exit(1);
 
   if (!api.start && !web.start) {

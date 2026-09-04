@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
   // UNKNOWN/-4094 on routes.d.ts). Keep that tree untouched; write the live
   // dev/build output here instead.
   distDir: ".next-local",
+  // Cursor Simple Browser and some HTTP clients do not follow Next's 308
+  // `/commercial/` → `/commercial` redirect, so the preview looks blank.
+  skipTrailingSlashRedirect: true,
   transpilePackages: ["@sedmc/kernel"],
   turbopack: {
     resolveExtensions: [".tsx", ".ts", ".jsx", ".js", ".mjs", ".json"],
