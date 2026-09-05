@@ -1,10 +1,12 @@
-# Classification Register — Stage 1 contract (APPROVED; DG2 assigned; Dev/Test implementation written)
+# Classification Register — Stage 1 contract (APPROVED; DG2 assigned; Dev/Test implemented; UAT PASS)
 
-> **CURRENT STATE (2026-09-01 Stage 1 approved; DG2 assigned; Dev/Test implementation authorized — not UAT, not Production)**  
-> **PRODUCT_STATE=FROZEN_DEVTEST** · **origin/master=`d918f98729f2f3fd0969d7cc6066700dcb21fb01`**  
+> **CURRENT STATE (2026-09-05 Owner DG2 UAT governance reconciliation — documentation only)**  
+> **PRODUCT_STATE=FROZEN_DEVTEST** · **HEAD=`cc929543415d599f33887b8c60c4abb3e34a40a8`** · **origin/master=`cc929543415d599f33887b8c60c4abb3e34a40a8`**  
 > **CAPABILITY_SELECTED=YES** · **CAPABILITY=CLASSIFICATION_REGISTER** · **CAPABILITY_ID=DG2** · **ID_ASSIGNMENT=DG2 / ASSIGNED** · **ID_ASSIGNMENT_STATUS=ASSIGNED**  
-> **STAGE_1_CREATED=YES** · **STAGE_1_STATUS=APPROVED** · **STAGE_1_APPROVED=YES** · **IMPLEMENTATION_AUTHORIZED=YES** (Dev/Test)  
-> **PREVIEW=NOT_AUTHORIZED** · **COMMIT=NOT_AUTHORIZED** · **PUSH=NOT_AUTHORIZED** · **UAT=NOT_AUTHORIZED** · **PRODUCTION=NOT_AUTHORIZED** · **DEPLOYMENT=NOT_AUTHORIZED**  
+> **STAGE_1_CREATED=YES** · **STAGE_1_STATUS=APPROVED** · **STAGE_1_APPROVED=YES** · **IMPLEMENTATION_AUTHORIZED=YES** (Dev/Test) · **IMPLEMENTATION=COMPLETED**  
+> **PREVIEW=EXECUTED / PASS** · **COMMIT=EXECUTED** · **PUSH=EXECUTED**  
+> **UAT_AUTHORIZATION=YES** · **UAT=EXECUTED** · **UAT_RESULT=PASS** · **ENVIRONMENT=DEVTEST_PREVIEW_IN_MEMORY** · **SHA=cc929543415d599f33887b8c60c4abb3e34a40a8**  
+> **PRODUCTION=NOT_AUTHORIZED** · **DEPLOYMENT=NOT_AUTHORIZED** · **MIGRATIONS=NOT_AUTHORIZED** · **DATABASE=UNCHANGED** · **SQL_123=ABSENT**  
 > **EXECUTION_QUEUE=EMPTY** · **NEXT_INCREMENT=NONE_AUTHORIZED** · **PATH_B_GENERAL_AUTO_SELECTION=PAUSED**  
 > Authority record: [`../governance/classification-register-authorized.md`](../governance/classification-register-authorized.md).  
 > DG1 remains **CLOSED**. This document does **not** reopen Dataset Register.
@@ -18,14 +20,18 @@
 | Family | data governance |
 | Domain | Data Governance (`dg` — domain map 2.2 leftover noun **Classification** only) |
 | Predecessor | I0 kernel (complete). **DG1** Dataset Register complete and **not** reopened |
-| Architecture status | This document is the **approved** Stage 1 contract. Dev/Test implementation is **authorized and written**. |
+| Architecture status | This document is the **approved** Stage 1 contract. Dev/Test implementation is **written**. UAT **EXECUTED / PASS** on in-memory Preview. |
 | Stage | Stage 1 |
-| **STATUS** | **STAGE 1 APPROVED; ID ASSIGNED (DG2); IMPLEMENTATION AUTHORIZED (DEVTEST)** |
-| Implementation status | **AUTHORIZED** (Dev/Test; in-memory `Store` SoR; no SQL) |
-| Environment | Development/Test only **if** later authorized |
-| Persistence | Dev/Test **in-memory** `Store` is the SoR. Additive SQL `123_dg2_classification_records.sql` remains a **future conditional reference only** and was **not** created. Live PostgreSQL UNVERIFIED. ADR-0017 not reopened. |
+| **STATUS** | **STAGE 1 APPROVED; ID ASSIGNED (DG2); IMPLEMENTATION COMPLETED (DEVTEST); UAT PASS** |
+| Implementation status | **COMPLETED** (Dev/Test; in-memory `Store` SoR; no SQL) |
+| **ENVIRONMENT** | **DEVTEST_PREVIEW_IN_MEMORY** |
+| Persistence | Dev/Test **in-memory** `Store` is the SoR. The label `123_dg2_classification_records.sql` is a **conceptual future-conditional filename only**. That file is **ABSENT** and must **not** be created unless a later Owner gate separately authorizes a SQL migration. This UAT did **not** create or execute it. Live PostgreSQL UNVERIFIED. ADR-0017 not reopened. |
 | Runtime health increment | **DG2** (`module` `classification-register`; must not replace DG1 `/v1/datasets/health`) |
-| Production / UAT / AI | Not authorized |
+| Production / deployment / AI | **NOT_AUTHORIZED** |
+| **UAT_AUTHORIZATION** | **YES** |
+| **UAT** | **EXECUTED** |
+| **UAT_RESULT** | **PASS** |
+| **SHA** | **`cc929543415d599f33887b8c60c4abb3e34a40a8`** |
 | **CAPABILITY_ID** | **DG2** |
 | **ID_ASSIGNMENT** | **DG2 / ASSIGNED** |
 | **ID_ASSIGNMENT_STATUS** | **ASSIGNED** |
@@ -34,7 +40,7 @@
 | **STAGE_1_APPROVED** | **YES** |
 | **IMPLEMENTATION_AUTHORIZED** | **YES** (Dev/Test) |
 
-Authority: 2026-09-01 Product Owner **SELECT CLASSIFICATION AS NEXT CANDIDATE CAPABILITY** and **STAGE 1 CONTRACT AUTHORING ONLY**; 2026-09-01 Product Owner **CLASSIFICATION REGISTER — STAGE 1 APPROVAL ONLY** (`STAGE_1_APPROVED=YES`); 2026-09-01 Product Owner **ASSIGN CAPABILITY ID DG2 ONLY** (`CAPABILITY_ID=DG2` / `ID_ASSIGNMENT=DG2 / ASSIGNED`); 2026-09-01 Product Owner **IMPLEMENT DG2 CLASSIFICATION REGISTER** (`IMPLEMENTATION_AUTHORIZED=YES`, Dev/Test only) ([`classification-register-authorized.md`](../governance/classification-register-authorized.md)). This document is the **approved** Stage 1 contract with **DG2 assigned** and **Dev/Test implementation authorized**. It does **not** authorize preview, UAT, Production, commit, or push, and does **not** reopen DG1 / P1–P3 / I0 classification / I16 / I17 / I19. It is **not** a classification engine, **not** I0 `Public|…|HighlyRestricted` clearance, **not** Lineage, **not** QualityRule, **not** CAL, and **not** C11+.
+Authority: 2026-09-01 Product Owner **SELECT CLASSIFICATION AS NEXT CANDIDATE CAPABILITY** and **STAGE 1 CONTRACT AUTHORING ONLY**; 2026-09-01 Product Owner **CLASSIFICATION REGISTER — STAGE 1 APPROVAL ONLY** (`STAGE_1_APPROVED=YES`); 2026-09-01 Product Owner **ASSIGN CAPABILITY ID DG2 ONLY** (`CAPABILITY_ID=DG2` / `ID_ASSIGNMENT=DG2 / ASSIGNED`); 2026-09-01 Product Owner **IMPLEMENT DG2 CLASSIFICATION REGISTER** (`IMPLEMENTATION_AUTHORIZED=YES`, Dev/Test only); 2026-09-05 Product Owner **UAT GATE** (`UAT_AUTHORIZATION=YES`, **UAT=EXECUTED / PASS**, **ENVIRONMENT=DEVTEST_PREVIEW_IN_MEMORY**, **SHA=cc929543415d599f33887b8c60c4abb3e34a40a8**); 2026-09-05 Product Owner **DG2 UAT GOVERNANCE RECONCILIATION ONLY** (this documentation update) ([`classification-register-authorized.md`](../governance/classification-register-authorized.md)). This document is the **approved** Stage 1 contract with **DG2 assigned**, Dev/Test implementation **completed**, and in-memory Preview UAT **PASS**. It does **not** authorize Production, deployment, SQL/migrations, or Path B auto-selection, and does **not** reopen DG1 / P1–P3 / I0 classification / I16 / I17 / I19. It is **not** a classification engine, **not** I0 `Public|…|HighlyRestricted` clearance, **not** Lineage, **not** QualityRule, **not** CAL, and **not** C11+.
 
 **Selection ≠ Stage 1 approval.**  
 **Stage 1 approval ≠ ID assignment.**  
@@ -47,7 +53,7 @@ CAPABILITY = CLASSIFICATION_REGISTER
 CAPABILITY_ID = DG2
 CAPABILITY_NAME = Classification Register
 STAGE = 1
-STATUS = SELECTED_STAGE_1_APPROVED_ID_ASSIGNED_IMPLEMENTATION_AUTHORIZED_DEVTEST
+STATUS = SELECTED_STAGE_1_APPROVED_ID_ASSIGNED_IMPLEMENTATION_COMPLETED_DEVTEST_UAT_PASS
 STAGE_1_AUTHORING = AUTHORIZED
 STAGE_1_CREATED = YES
 STAGE_1_STATUS = APPROVED
@@ -55,12 +61,20 @@ STAGE_1_APPROVED = YES
 ID_ASSIGNMENT = DG2
 ID_ASSIGNMENT_STATUS = ASSIGNED
 IMPLEMENTATION_AUTHORIZED = YES
-PREVIEW = NOT_AUTHORIZED
-COMMIT = NOT_AUTHORIZED
-PUSH = NOT_AUTHORIZED
-UAT = NOT_AUTHORIZED
+IMPLEMENTATION = COMPLETED
+PREVIEW = EXECUTED / PASS
+COMMIT = EXECUTED
+PUSH = EXECUTED
+UAT_AUTHORIZATION = YES
+UAT = EXECUTED
+UAT_RESULT = PASS
+ENVIRONMENT = DEVTEST_PREVIEW_IN_MEMORY
+SHA = cc929543415d599f33887b8c60c4abb3e34a40a8
 PRODUCTION = NOT_AUTHORIZED
 DEPLOYMENT = NOT_AUTHORIZED
+MIGRATIONS = NOT_AUTHORIZED
+DATABASE = UNCHANGED
+SQL_123 = ABSENT
 ADR_0006 = OPEN
 DP_0006 = NOT_APPROVED
 EXECUTION_QUEUE = EMPTY
@@ -111,12 +125,13 @@ Do **not** add I0 clearance enums, dataset foreign keys, lineage edges, quality 
 | Human-only mutate (deny `AiAgent` / non-Human) | Yes |
 | Dedicated store, API, health, UI, permissions, role | Yes (if later implemented) |
 | In-memory Dev/Test SoR if implementation is later authorized | Yes |
-| Additive SQL only if a later implementation gate authorizes it | Yes (not in this approval pass; **do not** apply 119–122) |
+| Additive SQL only if a later Owner migration gate authorizes it | Conceptual filename only — file **ABSENT**; do **not** create or apply |
 | Classification **engine** / automated classification | No |
 | Reuse of I0 `Classification` as this aggregate or as a field type | No |
 | Lineage / QualityRule engines or aggregates | No |
 | Dataset mutation / `datasetId` | No |
-| UAT / Production / ADR-0006 closure | No |
+| Production / ADR-0006 closure | No |
+| UAT (in-memory Preview) | **EXECUTED / PASS** (2026-09-05; does **not** grant Production) |
 
 Required field is **`title`**, matching DG1/ITA1/P3 registers.
 
@@ -155,20 +170,20 @@ No `datasetId`, I0 clearance enum, lineage graph, quality score, scanner ID, or 
 
 ## Persistence / migration
 
-Conceptual only for PostgreSQL. **No SQL file is created in this implementation pass.** `123_dg2_classification_records.sql` remains a **future conditional reference only**.
+Conceptual only for PostgreSQL. **No SQL file exists. Do not create `123_dg2_classification_records.sql`.** That string is a **future-conditional filename label only** (F2 reconciliation). **SQL_123=ABSENT.**
 
 Dev/Test runtime SoR is **in-memory** `Store` (`classificationRecords`):
 
 - runtime SoR remains Dev/Test **in-memory** `Store`;
-- additive SQL only (new `classification_records` table; do **not** `ALTER` `dataset_records` or privacy/knowledge tables);
-- `UNIQUE (tenant_id, classification_code)`;
+- additive SQL only if a **later Owner migration gate** authorizes it (new `classification_records` table; do **not** `ALTER` `dataset_records` or privacy/knowledge tables);
+- `UNIQUE (tenant_id, classification_code)` would apply only if that later SQL were authorized;
 - no foreign key to DG1 datasets;
 - live PostgreSQL UNVERIFIED;
-- next unused filename after committed `122_cd_programme_item_extensions.sql` would be **`123_dg2_classification_records.sql`** **only if** Owner later authorizes implementation (DG2 is now assigned; this pass still does **not** create that file);
+- the next unused filename after committed `122_cd_programme_item_extensions.sql` **would be** `123_dg2_classification_records.sql` **only if** Owner later authorizes a migration; this pass and the completed UAT **did not** create that file;
 - do **not** reuse PQL 109–115; do **not** execute CD Phase 1 files 119–122;
 - ADR-0017 **not** reopened.
 
-This approved Stage 1 contract does **not** authorize creating or applying a SQL file. Dev/Test implementation uses in-memory `Store` only.
+UAT PASS does **not** authorize creating or applying a SQL file. Dev/Test / UAT SoR remains in-memory `Store` only.
 
 ---
 
@@ -196,7 +211,7 @@ If later work encounters pressure to add any of the following, **STOP** and retu
 - `datasetId` / Dataset Register mutation
 - Lineage / QualityRule engines or aggregates
 - lakehouse / DLP / scanners / erasure
-- UAT / Production
+- Production / deployment / migrations
 - ADR-0006 / 0012 / 0013 closure, or ADR-0017 reopen
 - CAL / C11+ / Path B auto-selection unpause
 
@@ -266,7 +281,7 @@ UI is implemented at `/commercial/classifications` with Data → Classifications
 
 Kernel and API tests cover title/notes validation, `CLS-` generation, tenant isolation, human-only mutation, lifecycle, health identity distinct from DG1, RBAC isolation, and non-mutation of DG1/P1–P3/I0.
 
-This contract does **not** authorize UAT or Production test campaigns.
+**UAT=EXECUTED / PASS** (2026-09-05) on **ENVIRONMENT=DEVTEST_PREVIEW_IN_MEMORY** at **SHA=cc929543415d599f33887b8c60c4abb3e34a40a8**. Non-blocking P3/info findings were harness/session limitations, not product defects (JSON-empty POST **400** vs route **404**; headless Dev sign-in; AiAgent live login; partner **403** vs injected-row **404**). This contract does **not** authorize Production test campaigns.
 
 ---
 
@@ -278,8 +293,8 @@ This contract does **not** authorize UAT or Production test campaigns.
 - DG1 Dataset mutation; `datasetId`
 - Lakehouse; DLP; scanners; erasure
 - CAL; C11+; I21–I23; EMCOMMS; EXER; SAMPLE; UEM
-- Execute migrations 119–122 or any new SQL
-- UAT; Production; ADR-0006 closure; live PostgreSQL as SoR
+- Execute migrations 119–122 or create `123_dg2_classification_records.sql` (**ABSENT**)
+- Production; deployment; ADR-0006 closure; live PostgreSQL as SoR
 
 ---
 
@@ -293,15 +308,23 @@ I0 kernel patterns (tenancy / RBAC / human actor). **DG1 is a closed sibling, no
 
 ```text
 IMPLEMENTATION_AUTHORIZED = YES
+IMPLEMENTATION = COMPLETED
 STAGE_1_APPROVED = YES
 STAGE_1_STATUS = APPROVED
 ID_ASSIGNMENT = DG2 / ASSIGNED
 ID_ASSIGNMENT_STATUS = ASSIGNED
-UAT = NOT_AUTHORIZED
+UAT_AUTHORIZATION = YES
+UAT = EXECUTED
+UAT_RESULT = PASS
+ENVIRONMENT = DEVTEST_PREVIEW_IN_MEMORY
+SHA = cc929543415d599f33887b8c60c4abb3e34a40a8
 PRODUCTION = NOT_AUTHORIZED
 DEPLOYMENT = NOT_AUTHORIZED
+MIGRATIONS = NOT_AUTHORIZED
+DATABASE = UNCHANGED
+SQL_123 = ABSENT
 PATH_B_GENERAL_AUTO_SELECTION = PAUSED
 EXECUTION_QUEUE = EMPTY
 ```
 
-Next gate: **Owner decision on Preview / commit.** Dev/Test implementation authorization does **not** grant UAT, Production, push, or PR.
+Next gate: **Owner decision on Production / deployment / migrations.** UAT PASS does **not** grant Production, deployment, SQL 123, database writes, push of this documentation, PR, or Path B auto-selection.
