@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { useEosSession } from "@/components/commercial/EosSessionProvider";
 import { navItems, type NavBadgeKey } from "@/lib/mock-data";
 import { getAiDraftSummary } from "@/lib/ai-api";
@@ -161,11 +161,11 @@ function badgeValue(counts: NavBadgeCounts | null, key?: NavBadgeKey): number | 
 }
 
 function useClientMounted(): boolean {
-  return useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  );
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  return mounted;
 }
 
 export function Sidebar() {
