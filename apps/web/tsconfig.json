@@ -38,8 +38,6 @@
     ".next-local/dev/types/**/*.ts",
     ".next-h149-uat/types/**/*.ts",
     ".next-h149-uat/dev/types/**/*.ts",
-    ".next-h151-d03/types/**/*.ts",
-    ".next-h151-d03/dev/types/**/*.ts",
     ".next-h151-build/types/**/*.ts",
     ".next-h151-build/dev/types/**/*.ts",
     ".next-h152-build/types/**/*.ts",

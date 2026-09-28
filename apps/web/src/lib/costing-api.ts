@@ -19,6 +19,7 @@ export type CostSheetSummary = {
   sheetCode: string;
   programmeId: string;
   rfpId: string;
+  status: string;
   currency: string;
   totalCost: number;
   sellPrice?: number;
