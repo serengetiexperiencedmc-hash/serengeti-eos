@@ -40,7 +40,6 @@ export function seedDefaultPrivacy(store: Store): void {
       dsrCode: "DSR-0001",
       requestType: "access",
       status: "open",
-      subjectLabel: "Guest A (Dev/Test label)",
       note: "Register only — not live access fulfilment",
       createdAt: now,
       updatedAt: now,

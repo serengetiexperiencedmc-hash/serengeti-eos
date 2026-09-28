@@ -1,0 +1,46 @@
+{
+  "identity": "H-117-UAT",
+  "initializedAt": "2026-09-21T16:38:00Z",
+  "database": {
+    "host": "127.0.0.1",
+    "port": 5436,
+    "catalog": "eos_h117_uat",
+    "user": "eos_h117",
+    "container": "serengeti-eos-h117-uat-pg",
+    "image": "postgres:16-alpine",
+    "redactedUrl": "postgres://127.0.0.1:5436/eos_h117_uat"
+  },
+  "migrationState": {
+    "schema_migrations_count": 120,
+    "minId": "db/schema.sql",
+    "maxId": "migrations/124_f2_dp01_commercial_facts.sql",
+    "numberingHole": "112-116 files absent",
+    "cliAppliedOnce": true,
+    "startupApplied": []
+  },
+  "api": {
+    "endpoint": "http://127.0.0.1:18117",
+    "startupMode": "default Dev/Test full-schema path (EOS_H112_FULL_SCHEMA_DEVTEST_API_STARTUP unset; EOS_F2_DP01_BOUNDED_DEVTEST_API_STARTUP unset)",
+    "eosEnv": "development",
+    "seedDemo": false,
+    "namedBranch": null,
+    "note": "EOS_ENV=uat is production-like and is refused. H-112 named-branch opt-in refuses this catalog (port 5436 / name eos_h117_uat)."
+  },
+  "web": {
+    "endpoint": "http://127.0.0.1:3017",
+    "EOS_API_URL": "http://127.0.0.1:18117",
+    "proxyCheck": "/eos-api/health matches /health on 18117"
+  },
+  "users": {
+    "carol": "carol.admin@sedmc.local / platform.admin / tenant sedmc",
+    "alice": "alice.finance@sedmc.local / finance.member",
+    "secretSource": ".env.example bootstrap passwords; not copied here"
+  },
+  "syntheticNamespace": "UAT-* codes and 'UAT Synthetic *' legal names",
+  "excludedTargets": [
+    "127.0.0.1:5432/eos",
+    "127.0.0.1:5435/eos_h112_full",
+    "127.0.0.1:5434/eos_gateb",
+    "Production"
+  ]
+}

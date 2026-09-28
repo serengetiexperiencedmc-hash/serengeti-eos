@@ -8,9 +8,7 @@ import {
   duplicateReviewTargetStatus,
   duplicateScoreMeetsThreshold,
   newId,
-  scoreContactDuplicatePair,
   scoreOrganizationDuplicatePair,
-  type CrmContact,
   type CrmDuplicateCandidate,
   type CrmOrganization,
   type Principal,
@@ -19,8 +17,8 @@ import type { Store } from "../store.js";
 import { allowCrmAudit, denyCrmAudit } from "./audit.js";
 import { ensureCrmCollections } from "./collections.js";
 import { commitCrmWithOutbox } from "./events.js";
-import { contactResource } from "./contact.js";
 import { orgResource } from "./organization.js";
+import { personDomainRemoved } from "../personal-data-phase1.js";
 
 export type DuplicateCandidateEmitCtx = {
   principal: Principal;
@@ -45,7 +43,7 @@ function findCandidate(store: Store, tenantId: string, id: string): CrmDuplicate
 function existingPairCandidate(
   store: Store,
   tenantId: string,
-  entityType: "organization" | "contact",
+  entityType: "organization",
   entityIdA: string,
   entityIdB: string,
 ): CrmDuplicateCandidate | undefined {
@@ -59,17 +57,7 @@ function isActiveOrganization(org: CrmOrganization): boolean {
   return !org.archivedAt && !org.mergedIntoId;
 }
 
-function isActiveContact(contact: CrmContact): boolean {
-  return !contact.archivedAt && !contact.mergedIntoId;
-}
-
-function contactOrganizationIds(store: Store, tenantId: string, contactId: string): string[] {
-  return store.crmRelationships
-    .filter((r) => r.tenantId === tenantId && r.fromContactId === contactId && r.toOrganizationId)
-    .map((r) => r.toOrganizationId as string);
-}
-
-export function registerDuplicateCandidatesForOrganization(
+export async function registerDuplicateCandidatesForOrganization(
   store: Store,
   tenantId: string,
   organizationId: string,
@@ -95,48 +83,23 @@ export function registerDuplicateCandidatesForOrganization(
       ...(other.website !== undefined ? { website: other.website } : {}),
     });
     if (!match || !duplicateScoreMeetsThreshold(match.score)) continue;
-    upsertDuplicateCandidate(store, tenantId, "organization", org.id, other.id, match, emitCtx);
+    await upsertDuplicateCandidate(store, tenantId, "organization", org.id, other.id, match, emitCtx);
   }
 }
 
-export function registerDuplicateCandidatesForContact(
+export async function registerDuplicateCandidatesForContact(
   store: Store,
-  tenantId: string,
-  contactId: string,
-  emitCtx?: DuplicateCandidateEmitCtx,
+  _tenantId: string,
+  _contactId: string,
+  _emitCtx?: DuplicateCandidateEmitCtx,
 ) {
   ensureCrmCollections(store);
-  const contact = store.crmContacts.find((c) => c.id === contactId && c.tenantId === tenantId);
-  if (!contact || !isActiveContact(contact)) return;
-
-  const signals = {
-    givenName: contact.givenName,
-    familyName: contact.familyName,
-    ...(contact.email !== undefined ? { email: contact.email } : {}),
-    ...(contact.telephone !== undefined ? { telephone: contact.telephone } : {}),
-    ...(contact.mobile !== undefined ? { mobile: contact.mobile } : {}),
-    organizationIds: contactOrganizationIds(store, tenantId, contact.id),
-  };
-
-  for (const other of store.crmContacts) {
-    if (other.id === contact.id || other.tenantId !== tenantId || !isActiveContact(other)) continue;
-    const match = scoreContactDuplicatePair(signals, {
-      givenName: other.givenName,
-      familyName: other.familyName,
-      ...(other.email !== undefined ? { email: other.email } : {}),
-      ...(other.telephone !== undefined ? { telephone: other.telephone } : {}),
-      ...(other.mobile !== undefined ? { mobile: other.mobile } : {}),
-      organizationIds: contactOrganizationIds(store, tenantId, other.id),
-    });
-    if (!match || !duplicateScoreMeetsThreshold(match.score)) continue;
-    upsertDuplicateCandidate(store, tenantId, "contact", contact.id, other.id, match, emitCtx);
-  }
 }
 
-function upsertDuplicateCandidate(
+async function upsertDuplicateCandidate(
   store: Store,
   tenantId: string,
-  entityType: "organization" | "contact",
+  entityType: "organization",
   entityIdA: string,
   entityIdB: string,
   match: { rule: string; score: number; matchReason: string },
@@ -169,7 +132,7 @@ function upsertDuplicateCandidate(
     detectedAt: new Date().toISOString(),
   };
   if (emitCtx) {
-    commitCrmWithOutbox(store, emitCtx.principal, {
+    await commitCrmWithOutbox(store, emitCtx.principal, {
       eventType: CRM_EVENT_TYPES.DUPLICATE_CANDIDATE_CREATED,
       entityType: "duplicate_candidate",
       entityId: candidate.id,
@@ -195,29 +158,19 @@ function upsertDuplicateCandidate(
 function entityReadable(
   store: Store,
   principal: Principal,
-  entityType: "organization" | "contact",
+  entityType: string,
   entityId: string,
 ): boolean {
-  if (entityType === "organization") {
-    const org = store.crmOrganizations.find((o) => o.id === entityId && o.tenantId === principal.tenantId);
-    if (!org) return false;
-    const decision = authorize({
-      principal,
-      permission: "crm:read:organization",
-      action: "read:crm_organization",
-      resource: orgResource(org),
-    });
-    return decision.result === "allow" && clearanceAllows(principal.classificationClearance, org.classification);
-  }
-  const contact = store.crmContacts.find((c) => c.id === entityId && c.tenantId === principal.tenantId);
-  if (!contact) return false;
+  if (entityType !== "organization") return false;
+  const org = store.crmOrganizations.find((o) => o.id === entityId && o.tenantId === principal.tenantId);
+  if (!org) return false;
   const decision = authorize({
     principal,
-    permission: "crm:read:contact",
-    action: "read:crm_contact",
-    resource: contactResource(contact),
+    permission: "crm:read:organization",
+    action: "read:crm_organization",
+    resource: orgResource(org),
   });
-  return decision.result === "allow" && clearanceAllows(principal.classificationClearance, contact.classification);
+  return decision.result === "allow" && clearanceAllows(principal.classificationClearance, org.classification);
 }
 
 function sanitizeCandidate(candidate: CrmDuplicateCandidate) {
@@ -253,15 +206,18 @@ export function listDuplicateCandidates(
   let items = store.crmDuplicateCandidates.filter((c) => c.tenantId === principal.tenantId);
   if (query?.status) items = items.filter((c) => c.status === query.status);
   if (query?.entityType) {
-    if (query.entityType !== "organization" && query.entityType !== "contact") {
+    if (query.entityType === "contact") return personDomainRemoved();
+    if (query.entityType !== "organization") {
       return { error: "invalid_request" as const, reason: "invalid_entity_type" };
     }
     items = items.filter((c) => c.entityType === query.entityType);
   }
+  items = items.filter((c) => c.entityType === "organization");
 
   items = items.filter(
-    (c) => entityReadable(store, principal, c.entityType, c.entityIdA) &&
-      entityReadable(store, principal, c.entityType, c.entityIdB),
+    (c) =>
+      entityReadable(store, principal, "organization", c.entityIdA) &&
+      entityReadable(store, principal, "organization", c.entityIdB),
   );
   items.sort((a, b) => b.detectedAt.localeCompare(a.detectedAt));
 
@@ -300,7 +256,7 @@ export function getDuplicateCandidate(store: Store, principal: Principal, candid
   return { candidate: sanitizeCandidate(candidate) };
 }
 
-export function reviewDuplicateCandidate(
+export async function reviewDuplicateCandidate(
   store: Store,
   principal: Principal,
   candidateId: string,
@@ -349,7 +305,7 @@ export function reviewDuplicateCandidate(
   candidate.reviewedByPrincipalId = principal.id;
   candidate.reviewReason = reason;
 
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.DUPLICATE_CANDIDATE_REVIEWED,
     entityType: "duplicate_candidate",
     entityId: candidate.id,

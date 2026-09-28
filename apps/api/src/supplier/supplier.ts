@@ -16,6 +16,7 @@ import type { Store } from "../store.js";
 import { allowSupplierAudit, denySupplierAudit } from "./audit.js";
 import { ensureSupplierCollections } from "./collections.js";
 import { persistSupEntityAfterCommit } from "../persistence/supplier.js";
+import { rejectPersonDomainContent } from "../personal-data-content-contract.js";
 
 const SUPPLIER_CODE_PATTERN = /^[A-Z0-9_-]{2,32}$/;
 const ISO_COUNTRY_PATTERN = /^[A-Z]{2}$/;
@@ -176,20 +177,12 @@ export function getSupplier(store: Store, principal: Principal, id: string) {
   });
   if (decision.result === "deny") return { error: "not_found" as const };
 
-  const contacts = store.supContacts.filter((c) => c.supplierId === supplier.id && !c.archivedAt);
   const rates = store.supRates.filter((r) => r.supplierId === supplier.id && !r.archivedAt);
   const contentBlocks = store.supContentBlocks.filter((b) => b.supplierId === supplier.id && !b.archivedAt);
 
   return {
     supplier: sanitizeSupplier(supplier),
-    contacts: contacts.map((c) => ({
-      id: c.id,
-      contactRole: c.contactRole,
-      givenName: c.givenName,
-      familyName: c.familyName,
-      email: c.email,
-      isPrimary: c.isPrimary,
-    })),
+    contacts: [] as const,
     rates: rates.map((r) => ({
       id: r.id,
       rateCode: r.rateCode,
@@ -327,6 +320,8 @@ export function createSupplier(
     denySupplierAudit(store, principal, "supplier:write:supplier", "sup_supplier", correlationId, decision.reason);
     return { error: "forbidden" as const, reason: decision.reason };
   }
+  const personContent = rejectPersonDomainContent(input);
+  if (personContent) return personContent;
 
   if (!clearanceAllows(principal.classificationClearance, validated.classification)) {
     return { error: "forbidden" as const, reason: "classification_denied" };
@@ -417,6 +412,8 @@ export function updateSupplier(
     denySupplierAudit(store, principal, "supplier:write:supplier", "sup_supplier", correlationId, decision.reason, id);
     return { error: "forbidden" as const, reason: decision.reason };
   }
+  const personContent = rejectPersonDomainContent(input);
+  if (personContent) return personContent;
 
   if (!clearanceAllows(principal.classificationClearance, nextClassification)) {
     return { error: "forbidden" as const, reason: "classification_denied" };
@@ -720,7 +717,7 @@ export function getSupplierModuleHealth(store: Store, principal: Principal) {
     suppliers: store.supSuppliers.filter((s) => s.tenantId === tenantId && !s.archivedAt).length,
     archivedSuppliers: store.supSuppliers.filter((s) => s.tenantId === tenantId && Boolean(s.archivedAt)).length,
     importBatches: store.supImportBatches.filter((b) => b.tenantId === tenantId).length,
-    contacts: store.supContacts.filter((c) => c.tenantId === tenantId && !c.archivedAt).length,
+    contacts: 0,
     rates: store.supRates.filter((r) => r.tenantId === tenantId && !r.archivedAt).length,
     seasons: (store.supSeasons ?? []).filter((s) => s.tenantId === tenantId && !s.archivedAt).length,
     contentBlocks: store.supContentBlocks.filter((b) => b.tenantId === tenantId && !b.archivedAt).length,

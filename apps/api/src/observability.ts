@@ -14,6 +14,26 @@ const REDACT_KEYS = new Set([
   "EOS_BOOTSTRAP_BOB_PASSWORD",
   "EOS_BOOTSTRAP_CAROL_PASSWORD",
   "EOS_BOOTSTRAP_PARTNER_PASSWORD",
+  // Align with CRM event forbidden payload keys (H-134 / H-140). Not a content scanner.
+  "email",
+  "phone",
+  "telephone",
+  "mobile",
+  "passport",
+  "body",
+  "csvContent",
+  "csv",
+  "nationalId",
+  "ssn",
+  "dateOfBirth",
+  "address",
+  "primaryEmail",
+  "primaryTelephone",
+  "contentBase64",
+  "recipientEmail",
+  "bodyText",
+  "bodyHtml",
+  "whatsapp",
 ]);
 
 function redact(value: unknown): unknown {
@@ -64,9 +84,9 @@ export function createLogger(level: LogLevel = "info", bindings: Record<string, 
 }
 
 export function registerObservability(app: FastifyInstance, logger: Logger): void {
-  app.addHook("onRequest", async (req) => {
+  app.addHook("onRequest", async (req, reply) => {
     const correlationId = String(req.headers["x-correlation-id"] ?? crypto.randomUUID());
-    const requestId = crypto.randomUUID();
+    const requestId = String(req.headers["x-request-id"] ?? crypto.randomUUID());
     (req as FastifyRequest & { correlationId: string; requestId: string; eosLog: Logger }).correlationId =
       correlationId;
     (req as FastifyRequest & { correlationId: string; requestId: string; eosLog: Logger }).requestId = requestId;
@@ -74,8 +94,10 @@ export function registerObservability(app: FastifyInstance, logger: Logger): voi
       correlationId,
       requestId,
       method: req.method,
-      path: req.url,
+      path: requestPathWithoutQuery(req),
     });
+    reply.header("x-correlation-id", correlationId);
+    reply.header("x-request-id", requestId);
   });
 
   app.addHook("onResponse", async (req, reply) => {
@@ -105,4 +127,10 @@ export function getCorrelationId(req: FastifyRequest): string {
 
 export function setCorrelationHeader(reply: FastifyReply, correlationId: string): void {
   reply.header("x-correlation-id", correlationId);
+}
+
+function requestPathWithoutQuery(req: FastifyRequest): string {
+  const raw = req.url ?? "";
+  const q = raw.indexOf("?");
+  return q >= 0 ? raw.slice(0, q) : raw;
 }

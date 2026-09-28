@@ -71,14 +71,12 @@ export type ImportBatch = {
 
 export type SupplierImportEntityType =
   | "supplier"
-  | "supplier_contact"
   | "supplier_rate"
   | "supplier_content_block"
   | "supplier_season";
 
 export const IMPORT_ENTITY_OPTIONS: Array<{ value: SupplierImportEntityType; label: string }> = [
   { value: "supplier", label: "Suppliers (master)" },
-  { value: "supplier_contact", label: "Contacts" },
   { value: "supplier_rate", label: "Rate cards" },
   { value: "supplier_content_block", label: "Content blocks" },
   { value: "supplier_season", label: "Season catalogue" },

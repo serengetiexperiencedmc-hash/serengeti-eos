@@ -15,6 +15,8 @@ import type { Store } from "../store.js";
 import { allowCrmAudit, denyCrmAudit } from "./audit.js";
 import { ensureCrmCollections, seedCrmCatalogues } from "./collections.js";
 import { commitCrmWithOutbox } from "./events.js";
+import { personDomainRemoved } from "../personal-data-phase1.js";
+import { rejectPersonDomainContent } from "../personal-data-content-contract.js";
 
 const DEFAULT_LIST_LIMIT = 50;
 const MAX_LIST_LIMIT = 100;
@@ -108,7 +110,7 @@ export function listActivities(store: Store, principal: Principal, query: ListAc
     }
     items = items.filter((a) => a.activityType === query.activityType);
   }
-  if (query.contactId) items = items.filter((a) => a.contactId === query.contactId);
+  if (query.contactId) return personDomainRemoved();
   if (query.organizationId) items = items.filter((a) => a.organizationId === query.organizationId);
   if (query.organizationUnitId) items = items.filter((a) => a.organizationUnitId === query.organizationUnitId);
   if (query.relationshipId) items = items.filter((a) => a.relationshipId === query.relationshipId);
@@ -173,7 +175,7 @@ export type CreateActivityInput = {
   classification?: Classification;
 };
 
-export function createActivity(
+export async function createActivity(
   store: Store,
   principal: Principal,
   input: CreateActivityInput,
@@ -197,34 +199,29 @@ export function createActivity(
   const occurred = parseOccurredAt(input.occurredAt);
   if (!occurred.ok) return { error: "invalid_request" as const, reason: "invalid_occurred_at" };
 
-  let contactId = input.contactId;
   let organizationId = input.organizationId;
   let organizationUnitId = input.organizationUnitId;
   let relationshipId = input.relationshipId;
+
+  if (input.contactId) {
+    return { error: "invalid_request" as const, reason: "person_domain_removed" };
+  }
 
   if (relationshipId) {
     const rel = store.crmRelationships.find(
       (r) => r.id === relationshipId && r.tenantId === principal.tenantId,
     );
     if (!rel) return { error: "invalid_request" as const, reason: "invalid_relationship" };
-    if (rel.fromContactId) contactId = contactId ?? rel.fromContactId;
     if (rel.toOrganizationId) organizationId = organizationId ?? rel.toOrganizationId;
-    if (contactId && rel.fromContactId && contactId !== rel.fromContactId) {
-      return { error: "invalid_request" as const, reason: "relationship_contact_mismatch" };
-    }
     if (organizationId && rel.toOrganizationId && organizationId !== rel.toOrganizationId) {
       return { error: "invalid_request" as const, reason: "relationship_organization_mismatch" };
     }
   }
 
-  if (!contactId && !organizationId && !relationshipId) {
+  if (!organizationId && !relationshipId) {
     return { error: "invalid_request" as const, reason: "association_required" };
   }
 
-  if (contactId) {
-    const contact = store.crmContacts.find((c) => c.id === contactId && c.tenantId === principal.tenantId);
-    if (!contact) return { error: "invalid_request" as const, reason: "invalid_contact" };
-  }
   if (organizationId) {
     const org = store.crmOrganizations.find((o) => o.id === organizationId && o.tenantId === principal.tenantId);
     if (!org) return { error: "invalid_request" as const, reason: "invalid_organization" };
@@ -244,7 +241,6 @@ export function createActivity(
 
   const classificationResult = resolveClassification(store, principal.tenantId, {
     ...(input.classification !== undefined ? { classification: input.classification } : {}),
-    ...(contactId !== undefined ? { contactId } : {}),
     ...(organizationId !== undefined ? { organizationId } : {}),
   });
   if (typeof classificationResult === "object" && "error" in classificationResult) {
@@ -270,6 +266,8 @@ export function createActivity(
     denyCrmAudit(store, principal, "crm:write:activity", "crm_activity", correlationId, decision.reason);
     return { error: "forbidden" as const, reason: decision.reason };
   }
+  const personContent = rejectPersonDomainContent(input);
+  if (personContent) return personContent;
 
   const now = new Date().toISOString();
   const activity: CrmActivity = {
@@ -285,7 +283,6 @@ export function createActivity(
     updatedAt: now,
     createdByPrincipalId: principal.id,
     updatedByPrincipalId: principal.id,
-    ...(contactId !== undefined ? { contactId } : {}),
     ...(organizationId !== undefined ? { organizationId } : {}),
     ...(organizationUnitId !== undefined ? { organizationUnitId } : {}),
     ...(relationshipId !== undefined ? { relationshipId } : {}),
@@ -293,7 +290,7 @@ export function createActivity(
     ...(input.notes !== undefined ? { notes: input.notes } : {}),
   };
 
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.ACTIVITY_CREATED,
     entityType: "activity",
     entityId: activity.id,
@@ -322,7 +319,7 @@ export type UpdateActivityInput = {
   notes?: string;
 };
 
-export function updateActivity(
+export async function updateActivity(
   store: Store,
   principal: Principal,
   activityId: string,
@@ -352,6 +349,8 @@ export function updateActivity(
     );
     return { error: "forbidden" as const, reason: decision.reason };
   }
+  const personContent = rejectPersonDomainContent(input);
+  if (personContent) return personContent;
 
   if (activity.archivedAt) {
     return { error: "conflict" as const, reason: "activity_not_mutable" };
@@ -394,7 +393,7 @@ export function updateActivity(
   activity.updatedAt = new Date().toISOString();
   activity.updatedByPrincipalId = principal.id;
 
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.ACTIVITY_UPDATED,
     entityType: "activity",
     entityId: activity.id,
@@ -423,7 +422,7 @@ export function updateActivity(
   return { activity };
 }
 
-export function archiveActivity(store: Store, principal: Principal, activityId: string, correlationId: string) {
+export async function archiveActivity(store: Store, principal: Principal, activityId: string, correlationId: string) {
   ensureCrmCollections(store);
   const activity = findActivityForTenant(store, principal.tenantId, activityId);
   if (!activity) return { error: "not_found" as const };
@@ -455,7 +454,7 @@ export function archiveActivity(store: Store, principal: Principal, activityId: 
   activity.updatedAt = activity.archivedAt;
   activity.updatedByPrincipalId = principal.id;
 
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.ACTIVITY_ARCHIVED,
     entityType: "activity",
     entityId: activity.id,
@@ -485,9 +484,16 @@ export function listContactActivities(
   contactId: string,
   query: Omit<ListActivitiesQuery, "contactId"> = {},
 ) {
-  const contact = store.crmContacts.find((c) => c.id === contactId);
-  if (!contact || contact.tenantId !== principal.tenantId) return { error: "not_found" as const };
-  return listActivities(store, principal, { ...query, contactId });
+  void store;
+  void contactId;
+  void query;
+  const decision = authorize({
+    principal,
+    permission: "crm:read:activity",
+    action: "read:crm_activity",
+  });
+  if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+  return personDomainRemoved();
 }
 
 export function listOrganizationActivities(

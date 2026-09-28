@@ -58,6 +58,7 @@ import {
   type PrgDay,
   type PrgItem,
   type PrgProgrammeVersion,
+  type PrgRoomingEntry,
   type CommercialDocument,
   type SupContract,
   type SupContractVersion,
@@ -68,6 +69,11 @@ import {
   type ComApprovalRequest,
   type PropProposal,
   type PropProposalVersion,
+  type IssuedProposal,
+  type IssuedClientDocument,
+  type IssuedClientDocumentDelivery,
+  type IssuedClientDocumentDeliveryAttempt,
+  type IssuedClientDocumentDeliveryProvider,
   type BkgBooking,
   type BkgHandoverTask,
   type OpsSupplierConfirmation,
@@ -289,6 +295,7 @@ export type Store = {
   prgItems: PrgItem[];
   /** CD Phase 1 — programme version snapshots. */
   prgProgrammeVersions: PrgProgrammeVersion[];
+  prgRoomingEntries: PrgRoomingEntry[];
   /** CD Phase 1 — commercial document metadata. */
   commercialDocuments: CommercialDocument[];
   /** CD Phase 1 — supplier contracts. */
@@ -302,6 +309,14 @@ export type Store = {
   comApprovalRequests: ComApprovalRequest[];
   propProposals: PropProposal[];
   propProposalVersions: PropProposalVersion[];
+  /** H-203 Dev/Test issued-proposal identity/snapshot. Not a delivered client document. */
+  issuedProposals: IssuedProposal[];
+  /** H-203 Dev/Test internal client PDFs from ISS snapshots. Not client delivery. */
+  issuedClientDocuments: IssuedClientDocument[];
+  /** H-203 Dev/Test mock delivery authorizations. Not real email. */
+  issuedClientDocumentDeliveries: IssuedClientDocumentDelivery[];
+  issuedClientDocumentDeliveryAttempts: IssuedClientDocumentDeliveryAttempt[];
+  devTestDocumentDeliveryProvider?: IssuedClientDocumentDeliveryProvider;
   bkgBookings: BkgBooking[];
   bkgHandoverTasks: BkgHandoverTask[];
   opsSupplierConfirmations: OpsSupplierConfirmation[];
@@ -416,8 +431,13 @@ export type Store = {
   aiRecommendStaleAuditExportLastPresets: AiRecommendStaleAuditExportLastPreset[];
   /** I20.21 / I20.22 — preset-apply usage audit (persisted). */
   aiRecommendStaleAuditExportPresetUsages: AiRecommendStaleAuditExportPresetUsage[];
-  /** Optional PostgreSQL pool for dual-write persistence (PG.1+) */
+  /** Optional PostgreSQL pool. When set, jointly critical Opportunity/RFP/Programme (and costing/approval/document metadata) use PostgreSQL as SoR; Store arrays are not authoritative for those modules. */
   dbPool?: DbPool;
+  /**
+   * H-111 Day 2 — F2-DP-01 bounded Dev/Test attach.
+   * Pool is present for the six F2 sidecar maps only. Mixed C-spine SQL tables are not durable.
+   */
+  f2Dp01BoundedSidecarOnly?: boolean;
   /** CD Phase 1 — Dev/Test document bytes (DocumentStorage). */
   documentStorage?: import("@sedmc/kernel").DocumentStorage;
 };
@@ -1722,6 +1742,7 @@ export function seedStore(
     prgDays: [],
     prgItems: [],
     prgProgrammeVersions: [],
+    prgRoomingEntries: [],
     commercialDocuments: [],
     supContracts: [],
     supContractVersions: [],
@@ -1732,6 +1753,10 @@ export function seedStore(
     comApprovalRequests: [],
     propProposals: [],
     propProposalVersions: [],
+    issuedProposals: [],
+    issuedClientDocuments: [],
+    issuedClientDocumentDeliveries: [],
+    issuedClientDocumentDeliveryAttempts: [],
     bkgBookings: [],
     bkgHandoverTasks: [],
     opsSupplierConfirmations: [],

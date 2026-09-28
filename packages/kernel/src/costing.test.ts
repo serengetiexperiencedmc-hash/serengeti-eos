@@ -4,6 +4,7 @@ import {
   computeCostTotals,
   computeLineTotal,
   marginMeetsFloor,
+  programmeFinancialSummaryFromTotals,
 } from "./costing.js";
 
 describe("costing kernel", () => {
@@ -37,5 +38,28 @@ describe("costing kernel", () => {
   it("checks margin floor", () => {
     expect(marginMeetsFloor(30.4, 20)).toBe(true);
     expect(marginMeetsFloor(18, 20)).toBe(false);
+  });
+
+  it("separates supplier cost from client selling price using computeCostTotals", () => {
+    const totals = computeCostTotals({
+      lines: [{ category: "transport", lineTotal: 1000 }],
+      sellPriceOverride: 1300,
+    });
+    const summary = programmeFinancialSummaryFromTotals(
+      {
+        id: "sheet-1",
+        programmeId: "prg-1",
+        rfpId: "rfp-1",
+        currency: "USD",
+        status: "draft",
+        sellPrice: 1300,
+      },
+      totals,
+    );
+    expect(summary.supplierCost).toBe(1000);
+    expect(summary.clientSellingPrice).toBe(1300);
+    expect(summary.grossProfit).toBe(300);
+    expect(summary.formula).toBe("kernel.computeCostTotals");
+    expect(summary.sellPriceSource).toBe("sellPriceOverride");
   });
 });

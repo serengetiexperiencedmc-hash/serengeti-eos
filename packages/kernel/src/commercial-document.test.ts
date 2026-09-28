@@ -32,6 +32,9 @@ describe("CD Phase 1 supplier contract kernel", () => {
     expect(isValidSupContractType("rate_agreement")).toBe(true);
     expect(isValidSupContractStatus("active")).toBe(true);
     expect(isValidProgrammeItemType("accommodation")).toBe(true);
+    expect(isValidProgrammeItemType("excursion")).toBe(true);
+    expect(isValidProgrammeItemType("guide")).toBe(true);
+    expect(isValidProgrammeItemType("equipment")).toBe(true);
     expect(isValidProgrammeItemType("spa")).toBe(false);
     expect(canMutateSupplierContract("Service").allowed).toBe(false);
   });

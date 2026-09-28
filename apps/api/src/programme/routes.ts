@@ -6,6 +6,7 @@ import { isHttpErrorResult, sendHttpError } from "../http-error.js";
 import {
   addProgrammeDay,
   addProgrammeItem,
+  addProgrammeRooming,
   createProgramme,
   createProgrammeVersion,
   getProgrammeByRfp,
@@ -40,7 +41,7 @@ export function registerProgrammeRoutes(app: FastifyInstance, store: Store): voi
   app.get("/v1/programmes/health", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const result = getProgrammeModuleHealth(store, principal);
+    const result = await getProgrammeModuleHealth(store, principal);
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
@@ -49,7 +50,7 @@ export function registerProgrammeRoutes(app: FastifyInstance, store: Store): voi
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const query = req.query as { rfpId?: string; status?: string };
-    const result = listProgrammes(store, principal, query);
+    const result = await listProgrammes(store, principal, query);
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
@@ -58,7 +59,7 @@ export function registerProgrammeRoutes(app: FastifyInstance, store: Store): voi
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
-    const result = createProgramme(
+    const result = await createProgramme(
       store,
       principal,
       req.body as Parameters<typeof createProgramme>[2],
@@ -71,7 +72,7 @@ export function registerProgrammeRoutes(app: FastifyInstance, store: Store): voi
   app.get("/v1/programmes/by-rfp/:rfpId", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const result = getProgrammeByRfp(store, principal, (req.params as { rfpId: string }).rfpId);
+    const result = await getProgrammeByRfp(store, principal, (req.params as { rfpId: string }).rfpId);
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
@@ -79,7 +80,7 @@ export function registerProgrammeRoutes(app: FastifyInstance, store: Store): voi
   app.get("/v1/programmes/:id", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const result = getProgrammeDetail(store, principal, (req.params as { id: string }).id);
+    const result = await getProgrammeDetail(store, principal, (req.params as { id: string }).id);
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
@@ -88,7 +89,7 @@ export function registerProgrammeRoutes(app: FastifyInstance, store: Store): voi
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
-    const result = addProgrammeDay(
+    const result = await addProgrammeDay(
       store,
       principal,
       (req.params as { id: string }).id,
@@ -104,7 +105,7 @@ export function registerProgrammeRoutes(app: FastifyInstance, store: Store): voi
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const params = req.params as { id: string; dayId: string };
-    const result = addProgrammeItem(
+    const result = await addProgrammeItem(
       store,
       principal,
       params.id,
@@ -120,7 +121,7 @@ export function registerProgrammeRoutes(app: FastifyInstance, store: Store): voi
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
-    const result = patchProgramme(
+    const result = await patchProgramme(
       store,
       principal,
       (req.params as { id: string }).id,
@@ -136,7 +137,7 @@ export function registerProgrammeRoutes(app: FastifyInstance, store: Store): voi
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const params = req.params as { id: string; itemId: string };
-    const result = patchProgrammeItem(
+    const result = await patchProgrammeItem(
       store,
       principal,
       params.id,
@@ -153,7 +154,7 @@ export function registerProgrammeRoutes(app: FastifyInstance, store: Store): voi
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const body = (req.body ?? {}) as { summary?: string };
-    const result = createProgrammeVersion(
+    const result = await createProgrammeVersion(
       store,
       principal,
       (req.params as { id: string }).id,
@@ -161,6 +162,22 @@ export function registerProgrammeRoutes(app: FastifyInstance, store: Store): voi
       correlationId,
     );
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
+    return reply.code(201).send(result);
+  });
+
+  app.post("/v1/programmes/:id/rooming", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const correlationId = getCorrelationId(req);
+    const result = await addProgrammeRooming(
+      store,
+      principal,
+      (req.params as { id: string }).id,
+      (req.body ?? {}) as Parameters<typeof addProgrammeRooming>[3],
+      correlationId,
+    );
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
+    if (isPhase1ProgrammeError(result)) return sendError(reply, result);
     return reply.code(201).send(result);
   });
 }

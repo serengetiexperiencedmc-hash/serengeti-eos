@@ -55,7 +55,8 @@ export type PropProposal = {
   rfpId: string;
   programmeId: string;
   costSheetId: string;
-  approvalRequestId: string;
+  /** Legacy mixed ComApprovalRequest id. Optional when preview Path B is not_required or Path B-approved. */
+  approvalRequestId?: string;
   organizationId: string;
   title: string;
   status: ProposalStatus;

@@ -1,0 +1,58 @@
+﻿{
+    "test_id":  "LAB-01",
+    "failure_model":  "F4/F5/F11 with T1 only (data directory destroyed; restore from dump)",
+    "technical_recovery_duration_ms":  8723,
+    "application_availability":  "2026-09-15T15:30:53.6770443+00:00",
+    "recovery_decision_time":  "2026-09-15T15:30:45.9231174+00:00",
+    "boundary":  "Dev/Test laboratory evidence only. This result does not constitute Production readiness, Production authorization, or Production proof.",
+    "detection_time":  "2026-09-15T15:30:45.2628249+00:00",
+    "actual":  "pre=True post_present=False probe=True pre_ts=2026-09-15 15:30:44.309654+00",
+    "total_measured_rto_ms":  8414,
+    "what_remained":  "pg_dump custom backup on lab host disk (127.0.0.1 evidence dir)",
+    "measured_rto":  "8.414 seconds (lab; scripted detection)",
+    "probe":  {
+                  "marker":  "PROBE-LAB01",
+                  "ok":  true,
+                  "rfp":  "Synthetic RFP PROBE-LAB01",
+                  "programme":  "Synthetic Programme PROBE-LAB01"
+              },
+    "evidence":  [
+                     "backups/lab01.dump",
+                     "backups/lab01-manifest.json",
+                     "LAB-01.json"
+                 ],
+    "database_availability":  "2026-09-15T15:30:52.8228123+00:00",
+    "validation_completion":  "2026-09-15T15:30:53.6770443+00:00",
+    "missing_transactions":  [
+                                 "MARKER-POST-BACKUP",
+                                 "MARKER-POST-BACKUP-PB"
+                             ],
+    "measured_rpo":  "Lost committed transactions after dump (MARKER-POST-BACKUP). Not zero.",
+    "expected":  "MARKER-PRE-BACKUP present; MARKER-POST-BACKUP absent",
+    "run_id":  "20260915-183034",
+    "last_recoverable_transaction":  "MARKER-PRE-BACKUP",
+    "dependency_availability":  "N/A (SQL probe only)",
+    "recovery_start":  "2026-09-15T15:30:45.9231174+00:00",
+    "pass_fail":  "PASS",
+    "repeatability":  "single run",
+    "failure_timestamp":  "2026-09-15T15:30:45.2628249+00:00",
+    "last_confirmed_durable_transaction":  "MARKER-POST-BACKUP",
+    "operator_intervention":  "Scripted (docker destroy, pg_restore)",
+    "last_acknowledged_transaction":  "MARKER-POST-BACKUP",
+    "integrity":  {
+                      "marker_count":  4,
+                      "rfp_count":  2,
+                      "programme_count":  2,
+                      "orphan_programmes":  0,
+                      "max_marker_duplicates":  1,
+                      "markers":  "MARKER-PRE-BACKUP,MARKER-PRE-BACKUP-PB,PROBE-LAB01,PROBE-LAB01-PB",
+                      "referential_ok":  true,
+                      "no_duplicate_markers":  true
+                  },
+    "detection_duration_ms":  659,
+    "limitations":  "Synthetic PG stand-in tables, not EOS in-memory Commercial/Programme modules. Lab on one host. Detection is scripted, not monitoring. Dev/Test only.",
+    "acknowledged_survived":  false,
+    "recovery_mechanism":  "pg_restore into new empty lab cluster",
+    "topology":  "T1",
+    "what_failed":  "Lab primary container and data volume"
+}

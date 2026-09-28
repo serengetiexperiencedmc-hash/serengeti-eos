@@ -208,7 +208,7 @@ export default function ProposalDetailPage() {
         </div>
 
         <div className="space-y-5">
-          <Card title="Commercial Summary">
+          <Card title="Internal commercial summary">
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span>Total Cost</span>
@@ -228,6 +228,24 @@ export default function ProposalDetailPage() {
                   <span>{formatCost(proposal.sellPrice / proposal.paxCount, proposal.currency)}</span>
                 </div>
               )}
+            </div>
+          </Card>
+
+          <Card title="Client-facing commercial view">
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span>Client selling price</span>
+                <span>
+                  {formatCost(
+                    proposal.clientFacing?.clientSellingPrice ?? proposal.sellPrice,
+                    proposal.clientFacing?.currency ?? proposal.currency,
+                  )}
+                </span>
+              </div>
+              <p className="text-xs text-muted">
+                Client-facing outputs must not expose supplier cost, margin, markup, or file fee. PDF/email remain
+                deferred.
+              </p>
             </div>
           </Card>
 

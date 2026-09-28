@@ -1,0 +1,46 @@
+﻿{
+    "acknowledged_survived":  false,
+    "repeatability":  "single run",
+    "test_id":  "LAB-05",
+    "actual":  "replicated_before=True replicated_after=True unreplicated=False probe=True",
+    "total_measured_rto_ms":  6882,
+    "last_acknowledged_transaction":  "MARKER-UNREPLICATED",
+    "last_confirmed_durable_transaction":  "MARKER-UNREPLICATED",
+    "failure_model":  "F4/F12-class primary loss while async replica was stopped (induced lag)",
+    "evidence":  [
+                     "LAB-05.json"
+                 ],
+    "recovery_mechanism":  "Start replica and pg_promote",
+    "measured_rto":  "6.882 seconds (lab)",
+    "boundary":  "Dev/Test laboratory evidence only. This result does not constitute Production readiness, Production authorization, or Production proof.",
+    "last_recoverable_transaction":  "MARKER-REPLICATED",
+    "failure_timestamp":  "2026-09-15T15:32:15.3142296+00:00",
+    "integrity":  {
+                      "marker_count":  4,
+                      "rfp_count":  2,
+                      "programme_count":  2,
+                      "orphan_programmes":  0,
+                      "max_marker_duplicates":  1,
+                      "markers":  "MARKER-REPLICATED,MARKER-REPLICATED-PB,PROBE-LAB05,PROBE-LAB05-PB",
+                      "referential_ok":  true,
+                      "no_duplicate_markers":  true
+                  },
+    "what_remained":  "Async replica data from before stop",
+    "expected":  "MARKER-REPLICATED present; MARKER-UNREPLICATED absent",
+    "measured_rpo":  "Lost committed MARKER-UNREPLICATED (async lag / replica down). Demonstrates technical RPO \u003e 0 for this failure model. Must not be labelled zero-loss.",
+    "run_id":  "20260915-183034",
+    "topology":  "T4",
+    "pass_fail":  "PASS",
+    "limitations":  "Lag induced by stopping replica, not geographic distance. One host. Dev/Test only.",
+    "what_failed":  "Primary killed after replica stopped",
+    "missing_transactions":  [
+                                 "MARKER-UNREPLICATED"
+                             ],
+    "operator_intervention":  "Scripted replica stop, primary kill, promote",
+    "probe":  {
+                  "marker":  "PROBE-LAB05",
+                  "ok":  true,
+                  "rfp":  "Synthetic RFP PROBE-LAB05",
+                  "programme":  "Synthetic Programme PROBE-LAB05"
+              }
+}

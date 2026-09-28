@@ -119,7 +119,7 @@ export type CreateAccountInput = {
   classification?: Classification;
 };
 
-export function createAccount(store: Store, principal: Principal, input: CreateAccountInput, correlationId: string) {
+export async function createAccount(store: Store, principal: Principal, input: CreateAccountInput, correlationId: string) {
   ensureCrmCollections(store);
   if (!input.organizationId || !input.accountName?.trim()) {
     return { error: "invalid_request" as const, reason: "organization_and_name_required" };
@@ -187,7 +187,7 @@ export function createAccount(store: Store, principal: Principal, input: CreateA
     ...(input.nextAction !== undefined ? { nextAction: input.nextAction } : {}),
   };
 
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.ACCOUNT_CREATED,
     entityType: "account",
     entityId: account.id,
@@ -215,7 +215,7 @@ export type UpdateAccountInput = Partial<
   >
 >;
 
-export function updateAccount(
+export async function updateAccount(
   store: Store,
   principal: Principal,
   accountId: string,
@@ -266,7 +266,7 @@ export function updateAccount(
   account.updatedAt = new Date().toISOString();
   account.updatedByPrincipalId = principal.id;
 
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.ACCOUNT_UPDATED,
     entityType: "account",
     entityId: account.id,
@@ -281,7 +281,7 @@ export function updateAccount(
   return { account };
 }
 
-export function transitionAccount(
+export async function transitionAccount(
   store: Store,
   principal: Principal,
   accountId: string,
@@ -316,7 +316,7 @@ export function transitionAccount(
   account.updatedAt = new Date().toISOString();
   account.updatedByPrincipalId = principal.id;
 
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.ACCOUNT_TRANSITIONED,
     entityType: "account",
     entityId: account.id,
@@ -344,7 +344,7 @@ export function transitionAccount(
   return { account };
 }
 
-export function archiveAccount(store: Store, principal: Principal, accountId: string, correlationId: string) {
+export async function archiveAccount(store: Store, principal: Principal, accountId: string, correlationId: string) {
   ensureCrmCollections(store);
   const account = findAccount(store, principal.tenantId, accountId);
   if (!account) return { error: "not_found" as const };
@@ -371,7 +371,7 @@ export function archiveAccount(store: Store, principal: Principal, accountId: st
   account.updatedAt = account.archivedAt;
   account.updatedByPrincipalId = principal.id;
 
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.ACCOUNT_ARCHIVED,
     entityType: "account",
     entityId: account.id,
@@ -395,7 +395,7 @@ export function archiveAccount(store: Store, principal: Principal, accountId: st
   return { account };
 }
 
-export function reassignAccountOwner(
+export async function reassignAccountOwner(
   store: Store,
   principal: Principal,
   accountId: string,
@@ -429,7 +429,7 @@ export function reassignAccountOwner(
   account.updatedAt = new Date().toISOString();
   account.updatedByPrincipalId = principal.id;
 
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.ACCOUNT_OWNER_REASSIGNED,
     entityType: "account",
     entityId: account.id,

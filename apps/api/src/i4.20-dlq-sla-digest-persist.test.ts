@@ -49,7 +49,7 @@ describe("I4.20 DLQ SLA digest last-run persistence", () => {
       },
     } as never;
 
-    commitWithOutbox(store, carol, {
+    await commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",

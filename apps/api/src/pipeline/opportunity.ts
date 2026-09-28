@@ -5,13 +5,38 @@ import {
   newId,
   OPPORTUNITY_STAGE_LABELS,
   OPPORTUNITY_STAGES,
+  PIPELINE_EVENT_TYPES,
   type OppOpportunity,
+  type OppStageHistory,
   type OpportunityStage,
   type Principal,
 } from "@sedmc/kernel";
 import type { Store } from "../store.js";
 import { allowPipelineAudit, denyPipelineAudit } from "./audit.js";
 import { ensurePipelineCollections } from "./collections.js";
+import {
+  allowAuditRecord,
+  denyAuditRecord,
+  insertChainedAudit,
+  insertDomainOutbox,
+  isMixedSqlDurable,
+  isUniqueViolation,
+  OptimisticConcurrencyError,
+  persistDenyAudit,
+  rememberPostCommit,
+  runDurableTx,
+} from "../persistence/durable.js";
+import { rejectPersonDomainContent } from "../personal-data-content-contract.js";
+import {
+  countOpportunities,
+  getOpportunityById,
+  insertOpportunity,
+  insertOpportunityStageHistory,
+  listOpportunitiesByTenant,
+  listStageHistory,
+  opportunityCodeExists,
+  updateOpportunityOptimistic,
+} from "../persistence/opportunity-repository.js";
 
 function sanitize(o: OppOpportunity) {
   return {
@@ -53,12 +78,17 @@ function sanitizeHistory(h: {
   };
 }
 
-function findOpportunity(store: Store, tenantId: string, id: string): OppOpportunity | undefined {
-  const o = store.oppOpportunities.find((x) => x.id === id && x.tenantId === tenantId && !x.archivedAt);
-  return o;
+function findOpportunityMemory(store: Store, tenantId: string, id: string): OppOpportunity | undefined {
+  return store.oppOpportunities.find((x) => x.id === id && x.tenantId === tenantId && !x.archivedAt);
 }
 
-export function getPipelineModuleHealth(store: Store, principal: Principal) {
+async function loadOpportunity(store: Store, tenantId: string, id: string): Promise<OppOpportunity | undefined> {
+  if (isMixedSqlDurable(store)) return getOpportunityById(store.dbPool, tenantId, id);
+  ensurePipelineCollections(store);
+  return findOpportunityMemory(store, tenantId, id);
+}
+
+export async function getPipelineModuleHealth(store: Store, principal: Principal) {
   ensurePipelineCollections(store);
   const decision = authorize({
     principal,
@@ -66,11 +96,14 @@ export function getPipelineModuleHealth(store: Store, principal: Principal) {
     action: "read:opp_opportunity",
   });
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+  const opportunities = isMixedSqlDurable(store)
+    ? await countOpportunities(store.dbPool, principal.tenantId)
+    : store.oppOpportunities.filter((o) => o.tenantId === principal.tenantId && !o.archivedAt).length;
   return {
     module: "pipeline",
     increment: "C2",
     status: "ok" as const,
-    opportunities: store.oppOpportunities.filter((o) => o.tenantId === principal.tenantId && !o.archivedAt).length,
+    opportunities,
   };
 }
 
@@ -90,7 +123,7 @@ export function listPipelineStages(store: Store, principal: Principal) {
   };
 }
 
-export function listOpportunities(
+export async function listOpportunities(
   store: Store,
   principal: Principal,
   query?: { stage?: string; organizationId?: string; status?: string },
@@ -103,20 +136,22 @@ export function listOpportunities(
   });
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
 
-  let items = store.oppOpportunities.filter((o) => o.tenantId === principal.tenantId && !o.archivedAt);
-  if (query?.stage) {
-    if (!isValidOpportunityStage(query.stage)) {
-      return { error: "invalid_request" as const, reason: "invalid_stage" };
-    }
-    items = items.filter((o) => o.stage === query.stage);
+  if (query?.stage && !isValidOpportunityStage(query.stage)) {
+    return { error: "invalid_request" as const, reason: "invalid_stage" };
   }
-  if (query?.organizationId) items = items.filter((o) => o.organizationId === query.organizationId);
-  if (query?.status) items = items.filter((o) => o.status === query.status);
-  items.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+
+  const items = isMixedSqlDurable(store)
+    ? await listOpportunitiesByTenant(store.dbPool, principal.tenantId, query)
+    : store.oppOpportunities
+        .filter((o) => o.tenantId === principal.tenantId && !o.archivedAt)
+        .filter((o) => (query?.stage ? o.stage === query.stage : true))
+        .filter((o) => (query?.organizationId ? o.organizationId === query.organizationId : true))
+        .filter((o) => (query?.status ? o.status === query.status : true))
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   return { items: items.map(sanitize) };
 }
 
-export function getPipelineBoard(store: Store, principal: Principal) {
+export async function getPipelineBoard(store: Store, principal: Principal) {
   ensurePipelineCollections(store);
   const decision = authorize({
     principal,
@@ -125,10 +160,12 @@ export function getPipelineBoard(store: Store, principal: Principal) {
   });
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
 
+  const all = isMixedSqlDurable(store)
+    ? await listOpportunitiesByTenant(store.dbPool, principal.tenantId)
+    : store.oppOpportunities.filter((o) => o.tenantId === principal.tenantId && !o.archivedAt);
+
   const columns = OPPORTUNITY_STAGES.filter((s) => s !== "lost").map((stage) => {
-    const cards = store.oppOpportunities.filter(
-      (o) => o.tenantId === principal.tenantId && !o.archivedAt && o.stage === stage,
-    );
+    const cards = all.filter((o) => o.stage === stage);
     return {
       stage,
       label: OPPORTUNITY_STAGE_LABELS[stage],
@@ -139,9 +176,9 @@ export function getPipelineBoard(store: Store, principal: Principal) {
   return { columns };
 }
 
-export function getOpportunity(store: Store, principal: Principal, id: string) {
+export async function getOpportunity(store: Store, principal: Principal, id: string) {
   ensurePipelineCollections(store);
-  const opp = findOpportunity(store, principal.tenantId, id);
+  const opp = await loadOpportunity(store, principal.tenantId, id);
   if (!opp) return { error: "not_found" as const };
 
   const decision = authorize({
@@ -152,9 +189,11 @@ export function getOpportunity(store: Store, principal: Principal, id: string) {
   });
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
 
-  const history = store.oppStageHistory
-    .filter((h) => h.opportunityId === id && h.tenantId === principal.tenantId)
-    .sort((a, b) => b.changedAt.localeCompare(a.changedAt));
+  const history = isMixedSqlDurable(store)
+    ? await listStageHistory(store.dbPool, principal.tenantId, id)
+    : store.oppStageHistory
+        .filter((h) => h.opportunityId === id && h.tenantId === principal.tenantId)
+        .sort((a, b) => b.changedAt.localeCompare(a.changedAt));
 
   return { opportunity: sanitize(opp), stageHistory: history.map(sanitizeHistory) };
 }
@@ -172,7 +211,7 @@ export type CreateOpportunityInput = {
   ownerPrincipalId?: string;
 };
 
-export function createOpportunity(
+export async function createOpportunity(
   store: Store,
   principal: Principal,
   input: CreateOpportunityInput,
@@ -185,9 +224,18 @@ export function createOpportunity(
     action: "create:opp_opportunity",
   });
   if (decision.result === "deny") {
-    denyPipelineAudit(store, principal, "pipeline:write:opportunity", "opp_opportunity", correlationId, decision.reason);
+    if (isMixedSqlDurable(store)) {
+      await persistDenyAudit(
+        store,
+        denyAuditRecord(principal, "pipeline:write:opportunity", "opp_opportunity", correlationId, decision.reason),
+      );
+    } else {
+      denyPipelineAudit(store, principal, "pipeline:write:opportunity", "opp_opportunity", correlationId, decision.reason);
+    }
     return { error: "forbidden" as const, reason: decision.reason };
   }
+  const personContent = rejectPersonDomainContent(input);
+  if (personContent) return personContent;
 
   const org = store.crmOrganizations.find(
     (o) => o.id === input.organizationId && o.tenantId === principal.tenantId && !o.archivedAt,
@@ -199,7 +247,11 @@ export function createOpportunity(
 
   const code = input.opportunityCode?.trim();
   if (!code) return { error: "invalid_request" as const, reason: "opportunity_code_required" };
-  if (store.oppOpportunities.some((o) => o.tenantId === principal.tenantId && o.opportunityCode === code)) {
+
+  if (isMixedSqlDurable(store)) {
+    const exists = await opportunityCodeExists(store.dbPool, principal.tenantId, code);
+    if (exists) return { error: "conflict" as const, reason: "duplicate_opportunity_code" };
+  } else if (store.oppOpportunities.some((o) => o.tenantId === principal.tenantId && o.opportunityCode === code)) {
     return { error: "conflict" as const, reason: "duplicate_opportunity_code" };
   }
 
@@ -227,21 +279,56 @@ export function createOpportunity(
     updatedByPrincipalId: principal.id,
   };
 
-  store.oppOpportunities.push(opp);
-  store.oppStageHistory.push({
+  const history: OppStageHistory = {
     id: newId(),
     tenantId: principal.tenantId,
     opportunityId: opp.id,
     toStage: "new_qualified",
     changedAt: now,
     changedByPrincipalId: principal.id,
-  });
+  };
 
+  if (isMixedSqlDurable(store)) {
+    try {
+      const committed = await runDurableTx(store, async (client) => {
+        await insertOpportunity(client, opp);
+        await insertOpportunityStageHistory(client, history);
+        const audit = await insertChainedAudit(
+          client,
+          allowAuditRecord(
+            principal,
+            "pipeline:write:opportunity",
+            "opp_opportunity",
+            opp.id,
+            correlationId,
+            sanitize(opp),
+          ),
+        );
+        const outbox = await insertDomainOutbox(client, {
+          principal,
+          eventType: PIPELINE_EVENT_TYPES.OPPORTUNITY_CREATED,
+          payload: { opportunityId: opp.id, opportunityCode: opp.opportunityCode, stage: opp.stage },
+          classification: opp.classification,
+          correlationId,
+          aggregateId: opp.id,
+        });
+        return { audit, outbox };
+      });
+      rememberPostCommit(store, committed.audit, committed.outbox);
+    } catch (error) {
+      if (isUniqueViolation(error)) return { error: "conflict" as const, reason: "duplicate_opportunity_code" };
+      throw error;
+    }
+    return { opportunity: sanitize(opp) };
+  }
+
+  store.oppOpportunities.push(opp);
+  store.oppStageHistory.push(history);
   allowPipelineAudit(store, principal, "pipeline:write:opportunity", "opp_opportunity", opp.id, correlationId, sanitize(opp));
   return { opportunity: sanitize(opp) };
 }
 
-export function transitionOpportunityStage(
+export async function transitionOpportunityStage(
   store: Store,
   principal: Principal,
   id: string,
@@ -250,7 +337,7 @@ export function transitionOpportunityStage(
   notes?: string,
 ) {
   ensurePipelineCollections(store);
-  const opp = findOpportunity(store, principal.tenantId, id);
+  const opp = await loadOpportunity(store, principal.tenantId, id);
   if (!opp) return { error: "not_found" as const };
 
   const decision = authorize({
@@ -260,7 +347,14 @@ export function transitionOpportunityStage(
     resource: { tenantId: opp.tenantId, type: "opportunity", id: opp.id, classification: opp.classification },
   });
   if (decision.result === "deny") {
-    denyPipelineAudit(store, principal, "pipeline:transition:stage", "opp_opportunity", correlationId, decision.reason, id);
+    if (isMixedSqlDurable(store)) {
+      await persistDenyAudit(
+        store,
+        denyAuditRecord(principal, "pipeline:transition:stage", "opp_opportunity", correlationId, decision.reason, id),
+      );
+    } else {
+      denyPipelineAudit(store, principal, "pipeline:transition:stage", "opp_opportunity", correlationId, decision.reason, id);
+    }
     return { error: "forbidden" as const, reason: decision.reason };
   }
 
@@ -273,6 +367,7 @@ export function transitionOpportunityStage(
 
   const now = new Date().toISOString();
   const fromStage = opp.stage;
+  const expectedVersion = opp.version;
   opp.stage = toStage;
   opp.updatedAt = now;
   opp.updatedByPrincipalId = principal.id;
@@ -280,7 +375,7 @@ export function transitionOpportunityStage(
   if (toStage === "won") opp.status = "won";
   if (toStage === "lost") opp.status = "lost";
 
-  store.oppStageHistory.push({
+  const history: OppStageHistory = {
     id: newId(),
     tenantId: principal.tenantId,
     opportunityId: opp.id,
@@ -289,11 +384,57 @@ export function transitionOpportunityStage(
     changedAt: now,
     changedByPrincipalId: principal.id,
     ...(notes !== undefined ? { notes } : {}),
-  });
+  };
 
+  if (isMixedSqlDurable(store)) {
+    try {
+      const committed = await runDurableTx(store, async (client) => {
+        const updated = await updateOpportunityOptimistic(client, opp, expectedVersion);
+        if (updated === 0) throw new OptimisticConcurrencyError("opportunity");
+        await insertOpportunityStageHistory(client, history);
+        const audit = await insertChainedAudit(
+          client,
+          allowAuditRecord(principal, "pipeline:transition:stage", "opp_opportunity", opp.id, correlationId, {
+            fromStage,
+            toStage,
+          }),
+        );
+        const outbox = await insertDomainOutbox(client, {
+          principal,
+          eventType: PIPELINE_EVENT_TYPES.STAGE_CHANGED,
+          payload: { opportunityId: opp.id, fromStage, toStage },
+          classification: opp.classification,
+          correlationId,
+          aggregateId: opp.id,
+        });
+        return { audit, outbox };
+      });
+      rememberPostCommit(store, committed.audit, committed.outbox);
+    } catch (error) {
+      if (error instanceof OptimisticConcurrencyError) {
+        return { error: "conflict" as const, reason: "stale_version" };
+      }
+      throw error;
+    }
+    return { opportunity: sanitize(opp) };
+  }
+
+  store.oppStageHistory.push(history);
   allowPipelineAudit(store, principal, "pipeline:transition:stage", "opp_opportunity", opp.id, correlationId, {
     fromStage,
     toStage,
   });
   return { opportunity: sanitize(opp) };
+}
+
+/** Durable path used by RFP create when an opportunity must advance in the same transaction. */
+export async function persistOpportunityStageAdvanceInTx(
+  client: Parameters<typeof insertOpportunityStageHistory>[0],
+  opp: OppOpportunity,
+  history: OppStageHistory,
+  expectedVersion: number,
+): Promise<void> {
+  const updated = await updateOpportunityOptimistic(client, opp, expectedVersion);
+  if (updated === 0) throw new OptimisticConcurrencyError("opportunity");
+  await insertOpportunityStageHistory(client, history);
 }

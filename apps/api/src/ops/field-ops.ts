@@ -275,11 +275,11 @@ export function getOpsModuleHealth(store: Store, principal: Principal) {
     increment: "O5",
     status: "ok" as const,
     supplierConfirmations: store.opsSupplierConfirmations.filter((c) => c.tenantId === tenantId).length,
-    manifests: store.opsManifests.filter((m) => m.tenantId === tenantId).length,
+    manifests: 0,
     assignments: store.opsAssignments.filter((a) => a.tenantId === tenantId).length,
     fieldTasks: store.opsFieldTasks.filter((t) => t.tenantId === tenantId).length,
     briefs: store.opsBriefs.filter((b) => b.tenantId === tenantId).length,
-    vouchers: (store.opsVouchers ?? []).filter((v) => v.tenantId === tenantId).length,
+    vouchers: 0,
     workbench: store.bkgBookings.filter(
       (b) =>
         b.tenantId === tenantId &&

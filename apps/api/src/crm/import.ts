@@ -4,10 +4,10 @@ import {
   CRM_EVENT_TYPES,
   importRowDuplicateKey,
   isValidImportEntityType,
+  isRetiredCrmImportEntityType,
   newId,
   normalizeOrganizationName,
   parseCsv,
-  validateContactImportRow,
   validateOrganizationImportRow,
   type CrmImportBatch,
   type CrmImportRowResult,
@@ -16,8 +16,9 @@ import {
 import type { Store } from "../store.js";
 import { allowCrmAudit, denyCrmAudit } from "./audit.js";
 import { ensureCrmCollections, seedCrmCatalogues } from "./collections.js";
-import { registerDuplicateCandidatesForContact, registerDuplicateCandidatesForOrganization } from "./duplicate.js";
+import { registerDuplicateCandidatesForOrganization } from "./duplicate.js";
 import { commitCrmWithOutbox, emitCrmEvent } from "./events.js";
+import { personDomainRemoved } from "../personal-data-phase1.js";
 
 function importExecuteKey(tenantId: string, batchId: string, key: string): string {
   return `${tenantId}:${batchId}:${key}`;
@@ -35,7 +36,7 @@ export type CreateImportInput = {
   csv: string;
 };
 
-export function createImportBatch(store: Store, principal: Principal, input: CreateImportInput, correlationId: string) {
+export async function createImportBatch(store: Store, principal: Principal, input: CreateImportInput, correlationId: string) {
   ensureCrmCollections(store);
   seedCrmCatalogues(store, principal.tenantId);
 
@@ -49,6 +50,10 @@ export function createImportBatch(store: Store, principal: Principal, input: Cre
     return { error: "forbidden" as const, reason: decision.reason };
   }
 
+  if (isRetiredCrmImportEntityType(input.entityType) || input.entityType === "contact") {
+    return personDomainRemoved();
+  }
+
   if (!isValidImportEntityType(input.entityType)) {
     return { error: "invalid_request" as const, reason: "invalid_entity_type" };
   }
@@ -59,10 +64,7 @@ export function createImportBatch(store: Store, principal: Principal, input: Cre
   const parsed = parseCsv(input.csv);
   if ("error" in parsed) return { error: "invalid_request" as const, reason: parsed.error };
 
-  const requiredHeaders =
-    input.entityType === "organization"
-      ? ["legalName", "organizationTypeKey"]
-      : ["givenName", "familyName"];
+  const requiredHeaders = ["legalName", "organizationTypeKey"];
   for (const header of requiredHeaders) {
     if (!parsed.headers.includes(header)) {
       return { error: "invalid_request" as const, reason: `missing_required_column:${header}` };
@@ -86,7 +88,7 @@ export function createImportBatch(store: Store, principal: Principal, input: Cre
     createdAt: new Date().toISOString(),
     createdByPrincipalId: principal.id,
   };
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.IMPORT_CREATED,
     entityType: "import",
     entityId: batch.id,
@@ -114,8 +116,7 @@ export function createImportBatch(store: Store, principal: Principal, input: Cre
 
 function allowedImportHeaders(entityType: string, header: string): boolean {
   const org = ["legalName", "organizationTypeKey", "tradingName", "country", "classification", "sourceRecordId"];
-  const contact = ["givenName", "familyName", "email", "telephone", "classification", "sourceRecordId"];
-  return entityType === "organization" ? org.includes(header) : contact.includes(header);
+  return entityType === "organization" && org.includes(header);
 }
 
 function sanitizeBatch(batch: CrmImportBatch) {
@@ -182,38 +183,13 @@ function validateBatchRows(store: Store, batch: CrmImportBatch): CrmImportRowRes
       continue;
     }
 
-    const validated = validateContactImportRow(row);
-    if ("errors" in validated) {
-      results.push({ rowNumber, status: "invalid", errors: validated.errors });
-      continue;
-    }
-    const dupKey = importRowDuplicateKey("contact", validated);
-    if (seenKeys.has(dupKey)) {
-      results.push({ rowNumber, status: "invalid", errors: ["duplicate_row_in_import"] });
-      continue;
-    }
-    seenKeys.add(dupKey);
-    if (validated.email) {
-      const exists = store.crmContacts.some(
-        (c) =>
-          c.tenantId === batch.tenantId &&
-          !c.archivedAt &&
-          !c.mergedIntoId &&
-          c.email !== undefined &&
-          c.email === validated.email,
-      );
-      if (exists) {
-        results.push({ rowNumber, status: "invalid", errors: ["existing_record_conflict"] });
-        continue;
-      }
-    }
-    results.push({ rowNumber, status: "valid" });
+    results.push({ rowNumber, status: "invalid", errors: ["person_domain_removed"] });
   }
 
   return results;
 }
 
-export function validateImportBatch(store: Store, principal: Principal, batchId: string, correlationId: string) {
+export async function validateImportBatch(store: Store, principal: Principal, batchId: string, correlationId: string) {
   ensureCrmCollections(store);
   const batch = findBatch(store, principal.tenantId, batchId);
   if (!batch) return { error: "not_found" as const };
@@ -228,6 +204,10 @@ export function validateImportBatch(store: Store, principal: Principal, batchId:
     return { error: "forbidden" as const, reason: decision.reason };
   }
 
+  if (batch.entityType === "contact" || isRetiredCrmImportEntityType(batch.entityType)) {
+    return personDomainRemoved();
+  }
+
   if (batch.status === "committed") return { error: "conflict" as const, reason: "import_already_committed" };
 
   const validationResults = validateBatchRows(store, batch);
@@ -238,7 +218,7 @@ export function validateImportBatch(store: Store, principal: Principal, batchId:
   batch.status = batch.invalidCount === 0 ? "validated" : "failed";
 
   if (batch.status === "validated") {
-    const committed = commitCrmWithOutbox(store, principal, {
+    const committed = await commitCrmWithOutbox(store, principal, {
       eventType: CRM_EVENT_TYPES.IMPORT_VALIDATED,
       entityType: "import",
       entityId: batch.id,
@@ -264,7 +244,7 @@ export function validateImportBatch(store: Store, principal: Principal, batchId:
       validCount: batch.validCount,
       invalidCount: batch.invalidCount,
     });
-    emitCrmEvent(store, principal, {
+    await emitCrmEvent(store, principal, {
       eventType: CRM_EVENT_TYPES.IMPORT_FAILED,
       entityType: "import",
       entityId: batch.id,
@@ -294,7 +274,7 @@ export function getImportBatch(store: Store, principal: Principal, batchId: stri
   return { batch: sanitizeBatch(batch) };
 }
 
-export function executeImportBatch(
+export async function executeImportBatch(
   store: Store,
   principal: Principal,
   batchId: string,
@@ -328,6 +308,10 @@ export function executeImportBatch(
   if (decision.result === "deny") {
     denyCrmAudit(store, principal, "crm:import:bulk", "crm_import_batch", correlationId, decision.reason, batchId);
     return { error: "forbidden" as const, reason: decision.reason };
+  }
+
+  if (batch.entityType === "contact" || isRetiredCrmImportEntityType(batch.entityType)) {
+    return personDomainRemoved();
   }
 
   if (batch.status !== "validated") {
@@ -391,7 +375,7 @@ export function executeImportBatch(
         };
         store.crmOrganizations.push(organization);
         createdOrganizationIds.push(organization.id);
-        registerDuplicateCandidatesForOrganization(store, batch.tenantId, organization.id, {
+        await registerDuplicateCandidatesForOrganization(store, batch.tenantId, organization.id, {
           principal,
           correlationId,
         });
@@ -399,36 +383,7 @@ export function executeImportBatch(
         continue;
       }
 
-      const validated = validateContactImportRow(row);
-      if ("errors" in validated) throw new Error("validation_failed");
-      if (!clearanceAllows(principal.classificationClearance, validated.classification ?? "Confidential")) {
-        throw new Error("classification_denied");
-      }
-
-      const contact = {
-        id: newId(),
-        tenantId: batch.tenantId,
-        givenName: validated.givenName,
-        familyName: validated.familyName,
-        ...(validated.email !== undefined ? { email: validated.email } : {}),
-        ...(validated.telephone !== undefined ? { telephone: validated.telephone } : {}),
-        status: "Active" as const,
-        dataQualityStatus: "Unverified" as const,
-        classification: validated.classification ?? "Confidential",
-        source: batch.sourceSystem,
-        version: 1,
-        createdAt: now,
-        updatedAt: now,
-        createdByPrincipalId: principal.id,
-        updatedByPrincipalId: principal.id,
-      };
-      store.crmContacts.push(contact);
-      createdContactIds.push(contact.id);
-      registerDuplicateCandidatesForContact(store, batch.tenantId, contact.id, {
-        principal,
-        correlationId,
-      });
-      committedResults.push({ rowNumber, status: "committed", entityId: contact.id });
+      throw new Error("person_domain_removed");
     }
 
     batch.status = "committed";
@@ -439,7 +394,7 @@ export function executeImportBatch(
     batch.executeIdempotencyKey = idempotencyKey.trim();
     store.crmImportExecuteIdempotency[idemKey] = "committed";
 
-    const committed = commitCrmWithOutbox(store, principal, {
+    const committed = await commitCrmWithOutbox(store, principal, {
       eventType: CRM_EVENT_TYPES.IMPORT_COMMITTED,
       entityType: "import",
       entityId: batch.id,
@@ -464,7 +419,7 @@ export function executeImportBatch(
     store.crmDuplicateCandidates.splice(duplicateCandidatesBefore);
     store.outboxEvents.length = outboxEventsBefore;
     batch.status = "failed";
-    emitCrmEvent(store, principal, {
+    await emitCrmEvent(store, principal, {
       eventType: CRM_EVENT_TYPES.IMPORT_FAILED,
       entityType: "import",
       entityId: batch.id,

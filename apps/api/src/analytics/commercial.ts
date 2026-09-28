@@ -123,6 +123,6 @@ export function getAnalyticsModuleHealth(store: Store, principal: Principal) {
     costSheets: store.costSheets.filter((s) => s.tenantId === tenantId && !s.archivedAt).length,
     opportunities: store.oppOpportunities.filter((o) => o.tenantId === tenantId && !o.archivedAt).length,
     bookings: store.bkgBookings.filter((b) => b.tenantId === tenantId && !b.archivedAt).length,
-    opsVouchers: (store.opsVouchers ?? []).filter((v) => v.tenantId === tenantId).length,
+    opsVouchers: 0,
   };
 }

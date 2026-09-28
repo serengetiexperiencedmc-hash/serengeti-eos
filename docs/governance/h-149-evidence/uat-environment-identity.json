@@ -1,0 +1,22 @@
+{
+  "campaign": "H-149 CURRENT-CODE UAT",
+  "capturedAt": "2026-09-22T10:00:00.000Z",
+  "head": "75ee4c3aabdcf5974f6a589f8c36a0b98727edba",
+  "branch": "master",
+  "eosEnv": "development",
+  "productionReady": false,
+  "catalog": "eos_h149_uat",
+  "databaseHost": "127.0.0.1",
+  "databasePort": 5439,
+  "container": "serengeti-eos-h149-uat-pg",
+  "api": "http://127.0.0.1:18149",
+  "web": "http://127.0.0.1:3049",
+  "migrationAppliedThrough": "125_h135_phase1_personal_data_domain.sql",
+  "schemaMigrationsCount": 121,
+  "seedDemo": false,
+  "h112NamedBranch": false,
+  "boundedNamedBranch": false,
+  "syntheticData": true,
+  "productionConnection": false,
+  "credentials": "redacted — Dev/Test bootstrap from .env.example only"
+}

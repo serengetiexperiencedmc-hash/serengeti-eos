@@ -10,31 +10,22 @@ import { BOOKING_STATUS_LABELS, bookingStatusBadge, formatBookingValue, getBooki
 import { listOrganizations, type CrmOrganization } from "@/lib/crm-api";
 import { EosApiError } from "@/lib/eos-client";
 import {
-  addManifestEntry,
   confirmSupplier,
   completeFieldTask,
   createFieldTask,
-  createManifest,
-  generateVouchers,
   generateSupplierConfirmations,
   getBrief,
-  getManifestByBooking,
-  issueAllVouchers,
   issueBrief,
-  issueVoucher,
   listFieldTasks,
   listSupplierConfirmations,
-  listVouchers,
-  publishManifest,
+  OPS_BOOKING_TABS,
   saveBrief,
-  type ManifestDetail,
   type OpsBrief,
   type OpsFieldTask,
-  type OpsVoucher,
   type SupplierConfirmation,
 } from "@/lib/ops-api";
 
-type Tab = "suppliers" | "manifest" | "vouchers" | "field";
+type Tab = (typeof OPS_BOOKING_TABS)[number];
 
 export default function OperationsBookingPage() {
   const params = useParams<{ bookingId: string }>();
@@ -43,14 +34,11 @@ export default function OperationsBookingPage() {
   const [booking, setBooking] = useState<BookingDetail | null>(null);
   const [orgs, setOrgs] = useState<CrmOrganization[]>([]);
   const [confirmations, setConfirmations] = useState<SupplierConfirmation[]>([]);
-  const [manifest, setManifest] = useState<ManifestDetail | null>(null);
   const [brief, setBrief] = useState<OpsBrief | null>(null);
   const [tasks, setTasks] = useState<OpsFieldTask[]>([]);
-  const [vouchers, setVouchers] = useState<OpsVoucher[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [guestName, setGuestName] = useState("");
   const [briefDraft, setBriefDraft] = useState("");
   const [newTaskTitle, setNewTaskTitle] = useState("");
 
@@ -64,20 +52,16 @@ export default function OperationsBookingPage() {
       getBooking(token, bookingId),
       listOrganizations(token),
       listSupplierConfirmations(token, bookingId).catch(() => ({ items: [] })),
-      getManifestByBooking(token, bookingId).catch(() => null),
       getBrief(token, bookingId).catch(() => null),
       listFieldTasks(token, bookingId).catch(() => ({ items: [] })),
-      listVouchers(token, bookingId).catch(() => ({ items: [] })),
     ])
-      .then(([bkg, orgList, conf, man, br, fld, vch]) => {
+      .then(([bkg, orgList, conf, br, fld]) => {
         setBooking(bkg);
         setOrgs(orgList.items);
         setConfirmations(conf.items);
-        setManifest(man);
         setBrief(br?.brief ?? null);
         setBriefDraft(br?.brief?.content ?? "");
         setTasks(fld.items);
-        setVouchers(vch.items);
       })
       .catch((err) => setError(err instanceof EosApiError ? err.message : "Failed to load operations"))
       .finally(() => setLoading(false));
@@ -117,48 +101,6 @@ export default function OperationsBookingPage() {
       setConfirmations((prev) => prev.map((c) => (c.id === id ? res.confirmation : c)));
     } catch (err) {
       setError(err instanceof EosApiError ? err.message : "Failed to confirm supplier");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleEnsureManifest() {
-    if (!token || !bookingId) return;
-    setBusy(true);
-    try {
-      const res = manifest ?? (await createManifest(token, bookingId));
-      setManifest(res);
-    } catch (err) {
-      setError(err instanceof EosApiError ? err.message : "Failed to create manifest");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleAddGuest() {
-    if (!token || !manifest || !guestName.trim()) return;
-    setBusy(true);
-    try {
-      await addManifestEntry(token, manifest.manifest.id, { guestName: guestName.trim() });
-      const updated = await getManifestByBooking(token, bookingId);
-      setManifest(updated);
-      setGuestName("");
-    } catch (err) {
-      setError(err instanceof EosApiError ? err.message : "Failed to add guest");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handlePublishManifest() {
-    if (!token || !manifest) return;
-    setBusy(true);
-    try {
-      const updated = await publishManifest(token, manifest.manifest.id);
-      setManifest(updated);
-      await refreshBooking();
-    } catch (err) {
-      setError(err instanceof EosApiError ? err.message : "Failed to publish manifest");
     } finally {
       setBusy(false);
     }
@@ -219,48 +161,6 @@ export default function OperationsBookingPage() {
     }
   }
 
-  async function handleGenerateVouchers() {
-    if (!token || !bookingId) return;
-    setBusy(true);
-    try {
-      const res = await generateVouchers(token, bookingId);
-      setVouchers(res.items);
-      await refreshBooking();
-    } catch (err) {
-      setError(err instanceof EosApiError ? err.message : "Failed to generate vouchers");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleIssueAllVouchers() {
-    if (!token || !bookingId) return;
-    setBusy(true);
-    try {
-      const res = await issueAllVouchers(token, bookingId);
-      setVouchers(res.items);
-      await refreshBooking();
-    } catch (err) {
-      setError(err instanceof EosApiError ? err.message : "Failed to issue vouchers");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleIssueVoucher(voucherId: string) {
-    if (!token) return;
-    setBusy(true);
-    try {
-      const res = await issueVoucher(token, voucherId);
-      setVouchers((prev) => prev.map((v) => (v.id === voucherId ? res.voucher : v)));
-      await refreshBooking();
-    } catch (err) {
-      setError(err instanceof EosApiError ? err.message : "Failed to issue voucher");
-    } finally {
-      setBusy(false);
-    }
-  }
-
   if (ready && !token) {
     return <p className="text-sm text-muted">Sign in to manage operations.</p>;
   }
@@ -270,8 +170,6 @@ export default function OperationsBookingPage() {
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "suppliers", label: "Supplier Confirmations" },
-    { id: "manifest", label: "Guest Manifest" },
-    { id: "vouchers", label: "Guest Vouchers" },
     { id: "field", label: "Field Ops" },
   ];
 
@@ -280,7 +178,7 @@ export default function OperationsBookingPage() {
       <PageHeader
         eyebrow={`Operations · ${booking.booking.bookingCode}`}
         title={`${clientName} — ${booking.booking.title}`}
-        subtitle="Supplier confirmations, manifest, vouchers & field operations"
+        subtitle="Supplier confirmations and field operations"
         actions={
           <>
             <Link href="/commercial/operations">
@@ -332,87 +230,6 @@ export default function OperationsBookingPage() {
                     </Btn>
                   )}
                   {c.status === "confirmed" && <span className="text-success text-sm">✓ Confirmed</span>}
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-      )}
-
-      {tab === "manifest" && (
-        <Card title="Guest Manifest">
-          {!manifest ? (
-            <Btn variant="gold" disabled={busy} onClick={() => void handleEnsureManifest()}>
-              Create Manifest
-            </Btn>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-sm">
-                <Badge variant={manifest.manifest.status === "published" ? "won" : "draft"} label={manifest.manifest.status} />
-                <span className="text-muted">{manifest.entries.length} guests</span>
-              </div>
-              {manifest.manifest.status === "draft" && (
-                <div className="flex gap-2">
-                  <input
-                    className="flex-1 rounded border border-line px-3 py-2 text-sm"
-                    placeholder="Guest name"
-                    value={guestName}
-                    onChange={(e) => setGuestName(e.target.value)}
-                  />
-                  <Btn variant="secondary" disabled={busy} onClick={() => void handleAddGuest()}>
-                    Add Guest
-                  </Btn>
-                  <Btn variant="gold" disabled={busy || manifest.entries.length === 0} onClick={() => void handlePublishManifest()}>
-                    Publish
-                  </Btn>
-                </div>
-              )}
-              <div className="space-y-1">
-                {manifest.entries.map((e) => (
-                  <div key={e.id} className="rounded border border-line px-3 py-2 text-sm">
-                    {e.guestName}
-                    {e.dietary && <span className="ml-2 text-xs text-muted">· {e.dietary}</span>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </Card>
-      )}
-
-      {tab === "vouchers" && (
-        <Card title="Guest Vouchers (O4)">
-          {vouchers.length === 0 ? (
-            <div className="space-y-3">
-              <p className="text-sm text-muted">Generate supplier redemption vouchers from the published guest manifest.</p>
-              <Btn variant="gold" disabled={busy || manifest?.manifest.status !== "published"} onClick={() => void handleGenerateVouchers()}>
-                {busy ? "Generating…" : "Generate from Manifest"}
-              </Btn>
-              {manifest?.manifest.status !== "published" && (
-                <p className="text-xs text-muted">Publish the guest manifest first.</p>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <div className="mb-3 flex gap-2">
-                <Btn variant="gold" size="sm" disabled={busy || !vouchers.some((v) => v.status === "draft")} onClick={() => void handleIssueAllVouchers()}>
-                  Issue All
-                </Btn>
-              </div>
-              {vouchers.map((v) => (
-                <div key={v.id} className="flex items-center justify-between rounded border border-line px-3 py-2 text-sm">
-                  <div>
-                    <div className="font-medium">{v.voucherCode}</div>
-                    <div className="text-xs text-muted">
-                      {v.guestName} · {v.voucherType.replace(/_/g, " ")} · {v.status}
-                    </div>
-                    {v.notes && <div className="text-xs text-muted">{v.notes}</div>}
-                  </div>
-                  {v.status === "draft" && (
-                    <Btn variant="secondary" size="sm" disabled={busy} onClick={() => void handleIssueVoucher(v.id)}>
-                      Issue
-                    </Btn>
-                  )}
                 </div>
               ))}
             </div>

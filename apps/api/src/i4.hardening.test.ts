@@ -13,16 +13,16 @@ import {
 } from "../src/outbox.js";
 import { createInMemoryDevTransport } from "@sedmc/kernel";
 
-describe("I4 hardening gate", () => {
+describe("I4 hardening gate", async () => {
   const carolFrom = (store: ReturnType<typeof seedStore>) =>
     [...store.principals.values()].find((p) => p.email === "carol.admin@sedmc.local")!;
 
-  it("transactional consistency matrix", () => {
+  it("transactional consistency matrix", async () => {
     const store = seedStore("test-secret");
     const carol = carolFrom(store);
 
     // Success + Success
-    const ok = commitWithOutbox(store, carol, {
+    const ok = await commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",
@@ -36,7 +36,7 @@ describe("I4 hardening gate", () => {
     expect(store.outboxEvents).toHaveLength(1);
 
     // Success domain + outbox failure → rollback
-    const obFail = commitWithOutbox(store, carol, {
+    const obFail = await commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",
@@ -50,7 +50,7 @@ describe("I4 hardening gate", () => {
     expect(store.payments.has("b")).toBe(false);
 
     // Domain failure → no outbox
-    const domFail = commitWithOutbox(store, carol, {
+    const domFail = await commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",
@@ -65,13 +65,13 @@ describe("I4 hardening gate", () => {
     expect(store.outboxEvents[0]!.status).toBe("pending");
   });
 
-  it("publisher crash after publish before mark leaves recoverable pending + duplicate-safe consumer", () => {
+  it("publisher crash after publish before mark leaves recoverable pending + duplicate-safe consumer", async () => {
     const store = seedStore("test-secret");
     const carol = carolFrom(store);
     const bus: typeof store.publishedBus = [];
     const transport = createInMemoryDevTransport(bus, { allowDuplicateRepublish: true });
 
-    const committed = commitWithOutbox(store, carol, {
+    const committed = await commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",
@@ -104,10 +104,10 @@ describe("I4 hardening gate", () => {
     expect(sideEffects).toBe(1);
   });
 
-  it("publisher failure injection points", () => {
+  it("publisher failure injection points", async () => {
     const store = seedStore("test-secret");
     const carol = carolFrom(store);
-    commitWithOutbox(store, carol, {
+    await commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",
@@ -130,7 +130,7 @@ describe("I4 hardening gate", () => {
     expect(retryCrash.crashed || store.outboxEvents[0]!.attempts > 0).toBe(true);
   });
 
-  it("aggregate ordering under concurrent commits", () => {
+  it("aggregate ordering under concurrent commits", async () => {
     const store = seedStore("test-secret");
     const carol = carolFrom(store);
     registerEventType(store, carol, {
@@ -140,7 +140,7 @@ describe("I4 hardening gate", () => {
 
     const agg = "agg-001";
     for (let i = 0; i < 3; i++) {
-      commitWithOutbox(store, carol, {
+      await commitWithOutbox(store, carol, {
         eventType: "platform.ping.v1",
         payload: { ping: true, n: i },
         classification: "Internal",
@@ -155,11 +155,11 @@ describe("I4 hardening gate", () => {
     expect(ordered.map((e) => e.payload.n)).toEqual([0, 1, 2]);
   });
 
-  it("privileged replay requires reason and authorization", () => {
+  it("privileged replay requires reason and authorization", async () => {
     const store = seedStore("test-secret");
     const carol = carolFrom(store);
 
-    commitWithOutbox(store, carol, {
+    await commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",
@@ -193,10 +193,10 @@ describe("I4 hardening gate", () => {
     expect(store.replayRequests[0]!.status).toBe("executed");
   });
 
-  it("event operations view and infrastructure health", () => {
+  it("event operations view and infrastructure health", async () => {
     const store = seedStore("test-secret");
     const carol = carolFrom(store);
-    commitWithOutbox(store, carol, {
+    await commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",

@@ -33,7 +33,7 @@ export function registerPipelineRoutes(app: FastifyInstance, store: Store): void
   app.get("/v1/pipeline/health", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const result = getPipelineModuleHealth(store, principal);
+    const result = await getPipelineModuleHealth(store, principal);
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
@@ -49,7 +49,7 @@ export function registerPipelineRoutes(app: FastifyInstance, store: Store): void
   app.get("/v1/pipeline/board", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const result = getPipelineBoard(store, principal);
+    const result = await getPipelineBoard(store, principal);
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
@@ -58,7 +58,7 @@ export function registerPipelineRoutes(app: FastifyInstance, store: Store): void
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const query = req.query as { stage?: string; organizationId?: string; status?: string };
-    const result = listOpportunities(store, principal, query);
+    const result = await listOpportunities(store, principal, query);
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
@@ -67,7 +67,7 @@ export function registerPipelineRoutes(app: FastifyInstance, store: Store): void
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
-    const result = createOpportunity(
+    const result = await createOpportunity(
       store,
       principal,
       req.body as Parameters<typeof createOpportunity>[2],
@@ -80,7 +80,7 @@ export function registerPipelineRoutes(app: FastifyInstance, store: Store): void
   app.get("/v1/pipeline/opportunities/:id", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const result = getOpportunity(store, principal, (req.params as { id: string }).id);
+    const result = await getOpportunity(store, principal, (req.params as { id: string }).id);
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
@@ -90,7 +90,7 @@ export function registerPipelineRoutes(app: FastifyInstance, store: Store): void
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const body = req.body as { toStage: string; notes?: string };
-    const result = transitionOpportunityStage(
+    const result = await transitionOpportunityStage(
       store,
       principal,
       (req.params as { id: string }).id,

@@ -16,7 +16,6 @@ import type { Store } from "../store.js";
 import { allowCrmAudit, denyCrmAudit } from "./audit.js";
 import { ensureCrmCollections } from "./collections.js";
 import { commitCrmWithOutbox } from "./events.js";
-import { contactResource } from "./contact.js";
 import { orgResource } from "./organization.js";
 
 const DEFAULT_LIST_LIMIT = 50;
@@ -81,11 +80,8 @@ function resolveEntityClassification(
       const org = store.crmOrganizations.find((o) => o.id === unit.organizationId);
       return org ? org.classification : "Internal";
     }
-    case "contact": {
-      const contact = store.crmContacts.find((c) => c.id === entityId && c.tenantId === tenantId);
-      if (!contact || contact.mergedIntoId) return null;
-      return contact.classification;
-    }
+    case "contact":
+      return null;
     case "relationship": {
       const rel = store.crmRelationships.find((r) => r.id === entityId && r.tenantId === tenantId);
       return rel ? "Internal" : null;
@@ -116,6 +112,7 @@ function entityAuthorized(
   entityId: string,
   write: boolean,
 ): boolean {
+  if (entityType === "contact") return false;
   const classification = resolveEntityClassification(store, principal.tenantId, entityType, entityId);
   if (classification === null) return false;
   if (!clearanceAllows(principal.classificationClearance, classification)) return false;
@@ -126,9 +123,6 @@ function entityAuthorized(
   if (entityType === "organization") {
     const org = store.crmOrganizations.find((o) => o.id === entityId)!;
     resource = orgResource(org);
-  } else if (entityType === "contact") {
-    const contact = store.crmContacts.find((c) => c.id === entityId)!;
-    resource = contactResource(contact);
   } else {
     resource = { tenantId: principal.tenantId, type: `crm_${entityType}`, id: entityId, classification };
   }
@@ -170,7 +164,7 @@ export function getTag(store: Store, principal: Principal, tagId: string) {
   return { tag };
 }
 
-export function createTag(
+export async function createTag(
   store: Store,
   principal: Principal,
   input: { key: string; label: string },
@@ -204,7 +198,7 @@ export function createTag(
     createdByPrincipalId: principal.id,
     updatedByPrincipalId: principal.id,
   };
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.TAG_CREATED,
     entityType: "tag",
     entityId: tag.id,
@@ -220,7 +214,7 @@ export function createTag(
   return { tag };
 }
 
-export function updateTag(
+export async function updateTag(
   store: Store,
   principal: Principal,
   tagId: string,
@@ -250,7 +244,7 @@ export function updateTag(
   tag.updatedAt = new Date().toISOString();
   tag.updatedByPrincipalId = principal.id;
 
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.TAG_UPDATED,
     entityType: "tag",
     entityId: tag.id,
@@ -265,7 +259,7 @@ export function updateTag(
   return { tag };
 }
 
-export function archiveTag(store: Store, principal: Principal, tagId: string, correlationId: string) {
+export async function archiveTag(store: Store, principal: Principal, tagId: string, correlationId: string) {
   ensureCrmCollections(store);
   const tag = store.crmTags.find((t) => t.id === tagId && t.tenantId === principal.tenantId);
   if (!tag) return { error: "not_found" as const };
@@ -283,7 +277,7 @@ export function archiveTag(store: Store, principal: Principal, tagId: string, co
   tag.updatedAt = tag.archivedAt;
   tag.updatedByPrincipalId = principal.id;
 
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.TAG_ARCHIVED,
     entityType: "tag",
     entityId: tag.id,
@@ -332,7 +326,7 @@ export function listTagAssignments(
   return { items: page, ...(nextCursor !== undefined ? { nextCursor } : {}) };
 }
 
-export function assignTag(
+export async function assignTag(
   store: Store,
   principal: Principal,
   input: { tagId: string; entityType: string; entityId: string },
@@ -372,7 +366,7 @@ export function assignTag(
     createdAt: new Date().toISOString(),
     createdByPrincipalId: principal.id,
   };
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.TAG_ASSIGNED,
     entityType: "entity_tag",
     entityId: assignment.id,
@@ -397,7 +391,7 @@ export function assignTag(
   return { assignment };
 }
 
-export function removeTagAssignment(store: Store, principal: Principal, assignmentId: string, correlationId: string) {
+export async function removeTagAssignment(store: Store, principal: Principal, assignmentId: string, correlationId: string) {
   ensureCrmCollections(store);
   const idx = store.crmEntityTags.findIndex((a) => a.id === assignmentId && a.tenantId === principal.tenantId);
   if (idx < 0) return { error: "not_found" as const };
@@ -409,7 +403,7 @@ export function removeTagAssignment(store: Store, principal: Principal, assignme
     return { error: "forbidden" as const, reason: "entity_access" };
   }
 
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.TAG_REMOVED,
     entityType: "entity_tag",
     entityId: assignmentId,

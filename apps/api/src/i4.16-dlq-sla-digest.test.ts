@@ -19,7 +19,7 @@ describe("I4.16 DLQ SLA escalation digest email", () => {
   it("dispatches a daily digest and skips redispatch", async () => {
     const store = seedStore("i416-digest", TEST_BOOTSTRAP_SECRETS);
     const carol = allPrincipals(store).find((p) => p.email === "carol.admin@sedmc.local")!;
-    commitWithOutbox(store, carol, {
+    await commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",

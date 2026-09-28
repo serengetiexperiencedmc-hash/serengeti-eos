@@ -19,7 +19,7 @@ describe("I4.21 DLQ SLA digest last-run export", () => {
   it("exports lastRun as JSON and CSV after dispatch", async () => {
     const store = seedStore("i421-export", TEST_BOOTSTRAP_SECRETS);
     const carol = allPrincipals(store).find((p) => p.email === "carol.admin@sedmc.local")!;
-    commitWithOutbox(store, carol, {
+    await commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",

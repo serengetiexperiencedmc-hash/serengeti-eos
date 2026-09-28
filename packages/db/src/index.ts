@@ -7,8 +7,20 @@ const { Pool } = pg;
 
 export type DbPool = pg.Pool;
 
-export function createPool(connectionString: string): DbPool {
-  return new Pool({ connectionString, max: 10 });
+/** Portable PostgreSQL pool options. Not an RDS/Cloud SQL/Azure Database management API. */
+export type CreatePoolOptions = {
+  max?: number;
+  tlsMode?: "disable" | "require";
+};
+
+export function createPool(connectionString: string, options: CreatePoolOptions = {}): DbPool {
+  const max = options.max && options.max > 0 ? options.max : 10;
+  const ssl = options.tlsMode === "require" ? { rejectUnauthorized: true } : undefined;
+  return new Pool({
+    connectionString,
+    max,
+    ...(ssl ? { ssl } : {}),
+  });
 }
 
 export async function checkDatabaseHealth(pool: DbPool): Promise<{ ok: boolean; error?: string }> {
@@ -66,3 +78,4 @@ export async function migrate(pool: DbPool): Promise<{ applied: string[] }> {
 }
 
 export { pg };
+export { databaseNameFromConnectionString, migrateTargetRefuseReason } from "./migrate-guard.js";

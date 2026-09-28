@@ -111,12 +111,14 @@ describe("C1.9 CRM domain events", () => {
       });
       const orgId = store.crmOrganizations.at(-1)!.id;
 
-      await app.inject({
+      const contactWrite = await app.inject({
         method: "POST",
         url: "/v1/crm/contacts",
         headers: { authorization: `Bearer ${token}` },
         payload: { givenName: "Event", familyName: "Person", email: "event.person@example.com" },
       });
+      expect(contactWrite.statusCode).toBe(400);
+      expect(contactWrite.json().reason).toBe("person_domain_removed");
 
       await app.inject({
         method: "POST",
@@ -134,7 +136,7 @@ describe("C1.9 CRM domain events", () => {
 
       const events = crmEvents(store);
       expect(events).toContain(CRM_EVENT_TYPES.ORGANIZATION_CREATED);
-      expect(events).toContain(CRM_EVENT_TYPES.CONTACT_CREATED);
+      expect(events).not.toContain(CRM_EVENT_TYPES.CONTACT_CREATED);
       expect(events).toContain(CRM_EVENT_TYPES.TAG_CREATED);
       expect(events).toContain(CRM_EVENT_TYPES.EXTERNAL_IDENTIFIER_CREATED);
       expect(events.some((t) => t.includes("email"))).toBe(false);

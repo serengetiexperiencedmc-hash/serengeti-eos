@@ -19,7 +19,7 @@ describe("I4.19 DLQ SLA digest last-run status", () => {
   it("stamps lastRun on dispatch and exposes status analytics", async () => {
     const store = seedStore("i419-status", TEST_BOOTSTRAP_SECRETS);
     const carol = allPrincipals(store).find((p) => p.email === "carol.admin@sedmc.local")!;
-    commitWithOutbox(store, carol, {
+    await commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",

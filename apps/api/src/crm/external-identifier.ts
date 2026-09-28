@@ -80,7 +80,7 @@ export function externalIdentifierMergeConflicts(
   return false;
 }
 
-export function createExternalIdentifier(
+export async function createExternalIdentifier(
   store: Store,
   principal: Principal,
   input: { entityType: string; entityId: string; systemKey: string; externalId: string },
@@ -134,7 +134,7 @@ export function createExternalIdentifier(
     createdAt: new Date().toISOString(),
     createdByPrincipalId: principal.id,
   };
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.EXTERNAL_IDENTIFIER_CREATED,
     entityType: "external_identifier",
     entityId: externalIdentifier.id,
@@ -200,7 +200,7 @@ export function lookupExternalIdentifier(
   return getExternalIdentifier(store, principal, ext.id);
 }
 
-export function deleteExternalIdentifier(store: Store, principal: Principal, id: string, correlationId: string) {
+export async function deleteExternalIdentifier(store: Store, principal: Principal, id: string, correlationId: string) {
   ensureCrmCollections(store);
   const idx = store.crmExternalIdentifiers.findIndex((e) => e.id === id && e.tenantId === principal.tenantId);
   if (idx < 0) return { error: "not_found" as const };
@@ -221,7 +221,7 @@ export function deleteExternalIdentifier(store: Store, principal: Principal, id:
     return { error: "forbidden" as const, reason: "classification" };
   }
 
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.EXTERNAL_IDENTIFIER_DELETED,
     entityType: "external_identifier",
     entityId: id,

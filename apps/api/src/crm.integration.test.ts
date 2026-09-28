@@ -36,8 +36,8 @@ describePg("C1.11 CRM PostgreSQL integration", () => {
       `SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename LIKE 'crm_%' ORDER BY tablename`,
     );
     const names = tables.rows.map((r) => r.tablename);
+    expect(names).not.toContain("crm_contacts");
     expect(names).toContain("crm_organizations");
-    expect(names).toContain("crm_contacts");
     expect(names).toContain("crm_merge_records");
     expect(names).toContain("crm_external_identifiers");
     expect(names).toContain("crm_duplicate_candidates");

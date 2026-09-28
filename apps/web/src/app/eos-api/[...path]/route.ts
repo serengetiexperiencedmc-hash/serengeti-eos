@@ -15,14 +15,22 @@ async function proxyRequest(req: NextRequest, pathSegments: string[]) {
 
   if (req.method !== "GET" && req.method !== "HEAD") {
     init.body = await req.arrayBuffer();
+    // Node/undici requires duplex when a request body is present.
+    (init as RequestInit & { duplex: "half" }).duplex = "half";
   }
 
   let upstream: Response;
   try {
     upstream = await fetch(url, init);
-  } catch {
+  } catch (err) {
+    const cause = err instanceof Error && "cause" in err ? (err as Error & { cause?: { code?: string; message?: string } }).cause : undefined;
+    const detail = [cause?.code, cause?.message, err instanceof Error ? err.message : undefined].filter(Boolean).join(" ");
     return Response.json(
-      { error: "upstream_unavailable", reason: "EOS API not reachable — start apps/api on port 8080" },
+      {
+        error: "upstream_unavailable",
+        reason: `EOS API not reachable at ${API_ORIGIN} — start apps/api (npm run dev:preview)`,
+        detail: detail || undefined,
+      },
       { status: 502 },
     );
   }

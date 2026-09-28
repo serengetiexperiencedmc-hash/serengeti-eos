@@ -210,8 +210,6 @@ export default function AnalyticsPage() {
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {[
               { label: "Supplier Confs Pending", value: String(opsSummary.supplierConfirmationsPending) },
-              { label: "Manifests Published", value: String(opsSummary.manifestsPublished) },
-              { label: "Vouchers Draft / Issued", value: `${opsSummary.vouchersDraft} / ${opsSummary.vouchersIssued}` },
               { label: "Field Tasks Open", value: String(opsSummary.fieldTasksOpen) },
             ].map((stat) => (
               <Card key={stat.label} title={stat.label}>
@@ -226,12 +224,6 @@ export default function AnalyticsPage() {
                 <div className="flex justify-between">
                   <span>Supplier confirmations confirmed</span>
                   <span>{opsSummary.supplierConfirmationsConfirmed}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Manifests draft / guests</span>
-                  <span>
-                    {opsSummary.manifestsDraft} draft · {opsSummary.manifestGuestCount} guests
-                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Ops briefs issued</span>
@@ -262,10 +254,8 @@ export default function AnalyticsPage() {
                     <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted">
                       {b.pendingHandoverTasks > 0 && <span>{b.pendingHandoverTasks} handover pending</span>}
                       {b.supplierConfirmationsPending > 0 && <span>{b.supplierConfirmationsPending} supplier confs</span>}
-                      {b.vouchersDraft > 0 && <span>{b.vouchersDraft} draft vouchers</span>}
                       {b.fieldTasksOpen > 0 && <span>{b.fieldTasksOpen} field tasks</span>}
                       {b.syncConflicts > 0 && <span>{b.syncConflicts} sync conflicts</span>}
-                      {b.manifestStatus && <span>manifest: {b.manifestStatus}</span>}
                     </div>
                   </div>
                 ))}

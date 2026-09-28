@@ -10,6 +10,7 @@ import type { Store } from "../store.js";
 import { allowSupplierAudit, denySupplierAudit } from "./audit.js";
 import { ensureSupplierCollections } from "./collections.js";
 import { persistSupEntityAfterCommit } from "../persistence/supplier.js";
+import { rejectPersonDomainContent } from "../personal-data-content-contract.js";
 
 const BLOCK_CODE_PATTERN = /^[A-Z0-9_-]{2,48}$/;
 
@@ -93,6 +94,8 @@ export function createSupplierContentBlock(
   ensureSupplierCollections(store);
   const auth = authorizeWrite(store, principal, supplierId, correlationId, "write:sup_content_block");
   if ("error" in auth) return auth;
+  const personContent = rejectPersonDomainContent(input);
+  if (personContent) return personContent;
 
   const blockCode = (input.blockCode ?? "").trim().toUpperCase();
   if (!BLOCK_CODE_PATTERN.test(blockCode)) return { error: "invalid_request" as const, reason: "invalid_block_code" };
@@ -157,6 +160,8 @@ export function updateSupplierContentBlock(
   ensureSupplierCollections(store);
   const auth = authorizeWrite(store, principal, supplierId, correlationId, "write:sup_content_block");
   if ("error" in auth) return auth;
+  const personContent = rejectPersonDomainContent(input);
+  if (personContent) return personContent;
 
   const block = store.supContentBlocks.find(
     (b) => b.id === blockId && b.supplierId === supplierId && b.tenantId === principal.tenantId && !b.archivedAt,

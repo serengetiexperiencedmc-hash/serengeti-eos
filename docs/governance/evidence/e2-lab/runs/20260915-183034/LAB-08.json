@@ -1,0 +1,46 @@
+﻿{
+    "acknowledged_survived":  false,
+    "repeatability":  "single run",
+    "test_id":  "LAB-08",
+    "actual":  "title=Synthetic RFP MARKER-GOOD probe=True",
+    "total_measured_rto_ms":  7409,
+    "last_acknowledged_transaction":  "logical UPDATE",
+    "probe":  {
+                  "marker":  "PROBE-LAB08",
+                  "ok":  true,
+                  "rfp":  "Synthetic RFP PROBE-LAB08",
+                  "programme":  "Synthetic Programme PROBE-LAB08"
+              },
+    "failure_model":  "F9 logical UPDATE corruption; PITR to restore point",
+    "evidence":  [
+                     "LAB-08.json"
+                 ],
+    "recovery_mechanism":  "PITR; HA replica would have replicated the corruption and was not used as the fix",
+    "measured_rto":  "7.409 seconds (lab PITR)",
+    "boundary":  "Dev/Test laboratory evidence only. This result does not constitute Production readiness, Production authorization, or Production proof.",
+    "last_recoverable_transaction":  "MARKER-GOOD at restore point",
+    "failure_timestamp":  "2026-09-15T15:33:32.2482689+00:00",
+    "integrity":  {
+                      "marker_count":  4,
+                      "rfp_count":  2,
+                      "programme_count":  2,
+                      "orphan_programmes":  0,
+                      "max_marker_duplicates":  1,
+                      "markers":  "MARKER-GOOD,MARKER-GOOD-PB,PROBE-LAB08,PROBE-LAB08-PB",
+                      "referential_ok":  true,
+                      "no_duplicate_markers":  true
+                  },
+    "what_remained":  "Base backup + WAL archive",
+    "expected":  "title restored to non-CORRUPT; probe ok",
+    "measured_rpo":  "Recovery to restore point discarded subsequent committed UPDATE. Not zero loss of all later commits.",
+    "run_id":  "20260915-183034",
+    "topology":  "T2",
+    "pass_fail":  "PASS",
+    "limitations":  "Synthetic rows. Demonstrates backup/PITR needed even if T3 exists. Dev/Test only.",
+    "what_failed":  "Row contents (logical)",
+    "missing_transactions":  [
+                                 "logical UPDATE after restore point"
+                             ],
+    "operator_intervention":  "Scripted PITR",
+    "title_after":  "Synthetic RFP MARKER-GOOD"
+}

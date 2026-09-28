@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { DocumentStorage, DocumentStoragePutInput } from "@sedmc/kernel";
+import type { DocumentStorage, DocumentStorageObjectMeta, DocumentStoragePutInput } from "@sedmc/kernel";
 
 export class DocumentStorageCollisionError extends Error {
   readonly code = "storage_collision" as const;
@@ -51,6 +51,20 @@ export class LocalFsDocumentStorage implements DocumentStorage {
     } catch {
       /* missing bytes are acceptable during compensation */
     }
+  }
+
+  async exists(storageRef: string): Promise<boolean> {
+    return (await this.get(storageRef)) !== null;
+  }
+
+  async stat(storageRef: string): Promise<DocumentStorageObjectMeta | null> {
+    const bytes = await this.get(storageRef);
+    if (!bytes) return null;
+    return {
+      storageRef,
+      sizeBytes: bytes.length,
+      checksumSha256: sha256Buffer(bytes),
+    };
   }
 }
 

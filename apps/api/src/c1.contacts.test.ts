@@ -59,10 +59,10 @@ describe("C1.3 CRM contacts + relationships", () => {
   });
 
   describe("contacts", () => {
-    it("creates, retrieves, lists, updates, and archives a contact", async () => {
-      const store = seedStore("test-secret");
-      const app = buildServer({ store });
+    it("refuses person-contact writes after authorize and lists none", async () => {
+      const app = buildServer({ store: seedStore("test-secret") });
       const token = await loginCarol(app);
+      const alice = await loginAlice(app);
 
       const created = await app.inject({
         method: "POST",
@@ -75,177 +75,40 @@ describe("C1.3 CRM contacts + relationships", () => {
           jobTitle: "MICE Manager",
         },
       });
-      expect(created.statusCode).toBe(201);
-      const contact = created.json().contact;
-      expect(contact.status).toBe("Active");
-      expect(contact.version).toBe(1);
-      expect(contact).not.toHaveProperty("tenantId");
-      expect(contact.createdByPrincipalId).toBeTruthy();
-      expect(contact.updatedByPrincipalId).toBeTruthy();
-
-      const fetched = await app.inject({
-        method: "GET",
-        url: `/v1/crm/contacts/${contact.id}`,
-        headers: { authorization: `Bearer ${token}` },
-      });
-      expect(fetched.statusCode).toBe(200);
-      expect(fetched.json().contact).not.toHaveProperty("tenantId");
+      expect(created.statusCode).toBe(400);
+      expect(created.json().reason).toBe("person_domain_removed");
 
       const listed = await app.inject({
         method: "GET",
         url: "/v1/crm/contacts?status=Active",
         headers: { authorization: `Bearer ${token}` },
       });
-      expect(listed.json().items.some((c: { id: string }) => c.id === contact.id)).toBe(true);
-      expect(listed.json().items.every((c: { tenantId?: string }) => c.tenantId === undefined)).toBe(true);
+      expect(listed.statusCode).toBe(400);
+      expect(listed.json().reason).toBe("person_domain_removed");
 
-      const updated = await app.inject({
-        method: "PATCH",
-        url: `/v1/crm/contacts/${contact.id}`,
-        headers: { authorization: `Bearer ${token}`, "if-match": "1" },
-        payload: { jobTitle: "Senior MICE Manager", status: "Inactive" },
-      });
-      expect(updated.statusCode).toBe(200);
-      expect(updated.json().contact.status).toBe("Inactive");
-      expect(updated.json().contact.version).toBe(2);
-
-      const archived = await app.inject({
-        method: "POST",
-        url: `/v1/crm/contacts/${contact.id}/archive`,
+      const fetched = await app.inject({
+        method: "GET",
+        url: "/v1/crm/contacts/11111111-1111-4111-8111-111111111111",
         headers: { authorization: `Bearer ${token}` },
       });
-      expect(archived.statusCode).toBe(200);
-      expect(archived.json().contact.status).toBe("Archived");
-
-      expect(store.audit.some((a) => a.resourceType === "crm_contact" && a.resourceId === contact.id)).toBe(true);
-    });
-
-    it("validates required fields, email, phone, and duplicates", async () => {
-      const app = buildServer({ store: seedStore("test-secret") });
-      const token = await loginCarol(app);
-
-      const missing = await app.inject({
-        method: "POST",
-        url: "/v1/crm/contacts",
-        headers: { authorization: `Bearer ${token}` },
-        payload: { givenName: "Only" },
-      });
-      expect(missing.statusCode).toBe(400);
-      expect(missing.json().reason).toBe("family_name_required");
-
-      const badEmail = await app.inject({
-        method: "POST",
-        url: "/v1/crm/contacts",
-        headers: { authorization: `Bearer ${token}` },
-        payload: { givenName: "Bad", familyName: "Email", email: "not-an-email" },
-      });
-      expect(badEmail.statusCode).toBe(400);
-      expect(badEmail.json().reason).toBe("invalid_email");
-
-      const badPhone = await app.inject({
-        method: "POST",
-        url: "/v1/crm/contacts",
-        headers: { authorization: `Bearer ${token}` },
-        payload: { givenName: "Bad", familyName: "Phone", telephone: "abc!!!" },
-      });
-      expect(badPhone.statusCode).toBe(400);
-      expect(badPhone.json().reason).toBe("invalid_telephone");
-
-      await app.inject({
-        method: "POST",
-        url: "/v1/crm/contacts",
-        headers: { authorization: `Bearer ${token}` },
-        payload: { givenName: "Dup", familyName: "Test", email: "dup@example.com" },
-      });
-      const dup = await app.inject({
-        method: "POST",
-        url: "/v1/crm/contacts",
-        headers: { authorization: `Bearer ${token}` },
-        payload: { givenName: "Other", familyName: "Person", email: "DUP@example.com" },
-      });
-      expect(dup.statusCode).toBe(409);
-      expect(dup.json().reason).toBe("duplicate_contact_email");
-    });
-
-    it("rejects stale If-Match and denies unauthorized access", async () => {
-      const app = buildServer({ store: seedStore("test-secret") });
-      const token = await loginCarol(app);
-      const alice = await loginAlice(app);
-
-      const created = await app.inject({
-        method: "POST",
-        url: "/v1/crm/contacts",
-        headers: { authorization: `Bearer ${token}` },
-        payload: { givenName: "Ver", familyName: "Sion", email: "version@example.com" },
-      });
-      const contactId = created.json().contact.id;
-
-      const stale = await app.inject({
-        method: "PATCH",
-        url: `/v1/crm/contacts/${contactId}`,
-        headers: { authorization: `Bearer ${token}`, "if-match": "99" },
-        payload: { jobTitle: "X" },
-      });
-      expect(stale.statusCode).toBe(409);
-      expect(stale.json().reason).toBe("version_mismatch");
+      expect(fetched.statusCode).toBe(400);
+      expect(fetched.json().reason).toBe("person_domain_removed");
 
       const denied = await app.inject({
         method: "GET",
-        url: `/v1/crm/contacts/${contactId}`,
+        url: "/v1/crm/contacts",
         headers: { authorization: `Bearer ${alice}` },
       });
       expect(denied.statusCode).toBe(403);
     });
-
-    it("returns 404 for cross-tenant contact reads", async () => {
-      const app = buildServer({ store: seedStore("test-secret") });
-      const token = await loginCarol(app);
-      const created = await app.inject({
-        method: "POST",
-        url: "/v1/crm/contacts",
-        headers: { authorization: `Bearer ${token}` },
-        payload: { givenName: "Cross", familyName: "Tenant", email: "cross@example.com" },
-      });
-      const contactId = created.json().contact.id;
-
-      const partner = await app.inject({
-        method: "POST",
-        url: "/v1/auth/login",
-        payload: { email: "partner@external.local", password: P.partnerPassword, tenantSlug: "partner-demo" },
-      });
-      const peek = await app.inject({
-        method: "GET",
-        url: `/v1/crm/contacts/${contactId}`,
-        headers: { authorization: `Bearer ${partner.json().accessToken}` },
-      });
-      expect(peek.statusCode).toBe(404);
-
-      const partnerList = await app.inject({
-        method: "GET",
-        url: "/v1/crm/contacts",
-        headers: { authorization: `Bearer ${partner.json().accessToken}` },
-      });
-      expect([403, 404]).toContain(partnerList.statusCode);
-      if (partnerList.statusCode === 200) {
-        expect(partnerList.json().items.some((c: { id: string }) => c.id === contactId)).toBe(false);
-      }
-    });
   });
 
   describe("relationships", () => {
-    it("creates contact-organization and contact-unit relationships", async () => {
+    it("refuses contact-organization relationships after person-domain removal", async () => {
       const app = buildServer({ store: seedStore("test-secret") });
       const token = await loginCarol(app);
       const org = await createTestOrg(app, token, "Rel Org Ltd");
       const relTypeId = await employeeOfTypeId(app, token);
-
-      const unit = await app.inject({
-        method: "POST",
-        url: `/v1/crm/organizations/${org.id}/units`,
-        headers: { authorization: `Bearer ${token}` },
-        payload: { name: "MICE Team", unitType: "department" },
-      });
-      const unitId = unit.json().unit.id;
 
       const contact = await app.inject({
         method: "POST",
@@ -253,7 +116,8 @@ describe("C1.3 CRM contacts + relationships", () => {
         headers: { authorization: `Bearer ${token}` },
         payload: { givenName: "Rel", familyName: "Contact", email: "rel.contact@example.com" },
       });
-      const contactId = contact.json().contact.id;
+      expect(contact.statusCode).toBe(400);
+      expect(contact.json().reason).toBe("person_domain_removed");
 
       const rel = await app.inject({
         method: "POST",
@@ -261,36 +125,20 @@ describe("C1.3 CRM contacts + relationships", () => {
         headers: { authorization: `Bearer ${token}` },
         payload: {
           relationshipTypeId: relTypeId,
-          contactId,
+          contactId: "11111111-1111-4111-8111-111111111111",
           organizationId: org.id,
-          organizationUnitId: unitId,
         },
       });
-      expect(rel.statusCode).toBe(201);
-      expect(rel.json().relationship.organizationUnitId).toBe(unitId);
-
-      const byContact = await app.inject({
-        method: "GET",
-        url: `/v1/crm/contacts/${contactId}/relationships`,
-        headers: { authorization: `Bearer ${token}` },
-      });
-      expect(byContact.statusCode).toBe(200);
-      expect(byContact.json().items).toHaveLength(1);
-
-      const byOrg = await app.inject({
-        method: "GET",
-        url: `/v1/crm/organizations/${org.id}/relationships`,
-        headers: { authorization: `Bearer ${token}` },
-      });
-      expect(byOrg.statusCode).toBe(200);
-      expect(byOrg.json().items).toHaveLength(1);
+      expect(rel.statusCode).toBe(400);
+      expect(rel.json().reason).toBe("person_domain_removed");
 
       const contactsForOrg = await app.inject({
         method: "GET",
         url: `/v1/crm/contacts?organizationId=${org.id}`,
         headers: { authorization: `Bearer ${token}` },
       });
-      expect(contactsForOrg.json().items).toHaveLength(1);
+      expect(contactsForOrg.statusCode).toBe(400);
+      expect(contactsForOrg.json().reason).toBe("person_domain_removed");
     });
 
     it("creates org-org relationships and validates endpoints", async () => {
@@ -326,79 +174,45 @@ describe("C1.3 CRM contacts + relationships", () => {
       expect(invalid.statusCode).toBe(400);
     });
 
-    it("rejects invalid references, duplicate relationships, and bad unit scope", async () => {
+    it("rejects contact relationship payloads as person_domain_removed", async () => {
       const app = buildServer({ store: seedStore("test-secret") });
       const token = await loginCarol(app);
       const orgA = await createTestOrg(app, token, "Org A");
-      const orgB = await createTestOrg(app, token, "Org B");
       const relTypeId = await employeeOfTypeId(app, token);
 
-      const unitOnB = await app.inject({
-        method: "POST",
-        url: `/v1/crm/organizations/${orgB.id}/units`,
-        headers: { authorization: `Bearer ${token}` },
-        payload: { name: "Team B", unitType: "department" },
-      });
-
-      const contact = await app.inject({
-        method: "POST",
-        url: "/v1/crm/contacts",
-        headers: { authorization: `Bearer ${token}` },
-        payload: { givenName: "Ref", familyName: "Test", email: "ref.test@example.com" },
-      });
-      const contactId = contact.json().contact.id;
-
-      const wrongUnit = await app.inject({
+      const withContact = await app.inject({
         method: "POST",
         url: "/v1/crm/relationships",
         headers: { authorization: `Bearer ${token}` },
         payload: {
           relationshipTypeId: relTypeId,
-          contactId,
+          contactId: "11111111-1111-4111-8111-111111111111",
           organizationId: orgA.id,
-          organizationUnitId: unitOnB.json().unit.id,
         },
       });
-      expect(wrongUnit.statusCode).toBe(400);
-      expect(wrongUnit.json().reason).toBe("invalid_organization_unit");
-
-      const ok = await app.inject({
-        method: "POST",
-        url: "/v1/crm/relationships",
-        headers: { authorization: `Bearer ${token}` },
-        payload: { relationshipTypeId: relTypeId, contactId, organizationId: orgA.id },
-      });
-      expect(ok.statusCode).toBe(201);
-
-      const dup = await app.inject({
-        method: "POST",
-        url: "/v1/crm/relationships",
-        headers: { authorization: `Bearer ${token}` },
-        payload: { relationshipTypeId: relTypeId, contactId, organizationId: orgA.id },
-      });
-      expect(dup.statusCode).toBe(409);
-      expect(dup.json().reason).toBe("duplicate_relationship");
+      expect(withContact.statusCode).toBe(400);
+      expect(withContact.json().reason).toBe("person_domain_removed");
     });
 
-    it("updates and transitions relationships with version checks", async () => {
+    it("updates and transitions org-org relationships with version checks", async () => {
       const app = buildServer({ store: seedStore("test-secret") });
       const token = await loginCarol(app);
-      const org = await createTestOrg(app, token, "Transition Org");
-      const relTypeId = await employeeOfTypeId(app, token);
-      const contact = await app.inject({
-        method: "POST",
-        url: "/v1/crm/contacts",
+      const parent = await createTestOrg(app, token, "Transition Parent");
+      const child = await createTestOrg(app, token, "Transition Child");
+      const types = await app.inject({
+        method: "GET",
+        url: "/v1/crm/relationship-types",
         headers: { authorization: `Bearer ${token}` },
-        payload: { givenName: "Trans", familyName: "Contact", email: "trans@example.com" },
       });
+      const relTypeId = types.json().items.find((t: { key: string }) => t.key === "subsidiary_of").id;
       const rel = await app.inject({
         method: "POST",
         url: "/v1/crm/relationships",
         headers: { authorization: `Bearer ${token}` },
         payload: {
           relationshipTypeId: relTypeId,
-          contactId: contact.json().contact.id,
-          organizationId: org.id,
+          fromOrganizationId: child.id,
+          toOrganizationId: parent.id,
         },
       });
       const relationship = rel.json().relationship;

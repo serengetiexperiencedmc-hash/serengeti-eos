@@ -12,9 +12,11 @@ import { EosApiError } from "@/lib/eos-client";
 import {
   formatBudgetRange,
   getRfp,
+  getRfpCommercialWorkspace,
   RFP_WORKFLOW_LABELS,
   slaIndicatorStatus,
   slaLabel,
+  type RfpCommercialWorkspace,
   type RfpSummary,
   type RfpVersion,
 } from "@/lib/rfp-api";
@@ -38,6 +40,24 @@ import {
   PROPOSAL_STATUS_LABELS,
   type ProposalSummary,
 } from "@/lib/proposal-api";
+import { RfpCommercialFactsPanel } from "@/components/commercial/RfpCommercialFactsPanel";
+import { PathBCommercialFactsPanel } from "@/components/commercial/PathBCommercialFactsPanel";
+import {
+  buildRfpFactsPutPayload,
+  commercialFactsCanWrite,
+  decidePathBApproval,
+  draftFromRfpFacts,
+  emptyRfpFactsDraft,
+  getPathBApproval,
+  getRfpCommercialFacts,
+  mapCommercialFactsPutFailure,
+  putPathBCategories,
+  putRfpCommercialFacts,
+  type F2FactsPersistence,
+  type PathBFacts,
+  type RfpCommercialFacts,
+  type RfpFactsDraft,
+} from "@/lib/commercial-facts-api";
 
 const WORKFLOW_ORDER = ["intake", "programme", "costing", "approval", "proposal", "sent"] as const;
 
@@ -60,12 +80,29 @@ export default function RfpDetailPage() {
   const [costing, setCosting] = useState<CostSheetDetail | null>(null);
   const [approval, setApproval] = useState<CommercialApprovalRequest | null>(null);
   const [proposal, setProposal] = useState<ProposalSummary | null>(null);
+  const [workspace, setWorkspace] = useState<RfpCommercialWorkspace | null>(null);
   const [orgs, setOrgs] = useState<CrmOrganization[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [requesting, setRequesting] = useState(false);
   const [deciding, setDeciding] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [f2Facts, setF2Facts] = useState<RfpCommercialFacts | null>(null);
+  const [f2PathB, setF2PathB] = useState<PathBFacts | null>(null);
+  const [f2PathBPersistence, setF2PathBPersistence] = useState<F2FactsPersistence | undefined>();
+  const [f2PathBError, setF2PathBError] = useState<string | null>(null);
+  const [pathBWriteForbidden, setPathBWriteForbidden] = useState(false);
+  const [pathBDraftCategories, setPathBDraftCategories] = useState<string[]>([]);
+  const [pathBDraftNotes, setPathBDraftNotes] = useState("");
+  const [pathBSaving, setPathBSaving] = useState(false);
+  const [pathBDeciding, setPathBDeciding] = useState(false);
+  const [f2Persistence, setF2Persistence] = useState<F2FactsPersistence | undefined>();
+  const [f2Error, setF2Error] = useState<string | null>(null);
+  const [f2Unauthorized, setF2Unauthorized] = useState(false);
+  const [f2WriteForbidden, setF2WriteForbidden] = useState(false);
+  const [f2Draft, setF2Draft] = useState<RfpFactsDraft>(emptyRfpFactsDraft);
+  const [f2Saving, setF2Saving] = useState(false);
+  const [f2Loading, setF2Loading] = useState(false);
 
   useEffect(() => {
     if (!token || !params.id) {
@@ -83,6 +120,44 @@ export default function RfpDetailPage() {
         setRfp(detail.rfp);
         setVersions(detail.versions);
         setOrgs(orgList.items);
+        try {
+          const commercialWorkspace = await getRfpCommercialWorkspace(token, params.id);
+          setWorkspace(commercialWorkspace);
+        } catch {
+          setWorkspace(null);
+        }
+        setF2Loading(true);
+        try {
+          const [commercial, pathB] = await Promise.all([
+            getRfpCommercialFacts(token, params.id),
+            getPathBApproval(token, params.id),
+          ]);
+          setF2Facts(commercial.facts);
+          setF2Persistence(commercial.persistence);
+          setF2Draft(draftFromRfpFacts(commercial.facts));
+          setF2PathB(pathB.pathB);
+          setF2PathBPersistence(pathB.persistence);
+          setPathBDraftCategories(pathB.pathB.categories);
+          setF2PathBError(null);
+          setPathBWriteForbidden(false);
+          setF2Error(null);
+          setF2Unauthorized(false);
+          setF2WriteForbidden(false);
+        } catch (err) {
+          setF2Facts(null);
+          setF2PathB(null);
+          setF2Draft(emptyRfpFactsDraft());
+          setF2WriteForbidden(false);
+          if (err instanceof EosApiError && err.status === 403) {
+            setF2Unauthorized(true);
+            setF2Error("Not authorized to read RFP commercial facts.");
+          } else {
+            setF2Unauthorized(false);
+            setF2Error(err instanceof EosApiError ? err.message : "Failed to load F2 RFP facts");
+          }
+        } finally {
+          setF2Loading(false);
+        }
         try {
           const docs = await listRfpDocuments(token, params.id);
           setDocuments(docs.items);
@@ -177,6 +252,71 @@ export default function RfpDetailPage() {
     }
   }
 
+  async function saveRfpFacts() {
+    if (!token || !params.id) return;
+    const built = buildRfpFactsPutPayload(f2Draft, f2Facts);
+    if (!built.ok) {
+      setF2Error(built.error);
+      return;
+    }
+    if (Object.keys(built.payload).length === 0) return;
+    setF2Saving(true);
+    setF2Error(null);
+    try {
+      const saved = await putRfpCommercialFacts(token, params.id, built.payload);
+      setF2Facts(saved.facts);
+      setF2Persistence(saved.persistence);
+      setF2Draft(draftFromRfpFacts(saved.facts));
+      setF2WriteForbidden(false);
+    } catch (err) {
+      const failure = mapCommercialFactsPutFailure(err, "rfp");
+      setF2Error(failure.message);
+      if (failure.writeForbidden) setF2WriteForbidden(true);
+    } finally {
+      setF2Saving(false);
+    }
+  }
+
+  async function savePathBCategories() {
+    if (!token || !params.id) return;
+    setPathBSaving(true);
+    setF2PathBError(null);
+    try {
+      const saved = await putPathBCategories(token, params.id, pathBDraftCategories);
+      setF2PathB(saved.pathB);
+      setF2PathBPersistence(saved.persistence);
+      setPathBDraftCategories(saved.pathB.categories);
+      setPathBWriteForbidden(false);
+    } catch (err) {
+      const failure = mapCommercialFactsPutFailure(err, "path_b");
+      setF2PathBError(failure.message);
+      if (failure.writeForbidden) setPathBWriteForbidden(true);
+    } finally {
+      setPathBSaving(false);
+    }
+  }
+
+  async function savePathBDecision(outcome: "approved" | "rejected") {
+    if (!token || !params.id) return;
+    setPathBDeciding(true);
+    setF2PathBError(null);
+    try {
+      const notes = pathBDraftNotes.trim();
+      const saved = await decidePathBApproval(token, params.id, {
+        outcome,
+        ...(notes ? { notes } : {}),
+      });
+      setF2PathB(saved.pathB);
+      setF2PathBPersistence(saved.persistence);
+    } catch (err) {
+      const failure = mapCommercialFactsPutFailure(err, "path_b");
+      setF2PathBError(failure.message);
+      if (failure.writeForbidden) setPathBWriteForbidden(true);
+    } finally {
+      setPathBDeciding(false);
+    }
+  }
+
   if (ready && !token) {
     return (
       <p className="text-sm text-muted">
@@ -215,11 +355,71 @@ export default function RfpDetailPage() {
               <Btn variant="secondary">← All RFPs</Btn>
             </Link>
             <LinkBtn href={`/commercial/programme?rfpId=${rfp.id}`}>Open Programme Builder</LinkBtn>
+            <LinkBtn href={`/commercial/rfps/${rfp.id}/proposal-preparation`}>Proposal preparation</LinkBtn>
           </>
         }
       />
 
       <WorkflowSteps steps={steps} />
+
+      <div className="mb-5">
+        <RfpCommercialFactsPanel
+          rfpCode={rfp.rfpCode}
+          rfpTitle={rfp.title}
+          facts={f2Facts}
+          pathB={f2PathB}
+          persistence={f2Persistence}
+          loading={f2Loading}
+          error={f2Error}
+          unauthorized={f2Unauthorized}
+          unauthenticated={ready && !token}
+          canWrite={commercialFactsCanWrite({
+            hasToken: Boolean(token),
+            factsLoaded: Boolean(f2Facts),
+            unauthorizedRead: f2Unauthorized,
+            writeForbidden: f2WriteForbidden,
+          })}
+          draft={f2Draft}
+          saving={f2Saving}
+          onDraftChange={(patch) => setF2Draft((current) => ({ ...current, ...patch }))}
+          onSave={() => void saveRfpFacts()}
+        />
+      </div>
+
+      <div className="mb-5">
+        <PathBCommercialFactsPanel
+          pathB={f2PathB}
+          persistence={f2PathBPersistence}
+          loading={f2Loading}
+          error={f2PathBError}
+          unauthorized={f2Unauthorized}
+          unauthenticated={ready && !token}
+          canWrite={commercialFactsCanWrite({
+            hasToken: Boolean(token),
+            factsLoaded: Boolean(f2PathB),
+            unauthorizedRead: f2Unauthorized,
+            writeForbidden: pathBWriteForbidden,
+          })}
+          canDecide={commercialFactsCanWrite({
+            hasToken: Boolean(token),
+            factsLoaded: Boolean(f2PathB),
+            unauthorizedRead: f2Unauthorized,
+            writeForbidden: pathBWriteForbidden,
+          })}
+          draftCategories={pathBDraftCategories}
+          draftNotes={pathBDraftNotes}
+          saving={pathBSaving}
+          deciding={pathBDeciding}
+          onToggleCategory={(key) =>
+            setPathBDraftCategories((current) =>
+              current.includes(key) ? current.filter((item) => item !== key) : [...current, key],
+            )
+          }
+          onNotesChange={setPathBDraftNotes}
+          onSaveCategories={() => void savePathBCategories()}
+          onDecide={(outcome) => void savePathBDecision(outcome)}
+        />
+      </div>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_340px]">
         <div className="space-y-5">
@@ -240,6 +440,22 @@ export default function RfpDetailPage() {
                 ["Dates", rfp.travelDates ?? "—"],
                 ["Destinations", rfp.destinations ?? "—"],
                 ["Budget Range", formatBudgetRange(rfp.budgetMin, rfp.budgetMax, rfp.currency)],
+                ["Programme status", workspace?.programme ? `${workspace.programme.status} · ${workspace.programme.commercialVersionLabel}` : "No programme"],
+                [
+                  "Costing status",
+                  workspace?.financialSummary
+                    ? `${workspace.financialSummary.financialStatus} · ${workspace.financialSummary.currency}`
+                    : costing
+                      ? costing.sheet.status
+                      : "No cost sheet",
+                ],
+                ["Proposal status", proposal ? (PROPOSAL_STATUS_LABELS[proposal.status] ?? proposal.status) : "No proposal"],
+                [
+                  "Internal proposal prep",
+                  workspace?.proposalPreparation
+                    ? `${workspace.proposalPreparation.readiness.replace(/_/g, " ")} · working draft (not client-issued)`
+                    : "Not assembled",
+                ],
               ].map(([label, val]) => (
                 <div key={label}>
                   <label className="mb-1 block text-[0.7rem] uppercase tracking-wide text-muted">{label}</label>
@@ -302,6 +518,12 @@ export default function RfpDetailPage() {
                 }}
               />
             </label>
+            <p className="mt-2 text-xs text-muted">
+              Commercial RFP, contract, and rate-sheet files only. EOS is not a personal-data store. File contents are not scanned.
+            </p>
+            <p className="mt-2 text-xs text-muted">
+              Commercial RFP, contract, and rate-sheet files only. EOS is not a personal-data store. File contents are not scanned.
+            </p>
           </Card>
 
           <Card title="Workflow" padding={false}>
@@ -330,15 +552,25 @@ export default function RfpDetailPage() {
               <>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span>Total Cost</span>
-                    <span>{formatCost(costing.sheet.totalCost, costing.sheet.currency)}</span>
+                    <span>Supplier cost</span>
+                    <span>
+                      {formatCost(
+                        costing.sheet.financialSummary?.supplierCost ?? costing.sheet.totalCost,
+                        costing.sheet.currency,
+                      )}
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Sell Price</span>
-                    <span>{formatCost(costing.sheet.sellPrice ?? 0, costing.sheet.currency)}</span>
+                    <span>Client selling price</span>
+                    <span>
+                      {formatCost(
+                        costing.sheet.financialSummary?.clientSellingPrice ?? costing.sheet.sellPrice ?? 0,
+                        costing.sheet.currency,
+                      )}
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Margin</span>
+                    <span>Gross margin</span>
                     <span className={costing.sheet.marginMeetsFloor ? "text-success" : "text-danger"}>
                       {costing.sheet.marginPercent.toFixed(1)}%
                     </span>

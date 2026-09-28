@@ -149,14 +149,7 @@ export async function seedDemoCommercialData(
     readCsv("docs/c4/import/suppliers.csv"),
     "demo-seed-suppliers",
   );
-  await runImportBatch(
-    app,
-    token,
-    "/v1/suppliers/imports",
-    "supplier_contact",
-    readCsv("docs/c4/import/supplier-contacts.csv"),
-    "demo-seed-supplier-contacts",
-  );
+  // H-139: supplier_contact ingest is retired; do not seed person rows.
 
   const authHeaders = { authorization: `Bearer ${token}` };
   const demoSeasons = [
@@ -210,55 +203,9 @@ export async function seedDemoCommercialData(
     "demo-seed-crm-orgs",
   );
 
-  const crmContactsCsv = [
-    "givenName,familyName,email,telephone",
-    "Amara,Okello,amara.okello@globalincentives.example.com,+442079460958",
-    "James,Kato,james.kato@summittravel.example.com,+12125550100",
-    "Sophie,Braun,sophie.braun@europeanpharma.example.de,+49301234567",
-    "David,Mwangi,david.mwangi@globalincentives.example.com,+442079460959",
-    "Elena,Rossi,elena.rossi@summittravel.example.com,+12125550101",
-  ].join("\n");
-
-  await runImportBatch(
-    app,
-    token,
-    "/v1/crm/imports",
-    "contact",
-    crmContactsCsv,
-    "demo-seed-crm-contacts",
-  );
+  // H-139: CRM contact ingest is retired; do not seed person rows.
 
   const orgByName = new Map(store.crmOrganizations.map((o) => [o.legalName, o]));
-  const contactByEmail = new Map(
-    store.crmContacts.filter((c) => c.email).map((c) => [c.email!.toLowerCase(), c]),
-  );
-  const relTypeId = store.crmRelationshipTypes.find((t) => t.key === "employee_of")?.id;
-  if (!relTypeId) throw new Error("missing_relationship_type:employee_of");
-
-  const links: Array<{ email: string; orgName: string }> = [
-    { email: "amara.okello@globalincentives.example.com", orgName: "Global Incentives Ltd" },
-    { email: "david.mwangi@globalincentives.example.com", orgName: "Global Incentives Ltd" },
-    { email: "james.kato@summittravel.example.com", orgName: "Summit Travel Group" },
-    { email: "elena.rossi@summittravel.example.com", orgName: "Summit Travel Group" },
-    { email: "sophie.braun@europeanpharma.example.de", orgName: "European Pharma AG" },
-  ];
-
-  for (const link of links) {
-    const contact = contactByEmail.get(link.email.toLowerCase());
-    const org = orgByName.get(link.orgName);
-    if (!contact || !org) continue;
-    await app.inject({
-      method: "POST",
-      url: "/v1/crm/relationships",
-      headers: authHeaders,
-      payload: {
-        relationshipTypeId: relTypeId,
-        contactId: contact.id,
-        organizationId: org.id,
-        status: "Engaged",
-      },
-    });
-  }
 
   const carolId = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
   for (const org of store.crmOrganizations) {
@@ -613,43 +560,7 @@ export async function seedDemoCommercialData(
       payload: { bookingId },
     });
 
-    const manifestRes = await app.inject({
-      method: "POST",
-      url: `/v1/ops/manifests/by-booking/${bookingId}`,
-      headers: authHeaders,
-    });
-    const manifestId = manifestRes.json().manifest.id as string;
-    const sampleGuests = [
-      { guestName: "Alex Chen", dietary: "None" },
-      { guestName: "Maria Santos", dietary: "Vegetarian" },
-      { guestName: "James Okonkwo", rooming: "Twin" },
-    ];
-    for (const guest of sampleGuests) {
-      await app.inject({
-        method: "POST",
-        url: `/v1/ops/manifests/${manifestId}/entries`,
-        headers: authHeaders,
-        payload: guest,
-      });
-    }
-    await app.inject({
-      method: "POST",
-      url: `/v1/ops/manifests/${manifestId}/publish`,
-      headers: authHeaders,
-    });
-
-    await app.inject({
-      method: "POST",
-      url: "/v1/ops/vouchers/generate",
-      headers: authHeaders,
-      payload: { bookingId },
-    });
-    await app.inject({
-      method: "POST",
-      url: "/v1/ops/vouchers/issue-all",
-      headers: authHeaders,
-      payload: { bookingId },
-    });
+    // H-135 Phase 1: do not seed guest manifests or guest vouchers.
 
     await app.inject({
       method: "PUT",

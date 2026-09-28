@@ -3,6 +3,11 @@ node_modules/
 dist/
 .next/
 .next-local/
+.next-h149-uat/
+.next-h151-d03/
+.next-h151-build/
+.next-h152-uat/
+.next-h152-build/
 coverage/
 .env
 .env.*

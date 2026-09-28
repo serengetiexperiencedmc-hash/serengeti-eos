@@ -143,14 +143,14 @@ describe("P3 Consent Register", () => {
     expect(tooLong.statusCode).toBe(400);
     expect(tooLong.json().reason).toBe("title_too_long");
 
-    const notesTooLong = await app.inject({
+    const notesIgnored = await app.inject({
       method: "POST",
       url: "/v1/consents",
       headers: { authorization: `Bearer ${carolToken}` },
       payload: { title: "Notes check", notes: "N".repeat(2001) },
     });
-    expect(notesTooLong.statusCode).toBe(400);
-    expect(notesTooLong.json().reason).toBe("notes_too_long");
+    expect(notesIgnored.statusCode).toBe(201);
+    expect(notesIgnored.json().consent.notes).toBeUndefined();
 
     const partnerTenant = [...store.tenants.values()].find((t) => t.slug === "partner-demo");
     expect(partnerTenant).toBeDefined();
@@ -198,7 +198,7 @@ describe("P3 Consent Register", () => {
       },
     });
     expect(created.statusCode).toBe(201);
-    expect(created.json().consent.consentCode).toBe("CNS-0001");
+    expect(created.json().consent.consentCode).toBe("CNS-0002");
     expect(created.json().consent.status).toBe("open");
     expect(created.json().consent.title).toBe("Catalogue row exists");
     expect(created.json().consent.activityId).toBeUndefined();
@@ -221,7 +221,7 @@ describe("P3 Consent Register", () => {
       payload: { title: "Second catalogue row" },
     });
     expect(second.statusCode).toBe(201);
-    expect(second.json().consent.consentCode).toBe("CNS-0002");
+    expect(second.json().consent.consentCode).toBe("CNS-0003");
     const secondId = second.json().consent.id as string;
 
     const carol = [...store.principals.values()].find((p) => p.email === "carol.admin@sedmc.local");
@@ -276,7 +276,7 @@ describe("P3 Consent Register", () => {
       headers: { authorization: `Bearer ${carolToken}` },
     });
     expect(got.statusCode).toBe(200);
-    expect(got.json().consent.consentCode).toBe("CNS-0001");
+    expect(got.json().consent.consentCode).toBe("CNS-0002");
     assertNoSecrets(got.json());
 
     const patched = await app.inject({

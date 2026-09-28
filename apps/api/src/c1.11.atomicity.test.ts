@@ -7,7 +7,7 @@ import { buildServer } from "../src/server.js";
 import { principalById } from "../src/store.js";
 
 describe("C1.11 CRM event atomicity", () => {
-  it("rolls back organization mutation when outbox write fails", () => {
+  it("rolls back organization mutation when outbox write fails", async () => {
     const store = seedStore("atomicity-test");
     ensureCrmEventCatalogue(store);
     const carol = principalById(store, "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee")!;
@@ -15,7 +15,7 @@ describe("C1.11 CRM event atomicity", () => {
     const outboxBefore = store.outboxEvents.length;
     const auditBefore = store.audit.length;
 
-    const result = commitCrmWithOutbox(store, carol, {
+    const result = await commitCrmWithOutbox(store, carol, {
       eventType: CRM_EVENT_TYPES.ORGANIZATION_CREATED,
       entityType: "organization",
       entityId: "11111111-1111-4111-8111-111111111111",

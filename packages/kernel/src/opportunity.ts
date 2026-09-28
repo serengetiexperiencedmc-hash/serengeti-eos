@@ -1,5 +1,10 @@
 import type { Classification } from "./types.js";
 
+/**
+ * Pipeline workflow stages. `new_qualified` is a stage label only.
+ * OR-01 qualification is `QualificationStatus` in commercial-contract.ts
+ * and must not be inferred from this stage.
+ */
 export type OpportunityStage =
   | "new_qualified"
   | "rfp_received"

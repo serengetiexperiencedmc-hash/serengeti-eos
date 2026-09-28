@@ -35,12 +35,6 @@ describe("PG.11 supplier archive cascade", () => {
 
     await app.inject({
       method: "POST",
-      url: `/v1/suppliers/${supplierId}/contacts`,
-      headers: { authorization: `Bearer ${token}` },
-      payload: { contactRole: "reservations", givenName: "Asha", familyName: "Kim" },
-    });
-    await app.inject({
-      method: "POST",
       url: `/v1/suppliers/${supplierId}/rates`,
       headers: { authorization: `Bearer ${token}` },
       payload: {
@@ -66,7 +60,7 @@ describe("PG.11 supplier archive cascade", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(archived.statusCode).toBe(200);
-    expect(archived.json().cascaded).toEqual({ contacts: 1, rates: 1, contentBlocks: 1 });
+    expect(archived.json().cascaded).toEqual({ contacts: 0, rates: 1, contentBlocks: 1 });
     expect(store.supSuppliers.find((s) => s.id === supplierId)?.archivedAt).toBeTruthy();
     expect(store.supContacts.every((c) => c.supplierId !== supplierId || c.archivedAt)).toBe(true);
     expect(store.supRates.every((r) => r.supplierId !== supplierId || r.archivedAt)).toBe(true);

@@ -1,0 +1,22 @@
+{
+  "status": 200,
+  "supplierCode": "UAT-SUP-001",
+  "legalName": "UAT Synthetic Lodge",
+  "rateCount": 1,
+  "firstRate": {
+    "id": "7d50bfb4-419a-4638-96e8-135e7d823a78",
+    "rateCode": "UAT-SGL",
+    "rateName": "UAT-SGL",
+    "amount": 250,
+    "currency": "USD",
+    "validFrom": "Thu Jan 01",
+    "validTo": "Thu Dec 31",
+    "status": "active"
+  },
+  "keys": [
+    "supplier",
+    "contacts",
+    "rates",
+    "contentBlocks"
+  ]
+}

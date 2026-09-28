@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/commercial/Badge";
 import { useEosSession } from "@/components/commercial/EosSessionProvider";
@@ -112,9 +113,10 @@ export default function PipelinePage() {
               const client = orgNames[opp.organizationId] ?? opp.title;
               const { tag, tagType } = stageTag(opp.stage);
               return (
-                <div
+                <Link
                   key={opp.id}
-                  className="mb-2 cursor-pointer rounded-md border border-line bg-paper p-3.5 transition hover:-translate-y-px hover:shadow-md"
+                  href={`/commercial/pipeline/${opp.id}`}
+                  className="mb-2 block cursor-pointer rounded-md border border-line bg-paper p-3.5 transition hover:-translate-y-px hover:shadow-md"
                 >
                   <div className="mb-1 text-sm font-medium text-ink">{client}</div>
                   <div className="mb-2 text-xs text-muted">{opp.programmeSummary ?? opp.title}</div>
@@ -128,7 +130,7 @@ export default function PipelinePage() {
                       <span className="text-success">{tag}</span>
                     )}
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>

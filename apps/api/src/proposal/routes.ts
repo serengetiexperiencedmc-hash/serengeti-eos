@@ -33,7 +33,7 @@ export function registerProposalRoutes(app: FastifyInstance, store: Store): void
   app.get("/v1/proposals/health", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const result = getProposalModuleHealth(store, principal);
+    const result = await getProposalModuleHealth(store, principal);
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
@@ -42,7 +42,7 @@ export function registerProposalRoutes(app: FastifyInstance, store: Store): void
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const query = req.query as { rfpId?: string; status?: string; organizationId?: string };
-    const result = listProposals(store, principal, query);
+    const result = await listProposals(store, principal, query);
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
@@ -51,7 +51,7 @@ export function registerProposalRoutes(app: FastifyInstance, store: Store): void
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
-    const result = generateProposal(
+    const result = await generateProposal(
       store,
       principal,
       req.body as Parameters<typeof generateProposal>[2],
@@ -64,7 +64,7 @@ export function registerProposalRoutes(app: FastifyInstance, store: Store): void
   app.get("/v1/proposals/by-rfp/:rfpId", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const result = getProposalByRfp(store, principal, (req.params as { rfpId: string }).rfpId);
+    const result = await getProposalByRfp(store, principal, (req.params as { rfpId: string }).rfpId);
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
@@ -72,7 +72,7 @@ export function registerProposalRoutes(app: FastifyInstance, store: Store): void
   app.get("/v1/proposals/:id", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const result = getProposalDetail(store, principal, (req.params as { id: string }).id);
+    const result = await getProposalDetail(store, principal, (req.params as { id: string }).id);
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });

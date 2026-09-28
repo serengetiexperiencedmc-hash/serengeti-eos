@@ -43,3 +43,21 @@ export async function listOpportunities(token: string, query?: { stage?: string 
 export async function fetchPipelineHealth(token: string) {
   return eosFetch<{ opportunities: number }>("/v1/pipeline/health", { token });
 }
+
+export async function getOpportunity(token: string, id: string) {
+  return eosFetch<{ opportunity: PipelineOpportunity; stageHistory: Array<{ toStage: string; changedAt: string }> }>(
+    `/v1/pipeline/opportunities/${id}`,
+    { token },
+  );
+}
+
+export async function createOpportunity(
+  token: string,
+  payload: { opportunityCode: string; title: string; organizationId: string; programmeSummary?: string },
+) {
+  return eosFetch<{ opportunity: PipelineOpportunity }>("/v1/pipeline/opportunities", {
+    token,
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}

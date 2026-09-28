@@ -6,6 +6,7 @@ import { DevLoginPanel, useEosSession } from "@/components/commercial/EosSession
 import { Btn } from "@/components/commercial/ui";
 import { listBookings, type BookingSummary } from "@/lib/booking-api";
 import { EosApiError } from "@/lib/eos-client";
+import { getStoredPrincipalId } from "@/lib/eos-session";
 import {
   getOrCreateDeviceId,
   listCachedBookingIds,
@@ -27,9 +28,11 @@ export default function FieldHomePage() {
   useEffect(() => {
     const ids = listCachedBookingIds();
     setCachedIds(ids);
-    void Promise.all(ids.map(async (id) => [id, await readFieldCache(id)] as const)).then((entries) => {
-      setCacheById(Object.fromEntries(entries));
-    });
+    void Promise.all(ids.map(async (id) => [id, await readFieldCache(id, getStoredPrincipalId())] as const)).then(
+      (entries) => {
+        setCacheById(Object.fromEntries(entries));
+      },
+    );
   }, []);
 
   useEffect(() => {
@@ -53,7 +56,7 @@ export default function FieldHomePage() {
       });
       const ids = listCachedBookingIds();
       setCachedIds(ids);
-      const refreshed = await readFieldCache(bookingId);
+      const refreshed = await readFieldCache(bookingId, getStoredPrincipalId());
       setCacheById((prev) => ({ ...prev, [bookingId]: refreshed }));
     } catch (err) {
       setError(err instanceof EosApiError ? err.message : "Download failed");

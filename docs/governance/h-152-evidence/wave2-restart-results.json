@@ -1,0 +1,53 @@
+{
+  "campaign": "H-152-restart",
+  "capturedAt": "2026-09-22T11:23:00.800Z",
+  "environment": "127.0.0.1:18154 against 127.0.0.1:5440/eos_h152_uat H-152 restart",
+  "ids": {
+    "rfpId": "f9aa6489-52a1-4ca8-8d9f-2e8f7a673af9",
+    "proposalId": "28ff6667-d083-4420-8091-bed3d47edb71"
+  },
+  "summary": {
+    "total": 3,
+    "pass": 3,
+    "fail": 0
+  },
+  "scenarios": [
+    {
+      "scenarioId": "D01-C-GET-RFP",
+      "environment": "127.0.0.1:18154 against 127.0.0.1:5440/eos_h152_uat H-152 restart",
+      "timestamp": "2026-09-22T11:23:00.683Z",
+      "expectedResult": "200 from fresh process; durable RFP",
+      "actualResult": {
+        "status": 200,
+        "title": "H152 synthetic RFP",
+        "rfpId": "f9aa6489-52a1-4ca8-8d9f-2e8f7a673af9"
+      },
+      "passFail": "PASS"
+    },
+    {
+      "scenarioId": "D01-C-GET-PROPOSAL",
+      "environment": "127.0.0.1:18154 against 127.0.0.1:5440/eos_h152_uat H-152 restart",
+      "timestamp": "2026-09-22T11:23:00.728Z",
+      "expectedResult": "200 proposal from fresh process; not in-memory RFP store",
+      "actualResult": {
+        "getStatus": 200,
+        "byRfpStatus": 200,
+        "proposalId": "28ff6667-d083-4420-8091-bed3d47edb71",
+        "rfpId": "f9aa6489-52a1-4ca8-8d9f-2e8f7a673af9"
+      },
+      "passFail": "PASS"
+    },
+    {
+      "scenarioId": "D01-D-RESTART-TENANT",
+      "environment": "127.0.0.1:18154 against 127.0.0.1:5440/eos_h152_uat H-152 restart",
+      "timestamp": "2026-09-22T11:23:00.800Z",
+      "expectedResult": "partner cannot read sedmc RFP/proposal",
+      "actualResult": {
+        "partnerLogin": 200,
+        "getRfp": 404,
+        "getProposal": 404
+      },
+      "passFail": "PASS"
+    }
+  ]
+}

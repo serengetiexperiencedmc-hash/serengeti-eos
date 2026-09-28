@@ -66,8 +66,24 @@ export type DocumentStoragePutInput = {
   mimeType: string;
 };
 
+/** Portable object metadata. Content type may be absent when the adapter stores bytes only. */
+export type DocumentStorageObjectMeta = {
+  storageRef: string;
+  sizeBytes: number;
+  checksumSha256: string;
+  contentType?: string;
+};
+
+/**
+ * Provider-neutral document/object bytes port.
+ * Local filesystem is DEV/TEST ONLY. S3/Azure/GCS adapters are FUTURE PROVIDER IMPLEMENTATION.
+ */
 export type DocumentStorage = {
   readonly name: string;
   put(input: DocumentStoragePutInput): Promise<{ storageRef: string }>;
   get(storageRef: string): Promise<Buffer | null>;
+  /** Compensation / cleanup. Not a Production object-store product by itself. */
+  delete(storageRef: string): Promise<void>;
+  exists(storageRef: string): Promise<boolean>;
+  stat(storageRef: string): Promise<DocumentStorageObjectMeta | null>;
 };

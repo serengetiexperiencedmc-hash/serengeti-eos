@@ -1,4 +1,5 @@
 import Fastify from "fastify";
+import { checkDatabaseHealth } from "@sedmc/db";
 import {
   approveConfig,
   createCostCenter,
@@ -69,7 +70,11 @@ import { registerFinanceRoutes } from "./finance/routes.js";
 import { registerNotificationRoutes } from "./notifications/routes.js";
 import { registerOpsRoutes } from "./ops/routes.js";
 import { registerProposalRoutes } from "./proposal/routes.js";
+import { registerIssuedProposalRoutes } from "./issued-proposal/routes.js";
+import { registerIssuedClientDocumentRoutes } from "./issued-proposal/client-document-routes.js";
+import { registerIssuedClientDocumentDeliveryRoutes } from "./issued-proposal/delivery-routes.js";
 import { registerRfpRoutes } from "./rfp/routes.js";
+import { registerCommercialFactsRoutes } from "./commercial-facts/routes.js";
 import { registerSupplierRoutes } from "./supplier/routes.js";
 import { registerAiRoutes } from "./ai/routes.js";
 import { registerHrRoutes } from "./hr/routes.js";
@@ -116,6 +121,14 @@ import {
   setCorrelationHeader,
   type Logger,
 } from "./observability.js";
+import {
+  applyCors,
+  applyDevTestSecurityHeaders,
+  createInMemoryLoginRateLimiter,
+  DEVTEST_LOGIN_RATE_LIMIT,
+  loginRateLimitKey,
+} from "./devtest-http-controls.js";
+import { resolveDevTestTokenSecret } from "./devtest-token-secret.js";
 
 const VERSION = "1.04.0-i3.37";
 
@@ -128,11 +141,25 @@ export type ServerOptions = {
 export function buildServer(options: ServerOptions | Store = {}) {
   const opts: ServerOptions =
     options && "tenants" in options ? { store: options as Store } : (options as ServerOptions);
-  const store = opts.store ?? seedStore(process.env.EOS_TOKEN_SECRET ?? "dev-only-change-me");
+  const store = opts.store ?? seedStore(resolveDevTestTokenSecret((key) => process.env[key]));
   const logger = opts.logger ?? createLogger((process.env.EOS_LOG_LEVEL as "info") ?? "info");
   const app = Fastify({ logger: false });
   registerObservability(app, logger);
   setWorkflowTelemetry((t) => logger.info(t.event, t.fields ?? {}));
+  const loginRateLimiter = createInMemoryLoginRateLimiter();
+  logger.info("devtest_http_controls_registered", {
+    productionReady: false,
+    cors: "localhost/127.0.0.1 http only",
+    rateLimit: DEVTEST_LOGIN_RATE_LIMIT.note,
+    helmet: false,
+  });
+  app.addHook("onRequest", async (req, reply) => {
+    applyDevTestSecurityHeaders(reply);
+    const cors = applyCors(req, reply, getRequestLog(req));
+    if (req.method === "OPTIONS") {
+      return reply.code(cors.allowed ? 204 : 403).send(cors.allowed ? undefined : { error: "cors_origin_not_allowed" });
+    }
+  });
 
   const health = {
     status: "ok",
@@ -140,17 +167,26 @@ export function buildServer(options: ServerOptions | Store = {}) {
     version: VERSION,
     increment: "I9.2-encrypted-field-cache",
     productionReady: false as const,
+    identity: {
+      mode: "local-password-dev",
+      mfaEnabled: false,
+      productionIdpSelected: false,
+    },
   };
 
   registerCrmRoutes(app, store);
   registerSupplierRoutes(app, store);
   registerPipelineRoutes(app, store);
   registerRfpRoutes(app, store);
+  registerCommercialFactsRoutes(app, store);
   registerCommercialDocumentRoutes(app, store);
   registerProgrammeRoutes(app, store);
   registerCostingRoutes(app, store);
   registerCommercialApprovalRoutes(app, store);
   registerProposalRoutes(app, store);
+  registerIssuedProposalRoutes(app, store);
+  registerIssuedClientDocumentRoutes(app, store);
+  registerIssuedClientDocumentDeliveryRoutes(app, store);
   registerBookingRoutes(app, store);
   registerOpsRoutes(app, store);
   registerFinanceRoutes(app, store);
@@ -192,15 +228,25 @@ export function buildServer(options: ServerOptions | Store = {}) {
   registerOperationalIssueRoutes(app, store);
   registerAiRoutes(app, store);
 
-  app.get("/health", async (_req, reply) => {
-    setCorrelationHeader(reply, crypto.randomUUID());
+  app.get("/health", async (req, reply) => {
+    setCorrelationHeader(reply, getCorrelationId(req));
+    const requestId =
+      (req as { requestId?: string }).requestId ?? String(req.headers["x-request-id"] ?? "");
+    if (requestId) reply.header("x-request-id", requestId);
     return health;
   });
 
   app.get("/ready", async (req, reply) => {
     const correlationId = getCorrelationId(req);
     setCorrelationHeader(reply, correlationId);
-    const db = opts.dbHealth ? await opts.dbHealth() : { ok: true, mode: "memory" as const };
+    let db: { ok: boolean; error?: string; mode?: "memory" };
+    if (opts.dbHealth) {
+      db = await opts.dbHealth();
+    } else if (store.dbPool) {
+      db = await checkDatabaseHealth(store.dbPool);
+    } else {
+      db = { ok: true, mode: "memory" };
+    }
     const events = getEventInfrastructureHealth(store);
     const applicationReady = db.ok;
     const payload = {
@@ -232,20 +278,44 @@ export function buildServer(options: ServerOptions | Store = {}) {
     const correlationId = getCorrelationId(req);
     setCorrelationHeader(reply, correlationId);
     const body = (req.body ?? {}) as { email?: string; password?: string; tenantSlug?: string };
-    if (!body.email || !body.password || !body.tenantSlug) {
+    const email = typeof body.email === "string" ? body.email.trim() : "";
+    const password = typeof body.password === "string" ? body.password.trim() : "";
+    const tenantSlug = typeof body.tenantSlug === "string" ? body.tenantSlug.trim() : "";
+    if (!email || !password || !tenantSlug) {
       return reply.code(400).send({ error: "invalid_request" });
     }
+    const limit = loginRateLimiter.check(loginRateLimitKey(req, email));
+    if (limit.limited) {
+      getRequestLog(req).warn("login_rate_limited", {
+        tenantSlug: body.tenantSlug,
+        remaining: limit.remaining,
+        scope: "dev-test-in-memory",
+      });
+      reply.header("Retry-After", String(Math.ceil(DEVTEST_LOGIN_RATE_LIMIT.windowMs / 1000)));
+      return reply.code(429).send({
+        error: "rate_limited",
+        productionReady: false,
+        scope: "dev-test-in-memory",
+        retryAfterSeconds: Math.ceil(DEVTEST_LOGIN_RATE_LIMIT.windowMs / 1000),
+      });
+    }
     const result = await login(store, {
-      email: body.email,
-      password: body.password,
-      tenantSlug: body.tenantSlug,
+      email,
+      password,
+      tenantSlug,
     });
     if ("error" in result) {
       getRequestLog(req).warn("authentication_failed", {
-        email: body.email,
-        tenantSlug: body.tenantSlug,
+        tenantSlug,
         reason: result.error,
       });
+      if (result.error === "identity_not_production_ready") {
+        return reply.code(503).send({
+          error: result.error,
+          productionReady: false,
+          mfaEnabled: false,
+        });
+      }
       return reply.code(401).send({ error: result.error });
     }
     getRequestLog(req).info("authentication_succeeded", {
@@ -558,7 +628,7 @@ export function buildServer(options: ServerOptions | Store = {}) {
   app.get("/v1/audit-events", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const result = listAudit(store, principal);
+    const result = await listAudit(store, principal);
     if ("error" in result) return reply.code(403).send(result);
     return result;
   });
@@ -566,7 +636,7 @@ export function buildServer(options: ServerOptions | Store = {}) {
   app.get("/v1/audit-events/verify", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const result = verifyChain(store, principal);
+    const result = await verifyChain(store, principal);
     if ("error" in result) return reply.code(403).send(result);
     return result;
   });

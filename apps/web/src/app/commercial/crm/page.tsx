@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Badge } from "@/components/commercial/Badge";
 import { CrmImportModal } from "@/components/commercial/CrmImportModal";
@@ -8,36 +9,30 @@ import { useEosSession } from "@/components/commercial/EosSessionProvider";
 import { Btn, Card, PageHeader } from "@/components/commercial/ui";
 import { EosApiError } from "@/lib/eos-client";
 import {
+  CRM_PAGE_TABS,
   formatRelativeDate,
   getActivity,
   getTask,
   listAccounts,
   listActivities,
-  listContacts,
   listOrganizationTypes,
   listOrganizations,
-  listRelationships,
   listTasks,
   orgStatusVariant,
   type CrmAccount,
   type CrmActivity,
-  type CrmContact,
   type CrmOrganization,
   type CrmOrganizationType,
-  type CrmRelationship,
   type CrmTask,
 } from "@/lib/crm-api";
 
-const tabs = ["Organizations", "Contacts", "Accounts", "Activities", "Tasks"] as const;
-type Tab = (typeof tabs)[number];
+type Tab = (typeof CRM_PAGE_TABS)[number];
 
 type CrmData = {
   organizations: CrmOrganization[];
-  contacts: CrmContact[];
   accounts: CrmAccount[];
   activities: CrmActivity[];
   tasks: CrmTask[];
-  relationships: CrmRelationship[];
   orgTypes: CrmOrganizationType[];
 };
 
@@ -77,13 +72,11 @@ function CrmPageContent() {
     setError(null);
     setFocusMissing(false);
     try {
-      const [organizations, contacts, accounts, activities, tasks, relationships, orgTypes] = await Promise.all([
+      const [organizations, accounts, activities, tasks, orgTypes] = await Promise.all([
         listOrganizations(token),
-        listContacts(token),
         listAccounts(token, { limit: 100 }),
         listActivities(token, { limit: 100 }),
         listTasks(token, { limit: 100 }),
-        listRelationships(token),
         listOrganizationTypes(token),
       ]);
       let activityItems = activities.items;
@@ -106,11 +99,9 @@ function CrmPageContent() {
       }
       setData({
         organizations: organizations.items,
-        contacts: contacts.items,
         accounts: accounts.items,
         activities: activityItems,
         tasks: taskItems,
-        relationships: relationships.items,
         orgTypes: orgTypes.items,
       });
     } catch (err) {
@@ -141,16 +132,6 @@ function CrmPageContent() {
     return map;
   }, [data?.orgTypes]);
 
-  const contactCountByOrg = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const rel of data?.relationships ?? []) {
-      if (rel.toOrganizationId && rel.fromContactId) {
-        counts.set(rel.toOrganizationId, (counts.get(rel.toOrganizationId) ?? 0) + 1);
-      }
-    }
-    return counts;
-  }, [data?.relationships]);
-
   const lastActivityByOrg = useMemo(() => {
     const map = new Map<string, string>();
     for (const activity of data?.activities ?? []) {
@@ -179,16 +160,6 @@ function CrmPageContent() {
         o.legalName.toLowerCase().includes(q) ||
         (o.tradingName?.toLowerCase().includes(q) ?? false) ||
         (o.country?.toLowerCase().includes(q) ?? false),
-    );
-  }, [data, q]);
-
-  const filteredContacts = useMemo(() => {
-    if (!data) return [];
-    if (!q) return data.contacts;
-    return data.contacts.filter(
-      (c) =>
-        `${c.givenName} ${c.familyName}`.toLowerCase().includes(q) ||
-        (c.email?.toLowerCase().includes(q) ?? false),
     );
   }, [data, q]);
 
@@ -225,7 +196,7 @@ function CrmPageContent() {
     <>
       <PageHeader
         eyebrow="CRM · C1 Foundation"
-        title="Clients & Contacts"
+        title="Clients"
         subtitle={subtitle}
         actions={
           token ? (
@@ -254,7 +225,7 @@ function CrmPageContent() {
       )}
 
       <div className="mb-5 flex border-b border-line">
-        {tabs.map((tab) => (
+        {CRM_PAGE_TABS.map((tab) => (
           <button
             key={tab}
             type="button"
@@ -272,13 +243,11 @@ function CrmPageContent() {
                 (
                 {tab === "Organizations"
                   ? data.organizations.length
-                  : tab === "Contacts"
-                    ? data.contacts.length
-                    : tab === "Accounts"
-                      ? data.accounts.length
-                      : tab === "Activities"
-                        ? data.activities.length
-                        : data.tasks.length}
+                  : tab === "Accounts"
+                    ? data.accounts.length
+                    : tab === "Activities"
+                      ? data.activities.length
+                      : data.tasks.length}
                 )
               </span>
             )}
@@ -332,10 +301,6 @@ function CrmPageContent() {
                               <span className="text-xs text-muted">{org.legalName}</span>
                             </>
                           )}
-                          <br />
-                          <span className="text-xs text-muted">
-                            {contactCountByOrg.get(org.id) ?? 0} contacts
-                          </span>
                         </td>
                         <td className="px-4 py-3">
                           {orgTypeById.get(org.organizationTypeId)?.label ?? "—"}
@@ -349,41 +314,6 @@ function CrmPageContent() {
                             ? formatRelativeDate(lastActivityByOrg.get(org.id)!)
                             : formatRelativeDate(org.updatedAt)}
                         </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </Card>
-            )
-          )}
-
-          {activeTab === "Contacts" && (
-            filteredContacts.length === 0 ? (
-              <EmptyState message="No contacts yet. Import contacts after organizations exist." onImport={() => setImportOpen(true)} />
-            ) : (
-              <Card padding={false}>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-line text-left text-[0.7rem] uppercase tracking-wide text-muted">
-                      <th className="px-4 py-3">Name</th>
-                      <th className="px-4 py-3">Email</th>
-                      <th className="px-4 py-3">Job title</th>
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3">Updated</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredContacts.map((contact) => (
-                      <tr key={contact.id} className="border-b border-line hover:bg-sand/30">
-                        <td className="px-4 py-3 font-medium text-ink">
-                          {contact.givenName} {contact.familyName}
-                        </td>
-                        <td className="px-4 py-3">{contact.email ?? "—"}</td>
-                        <td className="px-4 py-3">{contact.jobTitle ?? "—"}</td>
-                        <td className="px-4 py-3">
-                          <Badge variant={contact.status === "Active" ? "progress" : "draft"} label={contact.status} />
-                        </td>
-                        <td className="px-4 py-3">{formatRelativeDate(contact.updatedAt)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -410,7 +340,11 @@ function CrmPageContent() {
                   <tbody>
                     {filteredAccounts.map((account) => (
                       <tr key={account.id} className="border-b border-line hover:bg-sand/30">
-                        <td className="px-4 py-3 font-medium text-ink">{account.accountName}</td>
+                        <td className="px-4 py-3 font-medium text-ink">
+                          <Link className="text-gold-deep underline" href={`/commercial/crm/accounts/${account.id}`}>
+                            {account.accountName}
+                          </Link>
+                        </td>
                         <td className="px-4 py-3">
                           {orgById.get(account.organizationId)?.legalName ?? "—"}
                         </td>

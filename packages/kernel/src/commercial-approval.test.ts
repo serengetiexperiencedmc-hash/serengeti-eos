@@ -11,7 +11,7 @@ describe("commercial approval kernel", () => {
     expect(buildApprovalRequestCode("CST-2026-0847")).toBe("APR-2026-0847");
   });
 
-  it("evaluates sell threshold gate for high-value deals", () => {
+  it("evaluates sell threshold gate for high-value deals (legacy mixed-caller behaviour; not F2 Path B)", () => {
     const gate = evaluateCommercialApprovalGate({
       marginPercent: 30.4,
       marginFloorPercent: 20,
@@ -20,7 +20,7 @@ describe("commercial approval kernel", () => {
     expect(gate.gateType).toBe("sell_threshold");
   });
 
-  it("evaluates margin floor gate when below floor", () => {
+  it("evaluates margin floor gate when below floor (legacy mixed-caller behaviour; not F2 Path B)", () => {
     const gate = evaluateCommercialApprovalGate({
       marginPercent: 15,
       marginFloorPercent: 20,
@@ -29,7 +29,7 @@ describe("commercial approval kernel", () => {
     expect(gate.gateType).toBe("margin_floor");
   });
 
-  it("blocks request when margin below floor", () => {
+  it("blocks request when margin below floor (legacy mixed-caller behaviour; not F2 Path B)", () => {
     expect(canRequestCommercialApproval(15, 20)).toBe(false);
     expect(canRequestCommercialApproval(25, 20)).toBe(true);
   });

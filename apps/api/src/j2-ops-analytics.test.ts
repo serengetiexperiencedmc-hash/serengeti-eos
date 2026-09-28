@@ -126,7 +126,7 @@ describe("J2 operations analytics API", () => {
     const summary = summaryRes.json().summary;
     expect(summary.activeBookings).toBeGreaterThanOrEqual(1);
     expect(summary.supplierConfirmationsPending).toBeGreaterThanOrEqual(1);
-    expect(summary.vouchersDraft).toBeGreaterThanOrEqual(1);
+    expect(summary.vouchersDraft).toBe(0);
     expect(summary.fieldTasksOpen).toBeGreaterThanOrEqual(1);
     expect(summary.handoverTasksPending).toBeGreaterThanOrEqual(1);
 
@@ -140,7 +140,7 @@ describe("J2 operations analytics API", () => {
     expect(item).toBeDefined();
     expect(item.handoverProgressPercent).toBe(50);
     expect(item.supplierConfirmationsPending).toBe(1);
-    expect(item.vouchersDraft).toBe(1);
+    expect(item.vouchersDraft).toBe(0);
     expect(item.fieldTasksOpen).toBe(1);
   });
 });

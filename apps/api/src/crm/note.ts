@@ -15,6 +15,8 @@ import type { Store } from "../store.js";
 import { allowCrmAudit, denyCrmAudit } from "./audit.js";
 import { ensureCrmCollections } from "./collections.js";
 import { commitCrmWithOutbox } from "./events.js";
+import { personDomainRemoved } from "../personal-data-phase1.js";
+import { rejectPersonDomainContent } from "../personal-data-content-contract.js";
 
 const DEFAULT_LIST_LIMIT = 50;
 const MAX_LIST_LIMIT = 100;
@@ -52,11 +54,8 @@ function resolveEntityClassification(
       const org = store.crmOrganizations.find((o) => o.id === unit.organizationId);
       return org ? org.classification : "Internal";
     }
-    case "contact": {
-      const contact = store.crmContacts.find((c) => c.id === entityId && c.tenantId === tenantId);
-      if (!contact) return { error: "invalid_request", reason: "invalid_entity" };
-      return contact.classification;
-    }
+    case "contact":
+      return { error: "invalid_request", reason: "person_domain_removed" };
     case "relationship": {
       const rel = store.crmRelationships.find((r) => r.id === entityId && r.tenantId === tenantId);
       if (!rel) return { error: "invalid_request", reason: "invalid_entity" };
@@ -103,6 +102,7 @@ export function listNotes(
   });
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
 
+  if (query?.entityType === "contact") return personDomainRemoved();
   if ((query?.entityType && !query.entityId) || (!query?.entityType && query?.entityId)) {
     return { error: "invalid_request" as const, reason: "entity_type_and_id_required" };
   }
@@ -156,9 +156,12 @@ export type CreateNoteInput = {
   classification?: Classification;
 };
 
-export function createNote(store: Store, principal: Principal, input: CreateNoteInput, correlationId: string) {
+export async function createNote(store: Store, principal: Principal, input: CreateNoteInput, correlationId: string) {
   ensureCrmCollections(store);
   if (!noteBodyValid(input.body ?? "")) return { error: "invalid_request" as const, reason: "body_required" };
+  if (input.entityType === "contact") return personDomainRemoved();
+  const personContent = rejectPersonDomainContent(input);
+  if (personContent) return personContent;
   if (!isValidNoteEntityType(input.entityType)) {
     return { error: "invalid_request" as const, reason: "invalid_entity_type" };
   }
@@ -206,7 +209,7 @@ export function createNote(store: Store, principal: Principal, input: CreateNote
     updatedByPrincipalId: principal.id,
   };
 
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.NOTE_CREATED,
     entityType: "note",
     entityId: note.id,
@@ -231,7 +234,7 @@ export function createNote(store: Store, principal: Principal, input: CreateNote
   return { note };
 }
 
-export function updateNote(
+export async function updateNote(
   store: Store,
   principal: Principal,
   noteId: string,
@@ -267,7 +270,7 @@ export function updateNote(
   note.updatedAt = new Date().toISOString();
   note.updatedByPrincipalId = principal.id;
 
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.NOTE_UPDATED,
     entityType: "note",
     entityId: note.id,
@@ -285,7 +288,7 @@ export function updateNote(
   return { note };
 }
 
-export function archiveNote(store: Store, principal: Principal, noteId: string, correlationId: string) {
+export async function archiveNote(store: Store, principal: Principal, noteId: string, correlationId: string) {
   ensureCrmCollections(store);
   const note = findNote(store, principal.tenantId, noteId);
   if (!note) return { error: "not_found" as const };
@@ -307,7 +310,7 @@ export function archiveNote(store: Store, principal: Principal, noteId: string, 
   note.updatedAt = note.archivedAt;
   note.updatedByPrincipalId = principal.id;
 
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.NOTE_ARCHIVED,
     entityType: "note",
     entityId: note.id,
@@ -331,6 +334,7 @@ export function listEntityNotes(
   entityId: string,
   query?: { limit?: number; cursor?: string },
 ) {
+  if (entityType === "contact") return personDomainRemoved();
   if (!isValidNoteEntityType(entityType)) return { error: "invalid_request" as const, reason: "invalid_entity_type" };
   if (!entityExists(store, principal.tenantId, entityType, entityId)) {
     return { error: "not_found" as const };

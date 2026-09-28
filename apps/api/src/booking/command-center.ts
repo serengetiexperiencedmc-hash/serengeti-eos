@@ -89,11 +89,6 @@ export function getBookingCommandCenter(store: Store, principal: Principal, book
   const handoverComplete = handoverTasks.length > 0 && completedCount === handoverTasks.length;
 
   const supplierConfs = store.opsSupplierConfirmations.filter((c) => c.bookingId === bookingId);
-  const manifest = store.opsManifests.find((m) => m.bookingId === bookingId);
-  const manifestEntries = manifest
-    ? store.opsManifestEntries.filter((e) => e.manifestId === manifest.id)
-    : [];
-  const vouchers = (store.opsVouchers ?? []).filter((v) => v.bookingId === bookingId && v.status !== "void");
   const fieldTasks = store.opsFieldTasks.filter((t) => t.bookingId === bookingId);
   const brief = store.opsBriefs.find((b) => b.bookingId === bookingId);
   const syncConflicts = (store.opsSyncConflicts ?? []).filter(
@@ -117,11 +112,9 @@ export function getBookingCommandCenter(store: Store, principal: Principal, book
     supplierConfirmationsTotal: supplierConfs.length,
     supplierConfirmationsPending: supplierConfs.filter((c) => c.status === "requested").length,
     supplierConfirmationsConfirmed: supplierConfs.filter((c) => c.status === "confirmed").length,
-    ...(manifest?.status ? { manifestStatus: manifest.status } : {}),
-    manifestGuestCount: manifestEntries.length,
-    ...(manifest?.publishedAt ? { manifestPublishedAt: manifest.publishedAt } : {}),
-    vouchersDraft: vouchers.filter((v) => v.status === "draft").length,
-    vouchersIssued: vouchers.filter((v) => v.status === "issued").length,
+    manifestGuestCount: 0,
+    vouchersDraft: 0,
+    vouchersIssued: 0,
     fieldTasksOpen: fieldTasks.filter((t) => t.status !== "complete").length,
     fieldTasksComplete: fieldTasks.filter((t) => t.status === "complete").length,
     briefIssued: Boolean(brief?.issuedAt),

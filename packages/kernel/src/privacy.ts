@@ -107,7 +107,6 @@ export type PrivacyDsrCase = {
   dsrCode: string;
   requestType: DsrRequestType;
   status: DsrStatus;
-  subjectLabel?: string;
   note?: string;
   createdAt: string;
   updatedAt: string;

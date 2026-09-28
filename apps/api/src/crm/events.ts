@@ -15,6 +15,8 @@ import {
 } from "@sedmc/kernel";
 import { ensureOutboxCollections } from "../outbox.js";
 import { persistCrmEntityAfterCommit } from "../persistence/crm.js";
+import { insertChainedAudit, isMixedSqlDurable, runDurableTx, unhashedAuditRecord } from "../persistence/durable.js";
+import { insertOutboxEventOn } from "../persistence/pg-repository.js";
 import { persistOutboxInsert } from "../persistence/outbox.js";
 import type { Store } from "../store.js";
 
@@ -206,7 +208,7 @@ function restoreCrmDomain(store: Store, snap: CrmDomainSnapshot): void {
 }
 
 export type CommitCrmWithOutboxInput = EmitCrmEventInput & {
-  mutate: () => void;
+  mutate: () => void | Promise<void>;
   /** Additional outbox events committed in the same transaction as the primary event */
   additionalEvents?: Omit<EmitCrmEventInput, "mode">[];
   /** Test hook: simulate outbox persistence failure after domain mutate */
@@ -250,11 +252,11 @@ function prepareCrmOutboxRecord(
  * Atomically commit a CRM domain mutation and its outbox event.
  * Rolls back CRM state, audit, and outbox on failure.
  */
-export function commitCrmWithOutbox(
+export async function commitCrmWithOutbox(
   store: Store,
   principal: Principal,
   input: CommitCrmWithOutboxInput,
-): { ok: true; outbox: OutboxRecord; envelope: EnterpriseEventEnvelope } | { ok: false; reason: string } {
+): Promise<{ ok: true; outbox: OutboxRecord; envelope: EnterpriseEventEnvelope } | { ok: false; reason: string }> {
   const mode = input.mode ?? "LIVE";
   try {
     assertLiveAllowed({ mode, correlationId: input.correlationId, actorPrincipalId: principal.id }, "commitCrmWithOutbox");
@@ -276,16 +278,31 @@ export function commitCrmWithOutbox(
 
   const domainSnapshot = snapshotCrmDomain(store);
   try {
-    input.mutate();
-    void persistCrmEntityAfterCommit(store.dbPool, store, input.entityType, input.entityId, principal.tenantId);
-    if (input.simulateOutboxWriteFailure) {
+    await input.mutate();
+    if (isMixedSqlDurable(store)) {
+      const pgAudits = await runDurableTx(store, async (client) => {
+        await persistCrmEntityAfterCommit(client, store, input.entityType, input.entityId, principal.tenantId);
+        const persisted = [];
+        for (const rec of store.audit.slice(domainSnapshot.auditLen)) {
+          persisted.push(await insertChainedAudit(client, unhashedAuditRecord(rec)));
+        }
+        if (input.simulateOutboxWriteFailure) {
+          throw new Error("outbox_write_failed");
+        }
+        await insertOutboxEventOn(client, outbox);
+        for (const extra of additionalPrepared) {
+          await insertOutboxEventOn(client, extra.outbox);
+        }
+        return persisted;
+      });
+      store.audit.length = domainSnapshot.auditLen;
+      store.audit.push(...pgAudits);
+    } else if (input.simulateOutboxWriteFailure) {
       throw new Error("outbox_write_failed");
     }
     store.outboxEvents.push(outbox);
-    void persistOutboxInsert(store.dbPool, outbox);
     for (const extra of additionalPrepared) {
       store.outboxEvents.push(extra.outbox);
-      void persistOutboxInsert(store.dbPool, extra.outbox);
     }
   } catch (err) {
     restoreCrmDomain(store, domainSnapshot);
@@ -301,11 +318,11 @@ export function commitCrmWithOutbox(
  * Emit a CRM domain event without a coupled mutation (e.g. post-rollback failure events).
  * Prefer commitCrmWithOutbox for mutation paths.
  */
-export function emitCrmEvent(
+export async function emitCrmEvent(
   store: Store,
   principal: Principal,
   input: EmitCrmEventInput,
-): { ok: true; outbox: OutboxRecord; envelope: EnterpriseEventEnvelope } | { ok: false; reason: string } {
+): Promise<{ ok: true; outbox: OutboxRecord; envelope: EnterpriseEventEnvelope } | { ok: false; reason: string }> {
   const mode = input.mode ?? "LIVE";
   try {
     assertLiveAllowed({ mode, correlationId: input.correlationId, actorPrincipalId: principal.id }, "emitCrmEvent");
@@ -337,7 +354,9 @@ export function emitCrmEvent(
   const sequence = assignAggregateSequence(store, entry, envelope);
   if (sequence !== undefined) outbox.sequence = sequence;
   store.outboxEvents.push(outbox);
-  void persistOutboxInsert(store.dbPool, outbox);
+  if (isMixedSqlDurable(store)) {
+    await persistOutboxInsert(store.dbPool, outbox);
+  }
   if (store.eventMetrics) store.eventMetrics.eventsCommitted += 1;
   return { ok: true, outbox, envelope };
 }

@@ -18,6 +18,7 @@ import { allowCrmAudit, denyCrmAudit } from "./audit.js";
 import { ensureCrmCollections, seedCrmCatalogues } from "./collections.js";
 import { registerDuplicateCandidatesForOrganization } from "./duplicate.js";
 import { commitCrmWithOutbox } from "./events.js";
+import { rejectPersonDomainContent } from "../personal-data-content-contract.js";
 
 type OrgResource = {
   tenantId: string;
@@ -146,7 +147,7 @@ export type CreateOrganizationInput = {
   source?: string;
 };
 
-export function createOrganization(
+export async function createOrganization(
   store: Store,
   principal: Principal,
   input: CreateOrganizationInput,
@@ -170,6 +171,8 @@ export function createOrganization(
     denyCrmAudit(store, principal, "crm:write:organization", "crm_organization", correlationId, decision.reason);
     return { error: "forbidden" as const, reason: decision.reason };
   }
+  const personContent = rejectPersonDomainContent(input);
+  if (personContent) return personContent;
 
   const legalNameResult = validateOrganizationLegalName(input.legalName ?? "");
   if (!legalNameResult.ok) {
@@ -223,7 +226,7 @@ export function createOrganization(
     updatedByPrincipalId: principal.id,
   };
 
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.ORGANIZATION_CREATED,
     entityType: "organization",
     entityId: organization.id,
@@ -234,7 +237,7 @@ export function createOrganization(
       status: organization.status,
       legalName: organization.legalName,
     },
-    mutate: () => {
+    mutate: async () => {
       store.crmOrganizations.push(organization);
       allowCrmAudit(
         store,
@@ -245,7 +248,7 @@ export function createOrganization(
         correlationId,
         organization,
       );
-      registerDuplicateCandidatesForOrganization(store, principal.tenantId, organization.id, {
+      await registerDuplicateCandidatesForOrganization(store, principal.tenantId, organization.id, {
         principal,
         correlationId,
       });
@@ -275,7 +278,7 @@ export type UpdateOrganizationInput = Partial<
   >
 >;
 
-export function updateOrganization(
+export async function updateOrganization(
   store: Store,
   principal: Principal,
   organizationId: string,
@@ -305,6 +308,8 @@ export function updateOrganization(
     );
     return { error: "forbidden" as const, reason: decision.reason };
   }
+  const personContent = rejectPersonDomainContent(input);
+  if (personContent) return personContent;
 
   if (org.archivedAt || org.mergedIntoId) {
     return { error: "conflict" as const, reason: "organization_not_mutable" };
@@ -360,14 +365,14 @@ export function updateOrganization(
   org.updatedAt = new Date().toISOString();
   org.updatedByPrincipalId = principal.id;
 
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.ORGANIZATION_UPDATED,
     entityType: "organization",
     entityId: org.id,
     classification: org.classification,
     correlationId,
     payload: { organizationId: org.id },
-    mutate: () => {
+    mutate: async () => {
       allowCrmAudit(
         store,
         principal,
@@ -378,7 +383,7 @@ export function updateOrganization(
         org,
         previousState,
       );
-      registerDuplicateCandidatesForOrganization(store, principal.tenantId, org.id, {
+      await registerDuplicateCandidatesForOrganization(store, principal.tenantId, org.id, {
         principal,
         correlationId,
       });
@@ -388,7 +393,7 @@ export function updateOrganization(
   return { organization: sanitizeOrganization(org) };
 }
 
-export function transitionOrganization(
+export async function transitionOrganization(
   store: Store,
   principal: Principal,
   organizationId: string,
@@ -444,7 +449,7 @@ export function transitionOrganization(
   org.updatedAt = new Date().toISOString();
   org.updatedByPrincipalId = principal.id;
 
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.ORGANIZATION_UPDATED,
     entityType: "organization",
     entityId: org.id,
@@ -455,7 +460,7 @@ export function transitionOrganization(
       status: org.status,
       previousStatus: previousState.status,
     },
-    mutate: () => {
+    mutate: async () => {
       allowCrmAudit(
         store,
         principal,
@@ -472,7 +477,7 @@ export function transitionOrganization(
   return { organization: sanitizeOrganization(org) };
 }
 
-export function archiveOrganization(store: Store, principal: Principal, organizationId: string, correlationId: string) {
+export async function archiveOrganization(store: Store, principal: Principal, organizationId: string, correlationId: string) {
   ensureCrmCollections(store);
   const org = findOrganizationForTenant(store, principal.tenantId, organizationId);
   if (!org) return { error: "not_found" as const };
@@ -511,14 +516,14 @@ export function archiveOrganization(store: Store, principal: Principal, organiza
   org.updatedAt = org.archivedAt;
   org.updatedByPrincipalId = principal.id;
 
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.ORGANIZATION_ARCHIVED,
     entityType: "organization",
     entityId: org.id,
     classification: org.classification,
     correlationId,
     payload: { organizationId: org.id },
-    mutate: () => {
+    mutate: async () => {
       allowCrmAudit(
         store,
         principal,

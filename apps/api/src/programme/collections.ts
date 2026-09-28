@@ -5,4 +5,5 @@ export function ensureProgrammeCollections(store: Store): void {
   if (!store.prgDays) store.prgDays = [];
   if (!store.prgItems) store.prgItems = [];
   if (!store.prgProgrammeVersions) store.prgProgrammeVersions = [];
+  if (!store.prgRoomingEntries) store.prgRoomingEntries = [];
 }

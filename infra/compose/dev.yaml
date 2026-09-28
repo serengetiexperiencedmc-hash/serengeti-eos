@@ -1,3 +1,7 @@
+# Isolated Development/Test compose only.
+# Does NOT deploy, lock, approve, or represent Production infrastructure.
+# Does NOT select a hosting provider, region, or Production architecture (ADR-0006 / DP-0006 remain OPEN).
+# Do not point these services at live Production data or Production credentials.
 services:
   postgres:
     image: postgres:16-alpine

@@ -1,0 +1,46 @@
+﻿{
+    "acknowledged_survived":  true,
+    "repeatability":  "single run",
+    "test_id":  "LAB-11",
+    "actual":  "down=True intact=True probe=True",
+    "total_measured_rto_ms":  3488,
+    "pass_fail":  "PARTIAL",
+    "probe":  {
+                  "marker":  "PROBE-LAB11",
+                  "ok":  true,
+                  "rfp":  "Synthetic RFP PROBE-LAB11",
+                  "programme":  "Synthetic Programme PROBE-LAB11"
+              },
+    "failure_model":  "F13 PostgreSQL dependency stopped while probe host remained",
+    "evidence":  [
+                     "LAB-11.json"
+                 ],
+    "recovery_mechanism":  "Restart dependency; data intact",
+    "function_unusable_while_down_ms":  582,
+    "boundary":  "Dev/Test laboratory evidence only. This result does not constitute Production readiness, Production authorization, or Production proof.",
+    "last_recoverable_transaction":  "MARKER-DATA-INTACT",
+    "failure_timestamp":  "2026-09-15T15:34:41.6640842+00:00",
+    "integrity":  {
+                      "marker_count":  4,
+                      "rfp_count":  2,
+                      "programme_count":  2,
+                      "orphan_programmes":  0,
+                      "max_marker_duplicates":  1,
+                      "markers":  "MARKER-DATA-INTACT,MARKER-DATA-INTACT-PB,PROBE-LAB11,PROBE-LAB11-PB",
+                      "referential_ok":  true,
+                      "no_duplicate_markers":  true
+                  },
+    "what_remained":  "Operator/probe host; data directory",
+    "expected":  "Function down while PG stopped; markers intact after start",
+    "measured_rpo":  "Measured zero loss of committed PG data for this F13 stop/start. Function RTO includes dependency downtime (582 ms). Production IdP/CDN/WAF NOT TESTABLE.",
+    "topology":  "dependency = PostgreSQL for SQL probe; Production IdP/CDN/WAF/email/KMS absent",
+    "run_id":  "20260915-183034",
+    "limitations":  "Only PostgreSQL dependency was present. ADR-0013 IdP OPEN; ADR-0012 secrets OPEN; no CDN/WAF/email/object-store lab. Result PARTIAL because those dependencies were NOT TESTABLE.",
+    "what_failed":  "Database dependency (container stopped)",
+    "missing_transactions":  [
+
+                             ],
+    "probe_failed_while_down":  true,
+    "operator_intervention":  "Scripted stop/start",
+    "measured_rto":  "3.488 seconds until function probe succeeded after dependency restart"
+}

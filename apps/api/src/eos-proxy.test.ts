@@ -29,9 +29,16 @@ describe("eos-api proxy helpers", () => {
   });
 
   it("strips transfer-encoding from response headers", () => {
-    const source = new Headers({ "content-type": "application/json", "transfer-encoding": "chunked" });
+    const source = new Headers({
+      "content-type": "application/json",
+      "transfer-encoding": "chunked",
+      "content-encoding": "gzip",
+      "content-length": "99",
+    });
     const filtered = filterProxyResponseHeaders(source);
     expect(filtered.has("transfer-encoding")).toBe(false);
+    expect(filtered.has("content-encoding")).toBe(false);
+    expect(filtered.has("content-length")).toBe(false);
     expect(filtered.get("content-type")).toBe("application/json");
   });
 });

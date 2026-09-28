@@ -39,6 +39,18 @@ export type CostSheet = {
   markupPercent?: number;
   sellPrice?: number;
   marginFloorPercent: number;
+  /** H-203 internal file fee (USD 200 default). Incorporated into client selling price. */
+  fileFeeAmount?: number;
+  taxMode?: "none" | "rate" | "amount";
+  taxRatePercent?: number;
+  taxAmount?: number;
+  fxCurrencyPair?: string;
+  fxRate?: number;
+  fxAsOfDate?: string;
+  fxSourceReference?: string;
+  marginFloorExceptionReason?: string;
+  marginFloorExceptionByPrincipalId?: string;
+  marginFloorExceptionAt?: string;
   totalCost: number;
   marginPercent: number;
   marginAmount: number;
@@ -66,10 +78,55 @@ export type CostLineItem = {
   lineTotal: number;
   supplierId?: string;
   supplierRateId?: string;
+  /** Optional link to a programme component. Does not copy supplier cost onto client price. */
+  programmeItemId?: string;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
 };
+
+export type ProgrammeFinancialSummary = {
+  programmeId: string;
+  rfpId: string;
+  costSheetId: string;
+  currency: string;
+  financialStatus: CostSheetStatus;
+  supplierCost: number;
+  clientSellingPrice: number;
+  grossProfit: number;
+  grossMarginPercent: number;
+  formula: "kernel.computeCostTotals";
+  sellPriceSource: "sellPriceOverride" | "markupPercent" | "equalsSupplierCost";
+  markupPercentApplied?: number;
+  fileFeeAmount?: number;
+  taxAmount?: number;
+  taxMode?: "none" | "rate" | "amount";
+};
+
+export function programmeFinancialSummaryFromTotals(
+  sheet: Pick<CostSheet, "id" | "programmeId" | "rfpId" | "currency" | "status" | "sellPrice" | "markupPercent">,
+  totals: CostTotalsResult,
+): ProgrammeFinancialSummary {
+  const sellPriceSource: ProgrammeFinancialSummary["sellPriceSource"] =
+    sheet.sellPrice !== undefined
+      ? "sellPriceOverride"
+      : sheet.markupPercent !== undefined
+        ? "markupPercent"
+        : "equalsSupplierCost";
+  return {
+    programmeId: sheet.programmeId,
+    rfpId: sheet.rfpId,
+    costSheetId: sheet.id,
+    currency: sheet.currency,
+    financialStatus: sheet.status,
+    supplierCost: totals.totalCost,
+    clientSellingPrice: totals.sellPrice,
+    grossProfit: totals.marginAmount,
+    grossMarginPercent: totals.marginPercent,
+    formula: "kernel.computeCostTotals",
+    sellPriceSource,
+  };
+}
 
 export type CostSheetVersion = {
   id: string;

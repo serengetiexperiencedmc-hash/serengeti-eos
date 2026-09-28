@@ -302,8 +302,8 @@ describe("C1.7 CRM controlled merge + bulk import", () => {
         headers: { authorization: `Bearer ${token}` },
         payload: {
           sourceSystem: "test",
-          entityType: "contact",
-          csv: "givenName,familyName\nImport,Person",
+          entityType: "organization",
+          csv: "legalName,organizationTypeKey\nImport Org,mice_agency",
         },
       });
       const batchId = created.json().batch.id;

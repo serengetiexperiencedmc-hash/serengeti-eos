@@ -55,12 +55,6 @@ describe("C1.6 CRM search + duplicate detection", () => {
         headers: { authorization: `Bearer ${token}` },
         payload: { legalName: "Serengeti Safari Co Ltd", organizationTypeId: typeId },
       });
-      await app.inject({
-        method: "POST",
-        url: "/v1/crm/contacts",
-        headers: { authorization: `Bearer ${token}` },
-        payload: { givenName: "Serengeti", familyName: "Planner", email: "planner@serengeti.example" },
-      });
       const org = await app.inject({
         method: "POST",
         url: "/v1/crm/organizations",
@@ -76,15 +70,15 @@ describe("C1.6 CRM search + duplicate detection", () => {
 
       const search = await app.inject({
         method: "GET",
-        url: "/v1/crm/search?q=serengeti&types=organization&types=contact&types=account",
+        url: "/v1/crm/search?q=serengeti&types=organization&types=account",
         headers: { authorization: `Bearer ${token}` },
       });
       expect(search.statusCode).toBe(200);
       const items = search.json().items as Array<{ entityType: string; displayLabel: string }>;
-      expect(items.length).toBeGreaterThanOrEqual(3);
+      expect(items.length).toBeGreaterThanOrEqual(2);
       expect(items.some((i) => i.entityType === "organization")).toBe(true);
-      expect(items.some((i) => i.entityType === "contact")).toBe(true);
       expect(items.some((i) => i.entityType === "account")).toBe(true);
+      expect(items.some((i) => i.entityType === "contact")).toBe(false);
       expect(search.json().total).toBeUndefined();
     });
 
@@ -270,7 +264,7 @@ describe("C1.6 CRM search + duplicate detection", () => {
       expect(nameOnly).toBeNull();
     });
 
-    it("registers phone duplicate candidates on create", async () => {
+    it("does not register contact duplicate candidates after person-domain removal", async () => {
       const store = seedStore("test-secret");
       const app = buildServer({ store });
       const token = await loginCarol(app);
@@ -288,7 +282,7 @@ describe("C1.6 CRM search + duplicate detection", () => {
         payload: { givenName: "Phone", familyName: "Two", mobile: "+255-712-345-678" },
       });
 
-      expect(store.crmDuplicateCandidates.some((c) => c.entityType === "contact")).toBe(true);
+      expect(store.crmDuplicateCandidates.some((c) => c.entityType === "contact")).toBe(false);
     });
   });
 
@@ -391,33 +385,22 @@ describe("C1.6 CRM search + duplicate detection", () => {
   });
 
   describe("C1.5 regression — note isolation", () => {
-    it("returns 404 for cross-tenant contact note list and hides restricted notes from lower clearance", async () => {
+    it("returns 404 for cross-tenant organization note list", async () => {
       const app = buildServer({ store: seedStore("test-secret") });
       const token = await loginCarol(app);
       const typeId = await orgTypeId(app, token);
-      await app.inject({
+      const org = await app.inject({
         method: "POST",
         url: "/v1/crm/organizations",
         headers: { authorization: `Bearer ${token}` },
         payload: { legalName: "Note Regression Org", organizationTypeId: typeId },
       });
-      const contact = await app.inject({
-        method: "POST",
-        url: "/v1/crm/contacts",
-        headers: { authorization: `Bearer ${token}` },
-        payload: {
-          givenName: "Restricted",
-          familyName: "Contact",
-          email: "restricted.contact@example.com",
-          classification: "Restricted",
-        },
-      });
-      const contactId = contact.json().contact.id;
+      const orgId = org.json().organization.id;
       await app.inject({
         method: "POST",
         url: "/v1/crm/notes",
         headers: { authorization: `Bearer ${token}` },
-        payload: { body: "Restricted commercial note", entityType: "contact", entityId: contactId },
+        payload: { body: "Restricted commercial note", entityType: "organization", entityId: orgId },
       });
 
       const partner = await app.inject({
@@ -427,32 +410,10 @@ describe("C1.6 CRM search + duplicate detection", () => {
       });
       const crossList = await app.inject({
         method: "GET",
-        url: `/v1/crm/contacts/${contactId}/notes`,
+        url: `/v1/crm/organizations/${orgId}/notes`,
         headers: { authorization: `Bearer ${partner.json().accessToken}` },
       });
       expect(crossList.statusCode).toBe(404);
-
-      const openContact = await app.inject({
-        method: "POST",
-        url: "/v1/crm/contacts",
-        headers: { authorization: `Bearer ${token}` },
-        payload: { givenName: "Open", familyName: "Contact", email: "open.contact@example.com" },
-      });
-      const openId = openContact.json().contact.id;
-      await app.inject({
-        method: "POST",
-        url: "/v1/crm/notes",
-        headers: { authorization: `Bearer ${token}` },
-        payload: { body: "Internal note", entityType: "contact", entityId: openId },
-      });
-
-      const search = await app.inject({
-        method: "GET",
-        url: "/v1/crm/search?q=restricted&types=contact",
-        headers: { authorization: `Bearer ${token}` },
-      });
-      expect(search.json().items.some((i: { entityId: string }) => i.entityId === contactId)).toBe(true);
-      expect(search.json().total).toBeUndefined();
     });
   });
 });

@@ -174,7 +174,7 @@ describe("C8 proposal API", () => {
     expect(rfp.json().rfp.workflowStage).toBe("sent");
   });
 
-  it("rejects proposal generation without approved commercial approval", async () => {
+  it("rejects proposal generation without programme or costing, but Path B not_required does not require the legacy numerical gate", async () => {
     const store = seedStore("test-secret");
     const app = buildServer({ store });
     const carolToken = await loginCarol(app);
@@ -213,13 +213,15 @@ describe("C8 proposal API", () => {
       },
     });
 
-    const fail = await app.inject({
+    const created = await app.inject({
       method: "POST",
       url: "/v1/proposals",
       headers: { authorization: `Bearer ${carolToken}` },
       payload: { rfpId },
     });
-    expect(fail.statusCode).toBe(409);
+    expect(created.statusCode).toBe(201);
+    expect(created.json().proposal.status).toBe("approved");
+    expect(created.json().pathBApproval.required).toBe(false);
   });
 
   it("scopes proposal health and rejects unauthorized access", async () => {

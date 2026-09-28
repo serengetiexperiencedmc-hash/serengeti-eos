@@ -22,7 +22,7 @@ describe("I4.12 DLQ bulk owner assign", () => {
 
     const eventIds: string[] = [];
     for (const corr of ["i412-a", "i412-b"]) {
-      commitWithOutbox(store, carol, {
+      await commitWithOutbox(store, carol, {
         eventType: "platform.ping.v1",
         payload: { ping: true, corr },
         classification: "Internal",

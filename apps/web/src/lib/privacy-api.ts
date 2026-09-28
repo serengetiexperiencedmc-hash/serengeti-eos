@@ -18,7 +18,6 @@ export type PrivacyDsrCase = {
   dsrCode: string;
   requestType: DsrRequestType;
   status: DsrStatus;
-  subjectLabel?: string;
   note?: string;
 };
 
@@ -78,7 +77,7 @@ export async function listDsrCases(token: string) {
 
 export async function createDsrCase(
   token: string,
-  input: { requestType: DsrRequestType; subjectLabel?: string; note?: string },
+  input: { requestType: DsrRequestType; note?: string },
 ) {
   return eosFetch<{ dsr: PrivacyDsrCase }>("/v1/privacy/dsrs", {
     token,

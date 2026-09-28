@@ -84,9 +84,26 @@ export const PROGRAMME_ITEM_TYPES = [
   "flight",
   "meal",
   "meeting_event",
+  "excursion",
+  "guide",
+  "equipment",
   "other",
 ] as const;
 export type ProgrammeItemType = (typeof PROGRAMME_ITEM_TYPES)[number];
+
+export const PROGRAMME_ITEM_TYPE_LABELS: Record<ProgrammeItemType, string> = {
+  accommodation: "Accommodation",
+  activity: "Activity",
+  experience: "Experience",
+  transport: "Transport",
+  flight: "Flight",
+  meal: "Meal",
+  meeting_event: "Meeting / Event",
+  excursion: "Excursion",
+  guide: "Guide / host",
+  equipment: "Equipment",
+  other: "Other service",
+};
 
 export function isValidProgrammeItemType(value: string): value is ProgrammeItemType {
   return (PROGRAMME_ITEM_TYPES as readonly string[]).includes(value);

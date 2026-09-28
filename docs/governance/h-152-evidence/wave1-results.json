@@ -1,0 +1,309 @@
+{
+  "campaign": "H-152",
+  "capturedAt": "2026-09-22T11:21:17.142Z",
+  "environment": "127.0.0.1:18153 against 127.0.0.1:5440/eos_h152_uat H-152",
+  "productionReady": false,
+  "ids": {
+    "organizationTypeId": "38b6bcd1-c929-49b0-bce4-e8c588b8ec9e",
+    "organizationId": "fe9bb5d5-8933-40a5-ae82-f8e6158a41fc",
+    "accountId": "0e9357fb-be4a-4fd6-845b-41d3ea620f11",
+    "opportunityId": "26cabbfa-147f-4539-9641-bd6387011630",
+    "rfpId": "f9aa6489-52a1-4ca8-8d9f-2e8f7a673af9",
+    "programmeId": "6e2abbc8-e6ef-4060-b702-cf0d0406f163",
+    "costSheetId": "f3d7c198-5a04-4d62-b93f-207dbafe143a",
+    "approvalId": "97637a54-ea51-4998-9936-ea70e87a5f29",
+    "proposalId": "28ff6667-d083-4420-8091-bed3d47edb71",
+    "supplierId": "61fff04c-312b-48c5-9aca-b659512202b3",
+    "rateId": "8a0864f1-8779-4349-92d6-80e73184191a"
+  },
+  "summary": {
+    "total": 15,
+    "pass": 15,
+    "fail": 0
+  },
+  "scenarios": [
+    {
+      "scenarioId": "H152-ENV-HEALTH",
+      "actor": "operator",
+      "environment": "127.0.0.1:18153 against 127.0.0.1:5440/eos_h152_uat H-152",
+      "timestamp": "2026-09-22T11:21:16.306Z",
+      "action": "GET /health",
+      "expectedResult": "200 productionReady false",
+      "actualResult": {
+        "status": 200,
+        "json": {
+          "status": "ok",
+          "service": "sedmc-eos-api",
+          "version": "1.04.0-i3.37",
+          "increment": "I9.2-encrypted-field-cache",
+          "productionReady": false,
+          "identity": {
+            "mode": "local-password-dev",
+            "mfaEnabled": false,
+            "productionIdpSelected": false
+          }
+        }
+      },
+      "passFail": "PASS",
+      "notes": null
+    },
+    {
+      "scenarioId": "H152-AUTH-CAROL",
+      "actor": "carol.admin@sedmc.local",
+      "environment": "127.0.0.1:18153 against 127.0.0.1:5440/eos_h152_uat H-152",
+      "timestamp": "2026-09-22T11:21:16.354Z",
+      "action": "POST /v1/auth/login",
+      "expectedResult": "200 token",
+      "actualResult": {
+        "status": 200,
+        "tokenPresent": true
+      },
+      "passFail": "PASS",
+      "notes": null
+    },
+    {
+      "scenarioId": "D01-A-CREATE",
+      "actor": "carol.admin@sedmc.local",
+      "environment": "127.0.0.1:18153 against 127.0.0.1:5440/eos_h152_uat H-152",
+      "timestamp": "2026-09-22T11:21:16.559Z",
+      "action": "POST /v1/rfps then GET /v1/rfps/:id",
+      "expectedResult": "201 then 200; RFP persisted",
+      "actualResult": {
+        "createStatus": 201,
+        "getStatus": 200,
+        "rfpId": "f9aa6489-52a1-4ca8-8d9f-2e8f7a673af9",
+        "title": "H152 synthetic RFP"
+      },
+      "passFail": "PASS",
+      "notes": null
+    },
+    {
+      "scenarioId": "D01-E-COSTING",
+      "actor": "carol.admin@sedmc.local",
+      "environment": "127.0.0.1:18153 against 127.0.0.1:5440/eos_h152_uat H-152",
+      "timestamp": "2026-09-22T11:21:16.653Z",
+      "action": "POST/GET costing sheet",
+      "expectedResult": "201 then 200; programme linkage; existing sellPrice/margin floor unchanged",
+      "actualResult": {
+        "createStatus": 201,
+        "getStatus": 200,
+        "programmeId": "6e2abbc8-e6ef-4060-b702-cf0d0406f163",
+        "sellPrice": 12000
+      },
+      "passFail": "PASS",
+      "notes": null
+    },
+    {
+      "scenarioId": "D01-E-MIXED-APPROVAL",
+      "actor": "bob.approver@sedmc.local",
+      "environment": "127.0.0.1:18153 against 127.0.0.1:5440/eos_h152_uat H-152",
+      "timestamp": "2026-09-22T11:21:16.755Z",
+      "action": "POST commercial-approvals request then Bob decision",
+      "expectedResult": "201 then 200 approved",
+      "actualResult": {
+        "approvalStatus": 201,
+        "bobLogin": 200,
+        "decisionStatus": 200,
+        "approvalId": "97637a54-ea51-4998-9936-ea70e87a5f29"
+      },
+      "passFail": "PASS",
+      "notes": null
+    },
+    {
+      "scenarioId": "D01-B-PATHB-REQUIRED",
+      "actor": "carol.admin@sedmc.local",
+      "environment": "127.0.0.1:18153 against 127.0.0.1:5440/eos_h152_uat H-152",
+      "timestamp": "2026-09-22T11:21:16.790Z",
+      "action": "PUT Path B categories",
+      "expectedResult": "200 required/pending; existing Path B semantics",
+      "actualResult": {
+        "putStatus": 200,
+        "getStatus": 200,
+        "pathB": {
+          "rfpId": "f9aa6489-52a1-4ca8-8d9f-2e8f7a673af9",
+          "required": true,
+          "status": "pending",
+          "categories": [
+            "significant_contractual_commitments"
+          ],
+          "requestedByPrincipalId": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+          "commercialFacts": {
+            "followUpOwnerPrincipalId": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+            "legacyCollapsedSourceAuthoritativeForF2": false
+          }
+        }
+      },
+      "passFail": "PASS",
+      "notes": null
+    },
+    {
+      "scenarioId": "D01-B-PATHB-BLOCKS",
+      "actor": "carol.admin@sedmc.local",
+      "environment": "127.0.0.1:18153 against 127.0.0.1:5440/eos_h152_uat H-152",
+      "timestamp": "2026-09-22T11:21:16.811Z",
+      "action": "POST /v1/proposals while Path B pending",
+      "expectedResult": "409 Path B conflict; not rfp_not_found",
+      "actualResult": {
+        "status": 409,
+        "json": {
+          "error": "conflict",
+          "reason": "path_b_approval_required"
+        }
+      },
+      "passFail": "PASS",
+      "notes": null
+    },
+    {
+      "scenarioId": "D01-B-PATHB-DECISION",
+      "actor": "bob.approver@sedmc.local",
+      "environment": "127.0.0.1:18153 against 127.0.0.1:5440/eos_h152_uat H-152",
+      "timestamp": "2026-09-22T11:21:16.824Z",
+      "action": "POST Path B decision approved",
+      "expectedResult": "200 approved",
+      "actualResult": {
+        "status": 200,
+        "pathB": {
+          "rfpId": "f9aa6489-52a1-4ca8-8d9f-2e8f7a673af9",
+          "required": true,
+          "status": "approved",
+          "categories": [
+            "significant_contractual_commitments"
+          ],
+          "requestedByPrincipalId": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+          "decidedAt": "2026-09-22T11:21:16.815Z",
+          "decidedByPrincipalId": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+          "commercialFacts": {
+            "followUpOwnerPrincipalId": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+            "legacyCollapsedSourceAuthoritativeForF2": false
+          }
+        }
+      },
+      "passFail": "PASS",
+      "notes": null
+    },
+    {
+      "scenarioId": "D01-B-GENERATE",
+      "actor": "carol.admin@sedmc.local",
+      "environment": "127.0.0.1:18153 against 127.0.0.1:5440/eos_h152_uat H-152",
+      "timestamp": "2026-09-22T11:21:16.903Z",
+      "action": "POST /v1/proposals after Path B + mixed approval",
+      "expectedResult": "201; no rfp_not_found; GET 200 persisted",
+      "actualResult": {
+        "createStatus": 201,
+        "getStatus": 200,
+        "byRfpStatus": 200,
+        "proposalId": "28ff6667-d083-4420-8091-bed3d47edb71"
+      },
+      "passFail": "PASS",
+      "notes": null
+    },
+    {
+      "scenarioId": "PRV-OD09-GENERATE",
+      "actor": "carol.admin@sedmc.local",
+      "environment": "127.0.0.1:18153 against 127.0.0.1:5440/eos_h152_uat H-152",
+      "timestamp": "2026-09-22T11:21:16.904Z",
+      "action": "POST /v1/proposals with leftover guestName",
+      "expectedResult": "400 person_domain_removed",
+      "actualResult": {
+        "status": 400,
+        "json": {
+          "error": "invalid_request",
+          "reason": "person_domain_removed"
+        }
+      },
+      "passFail": "PASS",
+      "notes": null
+    },
+    {
+      "scenarioId": "PRV-PERSON-WRITE",
+      "actor": "carol.admin@sedmc.local",
+      "environment": "127.0.0.1:18153 against 127.0.0.1:5440/eos_h152_uat H-152",
+      "timestamp": "2026-09-22T11:21:16.940Z",
+      "action": "Retired person-domain write + import fail-closed",
+      "expectedResult": "400 person_domain_removed for opp write and contact imports",
+      "actualResult": {
+        "opp": {
+          "status": 400,
+          "reason": "person_domain_removed"
+        },
+        "contactImp": {
+          "status": 400,
+          "reason": "person_domain_removed"
+        },
+        "supContactImp": {
+          "status": 400,
+          "reason": "person_domain_removed"
+        }
+      },
+      "passFail": "PASS",
+      "notes": null
+    },
+    {
+      "scenarioId": "PRV-NOTIFICATION",
+      "actor": "carol.admin@sedmc.local",
+      "environment": "127.0.0.1:18153 against 127.0.0.1:5440/eos_h152_uat H-152",
+      "timestamp": "2026-09-22T11:21:16.956Z",
+      "action": "Notification template leftover person key",
+      "expectedResult": "400 person_domain_removed",
+      "actualResult": {
+        "status": 400,
+        "reason": "person_domain_removed"
+      },
+      "passFail": "PASS",
+      "notes": null
+    },
+    {
+      "scenarioId": "RI-OVERLAY",
+      "actor": "carol.admin@sedmc.local",
+      "environment": "127.0.0.1:18153 against 127.0.0.1:5440/eos_h152_uat H-152",
+      "timestamp": "2026-09-22T11:21:17.036Z",
+      "action": "POST supplier/rate; PUT/GET Rate Identity overlay",
+      "expectedResult": "201/201/200 overlay; GET overlay 200; mixed amount 250 USD unchanged",
+      "actualResult": {
+        "supStatus": 201,
+        "rateStatus": 201,
+        "putStatus": 200,
+        "getStatus": 200,
+        "identityCount": 1,
+        "mixedAmount": 250,
+        "mixedCurrency": "USD"
+      },
+      "passFail": "PASS",
+      "notes": null
+    },
+    {
+      "scenarioId": "REC-01-UNCHANGED",
+      "actor": "carol.admin@sedmc.local",
+      "environment": "127.0.0.1:18153 against 127.0.0.1:5440/eos_h152_uat H-152",
+      "timestamp": "2026-09-22T11:21:17.049Z",
+      "action": "GET /v1/suppliers/:id/rates/:rateId (unsupported; not added)",
+      "expectedResult": "not 200 resource; H149-REC-01 remains unsupported",
+      "actualResult": {
+        "status": 404,
+        "json": {
+          "message": "Route GET:/v1/suppliers/61fff04c-312b-48c5-9aca-b659512202b3/rates/8a0864f1-8779-4349-92d6-80e73184191a not found",
+          "error": "Not Found",
+          "statusCode": 404
+        }
+      },
+      "passFail": "PASS",
+      "notes": null
+    },
+    {
+      "scenarioId": "D01-D-TENANT",
+      "actor": "partner@external.local",
+      "environment": "127.0.0.1:18153 against 127.0.0.1:5440/eos_h152_uat H-152",
+      "timestamp": "2026-09-22T11:21:17.142Z",
+      "action": "Partner GET RFP / POST proposals / GET proposal for sedmc ids",
+      "expectedResult": "existing contract: hidden or forbidden; not a sedmc generate",
+      "actualResult": {
+        "partnerLogin": 200,
+        "getRfp": 404,
+        "postProposal": 403,
+        "getProposal": 404
+      },
+      "passFail": "PASS",
+      "notes": null
+    }
+  ]
+}

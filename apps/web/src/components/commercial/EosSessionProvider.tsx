@@ -2,7 +2,14 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { EosApiError, eosFetch, onSessionExpired } from "@/lib/eos-client";
-import { clearSession, getStoredEmail, getStoredToken, login, storeSession } from "@/lib/eos-session";
+import {
+  clearSession,
+  DEV_PREVIEW_LOGIN,
+  getStoredEmail,
+  getStoredToken,
+  login,
+  storeSession,
+} from "@/lib/eos-session";
 
 type SessionState = {
   token: string | null;
@@ -100,7 +107,7 @@ export function EosSessionProvider({ children }: { children: React.ReactNode }) 
     setState((s) => ({ ...s, loggingIn: true, error: null }));
     try {
       const result = await login(email, password);
-      storeSession(result.accessToken, email);
+      storeSession(result.accessToken, email, result.principal.id);
       if (sessionGenRef.current !== loginGen) return;
       setState((s) => ({
         ...s,
@@ -119,8 +126,10 @@ export function EosSessionProvider({ children }: { children: React.ReactNode }) 
       const message =
         err instanceof EosApiError
           ? err.status === 401 || apiError === "invalid_credentials"
-            ? "Invalid credentials — check email/password"
-            : err.message
+            ? `Invalid credentials — use ${DEV_PREVIEW_LOGIN.email} / ${DEV_PREVIEW_LOGIN.password}`
+            : apiError === "identity_not_production_ready"
+              ? "Local password login is disabled in this environment — run npm run dev:preview"
+              : err.message
           : err instanceof Error
             ? err.message
             : "Login failed";
@@ -152,8 +161,8 @@ export function useEosSession() {
 
 export function DevLoginPanel() {
   const { token, email, loggingIn, error, login, logout } = useEosSession();
-  const [formEmail, setFormEmail] = useState("carol.admin@sedmc.local");
-  const [password, setPassword] = useState("");
+  const [formEmail, setFormEmail] = useState<string>(DEV_PREVIEW_LOGIN.email);
+  const [password, setPassword] = useState<string>(DEV_PREVIEW_LOGIN.password);
 
   if (token) {
     return (
@@ -191,6 +200,8 @@ export function DevLoginPanel() {
           Email
           <input
             type="email"
+            name="email"
+            autoComplete="username"
             value={formEmail}
             onChange={(e) => setFormEmail(e.target.value)}
             className="min-w-[220px] rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink"
@@ -201,6 +212,8 @@ export function DevLoginPanel() {
           Password
           <input
             type="password"
+            name="password"
+            autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="min-w-[180px] rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink"
@@ -217,14 +230,14 @@ export function DevLoginPanel() {
         <button
           type="button"
           disabled={loggingIn}
-          onClick={() => void login("carol.admin@sedmc.local", "test-carol-not-for-prod")}
+          onClick={() => void login(DEV_PREVIEW_LOGIN.email, DEV_PREVIEW_LOGIN.password)}
           className="rounded-md border border-line bg-paper px-4 py-2 text-sm font-medium text-ink disabled:opacity-60"
         >
           Dev sign-in
         </button>
       </form>
       <p className="mt-2 text-xs text-muted">
-        Dev credentials: carol.admin@sedmc.local / test-carol-not-for-prod
+        Dev credentials: {DEV_PREVIEW_LOGIN.email} / {DEV_PREVIEW_LOGIN.password}
       </p>
       {error && <p className="mt-3 text-sm text-danger">{error}</p>}
     </div>

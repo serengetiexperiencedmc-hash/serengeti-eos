@@ -109,7 +109,7 @@ export function SupplierImportModal({
           {step === "configure" && (
             <>
               <p className="text-sm text-ink-soft">
-                Import one entity type per batch. Load seasons and suppliers first, then contacts, rates, and content blocks.
+                Import one entity type per batch. Load seasons and suppliers first, then rates and content blocks.
               </p>
               <label className="block text-sm">
                 <span className="mb-1 block text-muted">Entity type</span>

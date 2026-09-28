@@ -30,6 +30,7 @@ import {
   type FinReconciliation,
   type PaymentRequestItem,
 } from "@/lib/finance-api";
+import { formatCost, listCostSheets, type CostSheetSummary } from "@/lib/costing-api";
 
 type Tab = "quotes" | "invoices" | "payments" | "reconciliation";
 
@@ -48,11 +49,18 @@ export default function FinancePage() {
   const [busy, setBusy] = useState(false);
   const [bookingId, setBookingId] = useState("");
   const [pendingApproval, setPendingApproval] = useState<{ approvalId: string; invoiceId: string } | null>(null);
+  const [programmeSheets, setProgrammeSheets] = useState<CostSheetSummary[]>([]);
 
   async function reload(explicitId?: string) {
     if (!token) return;
     const [controlList, pay] = await Promise.all([listFinanceControl(token), listPaymentRequests(token)]);
     setControlItems(controlList.items);
+    try {
+      const sheets = await listCostSheets(token);
+      setProgrammeSheets(sheets.items);
+    } catch {
+      setProgrammeSheets([]);
+    }
     const id = explicitId || bookingId || controlList.items[0]?.bookingId || "";
     const selected = controlList.items.find((item) => item.bookingId === id) ?? null;
     setControl(selected);
@@ -123,6 +131,66 @@ export default function FinancePage() {
 
       {error && <p className="mb-4 text-sm text-danger">{error}</p>}
       {message && <p className="mb-4 text-sm text-success">{message}</p>}
+
+      <div className="mb-5">
+      <Card title="Programme commercial finance">
+        {programmeSheets.length === 0 ? (
+          <p className="text-sm text-muted">
+            No programme cost sheets yet. Create a programme from an RFP, then add supplier costs and a client selling
+            price. Booking invoices below remain operational finance, not statutory accounting.
+          </p>
+        ) : (
+          <ul className="space-y-3 text-sm">
+            {programmeSheets.map((sheet) => (
+              <li key={sheet.id} className="rounded-md border border-line p-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <strong>{sheet.sheetCode}</strong>
+                  <div className="flex gap-3">
+                    <Link
+                      href={`/commercial/programme?rfpId=${sheet.rfpId}`}
+                      className="text-xs text-gold-deep underline"
+                    >
+                      Open programme
+                    </Link>
+                    <Link
+                      href={`/commercial/rfps/${sheet.rfpId}/proposal-preparation`}
+                      className="text-xs text-gold-deep underline"
+                    >
+                      Proposal preparation
+                    </Link>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <div>
+                    <div className="text-[0.65rem] uppercase text-muted">Supplier cost</div>
+                    <div>{formatCost(sheet.financialSummary?.supplierCost ?? sheet.totalCost, sheet.currency)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[0.65rem] uppercase text-muted">Client selling price</div>
+                    <div>
+                      {formatCost(sheet.financialSummary?.clientSellingPrice ?? sheet.sellPrice ?? 0, sheet.currency)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[0.65rem] uppercase text-muted">Gross profit</div>
+                    <div>{formatCost(sheet.financialSummary?.grossProfit ?? sheet.marginAmount, sheet.currency)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[0.65rem] uppercase text-muted">Gross margin</div>
+                    <div>{(sheet.financialSummary?.grossMarginPercent ?? sheet.marginPercent).toFixed(1)}%</div>
+                  </div>
+                  {sheet.fileFeeAmount !== undefined && (
+                    <div className="text-[0.65rem] text-muted">
+                      File fee is internal and incorporated into the client selling price.
+                    </div>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+      </div>
 
       <div className="mb-5 flex flex-wrap gap-2">
         <select

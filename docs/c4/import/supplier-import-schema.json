@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://serengetiexperience.com/eos/schemas/c4/supplier-import-v1.json",
   "title": "Serengeti EOS C4 Supplier Import Schema",
-  "description": "JSON Schema for validating supplier migration data. Mirrors CSV import templates.",
+  "description": "JSON Schema for validating supplier migration data. Mirrors CSV import templates. H-139: supplier_contact is retired and is not a supported import entity type.",
   "version": "1.0.0",
   "definitions": {
     "supplierCode": {
@@ -130,6 +130,7 @@
       }
     },
     "SupplierContactRecord": {
+      "description": "RETIRED H-139. Not part of the supported import oneOf. Kept only as a historical definition; runtime ingest is impossible.",
       "type": "object",
       "required": ["supplierCode", "contactRole", "givenName", "familyName"],
       "additionalProperties": false,
@@ -220,22 +221,6 @@
           "minItems": 1,
           "maxItems": 5000,
           "items": { "$ref": "#/definitions/SupplierRecord" }
-        }
-      }
-    },
-    {
-      "title": "SupplierContactImportBatch",
-      "type": "object",
-      "required": ["entityType", "sourceSystem", "records"],
-      "properties": {
-        "entityType": { "const": "supplier_contact" },
-        "sourceSystem": { "type": "string", "minLength": 1, "maxLength": 100 },
-        "mode": { "type": "string", "enum": ["create_only", "upsert"], "default": "create_only" },
-        "records": {
-          "type": "array",
-          "minItems": 1,
-          "maxItems": 10000,
-          "items": { "$ref": "#/definitions/SupplierContactRecord" }
         }
       }
     },

@@ -8,11 +8,51 @@
   "exports": {
     ".": {
       "types": "./src/index.ts",
-      "import": "./src/index.ts"
+      "source": "./src/index.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./proposal-preparation": {
+      "types": "./src/proposal-preparation.ts",
+      "source": "./src/proposal-preparation.ts",
+      "import": "./dist/proposal-preparation.js",
+      "default": "./dist/proposal-preparation.js"
+    },
+    "./h203-commercial-policy": {
+      "types": "./src/h203-commercial-policy.ts",
+      "source": "./src/h203-commercial-policy.ts",
+      "import": "./dist/h203-commercial-policy.js",
+      "default": "./dist/h203-commercial-policy.js"
+    },
+    "./issued-proposal": {
+      "types": "./src/issued-proposal.ts",
+      "source": "./src/issued-proposal.ts",
+      "import": "./dist/issued-proposal.js",
+      "default": "./dist/issued-proposal.js"
+    },
+    "./issued-client-document": {
+      "types": "./src/issued-client-document.ts",
+      "source": "./src/issued-client-document.ts",
+      "import": "./dist/issued-client-document.js",
+      "default": "./dist/issued-client-document.js"
+    },
+    "./issued-client-document-delivery": {
+      "types": "./src/issued-client-document-delivery.ts",
+      "source": "./src/issued-client-document-delivery.ts",
+      "import": "./dist/issued-client-document-delivery.js",
+      "default": "./dist/issued-client-document-delivery.js"
     },
     "./field-cache-crypto": {
       "types": "./src/field-cache-crypto.ts",
-      "import": "./src/field-cache-crypto.ts"
+      "source": "./src/field-cache-crypto.ts",
+      "import": "./dist/field-cache-crypto.js",
+      "default": "./dist/field-cache-crypto.js"
+    },
+    "./personal-data-content-contract": {
+      "types": "./src/personal-data-content-contract.ts",
+      "source": "./src/personal-data-content-contract.ts",
+      "import": "./dist/personal-data-content-contract.js",
+      "default": "./dist/personal-data-content-contract.js"
     }
   },
   "scripts": {

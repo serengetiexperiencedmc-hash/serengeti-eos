@@ -1,0 +1,98 @@
+{
+  "run_id": "20260916-021912",
+  "started_utc": "2026-09-15T23:19:12.7942861Z",
+  "authorization": "docs/governance/adr-0006-gate-c-migration-123-execution-authorization.md",
+  "migration_file": "packages/db/migrations/123_cd_rfp_programme_relationship_constraints.sql",
+  "migration_file_bytes": 618,
+  "migration_file_sha256": "7E77D7543A77B7851D52F9AD5678DF7413D38679AF44E4FA465C2C491F60B16F",
+  "execution_method": "direct psql of reviewed SQL wrapped in BEGIN/COMMIT; migrate() not invoked",
+  "source": {
+    "container": "serengeti-eos-gate-b-pg",
+    "bind": "127.0.0.1:5434",
+    "volume": "serengeti-eos-gate-b-pgdata",
+    "image": "postgres:16-alpine",
+    "postgres_version": "16.15",
+    "database": "eos_gateb",
+    "user": "eos_gateb",
+    "classification": "disposable Gate-B Dev/Test",
+    "uat": "serengeti-eos-uat-postgres remained Exited; port 5433 not used",
+    "production": "not used"
+  },
+  "backup_evidence": {
+    "directory": "docs/governance/evidence/gate-c-123-backup/runs/20260916-014121/",
+    "artifact": "backups/gatec-123.dump",
+    "bytes": 159176,
+    "sha256": "9C401242B354D81497C1879302615AF3D59CB556C9B3D32F0C3D8CBAC010599D",
+    "sha256_match": true
+  },
+  "prechecks": {
+    "target_identity": "PASS",
+    "backup_evidence": "PASS",
+    "migration_file_reviewed_content": "PASS",
+    "orphan_rfp_opportunity": 0,
+    "orphan_prg_rfp": 0,
+    "dup_active_prg": 0,
+    "schema_migrations_existed_before": false,
+    "gate_c_objects_before": "absent"
+  },
+  "baseline_counts": {
+    "opp_opportunities": 0,
+    "rfp_rfps": 0,
+    "prg_programmes": 0,
+    "tenants": 2,
+    "principals": 6,
+    "audit_events": 93
+  },
+  "execution": {
+    "psql_exit": 0,
+    "transcript": ["BEGIN", "ALTER TABLE", "ALTER TABLE", "CREATE INDEX", "COMMIT"],
+    "transaction": "COMMIT",
+    "migrate_invoked": false,
+    "other_migrations_executed": false,
+    "dml": false
+  },
+  "post_verification": {
+    "rfp_rfps_opportunity_id_fkey": {
+      "exists": true,
+      "src": "rfp_rfps.opportunity_id",
+      "ref": "opp_opportunities.id",
+      "on_delete": "RESTRICT",
+      "confdeltype": "r"
+    },
+    "prg_programmes_rfp_id_fkey": {
+      "exists": true,
+      "src": "prg_programmes.rfp_id",
+      "ref": "rfp_rfps.id",
+      "on_delete": "RESTRICT",
+      "confdeltype": "r"
+    },
+    "prg_programmes_tenant_active_rfp": {
+      "exists": true,
+      "unique": true,
+      "columns": ["tenant_id", "rfp_id"],
+      "predicate": "(archived_at IS NULL)"
+    },
+    "prg_programmes_tenant_rfp": {
+      "exists": true,
+      "unique": false,
+      "unchanged": true
+    },
+    "counts_unchanged": true,
+    "post_counts": {
+      "opp_opportunities": 0,
+      "rfp_rfps": 0,
+      "prg_programmes": 0,
+      "tenants": 2,
+      "principals": 6,
+      "audit_events": 93
+    },
+    "schema_migrations_created": false,
+    "schema_migrations_written": false,
+    "constraint_count_rfp_prg_opp": { "before": 27, "after": 29, "added": 2 },
+    "index_count_rfp_prg": { "before": 7, "after": 8, "added": 1 }
+  },
+  "operator_identity": "REQUIRES HUMAN",
+  "status": "MIGRATION 123 — EXECUTED / POST-EXECUTION VERIFICATION PASSED / AWAITING GOVERNANCE RECONCILIATION",
+  "gate_c_closed": false,
+  "uat_production_readiness_claimed": false
+}

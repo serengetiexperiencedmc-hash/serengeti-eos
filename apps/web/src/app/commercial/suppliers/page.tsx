@@ -5,14 +5,13 @@ import { Badge } from "@/components/commercial/Badge";
 import { useEosSession } from "@/components/commercial/EosSessionProvider";
 import { SupplierImportModal } from "@/components/commercial/SupplierImportModal";
 import { SupplierFormModal } from "@/components/commercial/SupplierFormModal";
+import { RateIdentityOverlayHost } from "@/components/commercial/RateIdentityOverlayHost";
 import { Btn, PageHeader } from "@/components/commercial/ui";
 import { EosApiError } from "@/lib/eos-client";
 import {
   archiveSupplier,
-  archiveSupplierContact,
   archiveSupplierContentBlock,
   archiveSupplierRate,
-  createSupplierContact,
   createSupplierContentBlock,
   createSupplierRate,
   formatCategoryLabel,
@@ -113,20 +112,11 @@ function SupplierDetailDrawer({
   onRefresh: () => void;
   onArchived: () => void;
 }) {
-  const [contactBusy, setContactBusy] = useState(false);
   const [rateBusy, setRateBusy] = useState(false);
   const [blockBusy, setBlockBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [showContactForm, setShowContactForm] = useState(false);
   const [showRateForm, setShowRateForm] = useState(false);
   const [showBlockForm, setShowBlockForm] = useState(false);
-  const [contactForm, setContactForm] = useState({
-    contactRole: "reservations",
-    givenName: "",
-    familyName: "",
-    email: "",
-    isPrimary: false,
-  });
   const [rateForm, setRateForm] = useState({
     rateCode: "",
     rateName: "",
@@ -209,29 +199,6 @@ function SupplierDetailDrawer({
 
   if (!detail && !loading) return null;
 
-  async function handleAddContact(e: React.FormEvent) {
-    e.preventDefault();
-    if (!supplier) return;
-    setContactBusy(true);
-    setFormError(null);
-    try {
-      await createSupplierContact(token, supplier.id, {
-        contactRole: contactForm.contactRole,
-        givenName: contactForm.givenName,
-        familyName: contactForm.familyName,
-        ...(contactForm.email.trim() ? { email: contactForm.email.trim() } : {}),
-        isPrimary: contactForm.isPrimary,
-      });
-      setShowContactForm(false);
-      setContactForm({ contactRole: "reservations", givenName: "", familyName: "", email: "", isPrimary: false });
-      onRefresh();
-    } catch (err) {
-      setFormError(err instanceof EosApiError ? err.message : "Failed to add contact");
-    } finally {
-      setContactBusy(false);
-    }
-  }
-
   async function handleAddRate(e: React.FormEvent) {
     e.preventDefault();
     if (!supplier) return;
@@ -267,16 +234,6 @@ function SupplierDetailDrawer({
       setFormError(err instanceof EosApiError ? err.message : "Failed to add rate");
     } finally {
       setRateBusy(false);
-    }
-  }
-
-  async function handleArchiveContact(contactId: string) {
-    if (!supplier) return;
-    try {
-      await archiveSupplierContact(token, supplier.id, contactId);
-      onRefresh();
-    } catch (err) {
-      setFormError(err instanceof EosApiError ? err.message : "Failed to remove contact");
     }
   }
 
@@ -336,7 +293,7 @@ function SupplierDetailDrawer({
 
   async function handleArchiveSupplier() {
     if (!supplier) return;
-    if (!window.confirm(`Archive ${supplier.tradingName ?? supplier.legalName}? Contacts, rates, and content blocks will also be archived.`)) {
+    if (!window.confirm(`Archive ${supplier.tradingName ?? supplier.legalName}? Rates and content blocks will also be archived.`)) {
       return;
     }
     setFormError(null);
@@ -390,93 +347,6 @@ function SupplierDetailDrawer({
                 <div className="capitalize text-ink">{supplier.status.replace(/_/g, " ")}</div>
               </div>
             </div>
-
-            <section>
-              <div className="mb-2 flex items-center justify-between">
-                <h3 className="font-display text-lg font-semibold text-ink">
-                  Contacts ({detail.contacts.length})
-                </h3>
-                <Btn size="sm" variant="secondary" onClick={() => setShowContactForm((v) => !v)}>
-                  {showContactForm ? "Cancel" : "+ Contact"}
-                </Btn>
-              </div>
-              {showContactForm && (
-                <form onSubmit={handleAddContact} className="mb-3 space-y-2 rounded-md border border-line bg-ivory p-3">
-                  <select
-                    value={contactForm.contactRole}
-                    onChange={(e) => setContactForm((f) => ({ ...f, contactRole: e.target.value }))}
-                    className="w-full rounded-md border border-line bg-paper px-2 py-1.5 text-sm"
-                  >
-                    {["reservations", "operations", "finance", "management", "sales", "emergency", "other"].map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      required
-                      placeholder="Given name"
-                      value={contactForm.givenName}
-                      onChange={(e) => setContactForm((f) => ({ ...f, givenName: e.target.value }))}
-                      className="rounded-md border border-line bg-paper px-2 py-1.5 text-sm"
-                    />
-                    <input
-                      required
-                      placeholder="Family name"
-                      value={contactForm.familyName}
-                      onChange={(e) => setContactForm((f) => ({ ...f, familyName: e.target.value }))}
-                      className="rounded-md border border-line bg-paper px-2 py-1.5 text-sm"
-                    />
-                  </div>
-                  <input
-                    type="email"
-                    placeholder="Email"
-                    value={contactForm.email}
-                    onChange={(e) => setContactForm((f) => ({ ...f, email: e.target.value }))}
-                    className="w-full rounded-md border border-line bg-paper px-2 py-1.5 text-sm"
-                  />
-                  <label className="flex items-center gap-2 text-xs text-ink">
-                    <input
-                      type="checkbox"
-                      checked={contactForm.isPrimary}
-                      onChange={(e) => setContactForm((f) => ({ ...f, isPrimary: e.target.checked }))}
-                    />
-                    Primary contact
-                  </label>
-                  <Btn type="submit" size="sm" disabled={contactBusy}>
-                    {contactBusy ? "Saving…" : "Save contact"}
-                  </Btn>
-                </form>
-              )}
-              {detail.contacts.length === 0 ? (
-                <p className="text-muted">No contacts yet.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {detail.contacts.map((c) => (
-                    <li key={c.id} className="rounded-md border border-line bg-ivory p-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="font-medium text-ink">
-                            {c.givenName} {c.familyName}
-                            {c.isPrimary ? " · Primary" : ""}
-                          </div>
-                          <div className="text-xs capitalize text-muted">{c.contactRole.replace(/_/g, " ")}</div>
-                          {c.email && <div className="text-xs text-ink-soft">{c.email}</div>}
-                        </div>
-                        <button
-                          type="button"
-                          className="text-xs text-muted hover:text-danger"
-                          onClick={() => void handleArchiveContact(c.id)}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
 
             <section>
               <div className="mb-2 flex items-center justify-between">
@@ -707,11 +577,16 @@ function SupplierDetailDrawer({
                           <div className="text-xs text-muted">{r.rateCode}</div>
                           <div className="mt-1 text-gold-deep">
                             {r.currency} {r.amount.toFixed(2)}
+                            <span className="ml-2 text-xs font-normal text-muted">
+                              legacy mixed C4 amount (not F2 identity)
+                            </span>
                           </div>
                           <div className="text-xs text-muted">
                             {r.validFrom} → {r.validTo}
                             {r.seasonLabel ? ` · ${r.seasonLabel}` : ""}
-                            {r.preferredInConflict ? " · preferred in conflict" : ""}
+                            {r.preferredInConflict
+                              ? " · preferred in conflict (legacy mixed C4, not F2)"
+                              : ""}
                           </div>
                         </div>
                         <button
@@ -722,6 +597,11 @@ function SupplierDetailDrawer({
                           Remove
                         </button>
                       </div>
+                      <RateIdentityOverlayHost
+                        token={token}
+                        supplierId={detail.supplier.id}
+                        rateId={r.id}
+                      />
                     </li>
                   ))}
                 </ul>

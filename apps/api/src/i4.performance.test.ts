@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { seedStore } from "../src/app.js";
 import { commitWithOutbox, consumeEventIdempotent, publishPendingOutbox } from "../src/outbox.js";
 
-describe("I4 event performance baseline (dev evidence)", () => {
-  it("records publish/consume throughput samples", () => {
+describe("I4 event performance baseline (dev evidence)", async () => {
+  it("records publish/consume throughput samples", async () => {
     const store = seedStore("test-secret");
     const carol = [...store.principals.values()].find((p) => p.email === "carol.admin@sedmc.local")!;
 
@@ -11,7 +11,7 @@ describe("I4 event performance baseline (dev evidence)", () => {
     const n = 100;
     for (let i = 0; i < n; i++) {
       const t0 = performance.now();
-      commitWithOutbox(store, carol, {
+      await commitWithOutbox(store, carol, {
         eventType: "platform.ping.v1",
         payload: { ping: true, n: i },
         classification: "Internal",

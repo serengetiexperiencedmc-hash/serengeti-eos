@@ -23,7 +23,7 @@ async function loginAlice(app: ReturnType<typeof buildServer>) {
   return res.json().accessToken as string;
 }
 
-async function setupOrgContact(app: ReturnType<typeof buildServer>, token: string) {
+async function setupOrg(app: ReturnType<typeof buildServer>, token: string, legalName = "Activity Org Ltd") {
   const orgTypes = await app.inject({
     method: "GET",
     url: "/v1/crm/organization-types",
@@ -34,18 +34,9 @@ async function setupOrgContact(app: ReturnType<typeof buildServer>, token: strin
     method: "POST",
     url: "/v1/crm/organizations",
     headers: { authorization: `Bearer ${token}` },
-    payload: { legalName: "Activity Org Ltd", organizationTypeId },
+    payload: { legalName, organizationTypeId },
   });
-  const contact = await app.inject({
-    method: "POST",
-    url: "/v1/crm/contacts",
-    headers: { authorization: `Bearer ${token}` },
-    payload: { givenName: "Activity", familyName: "Contact", email: "activity.contact@example.com" },
-  });
-  return {
-    orgId: org.json().organization.id as string,
-    contactId: contact.json().contact.id as string,
-  };
+  return { orgId: org.json().organization.id as string };
 }
 
 describe("C1.4 CRM activities + interaction history", () => {
@@ -70,7 +61,7 @@ describe("C1.4 CRM activities + interaction history", () => {
     const store = seedStore("test-secret");
     const app = buildServer({ store });
     const token = await loginCarol(app);
-    const { orgId, contactId } = await setupOrgContact(app, token);
+    const { orgId } = await setupOrg(app, token);
 
     const created = await app.inject({
       method: "POST",
@@ -80,7 +71,6 @@ describe("C1.4 CRM activities + interaction history", () => {
         activityType: "meeting",
         subject: "Initial discovery call",
         occurredAt: "2026-08-20T10:00:00.000Z",
-        contactId,
         organizationId: orgId,
         outcome: "Positive interest",
         notes: "Discussed Tanzania incentive options",
@@ -153,7 +143,7 @@ describe("C1.4 CRM activities + interaction history", () => {
   it("lists activity history by contact and organization with chronological ordering", async () => {
     const app = buildServer({ store: seedStore("test-secret") });
     const token = await loginCarol(app);
-    const { orgId, contactId } = await setupOrgContact(app, token);
+    const { orgId } = await setupOrg(app, token);
 
     for (const [idx, day] of ["18", "19", "20"].entries()) {
       await app.inject({
@@ -164,20 +154,19 @@ describe("C1.4 CRM activities + interaction history", () => {
           activityType: "telephone",
           subject: `Call ${idx}`,
           occurredAt: `2026-08-${day}T12:00:00.000Z`,
-          contactId,
           organizationId: orgId,
         },
       });
     }
 
-    const byContact = await app.inject({
+    const byOrg = await app.inject({
       method: "GET",
-      url: `/v1/crm/contacts/${contactId}/activities`,
+      url: `/v1/crm/organizations/${orgId}/activities`,
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(byContact.statusCode).toBe(200);
-    expect(byContact.json().items).toHaveLength(3);
-    expect(byContact.json().items[0].subject).toBe("Call 2");
+    expect(byOrg.statusCode).toBe(200);
+    expect(byOrg.json().items).toHaveLength(3);
+    expect(byOrg.json().items[0].subject).toBe("Call 2");
 
     const page = await app.inject({
       method: "GET",
@@ -191,7 +180,7 @@ describe("C1.4 CRM activities + interaction history", () => {
   it("associates activity with relationship and unit", async () => {
     const app = buildServer({ store: seedStore("test-secret") });
     const token = await loginCarol(app);
-    const { orgId, contactId } = await setupOrgContact(app, token);
+    const { orgId } = await setupOrg(app, token);
 
     const unit = await app.inject({
       method: "POST",
@@ -199,17 +188,22 @@ describe("C1.4 CRM activities + interaction history", () => {
       headers: { authorization: `Bearer ${token}` },
       payload: { name: "Events", unitType: "department" },
     });
+    const other = await setupOrg(app, token, "Activity Related Org Ltd");
     const relTypes = await app.inject({
       method: "GET",
       url: "/v1/crm/relationship-types",
       headers: { authorization: `Bearer ${token}` },
     });
-    const relTypeId = relTypes.json().items.find((t: { key: string }) => t.key === "employee_of").id;
+    const relTypeId = relTypes.json().items.find((t: { key: string }) => t.key === "subsidiary_of").id;
     const rel = await app.inject({
       method: "POST",
       url: "/v1/crm/relationships",
       headers: { authorization: `Bearer ${token}` },
-      payload: { relationshipTypeId: relTypeId, contactId, organizationId: orgId },
+      payload: {
+        relationshipTypeId: relTypeId,
+        fromOrganizationId: other.orgId,
+        toOrganizationId: orgId,
+      },
     });
 
     const activity = await app.inject({
@@ -239,7 +233,7 @@ describe("C1.4 CRM activities + interaction history", () => {
     const app = buildServer({ store: seedStore("test-secret") });
     const token = await loginCarol(app);
     const alice = await loginAlice(app);
-    const { orgId, contactId } = await setupOrgContact(app, token);
+    const { orgId } = await setupOrg(app, token);
 
     const created = await app.inject({
       method: "POST",
@@ -249,7 +243,6 @@ describe("C1.4 CRM activities + interaction history", () => {
         activityType: "email",
         subject: "Follow-up",
         occurredAt: "2026-08-20T08:00:00.000Z",
-        contactId,
         organizationId: orgId,
       },
     });
@@ -286,7 +279,7 @@ describe("C1.4 CRM activities + interaction history", () => {
   it("filters activities by type and date range", async () => {
     const app = buildServer({ store: seedStore("test-secret") });
     const token = await loginCarol(app);
-    const { orgId } = await setupOrgContact(app, token);
+    const { orgId } = await setupOrg(app, token);
 
     await app.inject({
       method: "POST",

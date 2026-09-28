@@ -45,19 +45,8 @@ describe("PG.9 supplier contact and rate CRUD", () => {
         isPrimary: true,
       },
     });
-    expect(contact.statusCode).toBe(201);
-    expect(contact.json().contact.givenName).toBe("Amina");
-    const contactId = contact.json().contact.id as string;
-
-    const contactPatched = await app.inject({
-      method: "PATCH",
-      url: `/v1/suppliers/${supplierId}/contacts/${contactId}`,
-      headers: { authorization: `Bearer ${token}` },
-      payload: { telephone: "+255700000001" },
-    });
-    expect(contactPatched.statusCode).toBe(200);
-    expect(contactPatched.json().contact.telephone).toBe("+255700000001");
-    expect(contactPatched.json().contact.version).toBe(2);
+    expect(contact.statusCode).toBe(400);
+    expect(contact.json().reason).toBe("person_domain_removed");
 
     const rate = await app.inject({
       method: "POST",
@@ -87,14 +76,6 @@ describe("PG.9 supplier contact and rate CRUD", () => {
     expect(ratePatched.statusCode).toBe(200);
     expect(ratePatched.json().rate.amount).toBe(240);
 
-    const archivedContact = await app.inject({
-      method: "DELETE",
-      url: `/v1/suppliers/${supplierId}/contacts/${contactId}`,
-      headers: { authorization: `Bearer ${token}` },
-    });
-    expect(archivedContact.statusCode).toBe(200);
-    expect(store.supContacts.find((c) => c.id === contactId)?.archivedAt).toBeTruthy();
-
     const archivedRate = await app.inject({
       method: "DELETE",
       url: `/v1/suppliers/${supplierId}/rates/${rateId}`,
@@ -108,7 +89,7 @@ describe("PG.9 supplier contact and rate CRUD", () => {
       url: `/v1/suppliers/${supplierId}`,
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(detail.json().contacts).toHaveLength(0);
+    expect(detail.json().contacts).toEqual([]);
     expect(detail.json().rates).toHaveLength(0);
   });
 

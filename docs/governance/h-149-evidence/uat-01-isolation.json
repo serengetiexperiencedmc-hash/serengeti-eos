@@ -1,0 +1,34 @@
+{
+  "campaign": "H-149 CURRENT-CODE UAT",
+  "notUsed": ["eos", "eos_h112_full", "eos_gateb", "eos_h117_uat"],
+  "targets": {
+    "eos_5432": {
+      "redactedTarget": "postgres://127.0.0.1:5432/eos",
+      "schema_migrations": null,
+      "uatWrites": false
+    },
+    "eos_h112_full_5435": {
+      "redactedTarget": "postgres://127.0.0.1:5435/eos_h112_full",
+      "schema_migrations_count": 120,
+      "uatWrites": false
+    },
+    "eos_h117_uat_5436": {
+      "redactedTarget": "postgres://127.0.0.1:5436/eos_h117_uat",
+      "schema_migrations_count": 120,
+      "note": "Historical H-117 catalog left untouched; not reused",
+      "uatWrites": false
+    },
+    "eos_gateb_5434": {
+      "container": "serengeti-eos-gate-b-pg",
+      "status": "running unused",
+      "uatWrites": false
+    },
+    "eos_h149_uat_5439": {
+      "redactedTarget": "postgres://127.0.0.1:5439/eos_h149_uat",
+      "schema_migrations_count": 121,
+      "includesMigration125": true,
+      "uatWrites": true
+    }
+  },
+  "eosEnvUatFlag": "NOT SET — EOS_ENV=uat is production-like and refused"
+}

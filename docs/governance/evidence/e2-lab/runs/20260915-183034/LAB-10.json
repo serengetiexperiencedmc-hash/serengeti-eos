@@ -1,0 +1,45 @@
+﻿{
+    "acknowledged_survived":  false,
+    "repeatability":  "single run",
+    "test_id":  "LAB-10",
+    "actual":  "onB_before=True a=True only=False probe=True",
+    "total_measured_rto_ms":  6986,
+    "last_acknowledged_transaction":  "MARKER-SITE-A-ONLY",
+    "probe":  {
+                  "marker":  "PROBE-LAB10",
+                  "ok":  true,
+                  "rfp":  "Synthetic RFP PROBE-LAB10",
+                  "programme":  "Synthetic Programme PROBE-LAB10"
+              },
+    "failure_model":  "F12 simulated site A isolation/kill; site B promote",
+    "evidence":  [
+                     "LAB-10.json"
+                 ],
+    "recovery_mechanism":  "Promote site B replica",
+    "measured_rto":  "6.986 seconds (lab)",
+    "boundary":  "Dev/Test laboratory evidence only. This result does not constitute Production readiness, Production authorization, or Production proof.",
+    "last_recoverable_transaction":  "MARKER-SITE-A",
+    "failure_timestamp":  "2026-09-15T15:34:24.4486700+00:00",
+    "integrity":  {
+                      "marker_count":  4,
+                      "rfp_count":  2,
+                      "programme_count":  2,
+                      "orphan_programmes":  0,
+                      "max_marker_duplicates":  1,
+                      "markers":  "MARKER-SITE-A,MARKER-SITE-A-PB,PROBE-LAB10,PROBE-LAB10-PB",
+                      "referential_ok":  true,
+                      "no_duplicate_markers":  true
+                  },
+    "what_remained":  "Replica (site B) on same Docker Desktop host",
+    "expected":  "Site B has MARKER-SITE-A; not SITE-A-ONLY",
+    "measured_rpo":  "Async site simulation lost MARKER-SITE-A-ONLY. RPO \u003e 0. Not a Legal-approved DR region.",
+    "run_id":  "20260915-183034",
+    "topology":  "T4 site simulation",
+    "pass_fail":  "PASS",
+    "limitations":  "Two containers on one laptop are not an independent region/facility. Legal E1 DR geography still OPEN. Dev/Test only.",
+    "what_failed":  "Primary (site A) disconnected from lab network and killed",
+    "missing_transactions":  [
+                                 "MARKER-SITE-A-ONLY"
+                             ],
+    "operator_intervention":  "Scripted network disconnect + promote"
+}

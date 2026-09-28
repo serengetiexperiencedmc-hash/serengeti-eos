@@ -1,0 +1,14 @@
+{
+  "capturedAt": "2026-09-21T16:47:55.929Z",
+  "ids": {
+    "organizationTypeId": "6a52fa1d-3310-4c91-bf63-cd315b124539",
+    "organizationTypeKey": "corporate",
+    "organizationId": "4f477993-d531-4c52-a4ef-e45a76b7a686",
+    "accountId": "f07a8d59-3a24-4fee-beef-1f7d1cf10853",
+    "opportunityId": "fdf1a820-4e31-4379-a77a-190d7e5f2f67",
+    "rfpId": "e94c4561-5d7c-4cb4-855c-f5dc803848c9",
+    "programmeId": "eb60f5b2-a2b3-48ca-8d80-79ebefdc9bd6",
+    "supplierId": "433bd5f0-2357-4d4d-b61d-d4715df2770d",
+    "rateId": "7d50bfb4-419a-4638-96e8-135e7d823a78"
+  }
+}

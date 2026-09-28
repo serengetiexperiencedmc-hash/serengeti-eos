@@ -2,9 +2,7 @@ import {
   authorize,
   clearanceAllows,
   isValidSearchEntityType,
-  normalizeEmail,
   normalizeOrganizationName,
-  normalizePersonName,
   normalizeSearchQuery,
   searchMatchRank,
   searchQueryValid,
@@ -15,7 +13,7 @@ import {
 import type { Store } from "../store.js";
 import { ensureCrmCollections, seedCrmCatalogues } from "./collections.js";
 import { orgResource } from "./organization.js";
-import { contactResource } from "./contact.js";
+import { personDomainRemoved } from "../personal-data-phase1.js";
 
 const DEFAULT_SEARCH_LIMIT = 25;
 const MAX_SEARCH_LIMIT = 50;
@@ -113,63 +111,6 @@ function searchOrganizations(
       displayLabel: org.tradingName ? `${org.legalName} (${org.tradingName})` : org.legalName,
       matchedField,
       classification: org.classification,
-      rank: bestRank,
-    });
-  }
-  return results;
-}
-
-function searchContacts(
-  store: Store,
-  principal: Principal,
-  normalizedQuery: string,
-  filters?: { status?: string },
-): CrmSearchResult[] {
-  const results: CrmSearchResult[] = [];
-  for (const contact of store.crmContacts) {
-    if (contact.tenantId !== principal.tenantId || contact.archivedAt || contact.mergedIntoId) continue;
-    if (filters?.status && contact.status !== filters.status) continue;
-    if (!clearanceAllows(principal.classificationClearance, contact.classification)) continue;
-
-    const decision = authorize({
-      principal,
-      permission: "crm:read:contact",
-      action: "read:crm_contact",
-      resource: contactResource(contact),
-    });
-    if (decision.result === "deny") continue;
-
-    const fields: Array<[string, string]> = [
-      ["givenName", contact.givenName],
-      ["familyName", contact.familyName],
-      ...(contact.preferredName ? ([["preferredName", contact.preferredName]] as Array<[string, string]>) : []),
-      ...(contact.email ? ([["email", contact.email]] as Array<[string, string]>) : []),
-      ...(contact.telephone ? ([["telephone", contact.telephone]] as Array<[string, string]>) : []),
-      ...(contact.mobile ? ([["mobile", contact.mobile]] as Array<[string, string]>) : []),
-    ];
-    let bestRank: number | null = null;
-    let matchedField = "";
-    for (const [field, value] of fields) {
-      const normalized =
-        field === "email"
-          ? normalizeEmail(value)
-          : field === "givenName" || field === "familyName" || field === "preferredName"
-            ? normalizePersonName(value).toLowerCase()
-            : value.toLowerCase();
-      const rank = searchMatchRank(normalizedQuery, normalized);
-      if (rank !== null && (bestRank === null || rank < bestRank)) {
-        bestRank = rank;
-        matchedField = field;
-      }
-    }
-    if (bestRank === null) continue;
-
-    results.push({
-      entityType: "contact",
-      entityId: contact.id,
-      displayLabel: `${contact.givenName} ${contact.familyName}`,
-      matchedField,
-      classification: contact.classification,
       rank: bestRank,
     });
   }
@@ -354,6 +295,8 @@ export function searchCrm(
   const typeResult = permittedSearchTypes(principal, query.types);
   if ("error" in typeResult) return { error: "invalid_request" as const, reason: typeResult.error };
   if (typeResult.length === 0) return { error: "forbidden" as const, reason: "no_searchable_types" };
+  const searchableTypes = typeResult.filter((type) => type !== "contact");
+  if (searchableTypes.length === 0) return personDomainRemoved();
 
   const normalizedQuery = normalizeSearchQuery(query.q);
   let items: CrmSearchResult[] = [];
@@ -364,13 +307,10 @@ export function searchCrm(
     ...(query.type !== undefined ? { type: query.type } : {}),
   };
 
-  for (const entityType of typeResult) {
+  for (const entityType of searchableTypes) {
     switch (entityType) {
       case "organization":
         items.push(...searchOrganizations(store, principal, normalizedQuery, filters));
-        break;
-      case "contact":
-        items.push(...searchContacts(store, principal, normalizedQuery, filters));
         break;
       case "account":
         items.push(...searchAccounts(store, principal, normalizedQuery, filters));

@@ -269,20 +269,11 @@ function repointContactReferences(store: Store, tenantId: string, fromId: string
 
   for (const rel of store.crmRelationships) {
     if (rel.tenantId !== tenantId) continue;
-    if (rel.fromContactId === fromId) {
-      rel.fromContactId = toId;
-      counts.relationships! += 1;
-    }
-    if (rel.toContactId === fromId) {
-      rel.toContactId = toId;
-      counts.relationships! += 1;
-    }
   }
 
   for (const activity of store.crmActivities) {
-    if (activity.tenantId === tenantId && activity.contactId === fromId) {
-      activity.contactId = toId;
-      counts.activities! += 1;
+    if (activity.tenantId === tenantId) {
+      void activity;
     }
   }
 
@@ -294,9 +285,8 @@ function repointContactReferences(store: Store, tenantId: string, fromId: string
   }
 
   for (const task of store.crmTasks) {
-    if (task.tenantId === tenantId && task.relatedContactId === fromId) {
-      task.relatedContactId = toId;
-      counts.tasks! += 1;
+    if (task.tenantId === tenantId) {
+      void task;
     }
   }
 
@@ -329,7 +319,7 @@ export function getMergeRecord(store: Store, principal: Principal, mergeId: stri
   return { merge: record };
 }
 
-export function executeMerge(
+export async function executeMerge(
   store: Store,
   principal: Principal,
   input: ExecuteMergeInput,
@@ -463,7 +453,7 @@ export function executeMerge(
       mergedAt: new Date().toISOString(),
       mergedByPrincipalId: principal.id,
     };
-    const committed = commitCrmWithOutbox(store, principal, {
+    const committed = await commitCrmWithOutbox(store, principal, {
       eventType: CRM_EVENT_TYPES.RECORD_MERGED,
       entityType: "merge_record",
       entityId: mergeRecord.id,
@@ -505,114 +495,5 @@ export function executeMerge(
     return { merge: mergeRecord };
   }
 
-  const survivor = store.crmContacts.find((c) => c.id === input.survivorId);
-  const duplicate = store.crmContacts.find((c) => c.id === duplicateId);
-  if (!survivor || !duplicate || survivor.tenantId !== principal.tenantId || duplicate.tenantId !== principal.tenantId) {
-    return { error: "not_found" as const };
-  }
-  if (!isMergeableContact(survivor) || !isMergeableContact(duplicate)) {
-    return { error: "conflict" as const, reason: "entity_not_mergeable" };
-  }
-  if (externalIdentifierMergeConflicts(store, principal.tenantId, survivor.id, duplicate.id, "contact")) {
-    return { error: "conflict" as const, reason: "external_identifier_conflict" };
-  }
-
-  const survivorAuth = authorize({
-    principal,
-    permission: "crm:merge:record",
-    action: "merge:crm_contact",
-    resource: contactResource(survivor),
-  });
-  const duplicateAuth = authorize({
-    principal,
-    permission: "crm:merge:record",
-    action: "merge:crm_contact",
-    resource: contactResource(duplicate),
-  });
-  if (survivorAuth.result === "deny" || duplicateAuth.result === "deny") {
-    return { error: "forbidden" as const, reason: "classification" };
-  }
-  if (
-    !clearanceAllows(principal.classificationClearance, survivor.classification) ||
-    !clearanceAllows(principal.classificationClearance, duplicate.classification)
-  ) {
-    return { error: "forbidden" as const, reason: "classification" };
-  }
-
-  const expected = input.expectedVersions ?? {};
-  if (expected[survivor.id] !== undefined && expected[survivor.id] !== survivor.version) {
-    return { error: "conflict" as const, reason: "concurrent_modification" };
-  }
-  if (expected[duplicate.id] !== undefined && expected[duplicate.id] !== duplicate.version) {
-    return { error: "conflict" as const, reason: "concurrent_modification" };
-  }
-
-  applyContactFieldResolutions(survivor, fieldResolutions);
-  survivor.classification = maxClassification(survivor.classification, duplicate.classification);
-  survivor.version += 1;
-  survivor.updatedAt = new Date().toISOString();
-  survivor.updatedByPrincipalId = principal.id;
-
-  const affectedCounts = repointContactReferences(store, principal.tenantId, duplicate.id, survivor.id);
-
-  duplicate.mergedIntoId = survivor.id;
-  duplicate.archivedAt = new Date().toISOString();
-  duplicate.version += 1;
-  duplicate.updatedAt = duplicate.archivedAt;
-  duplicate.updatedByPrincipalId = principal.id;
-
-  const mergeRecord: CrmMergeRecord = {
-    id: newId(),
-    tenantId: principal.tenantId,
-    entityType: "contact",
-    survivorId: survivor.id,
-    mergedIds: [duplicate.id],
-    duplicateCandidateId: candidate.id,
-    fieldResolutions,
-    reason,
-    idempotencyKey: idempotencyKey.trim(),
-    affectedCounts,
-    mergedAt: new Date().toISOString(),
-    mergedByPrincipalId: principal.id,
-  };
-  const committed = commitCrmWithOutbox(store, principal, {
-    eventType: CRM_EVENT_TYPES.RECORD_MERGED,
-    entityType: "merge_record",
-    entityId: mergeRecord.id,
-    classification: survivor.classification,
-    correlationId,
-    payload: {
-      mergeRecordId: mergeRecord.id,
-      entityType: mergeRecord.entityType,
-      survivorId: mergeRecord.survivorId,
-      mergedIds: mergeRecord.mergedIds,
-      duplicateCandidateId: mergeRecord.duplicateCandidateId,
-    },
-    additionalEvents: [
-      {
-        eventType: CRM_EVENT_TYPES.CONTACT_MERGED,
-        entityType: "contact",
-        entityId: duplicate.id,
-        classification: duplicate.classification,
-        correlationId,
-        payload: {
-          contactId: duplicate.id,
-          survivorId: survivor.id,
-          mergedIntoId: survivor.id,
-        },
-      },
-    ],
-    mutate: () => {
-      store.crmMergeRecords.push(mergeRecord);
-      store.crmMergeIdempotency[idemKey] = mergeRecord.id;
-      allowCrmAudit(store, principal, "crm:merge:record", "crm_merge_record", mergeRecord.id, correlationId, {
-        entityType: mergeRecord.entityType,
-        survivorId: mergeRecord.survivorId,
-        mergedIds: mergeRecord.mergedIds,
-        affectedCounts,
-      });
-    },
-  });
-  if (!committed.ok) return { error: "conflict" as const, reason: committed.reason };
-  return { merge: mergeRecord };
+  return { error: "invalid_request" as const, reason: "person_domain_removed" };
 }

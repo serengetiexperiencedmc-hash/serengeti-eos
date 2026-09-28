@@ -96,20 +96,6 @@ export function buildLiveNotifications(store: Store, principal: Principal): Noti
       });
     }
 
-    const draftVouchers = (store.opsVouchers ?? []).filter(
-      (v) => v.bookingId === booking.id && v.status === "draft",
-    ).length;
-    if (draftVouchers > 0) {
-      items.push({
-        key: `vouchers:${booking.id}`,
-        category: "operations",
-        severity: "info",
-        title: "Guest vouchers pending issue",
-        body: `${booking.bookingCode} · ${draftVouchers} draft voucher(s)`,
-        href: `/commercial/operations/${booking.id}`,
-        createdAt: now,
-      });
-    }
   }
 
   // I4.14/I4.15 — escalate open DLQ rows past SLA threshold (unless ack/snooze)

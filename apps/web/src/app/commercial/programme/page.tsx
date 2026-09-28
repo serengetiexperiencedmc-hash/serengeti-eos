@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { AiPanel, Btn, PageHeader } from "@/components/commercial/ui";
@@ -9,12 +10,25 @@ import { EosApiError } from "@/lib/eos-client";
 import {
   addProgrammeDay,
   addProgrammeItem,
+  addProgrammeRooming,
   createProgramme,
   getProgrammeByRfp,
+  patchProgramme,
+  PROGRAMME_COMMERCIAL_VERSION_OPTIONS,
+  PROGRAMME_ITEM_TYPE_OPTIONS,
   type ProgrammeDetail,
 } from "@/lib/programme-api";
 import { getCostSheetByProgramme, createCostSheet, addCostLineItem, formatCost, COST_CATEGORY_LABELS, recalculateCostSheet, type CostSheetDetail } from "@/lib/costing-api";
 import { listSuppliers, type SupplierSummary } from "@/lib/suppliers-api";
+import { ProgrammeCommercialFactsPanel } from "@/components/commercial/ProgrammeCommercialFactsPanel";
+import {
+  commercialFactsCanWrite,
+  getProgrammeCommercialFacts,
+  mapCommercialFactsPutFailure,
+  putProgrammeCommercialFacts,
+  type F2FactsPersistence,
+  type ProgrammeCommercialFacts,
+} from "@/lib/commercial-facts-api";
 
 function ProgrammeBuilderContent() {
   const searchParams = useSearchParams();
@@ -33,13 +47,33 @@ function ProgrammeBuilderContent() {
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
   const [dayTitle, setDayTitle] = useState("");
   const [dayLocation, setDayLocation] = useState("");
+  const [dayDate, setDayDate] = useState("");
+  const [dayDescription, setDayDescription] = useState("");
   const [itemTitle, setItemTitle] = useState("");
   const [itemTime, setItemTime] = useState("");
+  const [itemType, setItemType] = useState("other");
   const [busy, setBusy] = useState(false);
+  const [versionBusy, setVersionBusy] = useState(false);
   const [creatingSheet, setCreatingSheet] = useState(false);
   const [lineCategory, setLineCategory] = useState("accommodation");
   const [lineDescription, setLineDescription] = useState("");
   const [lineCost, setLineCost] = useState("");
+  const [inclusions, setInclusions] = useState("");
+  const [exclusions, setExclusions] = useState("");
+  const [deposit, setDeposit] = useState("30");
+  const [roomType, setRoomType] = useState("twin");
+  const [roomCount, setRoomCount] = useState("1");
+  const [roomOccupancy, setRoomOccupancy] = useState("");
+  const [termsBusy, setTermsBusy] = useState(false);
+  const [f2Facts, setF2Facts] = useState<ProgrammeCommercialFacts | null>(null);
+  const [f2Persistence, setF2Persistence] = useState<F2FactsPersistence | undefined>();
+  const [f2Error, setF2Error] = useState<string | null>(null);
+  const [f2Loading, setF2Loading] = useState(false);
+  const [f2Unauthorized, setF2Unauthorized] = useState(false);
+  const [f2WriteForbidden, setF2WriteForbidden] = useState(false);
+  const [f2DraftNote, setF2DraftNote] = useState("");
+  const [f2DraftVersion, setF2DraftVersion] = useState("");
+  const [f2Saving, setF2Saving] = useState(false);
 
   const loadProgramme = useCallback(async () => {
     if (!token || !rfpId) {
@@ -60,6 +94,9 @@ function ProgrammeBuilderContent() {
       setDetail(programme);
       setSuppliers(supplierList.items);
       setOrgs(orgList.items);
+      setInclusions(programme.programme.inclusionsText ?? "");
+      setExclusions(programme.programme.exclusionsText ?? "");
+      setDeposit(String(programme.programme.depositPercent ?? 30));
       setSelectedDayId((current) => {
         if (current && programme.days.some((d) => d.id === current)) return current;
         return programme.days[0]?.id ?? null;
@@ -69,6 +106,31 @@ function ProgrammeBuilderContent() {
         setCosting(sheet);
       } catch {
         setCosting(null);
+      }
+      setF2Loading(true);
+      try {
+        const commercial = await getProgrammeCommercialFacts(token, programme.programme.id);
+        setF2Facts(commercial.facts);
+        setF2Persistence(commercial.persistence);
+        setF2DraftNote(commercial.facts.note ?? "");
+        setF2DraftVersion(
+          commercial.facts.observedClientFacingVersionNumber !== undefined
+            ? String(commercial.facts.observedClientFacingVersionNumber)
+            : "",
+        );
+        setF2Error(null);
+        setF2Unauthorized(false);
+        setF2WriteForbidden(false);
+      } catch (err) {
+        setF2Facts(null);
+        if (err instanceof EosApiError && err.status === 403) {
+          setF2Unauthorized(true);
+          setF2Error("Not authorized to read programme commercial facts.");
+        } else {
+          setF2Error(err instanceof EosApiError ? err.message : "Failed to load F2 programme facts");
+        }
+      } finally {
+        setF2Loading(false);
       }
     } catch (err) {
       setDetail(null);
@@ -121,6 +183,30 @@ function ProgrammeBuilderContent() {
       .slice(0, 12);
   }, [suppliers, supplierQuery]);
 
+  async function saveF2ProgrammeFacts() {
+    if (!token || !detail) return;
+    setF2Saving(true);
+    setF2Error(null);
+    try {
+      const payload: { note?: string; observedClientFacingVersionNumber?: number } = {
+        note: f2DraftNote,
+      };
+      if (f2DraftVersion.trim()) {
+        payload.observedClientFacingVersionNumber = Number(f2DraftVersion);
+      }
+      const saved = await putProgrammeCommercialFacts(token, detail.programme.id, payload);
+      setF2Facts(saved.facts);
+      setF2Persistence(saved.persistence);
+      setF2WriteForbidden(false);
+    } catch (err) {
+      const mapped = mapCommercialFactsPutFailure(err, "programme");
+      setF2Error(mapped.message);
+      if (mapped.writeForbidden) setF2WriteForbidden(true);
+    } finally {
+      setF2Saving(false);
+    }
+  }
+
   async function handleSaveAndCost() {
     if (!token || !costing) return;
     setRecalculating(true);
@@ -164,9 +250,13 @@ function ProgrammeBuilderContent() {
         dayNumber: nextNumber,
         title,
         ...(dayLocation.trim() ? { location: dayLocation.trim() } : {}),
+        ...(dayDate.trim() ? { calendarDate: dayDate.trim() } : {}),
+        ...(dayDescription.trim() ? { description: dayDescription.trim() } : {}),
       });
       setDayTitle("");
       setDayLocation("");
+      setDayDate("");
+      setDayDescription("");
       await loadProgramme();
     } catch (err) {
       setError(err instanceof EosApiError ? err.message : "Failed to add day");
@@ -175,7 +265,7 @@ function ProgrammeBuilderContent() {
     }
   }
 
-  async function handleAddItem(dayId: string, input: { title: string; startTime?: string; supplierId?: string; supplierLabel?: string }) {
+  async function handleAddItem(dayId: string, input: { title: string; startTime?: string; supplierId?: string; supplierLabel?: string; itemType?: string }) {
     if (!token || !detail) return;
     if (!input.title.trim()) {
       setError("Item title is required");
@@ -189,6 +279,7 @@ function ProgrammeBuilderContent() {
         ...(input.startTime ? { startTime: input.startTime } : {}),
         ...(input.supplierId ? { supplierId: input.supplierId } : {}),
         ...(input.supplierLabel ? { supplierLabel: input.supplierLabel } : {}),
+        ...(input.itemType ? { itemType: input.itemType } : {}),
       });
       setItemTitle("");
       setItemTime("");
@@ -210,6 +301,7 @@ function ProgrammeBuilderContent() {
       title: supplier.tradingName ?? supplier.legalName,
       supplierId: supplier.id,
       supplierLabel: supplier.tradingName ?? supplier.legalName,
+      itemType,
     });
   }
 
@@ -230,6 +322,71 @@ function ProgrammeBuilderContent() {
     }
   }
 
+  async function handleCommercialVersionChange(label: string) {
+    if (!token || !detail) return;
+    setVersionBusy(true);
+    setError(null);
+    try {
+      const updated = await patchProgramme(token, detail.programme.id, { commercialVersionLabel: label });
+      setDetail((current) =>
+        current ? { ...current, programme: { ...current.programme, ...updated.programme } } : current,
+      );
+    } catch (err) {
+      setError(err instanceof EosApiError ? err.message : "Failed to update commercial version");
+    } finally {
+      setVersionBusy(false);
+    }
+  }
+
+  async function handleSaveCommercialTerms() {
+    if (!token || !detail) return;
+    const parsed = Number(deposit);
+    if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
+      setError("Deposit percent must be between 0 and 100");
+      return;
+    }
+    setTermsBusy(true);
+    setError(null);
+    try {
+      const updated = await patchProgramme(token, detail.programme.id, {
+        depositPercent: parsed,
+        inclusionsText: inclusions.trim() ? inclusions.trim() : null,
+        exclusionsText: exclusions.trim() ? exclusions.trim() : null,
+      });
+      setDetail((current) => (current ? { ...current, programme: { ...current.programme, ...updated.programme } } : current));
+    } catch (err) {
+      setError(err instanceof EosApiError ? err.message : "Failed to save commercial terms");
+    } finally {
+      setTermsBusy(false);
+    }
+  }
+
+  async function handleAddRooming() {
+    if (!token || !detail) return;
+    const count = Number(roomCount);
+    if (!Number.isFinite(count) || count < 0) {
+      setError("Room count must be 0 or more");
+      return;
+    }
+    setTermsBusy(true);
+    setError(null);
+    try {
+      const occupancy = roomOccupancy.trim() ? Number(roomOccupancy) : undefined;
+      const updated = await addProgrammeRooming(token, detail.programme.id, {
+        roomType,
+        roomCount: count,
+        ...(occupancy !== undefined && Number.isFinite(occupancy) ? { occupancy } : {}),
+      });
+      setDetail(updated);
+      setRoomCount("1");
+      setRoomOccupancy("");
+    } catch (err) {
+      setError(err instanceof EosApiError ? err.message : "Failed to add rooming");
+    } finally {
+      setTermsBusy(false);
+    }
+  }
+
   async function handleAddCostLine() {
     if (!token || !costing) return;
     const description = lineDescription.trim();
@@ -245,12 +402,13 @@ function ProgrammeBuilderContent() {
     setBusy(true);
     setError(null);
     try {
-      const updated = await addCostLineItem(token, costing.sheet.id, {
+      const added = await addCostLineItem(token, costing.sheet.id, {
         category: lineCategory,
         description,
         unitCost,
       });
-      setCosting(updated);
+      const refreshed = await getCostSheetByProgramme(token, added.sheet.programmeId);
+      setCosting(refreshed);
       setLineDescription("");
       setLineCost("");
     } catch (err) {
@@ -268,6 +426,16 @@ function ProgrammeBuilderContent() {
         subtitle={subtitle}
         actions={
           <>
+            {detail && (
+              <Link href={`/commercial/rfps/${detail.programme.rfpId}`}>
+                <Btn variant="secondary">Originating RFP</Btn>
+              </Link>
+            )}
+            {detail && (
+              <Link href={`/commercial/rfps/${detail.programme.rfpId}/proposal-preparation`}>
+                <Btn variant="secondary">Proposal preparation</Btn>
+              </Link>
+            )}
             <Btn variant="secondary" disabled>
               Preview PDF
             </Btn>
@@ -284,6 +452,31 @@ function ProgrammeBuilderContent() {
       {error && (
         <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {error}
+        </div>
+      )}
+
+      {(f2Facts || f2Loading || f2Error) && (
+        <div className="mb-4">
+          <ProgrammeCommercialFactsPanel
+            facts={f2Facts}
+            persistence={f2Persistence}
+            loading={f2Loading}
+            error={f2Error}
+            unauthorized={f2Unauthorized}
+            unauthenticated={ready && !token}
+            canWrite={commercialFactsCanWrite({
+              hasToken: Boolean(token),
+              factsLoaded: Boolean(f2Facts),
+              unauthorizedRead: f2Unauthorized,
+              writeForbidden: f2WriteForbidden,
+            })}
+            draftNote={f2DraftNote}
+            draftVersion={f2DraftVersion}
+            saving={f2Saving}
+            onNoteChange={setF2DraftNote}
+            onVersionChange={setF2DraftVersion}
+            onSave={() => void saveF2ProgrammeFacts()}
+          />
         </div>
       )}
 
@@ -305,6 +498,138 @@ function ProgrammeBuilderContent() {
           <Btn disabled={creating} onClick={() => void handleCreateProgramme()}>
             {creating ? "Creating…" : "Create programme"}
           </Btn>
+        </div>
+      )}
+
+      {detail && (
+        <div className="mb-4 grid grid-cols-1 gap-3 rounded-md border border-line bg-ivory p-4 text-sm md:grid-cols-4">
+          <div>
+            <div className="text-[0.7rem] uppercase tracking-wide text-muted">Commercial version</div>
+            <select
+              value={detail.programme.commercialVersionLabel ?? "draft"}
+              disabled={versionBusy}
+              onChange={(e) => void handleCommercialVersionChange(e.target.value)}
+              className="mt-1 w-full rounded-md border border-line px-2 py-1 text-xs outline-none focus:border-gold"
+            >
+              {PROGRAMME_COMMERCIAL_VERSION_OPTIONS.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <div className="text-[0.7rem] uppercase tracking-wide text-muted">Programme status</div>
+            <div className="mt-1 font-medium">{detail.programme.status}</div>
+          </div>
+          <div>
+            <div className="text-[0.7rem] uppercase tracking-wide text-muted">Days / pax</div>
+            <div className="mt-1 font-medium">
+              {detail.programme.dayCount} days · {detail.programme.paxCount ?? "—"} pax
+            </div>
+          </div>
+          <div>
+            <div className="text-[0.7rem] uppercase tracking-wide text-muted">Costing status</div>
+            <div className="mt-1 font-medium">
+              {costing?.sheet.financialSummary?.financialStatus ?? costing?.sheet.status ?? "No cost sheet"}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {detail && (
+        <div className="mb-4 rounded-md border border-line bg-paper p-4 text-sm">
+          <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">
+            Commercial terms (internal)
+          </div>
+          <p className="mb-3 text-xs text-muted">
+            Client version stays editable. Final locks the programme. Nights = departure − arrival. Rooming is entered
+            explicitly. Safari vehicle default is 6 passengers.
+          </p>
+          <div className="mb-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div>
+              <div className="text-[0.65rem] uppercase text-muted">Nights</div>
+              <div className="font-medium">{detail.programme.nightCount ?? "—"}</div>
+            </div>
+            <div>
+              <div className="text-[0.65rem] uppercase text-muted">Deposit %</div>
+              <input
+                value={deposit}
+                onChange={(e) => setDeposit(e.target.value)}
+                className="mt-1 w-full rounded-md border border-line px-2 py-1 text-xs outline-none focus:border-gold"
+              />
+            </div>
+            <div>
+              <div className="text-[0.65rem] uppercase text-muted">Vehicles (max 6 pax)</div>
+              <div className="font-medium">{detail.programme.requiredVehicles ?? "—"}</div>
+            </div>
+            <div>
+              <div className="text-[0.65rem] uppercase text-muted">Milestones</div>
+              <div className="font-medium">
+                {(detail.programme.paymentMilestones ?? []).map((m) => `${m.percent}%`).join(" / ") || "30 / 40 / 30"}
+              </div>
+            </div>
+          </div>
+          <div className="mb-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <textarea
+              value={inclusions}
+              onChange={(e) => setInclusions(e.target.value)}
+              placeholder="Inclusions (manual)"
+              className="min-h-[72px] w-full rounded-md border border-line px-2 py-1 text-xs outline-none focus:border-gold"
+            />
+            <textarea
+              value={exclusions}
+              onChange={(e) => setExclusions(e.target.value)}
+              placeholder="Exclusions (manual)"
+              className="min-h-[72px] w-full rounded-md border border-line px-2 py-1 text-xs outline-none focus:border-gold"
+            />
+          </div>
+          <Btn size="sm" disabled={termsBusy} onClick={() => void handleSaveCommercialTerms()}>
+            {termsBusy ? "Saving…" : "Save terms"}
+          </Btn>
+          <div className="mt-4 border-t border-line pt-3">
+            <div className="mb-2 text-[0.65rem] uppercase text-muted">Rooming (explicit, no assumed ratio)</div>
+            <ul className="mb-2 text-xs">
+              {(detail.rooming ?? []).length === 0 ? (
+                <li className="text-muted">No rooming entered.</li>
+              ) : (
+                (detail.rooming ?? []).map((row) => (
+                  <li key={row.id}>
+                    {row.roomCount} × {row.roomType}
+                    {row.occupancy !== undefined ? ` · occ ${row.occupancy}` : ""}
+                  </li>
+                ))
+              )}
+            </ul>
+            <div className="flex flex-wrap gap-2">
+              <select
+                value={roomType}
+                onChange={(e) => setRoomType(e.target.value)}
+                className="rounded-md border border-line px-2 py-1 text-xs outline-none focus:border-gold"
+              >
+                {["single", "twin", "double", "triple", "crew_staff", "other"].map((value) => (
+                  <option key={value} value={value}>
+                    {value.replace(/_/g, " ")}
+                  </option>
+                ))}
+              </select>
+              <input
+                value={roomCount}
+                onChange={(e) => setRoomCount(e.target.value)}
+                placeholder="Count"
+                className="w-20 rounded-md border border-line px-2 py-1 text-xs outline-none focus:border-gold"
+              />
+              <input
+                value={roomOccupancy}
+                onChange={(e) => setRoomOccupancy(e.target.value)}
+                placeholder="Occupancy"
+                className="w-24 rounded-md border border-line px-2 py-1 text-xs outline-none focus:border-gold"
+              />
+              <Btn size="sm" disabled={termsBusy} onClick={() => void handleAddRooming()}>
+                Add rooming
+              </Btn>
+            </div>
+          </div>
         </div>
       )}
 
@@ -357,6 +682,18 @@ function ProgrammeBuilderContent() {
                 placeholder="Location (optional)"
                 className="mb-2 w-full rounded-md border border-line px-3 py-2 text-xs outline-none focus:border-gold"
               />
+              <input
+                type="date"
+                value={dayDate}
+                onChange={(e) => setDayDate(e.target.value)}
+                className="mb-2 w-full rounded-md border border-line px-3 py-2 text-xs outline-none focus:border-gold"
+              />
+              <input
+                value={dayDescription}
+                onChange={(e) => setDayDescription(e.target.value)}
+                placeholder="Day notes (optional)"
+                className="mb-2 w-full rounded-md border border-line px-3 py-2 text-xs outline-none focus:border-gold"
+              />
               <Btn size="sm" disabled={busy} onClick={() => void handleAddDay()}>
                 Add day
               </Btn>
@@ -378,7 +715,7 @@ function ProgrammeBuilderContent() {
                       items={day.items.map((item) => ({
                         time: item.startTime ?? "—",
                         title: item.title,
-                        sub: item.supplierLabel ?? item.description ?? "",
+                        sub: [item.itemType, item.supplierLabel ?? item.description].filter(Boolean).join(" · "),
                       }))}
                       empty={day.items.length === 0}
                     />
@@ -402,12 +739,24 @@ function ProgrammeBuilderContent() {
                   placeholder="Start time (optional)"
                   className="mb-2 w-full rounded-md border border-line px-3 py-2 text-xs outline-none focus:border-gold"
                 />
+                <select
+                  value={itemType}
+                  onChange={(e) => setItemType(e.target.value)}
+                  className="mb-2 w-full rounded-md border border-line px-3 py-2 text-xs outline-none focus:border-gold"
+                >
+                  {PROGRAMME_ITEM_TYPE_OPTIONS.map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
                 <Btn
                   size="sm"
                   disabled={busy}
                   onClick={() =>
                     void handleAddItem(selectedDayId, {
                       title: itemTitle,
+                      itemType,
                       ...(itemTime.trim() ? { startTime: itemTime.trim() } : {}),
                     })
                   }
@@ -431,15 +780,50 @@ function ProgrammeBuilderContent() {
                       </div>
                     ))}
                   <div className="flex justify-between border-t-2 border-ink pt-3 text-base font-semibold text-ink">
-                    <span>Total Cost</span>
-                    <span>{formatCost(costing.sheet.totalCost, costing.sheet.currency)}</span>
+                    <span>Supplier cost</span>
+                    <span>
+                      {formatCost(
+                        costing.sheet.financialSummary?.supplierCost ?? costing.sheet.totalCost,
+                        costing.sheet.currency,
+                      )}
+                    </span>
                   </div>
                 </div>
                 <div className="mt-4 border-t border-line pt-4 text-sm">
                   <div className="flex justify-between font-medium">
-                    <span>Sell Price</span>
-                    <strong>{formatCost(costing.sheet.sellPrice ?? 0, costing.sheet.currency)}</strong>
+                    <span>Client selling price</span>
+                    <strong>
+                      {formatCost(
+                        costing.sheet.financialSummary?.clientSellingPrice ?? costing.sheet.sellPrice ?? 0,
+                        costing.sheet.currency,
+                      )}
+                    </strong>
                   </div>
+                  <div className="mt-2 flex justify-between text-xs text-muted">
+                    <span>Gross profit</span>
+                    <span>
+                      {formatCost(
+                        costing.sheet.financialSummary?.grossProfit ?? costing.sheet.marginAmount,
+                        costing.sheet.currency,
+                      )}
+                    </span>
+                  </div>
+                  {costing.sheet.fileFeeAmount !== undefined && (
+                    <div className="mt-1 text-[0.65rem] text-muted">
+                      File fee is internal and incorporated into the client selling price. It is not a client line.
+                    </div>
+                  )}
+                  {costing.sheet.clientFacing && (
+                    <div className="mt-3 rounded-md border border-line bg-ivory p-2 text-xs">
+                      <div className="uppercase tracking-wide text-muted">Client-facing price</div>
+                      <div className="mt-1 font-medium">
+                        {formatCost(
+                          costing.sheet.clientFacing.clientSellingPrice,
+                          costing.sheet.clientFacing.currency,
+                        )}
+                      </div>
+                    </div>
+                  )}
                   <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-sand">
                     <div
                       className="h-full rounded-full bg-success"

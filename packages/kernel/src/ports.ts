@@ -20,6 +20,15 @@ export type IdentityProvider = {
     password: string;
     tenantSlug: string;
   }): Promise<{ principalId: string } | { error: "invalid_credentials" }>;
+  /**
+   * FUTURE PROVIDER IMPLEMENTATION — federated/OIDC mapping.
+   * Not implemented. Production IdP remains UNSELECTED (ADR-0013 OPEN).
+   */
+  authenticateFederated?(input: {
+    issuer: string;
+    subject: string;
+    tenantSlug: string;
+  }): Promise<{ principalId: string } | { error: "invalid_credentials" | "identity_not_production_ready" }>;
 };
 
 /**

@@ -19,7 +19,9 @@ import {
   type ReplayRequest,
 } from "@sedmc/kernel";
 import { recordAudit, type Store } from "./store.js";
-import { persistOutboxInsert, persistOutboxPublish } from "./persistence/outbox.js";
+import { persistOutboxPublish } from "./persistence/outbox.js";
+import { insertChainedAudit, runDurableTx } from "./persistence/durable.js";
+import { insertOutboxEventOn } from "./persistence/pg-repository.js";
 import { persistProcessedEvent, removeProcessedEvent } from "./persistence/processed-events.js";
 import { resolveEventTransport } from "./events/transport-init.js";
 import { getEventHandler } from "./events/handlers.js";
@@ -199,7 +201,7 @@ function assignSequence(store: Store, entry: EventCatalogueEntry, envelope: Ente
   return next;
 }
 
-export function commitWithOutbox(
+export async function commitWithOutbox(
   store: Store,
   principal: Principal,
   input: {
@@ -209,12 +211,12 @@ export function commitWithOutbox(
     correlationId: string;
     aggregateId?: string;
     causationId?: string;
-    mutate: () => void;
+    mutate: () => void | Promise<void>;
     /** Test hook: simulate outbox persistence failure after domain mutate */
     simulateOutboxWriteFailure?: boolean;
   },
   mode: ExecutionContext["mode"] = "LIVE",
-): { ok: true; outbox: OutboxRecord; envelope: EnterpriseEventEnvelope } | { ok: false; reason: string } {
+): Promise<{ ok: true; outbox: OutboxRecord; envelope: EnterpriseEventEnvelope } | { ok: false; reason: string }> {
   ensureOutboxCollections(store);
   try {
     assertLiveAllowed(
@@ -254,16 +256,46 @@ export function commitWithOutbox(
 
   const domainSnapshot = snapshotDomain(store);
   const outboxLen = store.outboxEvents.length;
+  const auditLen = store.audit.length;
+  const outboxWriteAudit = {
+    tenantId: principal.tenantId,
+    occurredAt: new Date().toISOString(),
+    actorType: principal.actorType,
+    actorPrincipalId: principal.id,
+    action: "events:outbox:write",
+    resourceType: "outbox_event",
+    resourceId: outbox.id,
+    correlationId: input.correlationId,
+    authorization: "allow" as const,
+    newState: {
+      eventId: envelope.eventId,
+      eventType: envelope.eventType,
+      status: outbox.status,
+      sequence: outbox.sequence,
+      mode: "LIVE",
+    },
+  };
   try {
-    input.mutate();
+    await input.mutate();
     if (input.simulateOutboxWriteFailure) {
       throw new Error("outbox_write_failed");
     }
-    store.outboxEvents.push(outbox);
-    void persistOutboxInsert(store.dbPool, outbox);
+    if (store.dbPool) {
+      const durableAudit = await runDurableTx(store, async (client) => {
+        const audit = await insertChainedAudit(client, outboxWriteAudit);
+        await insertOutboxEventOn(client, outbox);
+        return audit;
+      });
+      store.outboxEvents.push(outbox);
+      store.audit.push(durableAudit);
+    } else {
+      store.outboxEvents.push(outbox);
+      recordAudit(store, outboxWriteAudit);
+    }
   } catch (err) {
     restoreDomain(store, domainSnapshot);
     store.outboxEvents.length = outboxLen;
+    store.audit.length = auditLen;
     return { ok: false, reason: err instanceof Error ? err.message : "tx_failed" };
   }
 
@@ -275,24 +307,6 @@ export function commitWithOutbox(
     pending[0]!.createdAt);
   }
 
-  recordAudit(store, {
-    tenantId: principal.tenantId,
-    occurredAt: new Date().toISOString(),
-    actorType: principal.actorType,
-    actorPrincipalId: principal.id,
-    action: "events:outbox:write",
-    resourceType: "outbox_event",
-    resourceId: outbox.id,
-    correlationId: input.correlationId,
-    authorization: "allow",
-    newState: {
-      eventId: envelope.eventId,
-      eventType: envelope.eventType,
-      status: outbox.status,
-      sequence: outbox.sequence,
-      mode: "LIVE",
-    },
-  });
   return { ok: true, outbox, envelope };
 }
 

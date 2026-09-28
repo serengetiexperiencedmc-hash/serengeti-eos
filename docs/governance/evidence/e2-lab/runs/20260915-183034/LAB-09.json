@@ -1,0 +1,46 @@
+﻿{
+    "acknowledged_survived":  false,
+    "repeatability":  "single run",
+    "test_id":  "LAB-09",
+    "actual":  "present=True rfp=1 probe=True deleted_count_before_pitr=0",
+    "total_measured_rto_ms":  7326,
+    "last_acknowledged_transaction":  "DELETE statements",
+    "probe":  {
+                  "marker":  "PROBE-LAB09",
+                  "ok":  true,
+                  "rfp":  "Synthetic RFP PROBE-LAB09",
+                  "programme":  "Synthetic Programme PROBE-LAB09"
+              },
+    "failure_model":  "F8 accidental DELETE of synthetic business rows",
+    "limitations":  "Synthetic tables. Dev/Test only.",
+    "evidence":  [
+                     "LAB-09.json"
+                 ],
+    "recovery_mechanism":  "PITR to lab09_good",
+    "measured_rto":  "7.326 seconds (lab PITR)",
+    "boundary":  "Dev/Test laboratory evidence only. This result does not constitute Production readiness, Production authorization, or Production proof.",
+    "last_recoverable_transaction":  "MARKER-BEFORE-DELETE",
+    "failure_timestamp":  "2026-09-15T15:33:57.1546646+00:00",
+    "integrity":  {
+                      "marker_count":  4,
+                      "rfp_count":  2,
+                      "programme_count":  2,
+                      "orphan_programmes":  0,
+                      "max_marker_duplicates":  1,
+                      "markers":  "MARKER-BEFORE-DELETE,MARKER-BEFORE-DELETE-PB,PROBE-LAB09,PROBE-LAB09-PB",
+                      "referential_ok":  true,
+                      "no_duplicate_markers":  true
+                  },
+    "what_remained":  "Base backup + WAL",
+    "expected":  "MARKER-BEFORE-DELETE and rfp row restored",
+    "measured_rpo":  "Controlled rollback to restore point. Not RPO 0 for commits after the delete.",
+    "run_id":  "20260915-183034",
+    "topology":  "T2",
+    "pass_fail":  "PASS",
+    "counts_after_delete_before_pitr":  "0",
+    "what_failed":  "Logical deletion of rfp/programme/markers",
+    "missing_transactions":  [
+                                 "DELETE (intentionally rolled back by PITR)"
+                             ],
+    "operator_intervention":  "Scripted PITR"
+}

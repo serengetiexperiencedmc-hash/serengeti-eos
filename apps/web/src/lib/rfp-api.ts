@@ -71,6 +71,115 @@ export async function getRfp(token: string, id: string) {
   return eosFetch<{ rfp: RfpSummary; versions: RfpVersion[] }>(`/v1/rfps/${id}`, { token });
 }
 
+export type RfpCommercialWorkspace = {
+  rfp: RfpSummary;
+  versions: RfpVersion[];
+  programme: {
+    id: string;
+    programmeCode: string;
+    title: string;
+    status: string;
+    commercialVersionLabel: string;
+    dayCount: number;
+    paxCount?: number;
+    destinations?: string;
+  } | null;
+  financialSummary: {
+    supplierCost: number;
+    clientSellingPrice: number;
+    grossProfit: number;
+    grossMarginPercent: number;
+    currency: string;
+    financialStatus: string;
+    fileFeeAmount?: number;
+    taxAmount?: number;
+    taxMode?: string;
+    markupPercentApplied?: number;
+  } | null;
+  rfpWorkflow: {
+    stages: string[];
+    current: string;
+    wonLostRecord: string;
+  };
+  proposalPreparation?: {
+    kind: string;
+    readiness: string;
+    clientIssued: boolean;
+    unresolvedRequiredCount: number;
+    existingProposalStatus: string | null;
+  };
+};
+
+export async function getRfpCommercialWorkspace(token: string, id: string) {
+  return eosFetch<RfpCommercialWorkspace>(`/v1/rfps/${id}/commercial-workspace`, { token });
+}
+
+export type ProposalPreparationGap = {
+  code: string;
+  requiredForClientRelease: boolean;
+  message: string;
+};
+
+export type ProposalPreparationView = {
+  kind: "internal_working_draft";
+  clientIssued: boolean;
+  readiness: "incomplete" | "internal_working_draft";
+  unresolved: ProposalPreparationGap[];
+  rfp: RfpSummary;
+  rfpWorkflow: RfpCommercialWorkspace["rfpWorkflow"];
+  programme: {
+    id: string;
+    programmeCode: string;
+    title: string;
+    status: string;
+    commercialVersionLabel: string;
+    dayCount: number;
+    paxCount?: number;
+    destinations?: string;
+    startDate?: string;
+    endDate?: string;
+    opportunityId: string;
+    organizationId: string;
+    rfpId: string;
+  } | null;
+  days: Array<{
+    id: string;
+    dayNumber: number;
+    title: string;
+    location?: string;
+    calendarDate?: string;
+    items: Array<{
+      id: string;
+      title: string;
+      startTime?: string;
+      itemType?: string;
+      supplierLabel?: string;
+      description?: string;
+    }>;
+  }>;
+  latestNumericProgrammeVersion: {
+    versionNumber: number;
+    summary: string;
+    snapshot: Record<string, unknown>;
+    createdAt: string;
+  } | null;
+  financialSummary: RfpCommercialWorkspace["financialSummary"] & {
+    formula?: string;
+    sellPriceSource?: string;
+    grossProfit?: number;
+    financialStatus?: string;
+  } | null;
+  costingStatus: string | null;
+  financialFormula: string | null;
+  clientFacing: { currency: string; clientSellingPrice: number } | null;
+  existingProposal: { id: string; proposalCode: string; status: string } | null;
+  sourceOfTruth: Record<string, string>;
+};
+
+export async function getRfpProposalPreparation(token: string, id: string) {
+  return eosFetch<ProposalPreparationView>(`/v1/rfps/${id}/proposal-preparation`, { token });
+}
+
 export async function fetchRfpHealth(token: string) {
   return eosFetch<{ rfps: number }>("/v1/rfps/health", { token });
 }

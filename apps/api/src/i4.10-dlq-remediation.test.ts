@@ -19,7 +19,7 @@ describe("I4.10 DLQ remediation statuses", () => {
   it("advances DLQ lifecycle via PATCH and banners I4.10", async () => {
     const store = seedStore("i410-dlq", TEST_BOOTSTRAP_SECRETS);
     const carol = allPrincipals(store).find((p) => p.email === "carol.admin@sedmc.local")!;
-    commitWithOutbox(store, carol, {
+    await commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",

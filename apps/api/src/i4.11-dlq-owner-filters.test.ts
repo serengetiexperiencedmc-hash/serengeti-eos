@@ -19,7 +19,7 @@ describe("I4.11 DLQ owner assignment and filters", () => {
   it("assigns owner and filters DLQ list", async () => {
     const store = seedStore("i411-dlq", TEST_BOOTSTRAP_SECRETS);
     const carol = allPrincipals(store).find((p) => p.email === "carol.admin@sedmc.local")!;
-    commitWithOutbox(store, carol, {
+    await commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",

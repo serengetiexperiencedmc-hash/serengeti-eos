@@ -1,0 +1,16 @@
+{
+  "capturedAt": "2026-09-22T11:21:17.143Z",
+  "ids": {
+    "organizationTypeId": "38b6bcd1-c929-49b0-bce4-e8c588b8ec9e",
+    "organizationId": "fe9bb5d5-8933-40a5-ae82-f8e6158a41fc",
+    "accountId": "0e9357fb-be4a-4fd6-845b-41d3ea620f11",
+    "opportunityId": "26cabbfa-147f-4539-9641-bd6387011630",
+    "rfpId": "f9aa6489-52a1-4ca8-8d9f-2e8f7a673af9",
+    "programmeId": "6e2abbc8-e6ef-4060-b702-cf0d0406f163",
+    "costSheetId": "f3d7c198-5a04-4d62-b93f-207dbafe143a",
+    "approvalId": "97637a54-ea51-4998-9936-ea70e87a5f29",
+    "proposalId": "28ff6667-d083-4420-8091-bed3d47edb71",
+    "supplierId": "61fff04c-312b-48c5-9aca-b659512202b3",
+    "rateId": "8a0864f1-8779-4349-92d6-80e73184191a"
+  }
+}

@@ -1,0 +1,403 @@
+{
+  "capturedAt": "2026-09-22T10:03:55.193Z",
+  "ids": {
+    "organizationTypeId": "1bafff5e-7a0d-4bfa-8890-d92b35573147",
+    "organizationTypeKey": "corporate",
+    "organizationId": "3cf88970-8a0a-4af2-bf9a-02a1e0947a7d",
+    "accountId": "93509ccd-4b7a-4bb9-8ae1-a8add12fabfe",
+    "opportunityId": "e5c5358f-3354-4659-870d-60aa7319780a",
+    "rfpId": "a38b5c4a-e4d8-4965-9e4d-ad8b801d122d",
+    "programmeId": "b0204b18-911a-49ed-90bc-4c884eb42db8",
+    "supplierId": "87cc65a4-4f9e-41ef-ac3f-38c8caf7aebc",
+    "rateId": "ee3e141d-869e-4c46-baf2-045547e5dfb9",
+    "activityId": "c189382c-87af-482b-a0e6-dc2544f890bb",
+    "taskId": "6c7b2ca1-a2fb-460a-90ea-a787331d354e",
+    "noteId": "8df29abe-fc56-47d2-88e5-ef54e40e3c66",
+    "costSheetId": "24c3a638-a1db-445e-9b91-ef7e5bff626f",
+    "approvalId": "3f23e84e-f67f-41bf-81be-8eba113f1081",
+    "documentId": "c1897acb-1cb3-4869-ac67-96dc089b9b75"
+  },
+  "scenarios": [
+    {
+      "scenarioId": "UAT-REC-HEALTH",
+      "actor": "carol.admin@sedmc.local",
+      "environment": "127.0.0.1:18149 against 127.0.0.1:5439/eos_h149_uat (post-restart)",
+      "timestamp": "2026-09-22T10:03:54.931Z",
+      "action": "GET /health after restart",
+      "expectedResult": "200",
+      "actualResult": {
+        "status": 200,
+        "json": {
+          "status": "ok",
+          "service": "sedmc-eos-api",
+          "version": "1.04.0-i3.37",
+          "increment": "I9.2-encrypted-field-cache",
+          "productionReady": false,
+          "identity": {
+            "mode": "local-password-dev",
+            "mfaEnabled": false,
+            "productionIdpSelected": false
+          }
+        }
+      },
+      "passFail": "PASS",
+      "defectId": null
+    },
+    {
+      "scenarioId": "UAT-REC-READY",
+      "actor": "carol.admin@sedmc.local",
+      "environment": "127.0.0.1:18149 against 127.0.0.1:5439/eos_h149_uat (post-restart)",
+      "timestamp": "2026-09-22T10:03:54.932Z",
+      "action": "GET /ready after restart",
+      "expectedResult": "200",
+      "actualResult": {
+        "status": 200,
+        "json": {
+          "status": "ok",
+          "service": "sedmc-eos-api",
+          "version": "1.04.0-i3.37",
+          "increment": "I9.2-encrypted-field-cache",
+          "productionReady": false,
+          "identity": {
+            "mode": "local-password-dev",
+            "mfaEnabled": false,
+            "productionIdpSelected": false
+          },
+          "applicationReady": true,
+          "eventInfrastructureReady": true,
+          "database": {
+            "ok": true
+          },
+          "events": {
+            "outbox": {
+              "ok": true,
+              "pending": 0
+            },
+            "publisher": {
+              "ok": true,
+              "pendingBacklog": 0
+            },
+            "transport": {
+              "ok": true,
+              "detail": "in-memory-dev-stand-in-not-production-transport"
+            },
+            "transportKind": "in-memory-dev",
+            "dlq": {
+              "ok": true,
+              "open": 0
+            },
+            "schemaCatalogue": {
+              "ok": true,
+              "activeSchemas": 43
+            },
+            "eventInfrastructureReady": true,
+            "note": "eventInfrastructureReady is separate from applicationReady; neither implies Production readiness"
+          }
+        }
+      },
+      "passFail": "PASS",
+      "defectId": null
+    },
+    {
+      "scenarioId": "UAT-REC-LOGIN",
+      "actor": "carol.admin@sedmc.local",
+      "environment": "127.0.0.1:18149 against 127.0.0.1:5439/eos_h149_uat (post-restart)",
+      "timestamp": "2026-09-22T10:03:55.005Z",
+      "action": "POST /v1/auth/login after restart",
+      "expectedResult": "200 token",
+      "actualResult": {
+        "status": 200,
+        "tokenPresent": true
+      },
+      "passFail": "PASS",
+      "defectId": null
+    },
+    {
+      "scenarioId": "UAT-ACC-04",
+      "actor": "carol.admin@sedmc.local",
+      "environment": "127.0.0.1:18149 against 127.0.0.1:5439/eos_h149_uat (post-restart)",
+      "timestamp": "2026-09-22T10:03:55.013Z",
+      "action": "GET account facts 93509ccd-4b7a-4bb9-8ae1-a8add12fabfe",
+      "expectedResult": "pco / united_kingdom",
+      "actualResult": {
+        "status": 200,
+        "facts": {
+          "accountId": "93509ccd-4b7a-4bb9-8ae1-a8add12fabfe",
+          "organizationId": "3cf88970-8a0a-4af2-bf9a-02a1e0947a7d",
+          "accountName": "UAT Synthetic Account",
+          "accountType": "pco",
+          "accountTypeLabel": "PCO",
+          "isPco": true,
+          "pcoIsDistinctFromEventAgency": true,
+          "market": "united_kingdom",
+          "marketLabel": "United Kingdom",
+          "accountTypeIndependentOfMarket": true,
+          "marketIndependentOfAccountType": true,
+          "or03Authoritative": true,
+          "or03mAuthoritative": true,
+          "legacyCrmMarketAuthoritativeForF2": false,
+          "inferredFromName": false,
+          "inferredFromTelephone": false,
+          "inferredFromEmail": false
+        }
+      },
+      "passFail": "PASS",
+      "defectId": null
+    },
+    {
+      "scenarioId": "UAT-OPP-06",
+      "actor": "carol.admin@sedmc.local",
+      "environment": "127.0.0.1:18149 against 127.0.0.1:5439/eos_h149_uat (post-restart)",
+      "timestamp": "2026-09-22T10:03:55.036Z",
+      "action": "GET opportunity facts e5c5358f-3354-4659-870d-60aa7319780a",
+      "expectedResult": "nextAction UAT follow-up with buyer",
+      "actualResult": {
+        "status": 200,
+        "facts": {
+          "opportunityId": "e5c5358f-3354-4659-870d-60aa7319780a",
+          "workflowStage": "rfp_received",
+          "opportunityStatus": "open",
+          "qualificationStatus": "not_yet_assessed",
+          "qualificationIsIndependentOfWorkflowStage": true,
+          "newQualifiedStageIsNotQualification": false,
+          "or01Qualified": false,
+          "qualificationConditions": {
+            "sufficient_scope": false,
+            "buyer_account_fit": false,
+            "defined_next_action": false,
+            "genuine_requirement": false,
+            "destination_service_fit": false,
+            "buying_process_known_active": false,
+            "commercial_viability_credible": false,
+            "approximate_group_size_profile": false,
+            "approximate_dates_decision_window": false
+          },
+          "qualificationEvidenceRefs": [],
+          "ownerPrincipalId": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+          "intakeOwnerPrincipalId": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+          "followUpOwnerPrincipalId": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+          "nextAction": {
+            "description": "UAT follow-up with buyer",
+            "ownerPrincipalId": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee"
+          },
+          "ownershipTransfers": [],
+          "ownerExistsBeforeQualification": true,
+          "c1Account": {
+            "linked": false
+          }
+        }
+      },
+      "passFail": "PASS",
+      "defectId": null
+    },
+    {
+      "scenarioId": "UAT-RFP-06",
+      "actor": "carol.admin@sedmc.local",
+      "environment": "127.0.0.1:18149 against 127.0.0.1:5439/eos_h149_uat (post-restart)",
+      "timestamp": "2026-09-22T10:03:55.047Z",
+      "action": "GET RFP facts a38b5c4a-e4d8-4965-9e4d-ad8b801d122d",
+      "expectedResult": "referral / email retained",
+      "actualResult": {
+        "status": 200,
+        "facts": {
+          "rfpId": "a38b5c4a-e4d8-4965-9e4d-ad8b801d122d",
+          "workflowStage": "proposal",
+          "primarySource": "referral",
+          "secondarySources": [],
+          "channel": "email",
+          "clarificationStatus": "not_started",
+          "clarificationEvents": [],
+          "sourceDistinctFromChannel": true,
+          "legacyCollapsedSource": "email",
+          "legacyCollapsedSourceAuthoritativeForF2": false,
+          "receivedAt": "2026-09-10T08:00:00.000Z",
+          "receivedAtProvenance": "explicit_business_fact",
+          "receivedAtObserved": true,
+          "receivedAtStatus": "observed",
+          "firstResponseAtObserved": false,
+          "firstResponseAtStatus": "unavailable",
+          "createdAtUsedAsReceivedAt": false,
+          "createdAtUsedAsFirstResponse": false,
+          "receivedAtUsedAsFirstResponse": false,
+          "legacyRfpRecordReceivedAt": "2026-09-22T09:54:37.247Z",
+          "legacyRfpRecordReceivedAtAuthoritativeForF2": false,
+          "rfpCreatedAt": "2026-09-22T09:54:37.247Z",
+          "receivedAtIsNotCreatedAt": true,
+          "responseTimeReadiness": {
+            "receivedAtObserved": true,
+            "firstResponseAtObserved": false,
+            "clarificationRequestedAtObserved": false,
+            "clarificationAnsweredAtObserved": false,
+            "proposalSentAtUsedAsFirstResponse": false,
+            "createdAtUsedAsReceivedAt": false,
+            "createdAtUsedAsFirstResponse": false,
+            "receivedAtUsedAsFirstResponse": false,
+            "status": "partially_ready"
+          }
+        }
+      },
+      "passFail": "PASS",
+      "defectId": null
+    },
+    {
+      "scenarioId": "UAT-PRG-03",
+      "actor": "carol.admin@sedmc.local",
+      "environment": "127.0.0.1:18149 against 127.0.0.1:5439/eos_h149_uat (post-restart)",
+      "timestamp": "2026-09-22T10:03:55.068Z",
+      "action": "GET programme facts b0204b18-911a-49ed-90bc-4c884eb42db8",
+      "expectedResult": "note / rfpObserved retained",
+      "actualResult": {
+        "status": 200,
+        "facts": {
+          "programmeId": "b0204b18-911a-49ed-90bc-4c884eb42db8",
+          "programmeCode": "UAT-RFP-001",
+          "rfpId": "a38b5c4a-e4d8-4965-9e4d-ad8b801d122d",
+          "opportunityId": "e5c5358f-3354-4659-870d-60aa7319780a",
+          "organizationId": "3cf88970-8a0a-4af2-bf9a-02a1e0947a7d",
+          "rfpObserved": true,
+          "rfpStatus": "observed",
+          "costingReferencesProgramme": false,
+          "costingStatus": "unavailable",
+          "proposalReferencesProgramme": false,
+          "proposalStatus": "unavailable",
+          "costSheetIds": [],
+          "proposalIds": [],
+          "costingIdentities": [],
+          "proposalIdentities": [],
+          "unsupportedCostSheetIds": [],
+          "unsupportedProposalIds": [],
+          "mixedProgrammeVersion": 1,
+          "recordedClientFacingVersionNumbers": [],
+          "observedClientFacingVersionStatus": "unavailable",
+          "note": "UAT identifier-trace only",
+          "officeDocumentIsNotIdentity": true,
+          "mixedProgrammeDatesUsedAsCommercialConsistency": false,
+          "itemCostingConsistencyValidated": false,
+          "sellPriceTreatedAsRevenue": false,
+          "costingTotalTreatedAsRevenue": false,
+          "inferredFromName": false,
+          "inferredFromDate": false,
+          "inferredFromAmount": false,
+          "inferredFromCreationOrder": false,
+          "relationshipProvenance": "explicit_mixed_foreign_key",
+          "dataSufficiency": "partial",
+          "trace": {
+            "rfpObserved": true,
+            "costingObserved": false,
+            "proposalObserved": false,
+            "status": "partial_rfp_observed",
+            "completeness": "partial",
+            "relationshipKind": "explicit_mixed_foreign_key"
+          }
+        }
+      },
+      "passFail": "PASS",
+      "defectId": null
+    },
+    {
+      "scenarioId": "UAT-RI-05",
+      "actor": "carol.admin@sedmc.local",
+      "environment": "127.0.0.1:18149 against 127.0.0.1:5439/eos_h149_uat (post-restart)",
+      "timestamp": "2026-09-22T10:03:55.192Z",
+      "action": "GET overlay after restart ee3e141d-869e-4c46-baf2-045547e5dfb9",
+      "expectedResult": "v1 TZS and v2 EUR retained",
+      "actualResult": {
+        "status": 200,
+        "identityCount": 12,
+        "v1": {
+          "identityId": "069d37d2-8360-438e-93b3-8f57b61bfd00",
+          "rateId": "ee3e141d-869e-4c46-baf2-045547e5dfb9",
+          "supplierId": "87cc65a4-4f9e-41ef-ac3f-38c8caf7aebc",
+          "supplierCode": "UAT-SUP-001",
+          "supplierLegalName": "UAT Synthetic Lodge",
+          "itemIdentity": "UAT-SGL",
+          "rateCode": "UAT-SGL",
+          "rateName": "UAT-SGL",
+          "versionIdentity": 1,
+          "sourceClass": "direct_supplier_contract",
+          "sourceClassLabel": "Direct supplier contract/agreement",
+          "rateType": "negotiated_contracted",
+          "rateTypeLabel": "Negotiated / Contracted",
+          "originalCurrency": "TZS",
+          "validFrom": "2026-01-01",
+          "validTo": "2026-12-31",
+          "currentlyValid": true,
+          "validityState": "current",
+          "amountIsNotIdentity": true,
+          "legacyAmount": 250,
+          "legacyUnitRateType": "per_room_per_night",
+          "legacyUnitRateTypeAuthoritativeForF2": false,
+          "legacyCurrency": "USD",
+          "legacyCurrencyAuthoritativeForF2": false,
+          "fxProviderImplemented": false,
+          "overlapWinnerInvented": false,
+          "preferredInConflictAuthoritativeForF2": false,
+          "inferredFromWebsite": false,
+          "or08Authoritative": true
+        },
+        "v2": {
+          "identityId": "1ffa8aa7-72aa-47f1-b00d-eb4bf1e9dacd",
+          "rateId": "ee3e141d-869e-4c46-baf2-045547e5dfb9",
+          "supplierId": "87cc65a4-4f9e-41ef-ac3f-38c8caf7aebc",
+          "supplierCode": "UAT-SUP-001",
+          "supplierLegalName": "UAT Synthetic Lodge",
+          "itemIdentity": "UAT-SGL",
+          "rateCode": "UAT-SGL",
+          "rateName": "UAT-SGL",
+          "versionIdentity": 2,
+          "sourceClass": "direct_supplier_contract",
+          "sourceClassLabel": "Direct supplier contract/agreement",
+          "rateType": "negotiated_contracted",
+          "rateTypeLabel": "Negotiated / Contracted",
+          "originalCurrency": "EUR",
+          "validFrom": "2026-01-01",
+          "validTo": "2026-12-31",
+          "currentlyValid": true,
+          "validityState": "current",
+          "amountIsNotIdentity": true,
+          "legacyAmount": 250,
+          "legacyUnitRateType": "per_room_per_night",
+          "legacyUnitRateTypeAuthoritativeForF2": false,
+          "legacyCurrency": "USD",
+          "legacyCurrencyAuthoritativeForF2": false,
+          "fxProviderImplemented": false,
+          "overlapWinnerInvented": false,
+          "preferredInConflictAuthoritativeForF2": false,
+          "inferredFromWebsite": false,
+          "or08Authoritative": true
+        }
+      },
+      "passFail": "PASS",
+      "defectId": null
+    },
+    {
+      "scenarioId": "UAT-REC-01",
+      "actor": "carol.admin@sedmc.local",
+      "environment": "127.0.0.1:18149 against 127.0.0.1:5439/eos_h149_uat (post-restart)",
+      "timestamp": "2026-09-22T10:03:55.193Z",
+      "action": "Combined GET after single restart",
+      "expectedResult": "All recorded overlays return; mixed parents retrievable",
+      "actualResult": {
+        "mixed": {
+          "account": 200,
+          "opportunity": 200,
+          "rfp": 200,
+          "programme": 200,
+          "rate": 404,
+          "costing": 200,
+          "proposal": 0,
+          "task": 200
+        },
+        "overlays": {
+          "account": 200,
+          "opportunity": 200,
+          "rfp": 200,
+          "programme": 200,
+          "rate": 200
+        }
+      },
+      "passFail": "FAIL",
+      "defectId": "UAT-REC-01-RESTART"
+    }
+  ]
+}

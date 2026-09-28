@@ -47,7 +47,7 @@ describePg("PG.2 I4 outbox persistence", () => {
     const principal = allPrincipals(store).find((p) => p.id === "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee")!;
     const before = await countPendingOutboxEvents(pool, tenantId);
 
-    const result = commitWithOutbox(store, principal, {
+    const result = await commitWithOutbox(store, principal, {
       eventType: "test.pg2.event",
       payload: { msg: "pg2" },
       classification: "Internal",

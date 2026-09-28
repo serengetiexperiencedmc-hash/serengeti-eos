@@ -143,29 +143,22 @@ describe("C1.5 CRM accounts + notes + tasks", () => {
   });
 
   describe("notes", () => {
-    it("creates, lists, updates, and archives notes on contact", async () => {
+    it("creates, lists, updates, and archives notes on organization", async () => {
       const app = buildServer({ store: seedStore("test-secret") });
       const token = await loginCarol(app);
       const orgId = await createOrg(app, token, "Note Org");
-      const contact = await app.inject({
-        method: "POST",
-        url: "/v1/crm/contacts",
-        headers: { authorization: `Bearer ${token}` },
-        payload: { givenName: "Note", familyName: "Person", email: "note.person@example.com" },
-      });
-      const contactId = contact.json().contact.id;
 
       const created = await app.inject({
         method: "POST",
         url: "/v1/crm/notes",
         headers: { authorization: `Bearer ${token}` },
-        payload: { body: "Prefers morning meetings", entityType: "contact", entityId: contactId },
+        payload: { body: "Prefers morning meetings", entityType: "organization", entityId: orgId },
       });
       expect(created.statusCode).toBe(201);
 
       const listed = await app.inject({
         method: "GET",
-        url: `/v1/crm/contacts/${contactId}/notes`,
+        url: `/v1/crm/organizations/${orgId}/notes`,
         headers: { authorization: `Bearer ${token}` },
       });
       expect(listed.json().items).toHaveLength(1);

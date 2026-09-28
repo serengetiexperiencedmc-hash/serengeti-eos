@@ -14,8 +14,6 @@ export type CommercialLiveStats = {
 
   organizations: number;
 
-  contacts: number;
-
   activities: number;
 
   accounts: number;
@@ -156,8 +154,6 @@ export async function fetchCommercialLiveStats(token: string): Promise<Commercia
     suppliers: supHealth.suppliers,
 
     organizations: crmHealth.entities.organizations ?? 0,
-
-    contacts: crmHealth.entities.contacts ?? 0,
 
     activities: crmHealth.entities.activities ?? 0,
 

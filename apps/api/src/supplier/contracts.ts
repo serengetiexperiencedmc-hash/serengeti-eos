@@ -13,7 +13,6 @@ import type { Store } from "../store.js";
 import { allowCdAudit, denyCdAudit } from "../commercial-documents/audit.js";
 import { ensureSupplierContractCollections } from "../commercial-documents/collections.js";
 import { uploadCommercialDocument } from "../commercial-documents/service.js";
-import { LocalFsDocumentStorage } from "../commercial-documents/storage.js";
 
 function sanitizeContract(c: SupContract) {
   return {
@@ -285,7 +284,7 @@ export async function attachContractDocument(
       const orphan = store.commercialDocuments[idx];
       store.commercialDocuments.splice(idx, 1);
       const storage = store.documentStorage;
-      if (orphan && storage instanceof LocalFsDocumentStorage) {
+      if (orphan && storage) {
         await storage.delete(orphan.storageRef);
       }
     }

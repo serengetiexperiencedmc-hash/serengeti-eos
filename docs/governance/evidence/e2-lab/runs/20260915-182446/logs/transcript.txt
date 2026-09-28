@@ -1,0 +1,266 @@
+﻿**********************
+Windows PowerShell transcript start
+Start time: 20260915182446
+Username: DESKTOP-26A9125\PC
+RunAs User: DESKTOP-26A9125\PC
+Configuration Name: 
+Machine: DESKTOP-26A9125 (Microsoft Windows NT 10.0.19045.0)
+Host Application: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1
+Process ID: 27720
+PSVersion: 5.1.19041.6456
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.19041.6456
+BuildVersion: 10.0.19041.6456
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+2026-09-15T15:24:46.8075773+00:00 RUN_START root=C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1 run=20260915-182446
+2026-09-15T15:24:46.8313538+00:00 PREEXISTING_GIT will be recorded by caller; runner does not commit
+2026-09-15T15:24:46.8365188+00:00 LAB-01 start
+docker.exe : Error response from daemon: network eos-e2-lab-net not found
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:90 char:3
++   & docker @Args 2>$null | Out-Null
++   ~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Error response ...b-net not found:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or 
+directory
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...le or directory:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+	Is the server running locally and accepting connections on that socket?
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or 
+directory
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...le or directory:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+	Is the server running locally and accepting connections on that socket?
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the 
+database system is shutting down
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...s shutting down:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the 
+database system is shutting down
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...s shutting down:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the 
+database system is shutting down
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...s shutting down:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the 
+database system is shutting down
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...s shutting down:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+
+2026-09-15T15:24:57.1517746+00:00 LAB-01 T0 destroy primary data directory
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or 
+directory
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...le or directory:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+	Is the server running locally and accepting connections on that socket?
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or 
+directory
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...le or directory:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+	Is the server running locally and accepting connections on that socket?
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the 
+database system is shutting down
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...s shutting down:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+
+2026-09-15T15:25:05.7992948+00:00 LAB-01 PASS rto_ms=7908 pre=True post=False
+2026-09-15T15:25:05.8038466+00:00 LAB-02 start (base backup then restore point then corruption)
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or 
+directory
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...le or directory:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+	Is the server running locally and accepting connections on that socket?
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or 
+directory
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...le or directory:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+	Is the server running locally and accepting connections on that socket?
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the 
+database system is shutting down
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...s shutting down:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the 
+database system is shutting down
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...s shutting down:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the 
+database system is shutting down
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...s shutting down:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the 
+database system is shutting down
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...s shutting down:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+
+2026-09-15T15:25:28.9261649+00:00 LAB-02 FAIL rto_ms=6365 good=True after=True title=CORRUPT-AFTER-GOOD
+2026-09-15T15:25:28.9341199+00:00 LAB-03 start
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or 
+directory
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...le or directory:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+	Is the server running locally and accepting connections on that socket?
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or 
+directory
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...le or directory:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+	Is the server running locally and accepting connections on that socket?
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the 
+database system is shutting down
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...s shutting down:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the 
+database system is shutting down
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...s shutting down:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the 
+database system is shutting down
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...s shutting down:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the 
+database system is shutting down
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...s shutting down:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the 
+database system is starting up
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co... is starting up:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+2026-09-15T15:25:45.4715593+00:00 LAB-03 PASS rto_ms=5641 pre=True inflight=False
+2026-09-15T15:25:45.4771082+00:00 LAB-04 start
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or 
+directory
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...le or directory:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+	Is the server running locally and accepting connections on that socket?
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or 
+directory
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...le or directory:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+	Is the server running locally and accepting connections on that socket?
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the 
+database system is shutting down
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...s shutting down:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the 
+database system is shutting down
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...s shutting down:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the 
+database system is shutting down
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...s shutting down:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the 
+database system is shutting down
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...s shutting down:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the 
+database system is starting up
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co... is starting up:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+PS>TerminatingError(docker.exe): "The running command stopped because the preference variable "ErrorActionPreference" or common parameter is set to Stop: ERROR:  ALTER SYSTEM cannot run inside a transaction block"
+>> TerminatingError(docker.exe): "The running command stopped because the preference variable "ErrorActionPreference" or common parameter is set to Stop: ERROR:  ALTER SYSTEM cannot run inside a transaction block"
+>> TerminatingError(docker.exe): "The running command stopped because the preference variable "ErrorActionPreference" or common parameter is set to Stop: ERROR:  ALTER SYSTEM cannot run inside a transaction block"
+>> TerminatingError(docker.exe): "The running command stopped because the preference variable "ErrorActionPreference" or common parameter is set to Stop: ERROR:  ALTER SYSTEM cannot run inside a transaction block"
+2026-09-15T15:26:02.3140779+00:00 RUNNER_ERROR ERROR:  ALTER SYSTEM cannot run inside a transaction block
+2026-09-15T15:26:02.3341986+00:00 CLEANUP containers/volumes (lab only)
+2026-09-15T15:26:04.0881303+00:00 RUN_END summary=C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\runs\20260915-182446\summary.json count=4
+**********************
+Windows PowerShell transcript end
+End time: 20260915182604
+**********************

@@ -35,7 +35,6 @@ export type AiDraft = {
   appliedEntityType?: AiDraftArtefactType;
   appliedEntityId?: string;
   relatedOrganizationId?: string;
-  relatedContactId?: string;
 };
 
 export function isAiDraftStatus(value: string): value is AiDraftStatus {

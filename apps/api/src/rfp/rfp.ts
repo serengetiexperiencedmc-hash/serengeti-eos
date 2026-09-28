@@ -4,16 +4,41 @@ import {
   computeSlaStatus,
   isValidRfpWorkflowStage,
   newId,
+  RFP_EVENT_TYPES,
   RFP_WORKFLOW_LABELS,
   RFP_WORKFLOW_STAGES,
   type Principal,
   type RfpRecord,
   type RfpVersion,
-  type RfpWorkflowStage,
 } from "@sedmc/kernel";
 import type { Store } from "../store.js";
 import { allowRfpAudit, denyRfpAudit } from "./audit.js";
 import { ensureRfpCollections } from "./collections.js";
+import {
+  allowAuditRecord,
+  denyAuditRecord,
+  insertChainedAudit,
+  insertDomainOutbox,
+  isMixedSqlDurable,
+  isUniqueViolation,
+  OptimisticConcurrencyError,
+  persistDenyAudit,
+  rememberPostCommit,
+  runDurableTx,
+} from "../persistence/durable.js";
+import { getOpportunityById } from "../persistence/opportunity-repository.js";
+import { persistOpportunityStageAdvanceInTx } from "../pipeline/opportunity.js";
+import {
+  countRfps,
+  getRfpById,
+  insertRfp,
+  insertRfpVersion,
+  listRfpVersions,
+  listRfpsByTenant,
+  rfpCodeExists,
+  updateRfpOptimistic,
+} from "../persistence/rfp-repository.js";
+import { rejectPersonDomainContent } from "../personal-data-content-contract.js";
 
 function sanitizeRfp(r: RfpRecord) {
   const slaStatus = r.slaDueAt ? computeSlaStatus(r.slaDueAt) : undefined;
@@ -58,11 +83,25 @@ function sanitizeVersion(v: RfpVersion) {
   };
 }
 
-function findRfp(store: Store, tenantId: string, id: string): RfpRecord | undefined {
+function findRfpMemory(store: Store, tenantId: string, id: string): RfpRecord | undefined {
   return store.rfpRfps.find((r) => r.id === id && r.tenantId === tenantId && !r.archivedAt);
 }
 
-export function getRfpModuleHealth(store: Store, principal: Principal) {
+export async function loadRfp(store: Store, tenantId: string, id: string): Promise<RfpRecord | undefined> {
+  if (isMixedSqlDurable(store)) return getRfpById(store.dbPool, tenantId, id);
+  ensureRfpCollections(store);
+  return findRfpMemory(store, tenantId, id);
+}
+
+async function deny(store: Store, principal: Principal, action: string, resourceType: string, correlationId: string, reason: string, resourceId?: string) {
+  if (isMixedSqlDurable(store)) {
+    await persistDenyAudit(store, denyAuditRecord(principal, action, resourceType, correlationId, reason, resourceId));
+  } else {
+    denyRfpAudit(store, principal, action, resourceType, correlationId, reason, resourceId);
+  }
+}
+
+export async function getRfpModuleHealth(store: Store, principal: Principal) {
   ensureRfpCollections(store);
   const decision = authorize({
     principal,
@@ -70,6 +109,10 @@ export function getRfpModuleHealth(store: Store, principal: Principal) {
     action: "read:rfp",
   });
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+  if (isMixedSqlDurable(store)) {
+    const counts = await countRfps(store.dbPool, principal.tenantId);
+    return { module: "rfp", increment: "C3", status: "ok" as const, ...counts };
+  }
   const rfps = store.rfpRfps.filter((r) => r.tenantId === principal.tenantId && !r.archivedAt);
   return {
     module: "rfp",
@@ -96,7 +139,7 @@ export function listRfpWorkflowStages(store: Store, principal: Principal) {
   };
 }
 
-export function listRfps(
+export async function listRfps(
   store: Store,
   principal: Principal,
   query?: { opportunityId?: string; workflowStage?: string; status?: string },
@@ -109,22 +152,24 @@ export function listRfps(
   });
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
 
-  let items = store.rfpRfps.filter((r) => r.tenantId === principal.tenantId && !r.archivedAt);
-  if (query?.opportunityId) items = items.filter((r) => r.opportunityId === query.opportunityId);
-  if (query?.workflowStage) {
-    if (!isValidRfpWorkflowStage(query.workflowStage)) {
-      return { error: "invalid_request" as const, reason: "invalid_workflow_stage" };
-    }
-    items = items.filter((r) => r.workflowStage === query.workflowStage);
+  if (query?.workflowStage && !isValidRfpWorkflowStage(query.workflowStage)) {
+    return { error: "invalid_request" as const, reason: "invalid_workflow_stage" };
   }
-  if (query?.status) items = items.filter((r) => r.status === query.status);
-  items.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+
+  const items = isMixedSqlDurable(store)
+    ? await listRfpsByTenant(store.dbPool, principal.tenantId, query)
+    : store.rfpRfps
+        .filter((r) => r.tenantId === principal.tenantId && !r.archivedAt)
+        .filter((r) => (query?.opportunityId ? r.opportunityId === query.opportunityId : true))
+        .filter((r) => (query?.workflowStage ? r.workflowStage === query.workflowStage : true))
+        .filter((r) => (query?.status ? r.status === query.status : true))
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   return { items: items.map(sanitizeRfp) };
 }
 
-export function getRfp(store: Store, principal: Principal, id: string) {
+export async function getRfp(store: Store, principal: Principal, id: string) {
   ensureRfpCollections(store);
-  const rfp = findRfp(store, principal.tenantId, id);
+  const rfp = await loadRfp(store, principal.tenantId, id);
   if (!rfp) return { error: "not_found" as const };
 
   const decision = authorize({
@@ -135,9 +180,11 @@ export function getRfp(store: Store, principal: Principal, id: string) {
   });
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
 
-  const versions = store.rfpVersions
-    .filter((v) => v.rfpId === id && v.tenantId === principal.tenantId)
-    .sort((a, b) => b.versionNumber - a.versionNumber);
+  const versions = isMixedSqlDurable(store)
+    ? await listRfpVersions(store.dbPool, principal.tenantId, id)
+    : store.rfpVersions
+        .filter((v) => v.rfpId === id && v.tenantId === principal.tenantId)
+        .sort((a, b) => b.versionNumber - a.versionNumber);
 
   return { rfp: sanitizeRfp(rfp), versions: versions.map(sanitizeVersion) };
 }
@@ -162,7 +209,7 @@ export type CreateRfpInput = {
   initialVersionSummary?: string;
 };
 
-export function createRfp(store: Store, principal: Principal, input: CreateRfpInput, correlationId: string) {
+export async function createRfp(store: Store, principal: Principal, input: CreateRfpInput, correlationId: string) {
   ensureRfpCollections(store);
   const decision = authorize({
     principal,
@@ -170,13 +217,17 @@ export function createRfp(store: Store, principal: Principal, input: CreateRfpIn
     action: "create:rfp",
   });
   if (decision.result === "deny") {
-    denyRfpAudit(store, principal, "rfp:write:rfp", "rfp", correlationId, decision.reason);
+    await deny(store, principal, "rfp:write:rfp", "rfp", correlationId, decision.reason);
     return { error: "forbidden" as const, reason: decision.reason };
   }
+  const personContent = rejectPersonDomainContent(input);
+  if (personContent) return personContent;
 
-  const opp = store.oppOpportunities.find(
-    (o) => o.id === input.opportunityId && o.tenantId === principal.tenantId && !o.archivedAt,
-  );
+  const opp = isMixedSqlDurable(store)
+    ? await getOpportunityById(store.dbPool, principal.tenantId, input.opportunityId)
+    : store.oppOpportunities.find(
+        (o) => o.id === input.opportunityId && o.tenantId === principal.tenantId && !o.archivedAt,
+      );
   if (!opp) return { error: "invalid_request" as const, reason: "invalid_opportunity" };
 
   const title = input.title?.trim();
@@ -184,7 +235,11 @@ export function createRfp(store: Store, principal: Principal, input: CreateRfpIn
 
   const code = input.rfpCode?.trim();
   if (!code) return { error: "invalid_request" as const, reason: "rfp_code_required" };
-  if (store.rfpRfps.some((r) => r.tenantId === principal.tenantId && r.rfpCode === code)) {
+  if (isMixedSqlDurable(store)) {
+    if (await rfpCodeExists(store.dbPool, principal.tenantId, code)) {
+      return { error: "conflict" as const, reason: "duplicate_rfp_code" };
+    }
+  } else if (store.rfpRfps.some((r) => r.tenantId === principal.tenantId && r.rfpCode === code)) {
     return { error: "conflict" as const, reason: "duplicate_rfp_code" };
   }
 
@@ -233,13 +288,57 @@ export function createRfp(store: Store, principal: Principal, input: CreateRfpIn
     createdByPrincipalId: principal.id,
   };
 
-  store.rfpRfps.push(rfp);
-  store.rfpVersions.push(version);
-
-  if (opp.stage === "new_qualified") {
+  const advanceOpp = opp.stage === "new_qualified";
+  const oppExpectedVersion = opp.version;
+  if (advanceOpp) {
     opp.stage = "rfp_received";
     opp.updatedAt = now;
     opp.version += 1;
+  }
+
+  if (isMixedSqlDurable(store)) {
+    try {
+      const committed = await runDurableTx(store, async (client) => {
+        await insertRfp(client, rfp);
+        await insertRfpVersion(client, version);
+        if (advanceOpp) {
+          await persistOpportunityStageAdvanceInTx(client, opp, {
+            id: newId(),
+            tenantId: principal.tenantId,
+            opportunityId: opp.id,
+            fromStage: "new_qualified",
+            toStage: "rfp_received",
+            changedAt: now,
+            changedByPrincipalId: principal.id,
+            notes: `RFP ${code} created`,
+          }, oppExpectedVersion);
+        }
+        const audit = await insertChainedAudit(
+          client,
+          allowAuditRecord(principal, "rfp:write:rfp", "rfp", rfp.id, correlationId, sanitizeRfp(rfp)),
+        );
+        const outbox = await insertDomainOutbox(client, {
+          principal,
+          eventType: RFP_EVENT_TYPES.RFP_CREATED,
+          payload: { rfpId: rfp.id, rfpCode: rfp.rfpCode, opportunityId: rfp.opportunityId },
+          classification: rfp.classification,
+          correlationId,
+          aggregateId: rfp.id,
+        });
+        return { audit, outbox };
+      });
+      rememberPostCommit(store, committed.audit, committed.outbox);
+    } catch (error) {
+      if (isUniqueViolation(error)) return { error: "conflict" as const, reason: "duplicate_rfp_code" };
+      if (error instanceof OptimisticConcurrencyError) return { error: "conflict" as const, reason: "stale_version" };
+      throw error;
+    }
+    return { rfp: sanitizeRfp(rfp), version };
+  }
+
+  store.rfpRfps.push(rfp);
+  store.rfpVersions.push(version);
+  if (advanceOpp) {
     store.oppStageHistory.push({
       id: newId(),
       tenantId: principal.tenantId,
@@ -251,12 +350,11 @@ export function createRfp(store: Store, principal: Principal, input: CreateRfpIn
       notes: `RFP ${code} created`,
     });
   }
-
   allowRfpAudit(store, principal, "rfp:write:rfp", "rfp", rfp.id, correlationId, sanitizeRfp(rfp));
   return { rfp: sanitizeRfp(rfp), version };
 }
 
-export function transitionRfpStage(
+export async function transitionRfpStage(
   store: Store,
   principal: Principal,
   id: string,
@@ -264,7 +362,7 @@ export function transitionRfpStage(
   correlationId: string,
 ) {
   ensureRfpCollections(store);
-  const rfp = findRfp(store, principal.tenantId, id);
+  const rfp = await loadRfp(store, principal.tenantId, id);
   if (!rfp) return { error: "not_found" as const };
 
   const decision = authorize({
@@ -274,7 +372,7 @@ export function transitionRfpStage(
     resource: { tenantId: rfp.tenantId, type: "rfp", id: rfp.id, classification: rfp.classification },
   });
   if (decision.result === "deny") {
-    denyRfpAudit(store, principal, "rfp:transition:stage", "rfp", correlationId, decision.reason, id);
+    await deny(store, principal, "rfp:transition:stage", "rfp", correlationId, decision.reason, id);
     return { error: "forbidden" as const, reason: decision.reason };
   }
 
@@ -287,6 +385,7 @@ export function transitionRfpStage(
 
   const now = new Date().toISOString();
   const fromStage = rfp.workflowStage;
+  const expectedVersion = rfp.version;
   rfp.workflowStage = toStage;
   rfp.updatedAt = now;
   rfp.updatedByPrincipalId = principal.id;
@@ -294,14 +393,38 @@ export function transitionRfpStage(
   if (toStage === "closed") rfp.status = "closed";
   if (rfp.slaDueAt) rfp.slaStatus = computeSlaStatus(rfp.slaDueAt);
 
-  allowRfpAudit(store, principal, "rfp:transition:stage", "rfp", rfp.id, correlationId, {
-    fromStage,
-    toStage,
-  });
+  if (isMixedSqlDurable(store)) {
+    try {
+      const committed = await runDurableTx(store, async (client) => {
+        const updated = await updateRfpOptimistic(client, rfp, expectedVersion);
+        if (updated === 0) throw new OptimisticConcurrencyError("rfp");
+        const audit = await insertChainedAudit(
+          client,
+          allowAuditRecord(principal, "rfp:transition:stage", "rfp", rfp.id, correlationId, { fromStage, toStage }),
+        );
+        const outbox = await insertDomainOutbox(client, {
+          principal,
+          eventType: RFP_EVENT_TYPES.RFP_STAGE_CHANGED,
+          payload: { rfpId: rfp.id, fromStage, toStage },
+          classification: rfp.classification,
+          correlationId,
+          aggregateId: rfp.id,
+        });
+        return { audit, outbox };
+      });
+      rememberPostCommit(store, committed.audit, committed.outbox);
+    } catch (error) {
+      if (error instanceof OptimisticConcurrencyError) return { error: "conflict" as const, reason: "stale_version" };
+      throw error;
+    }
+    return { rfp: sanitizeRfp(rfp) };
+  }
+
+  allowRfpAudit(store, principal, "rfp:transition:stage", "rfp", rfp.id, correlationId, { fromStage, toStage });
   return { rfp: sanitizeRfp(rfp) };
 }
 
-export function createRfpVersion(
+export async function createRfpVersion(
   store: Store,
   principal: Principal,
   id: string,
@@ -309,7 +432,7 @@ export function createRfpVersion(
   correlationId: string,
 ) {
   ensureRfpCollections(store);
-  const rfp = findRfp(store, principal.tenantId, id);
+  const rfp = await loadRfp(store, principal.tenantId, id);
   if (!rfp) return { error: "not_found" as const };
 
   const decision = authorize({
@@ -319,13 +442,14 @@ export function createRfpVersion(
     resource: { tenantId: rfp.tenantId, type: "rfp", id: rfp.id, classification: rfp.classification },
   });
   if (decision.result === "deny") {
-    denyRfpAudit(store, principal, "rfp:write:version", "rfp_version", correlationId, decision.reason, id);
+    await deny(store, principal, "rfp:write:version", "rfp_version", correlationId, decision.reason, id);
     return { error: "forbidden" as const, reason: decision.reason };
   }
 
   if (!summary?.trim()) return { error: "invalid_request" as const, reason: "summary_required" };
 
   const now = new Date().toISOString();
+  const expectedVersion = rfp.version;
   const versionNumber = rfp.currentVersion + 1;
   const version: RfpVersion = {
     id: newId(),
@@ -340,8 +464,37 @@ export function createRfpVersion(
   rfp.currentVersion = versionNumber;
   rfp.updatedAt = now;
   rfp.version += 1;
-  store.rfpVersions.push(version);
 
+  if (isMixedSqlDurable(store)) {
+    try {
+      const committed = await runDurableTx(store, async (client) => {
+        const updated = await updateRfpOptimistic(client, rfp, expectedVersion);
+        if (updated === 0) throw new OptimisticConcurrencyError("rfp");
+        await insertRfpVersion(client, version);
+        const audit = await insertChainedAudit(
+          client,
+          allowAuditRecord(principal, "rfp:write:version", "rfp_version", version.id, correlationId, sanitizeVersion(version)),
+        );
+        const outbox = await insertDomainOutbox(client, {
+          principal,
+          eventType: RFP_EVENT_TYPES.RFP_VERSION_CREATED,
+          payload: { rfpId: rfp.id, versionNumber },
+          classification: rfp.classification,
+          correlationId,
+          aggregateId: rfp.id,
+        });
+        return { audit, outbox };
+      });
+      rememberPostCommit(store, committed.audit, committed.outbox);
+    } catch (error) {
+      if (error instanceof OptimisticConcurrencyError) return { error: "conflict" as const, reason: "stale_version" };
+      if (isUniqueViolation(error)) return { error: "conflict" as const, reason: "duplicate_version" };
+      throw error;
+    }
+    return { version: sanitizeVersion(version), rfp: sanitizeRfp(rfp) };
+  }
+
+  store.rfpVersions.push(version);
   allowRfpAudit(store, principal, "rfp:write:version", "rfp_version", version.id, correlationId, sanitizeVersion(version));
   return { version: sanitizeVersion(version), rfp: sanitizeRfp(rfp) };
 }
@@ -358,7 +511,7 @@ export type PatchRfpInput = {
   assignedPrincipalId?: string | null;
 };
 
-export function patchRfp(
+export async function patchRfp(
   store: Store,
   principal: Principal,
   id: string,
@@ -366,7 +519,7 @@ export function patchRfp(
   correlationId: string,
 ) {
   ensureRfpCollections(store);
-  const rfp = findRfp(store, principal.tenantId, id);
+  const rfp = await loadRfp(store, principal.tenantId, id);
   if (!rfp) return { error: "not_found" as const };
 
   const decision = authorize({
@@ -376,9 +529,11 @@ export function patchRfp(
     resource: { tenantId: rfp.tenantId, type: "rfp", id: rfp.id, classification: rfp.classification },
   });
   if (decision.result === "deny") {
-    denyRfpAudit(store, principal, "rfp:write:rfp", "rfp", correlationId, decision.reason, id);
+    await deny(store, principal, "rfp:write:rfp", "rfp", correlationId, decision.reason, id);
     return { error: "forbidden" as const, reason: decision.reason };
   }
+  const personContent = rejectPersonDomainContent(input);
+  if (personContent) return personContent;
 
   if (input.title !== undefined) {
     const title = input.title?.trim();
@@ -427,9 +582,30 @@ export function patchRfp(
   }
 
   const now = new Date().toISOString();
+  const expectedVersion = rfp.version;
   rfp.updatedAt = now;
   rfp.updatedByPrincipalId = principal.id;
   rfp.version += 1;
+
+  if (isMixedSqlDurable(store)) {
+    try {
+      const committed = await runDurableTx(store, async (client) => {
+        const updated = await updateRfpOptimistic(client, rfp, expectedVersion);
+        if (updated === 0) throw new OptimisticConcurrencyError("rfp");
+        const audit = await insertChainedAudit(
+          client,
+          allowAuditRecord(principal, "rfp:write:rfp", "rfp", rfp.id, correlationId, sanitizeRfp(rfp)),
+        );
+        return { audit };
+      });
+      rememberPostCommit(store, committed.audit);
+    } catch (error) {
+      if (error instanceof OptimisticConcurrencyError) return { error: "conflict" as const, reason: "stale_version" };
+      throw error;
+    }
+    return { rfp: sanitizeRfp(rfp) };
+  }
+
   allowRfpAudit(store, principal, "rfp:write:rfp", "rfp", rfp.id, correlationId, sanitizeRfp(rfp));
   return { rfp: sanitizeRfp(rfp) };
 }
@@ -438,9 +614,20 @@ export { sanitizeRfp };
 
 export function refreshRfpSlaStatuses(store: Store, tenantId: string): void {
   ensureRfpCollections(store);
+  if (isMixedSqlDurable(store)) return;
   for (const rfp of store.rfpRfps) {
     if (rfp.tenantId === tenantId && rfp.slaDueAt && rfp.status === "active") {
       rfp.slaStatus = computeSlaStatus(rfp.slaDueAt);
     }
   }
+}
+
+/** Used by Programme/Costing/Approval to advance RFP workflow in the same durable transaction. */
+export async function persistRfpStageAdvanceInTx(
+  client: Parameters<typeof updateRfpOptimistic>[0],
+  rfp: RfpRecord,
+  expectedVersion: number,
+): Promise<void> {
+  const updated = await updateRfpOptimistic(client, rfp, expectedVersion);
+  if (updated === 0) throw new OptimisticConcurrencyError("rfp");
 }

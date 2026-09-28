@@ -19,7 +19,7 @@ describe("I4.15 DLQ SLA escalation notifications", () => {
   it("emits urgent inbox item for open DLQ past SLA and banners I4.15", async () => {
     const store = seedStore("i414-sla-notif", TEST_BOOTSTRAP_SECRETS);
     const carol = allPrincipals(store).find((p) => p.email === "carol.admin@sedmc.local")!;
-    commitWithOutbox(store, carol, {
+    await commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",

@@ -168,20 +168,8 @@ describe("O1-O3 operations API", () => {
       url: `/v1/ops/manifests/by-booking/${bookingId}`,
       headers: { authorization: `Bearer ${token}` },
     });
-    const manifestId = manifest.json().manifest.id as string;
-    await app.inject({
-      method: "POST",
-      url: `/v1/ops/manifests/${manifestId}/entries`,
-      headers: { authorization: `Bearer ${token}` },
-      payload: { guestName: "Jane Doe", dietary: "Vegetarian" },
-    });
-    const published = await app.inject({
-      method: "POST",
-      url: `/v1/ops/manifests/${manifestId}/publish`,
-      headers: { authorization: `Bearer ${token}` },
-    });
-    expect(published.statusCode).toBe(200);
-    expect(published.json().manifest.status).toBe("published");
+    expect(manifest.statusCode).toBe(400);
+    expect(manifest.json().reason).toBe("person_domain_removed");
 
     await app.inject({
       method: "PUT",

@@ -5,13 +5,15 @@ export { parseCsv, type ParsedCsvRow };
 
 export const SUPPLIER_IMPORT_ENTITY_TYPES = [
   "supplier",
-  "supplier_contact",
   "supplier_rate",
   "supplier_content_block",
   "supplier_season",
 ] as const;
+export const SUPPLIER_RETIRED_IMPORT_ENTITY_TYPES = ["supplier_contact"] as const;
 
 export type SupplierImportEntityType = (typeof SUPPLIER_IMPORT_ENTITY_TYPES)[number];
+export type SupplierRetiredImportEntityType = (typeof SUPPLIER_RETIRED_IMPORT_ENTITY_TYPES)[number];
+export type StoredSupplierImportEntityType = SupplierImportEntityType | SupplierRetiredImportEntityType;
 
 export const SUPPLIER_IMPORT_MAX_ROWS = 5000;
 export const SUPPLIER_RATE_IMPORT_MAX_ROWS = 20000;
@@ -37,16 +39,6 @@ export const SUPPLIER_STATUSES = [
   "active",
   "inactive",
   "suspended",
-] as const;
-
-export const SUPPLIER_CONTACT_ROLES = [
-  "reservations",
-  "operations",
-  "finance",
-  "management",
-  "sales",
-  "emergency",
-  "other",
 ] as const;
 
 export const SUPPLIER_RATE_TYPES = [
@@ -83,6 +75,10 @@ const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export function isValidSupplierImportEntityType(entityType: string): entityType is SupplierImportEntityType {
   return (SUPPLIER_IMPORT_ENTITY_TYPES as readonly string[]).includes(entityType);
+}
+
+export function isRetiredSupplierImportEntityType(entityType: string): entityType is SupplierRetiredImportEntityType {
+  return (SUPPLIER_RETIRED_IMPORT_ENTITY_TYPES as readonly string[]).includes(entityType);
 }
 
 export function normalizeSupplierCode(code: string): string {
@@ -149,18 +145,6 @@ export type SupplierImportRow = {
   notes?: string;
   sourceRecordId?: string;
   classification?: Classification;
-};
-
-export type SupplierContactImportRow = {
-  supplierCode: string;
-  contactRole: (typeof SUPPLIER_CONTACT_ROLES)[number];
-  givenName: string;
-  familyName: string;
-  email?: string;
-  telephone?: string;
-  whatsapp?: string;
-  isPrimary?: boolean;
-  notes?: string;
 };
 
 export type SupplierRateImportRow = {
@@ -240,18 +224,6 @@ export function supplierImportHeaders(entityType: SupplierImportEntityType): str
         "notes",
         "sourceRecordId",
         "classification",
-      ];
-    case "supplier_contact":
-      return [
-        "supplierCode",
-        "contactRole",
-        "givenName",
-        "familyName",
-        "email",
-        "telephone",
-        "whatsapp",
-        "isPrimary",
-        "notes",
       ];
     case "supplier_rate":
       return [
@@ -382,41 +354,6 @@ export function validateSupplierImportRow(row: ParsedCsvRow): SupplierImportRow 
       : {}),
     ...(row.notes?.trim() ? { notes: row.notes.trim() } : {}),
     ...(row.sourceRecordId?.trim() ? { sourceRecordId: row.sourceRecordId.trim() } : {}),
-  };
-}
-
-export function validateSupplierContactImportRow(
-  row: ParsedCsvRow,
-): SupplierContactImportRow | { errors: string[] } {
-  const errors: string[] = [];
-
-  const supplierCodeRaw = row.supplierCode?.trim();
-  if (!supplierCodeRaw) errors.push("supplierCode_required");
-  else if (!SUPPLIER_CODE_PATTERN.test(normalizeSupplierCode(supplierCodeRaw))) {
-    errors.push("invalid_supplierCode");
-  }
-
-  const roleResult = parseRequiredEnum(row.contactRole, SUPPLIER_CONTACT_ROLES, "contactRole");
-  if (typeof roleResult === "object") errors.push(roleResult.error);
-
-  const givenName = row.givenName?.trim();
-  if (!givenName) errors.push("givenName_required");
-  const familyName = row.familyName?.trim();
-  if (!familyName) errors.push("familyName_required");
-
-  if (errors.length > 0) return { errors };
-
-  const isPrimary = parseOptionalBoolean(row.isPrimary);
-  return {
-    supplierCode: normalizeSupplierCode(supplierCodeRaw!),
-    contactRole: roleResult as (typeof SUPPLIER_CONTACT_ROLES)[number],
-    givenName: givenName!,
-    familyName: familyName!,
-    ...(row.email?.trim() ? { email: row.email.trim().toLowerCase() } : {}),
-    ...(row.telephone?.trim() ? { telephone: row.telephone.trim() } : {}),
-    ...(row.whatsapp?.trim() ? { whatsapp: row.whatsapp.trim() } : {}),
-    ...(isPrimary !== undefined ? { isPrimary } : {}),
-    ...(row.notes?.trim() ? { notes: row.notes.trim() } : {}),
   };
 }
 
@@ -579,7 +516,6 @@ export function supplierImportRowDuplicateKey(
   entityType: SupplierImportEntityType,
   row:
     | SupplierImportRow
-    | SupplierContactImportRow
     | SupplierRateImportRow
     | SupplierContentBlockImportRow
     | SupplierSeasonImportRow,
@@ -587,8 +523,6 @@ export function supplierImportRowDuplicateKey(
   switch (entityType) {
     case "supplier":
       return (row as SupplierImportRow).supplierCode;
-    case "supplier_contact":
-      return `${(row as SupplierContactImportRow).supplierCode}|${(row as SupplierContactImportRow).contactRole}|${(row as SupplierContactImportRow).givenName}|${(row as SupplierContactImportRow).familyName}`;
     case "supplier_rate":
       return `${(row as SupplierRateImportRow).supplierCode}|${(row as SupplierRateImportRow).rateCode}`;
     case "supplier_content_block":
@@ -603,7 +537,6 @@ export function validateSupplierImportRowByEntityType(
   row: ParsedCsvRow,
 ):
   | SupplierImportRow
-  | SupplierContactImportRow
   | SupplierRateImportRow
   | SupplierContentBlockImportRow
   | SupplierSeasonImportRow
@@ -611,8 +544,6 @@ export function validateSupplierImportRowByEntityType(
   switch (entityType) {
     case "supplier":
       return validateSupplierImportRow(row);
-    case "supplier_contact":
-      return validateSupplierContactImportRow(row);
     case "supplier_rate":
       return validateSupplierRateImportRow(row);
     case "supplier_content_block":
@@ -626,8 +557,6 @@ export function requiredSupplierImportHeaders(entityType: SupplierImportEntityTy
   switch (entityType) {
     case "supplier":
       return ["supplierCode", "legalName", "category", "country", "status"];
-    case "supplier_contact":
-      return ["supplierCode", "contactRole", "givenName", "familyName"];
     case "supplier_rate":
       return [
         "supplierCode",

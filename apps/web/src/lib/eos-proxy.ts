@@ -26,10 +26,12 @@ export function filterProxyRequestHeaders(source: Headers): Headers {
   return headers;
 }
 
+const DROP_RESPONSE = new Set(["transfer-encoding", "content-encoding", "content-length"]);
+
 export function filterProxyResponseHeaders(source: Headers): Headers {
   const headers = new Headers();
   source.forEach((value, key) => {
-    if (key.toLowerCase() === "transfer-encoding") return;
+    if (DROP_RESPONSE.has(key.toLowerCase())) return;
     headers.set(key, value);
   });
   return headers;

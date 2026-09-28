@@ -196,7 +196,7 @@ describe("C1.10 CRM security regression", () => {
       expect(denied.statusCode).toBe(403);
     });
 
-    it("AZ-03: lower clearance cannot read restricted contact", async () => {
+    it("AZ-03: lower clearance cannot create person-contact records after domain removal", async () => {
       const store = seedStore("test-secret");
       const app = buildServer({ store });
       const carol = await loginCarol(app);
@@ -214,12 +214,15 @@ describe("C1.10 CRM security regression", () => {
           classification: "Restricted",
         },
       });
+      expect(contact.statusCode).toBe(400);
+      expect(contact.json().reason).toBe("person_domain_removed");
       const read = await app.inject({
         method: "GET",
-        url: `/v1/crm/contacts/${contact.json().contact.id}`,
+        url: "/v1/crm/contacts/11111111-1111-4111-8111-111111111111",
         headers: { authorization: `Bearer ${alice}` },
       });
-      expect(read.statusCode).toBe(403);
+      expect(read.statusCode).toBe(400);
+      expect(read.json().reason).toBe("person_domain_removed");
     });
 
     it("AZ-04: commercial user cannot reassign account owner", async () => {
@@ -507,10 +510,10 @@ describe("C1.10 CRM security regression", () => {
       expect(store.audit.some((a) => a.resourceType === "crm_organization")).toBe(true);
     });
 
-    it("EV-02: simulation mode blocks CRM event emission", () => {
+    it("EV-02: simulation mode blocks CRM event emission", async () => {
       const store = seedStore("test-secret");
       const carol = principalById(store, "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee")!;
-      const result = emitCrmEvent(store, carol, {
+      const result = await emitCrmEvent(store, carol, {
         eventType: CRM_EVENT_TYPES.ORGANIZATION_CREATED,
         entityType: "organization",
         entityId: "11111111-1111-4111-8111-111111111111",

@@ -13,7 +13,6 @@ import type { Store } from "../store.js";
 import { ensureConsentRecordCollections } from "./collections.js";
 
 const TITLE_MAX = 200;
-const TEXT_MAX = 2000;
 
 function deny<T extends string>(reason: T) {
   return { error: "forbidden" as const, reason };
@@ -30,30 +29,15 @@ export type ConsentRecordView = {
   consentCode: string;
   title: string;
   status: ConsentRecordStatus;
-  notes?: string;
 };
 
 function sanitize(row: ConsentRecord): ConsentRecordView {
-  const view: ConsentRecordView = {
+  return {
     id: row.id,
     consentCode: row.consentCode,
     title: row.title,
     status: row.status,
   };
-  if (row.notes) view.notes = row.notes;
-  return view;
-}
-
-function optionalText(
-  value: string | undefined,
-  max: number,
-  tooLong: "notes_too_long",
-): { ok: true; value?: string } | { error: "invalid"; reason: "notes_too_long" } {
-  if (value === undefined) return { ok: true };
-  const trimmed = value.trim();
-  if (trimmed.length > max) return { error: "invalid", reason: tooLong };
-  if (!trimmed) return { ok: true };
-  return { ok: true, value: trimmed };
 }
 
 export function getConsentsHealth(store: Store, principal: Principal) {
@@ -129,11 +113,10 @@ export function createConsent(
   if (auth.result === "deny") return deny(auth.reason);
   const human = requireHuman(principal);
   if (human) return human;
+  void input.notes;
   const title = input.title?.trim() ?? "";
   if (!title) return { error: "invalid" as const, reason: "title_required" };
   if (title.length > TITLE_MAX) return { error: "invalid" as const, reason: "title_too_long" };
-  const notes = optionalText(input.notes, TEXT_MAX, "notes_too_long");
-  if ("error" in notes) return notes;
   const now = new Date().toISOString();
   const row: ConsentRecord = {
     id: newId(),
@@ -148,7 +131,6 @@ export function createConsent(
     createdByPrincipalId: principal.id,
     updatedByPrincipalId: principal.id,
   };
-  if (notes.value) row.notes = notes.value;
   store.consentRecords.push(row);
   return { consent: sanitize(row) };
 }
@@ -172,6 +154,7 @@ export function patchConsent(
   if (auth.result === "deny") return deny(auth.reason);
   const human = requireHuman(principal);
   if (human) return human;
+  void input.notes;
   const row = store.consentRecords.find((item) => item.id === id && item.tenantId === principal.tenantId);
   if (!row) return { error: "not_found" as const };
   if (row.status === "done") return { error: "conflict" as const, reason: "done" };
@@ -181,12 +164,6 @@ export function patchConsent(
     if (!title) return { error: "invalid" as const, reason: "title_required" };
     if (title.length > TITLE_MAX) return { error: "invalid" as const, reason: "title_too_long" };
     row.title = title;
-  }
-  if (input.notes !== undefined) {
-    const notes = optionalText(input.notes, TEXT_MAX, "notes_too_long");
-    if ("error" in notes) return notes;
-    if (notes.value) row.notes = notes.value;
-    else delete row.notes;
   }
   if (input.status !== undefined) {
     if (!isValidConsentRecordStatus(input.status)) {

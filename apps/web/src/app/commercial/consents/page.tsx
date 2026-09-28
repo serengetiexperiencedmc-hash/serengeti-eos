@@ -34,9 +34,7 @@ export default function ConsentRegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [title, setTitle] = useState("");
-  const [notes, setNotes] = useState("");
   const [editTitle, setEditTitle] = useState("");
-  const [editNotes, setEditNotes] = useState("");
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -64,7 +62,6 @@ export default function ConsentRegisterPage() {
   useEffect(() => {
     if (!selected) return;
     setEditTitle(selected.title);
-    setEditNotes(selected.notes ?? "");
   }, [selected]);
 
   async function run(action: () => Promise<void>) {
@@ -137,13 +134,10 @@ export default function ConsentRegisterPage() {
               onSubmit={(event) => {
                 event.preventDefault();
                 void run(async () => {
-                  const input: Parameters<typeof createConsent>[1] = { title };
-                  if (notes.trim()) input.notes = notes.trim();
-                  const created = await createConsent(token!, input);
+                  const created = await createConsent(token!, { title });
                   selectedIdRef.current = created.consent.id;
                   setSelectedId(created.consent.id);
                   setTitle("");
-                  setNotes("");
                   setMessage("Consent Register row recorded");
                 });
               }}
@@ -154,13 +148,6 @@ export default function ConsentRegisterPage() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
-              />
-              <textarea
-                className="w-full rounded-md border border-line px-3 py-2 text-sm"
-                rows={2}
-                placeholder="Notes (optional)"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
               />
               <Btn type="submit" disabled={busy}>
                 Register
@@ -234,7 +221,6 @@ export default function ConsentRegisterPage() {
                     void run(async () => {
                       await patchConsent(token!, selected.id, {
                         title: editTitle,
-                        notes: editNotes,
                       });
                       setMessage("Consent Register row updated");
                     });
@@ -245,13 +231,6 @@ export default function ConsentRegisterPage() {
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
                     required
-                  />
-                  <textarea
-                    className="w-full rounded-md border border-line px-3 py-2 text-sm"
-                    rows={2}
-                    placeholder="Notes"
-                    value={editNotes}
-                    onChange={(e) => setEditNotes(e.target.value)}
                   />
                   <div className="flex flex-wrap gap-2">
                     <Btn type="submit" disabled={busy}>
@@ -290,7 +269,6 @@ export default function ConsentRegisterPage() {
               ) : (
                 <>
                   <p className="mb-2 text-sm text-ink">{selected.title}</p>
-                  {selected.notes && <p className="mb-2 text-sm text-muted">Notes: {selected.notes}</p>}
                   <p className="text-sm text-muted">
                     {selected.status === "done"
                       ? "Completed Consent Register rows cannot be edited. Done is a register label, not legally valid consent, not collected consent, and not enforced consent."

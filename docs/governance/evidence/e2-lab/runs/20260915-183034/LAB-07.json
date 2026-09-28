@@ -1,0 +1,50 @@
+{
+    "measured_rto":  "4.529 seconds until PG probe succeeded (API restart additional)",
+    "measured_rpo":  "PG committed MARKER-COMBO survived F3. CRM org GET after attempted API restart was UNEXPECTEDLY_PRESENT (id 93ced14c-5499-4c9f-9d5b-c255021e1c98). In-memory loss was NOT demonstrated in this run.",
+    "topology":  "T1/F3 combined with in-memory EOS API",
+    "operator_intervention":  "Scripted kill/start",
+    "limitations":  "Jointly critical EOS Commercial/Programme Building are not PG-persisted. CRM org used as in-memory witness; this run did not prove memory loss because the org remained retrievable (likely npm.cmd kill did not terminate the child Node process). Combined RTO is lab process restart, not Production HA. Dev/Test only.",
+    "api_started":  true,
+    "run_id":  "20260915-183034",
+    "crm_org_id_before":  "93ced14c-5499-4c9f-9d5b-c255021e1c98",
+    "last_recoverable_transaction":  "MARKER-COMBO",
+    "repeatability":  "single run",
+    "probe":  {
+                  "marker":  "PROBE-LAB07",
+                  "ok":  true,
+                  "rfp":  "Synthetic RFP PROBE-LAB07",
+                  "programme":  "Synthetic Programme PROBE-LAB07"
+              },
+    "missing_transactions":  [
+                                 "None confirmed for CRM org (UNEXPECTEDLY_PRESENT). PG post-fail probe markers were new writes."
+                             ],
+    "evidence":  [
+                     "LAB-07.json",
+                     "logs/api-lab07.log"
+                 ],
+    "integrity":  {
+                      "marker_count":  4,
+                      "rfp_count":  2,
+                      "programme_count":  2,
+                      "orphan_programmes":  0,
+                      "max_marker_duplicates":  1,
+                      "markers":  "MARKER-COMBO,MARKER-COMBO-PB,PROBE-LAB07,PROBE-LAB07-PB",
+                      "referential_ok":  true,
+                      "no_duplicate_markers":  true
+                  },
+    "crm_org_after_restart":  "UNEXPECTEDLY_PRESENT",
+    "what_failed":  "Lab API node process and lab PostgreSQL process",
+    "what_remained":  "PG data volume; CRM org still retrievable after attempted API restart",
+    "failure_model":  "F1+F3 API process kill + DB process SIGKILL (data dir survived)",
+    "acknowledged_survived":  true,
+    "total_measured_rto_ms":  4529,
+    "failure_timestamp":  "2026-09-15T15:33:09.9307141+00:00",
+    "test_id":  "LAB-07",
+    "actual":  "pg=True probe=True api_started=True crm_after=UNEXPECTEDLY_PRESENT",
+    "pass_fail":  "PARTIAL",
+    "expected":  "PG markers survive F3; in-memory API state does not",
+    "last_confirmed_durable_transaction":  "MARKER-COMBO (PG only)",
+    "boundary":  "Dev/Test laboratory evidence only. This result does not constitute Production readiness, Production authorization, or Production proof.",
+    "recovery_mechanism":  "docker start PG crash recovery; API process restart",
+    "last_acknowledged_transaction":  "MARKER-COMBO (PG) + CRM org (in-memory)"
+}

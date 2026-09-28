@@ -20,6 +20,8 @@ import type { Store } from "../store.js";
 import { allowCrmAudit, denyCrmAudit } from "./audit.js";
 import { ensureCrmCollections } from "./collections.js";
 import { commitCrmWithOutbox } from "./events.js";
+import { personDomainRemoved } from "../personal-data-phase1.js";
+import { rejectPersonDomainContent } from "../personal-data-content-contract.js";
 
 const DEFAULT_LIST_LIMIT = 50;
 const MAX_LIST_LIMIT = 100;
@@ -53,9 +55,7 @@ function resolveTaskClassification(
 ): Classification | { error: "invalid_request"; reason: string } {
   let classification: Classification = input.classification ?? "Internal";
   if (input.relatedContactId) {
-    const c = store.crmContacts.find((x) => x.id === input.relatedContactId && x.tenantId === tenantId);
-    if (!c) return { error: "invalid_request", reason: "invalid_contact" };
-    classification = maxClassification(classification, c.classification);
+    return { error: "invalid_request", reason: "person_domain_removed" };
   }
   if (input.relatedOrganizationId) {
     const o = store.crmOrganizations.find((x) => x.id === input.relatedOrganizationId && x.tenantId === tenantId);
@@ -107,7 +107,7 @@ export function listTasks(
   if (query?.relatedOrganizationId) {
     items = items.filter((t) => t.relatedOrganizationId === query.relatedOrganizationId);
   }
-  if (query?.relatedContactId) items = items.filter((t) => t.relatedContactId === query.relatedContactId);
+  if (query?.relatedContactId) return personDomainRemoved();
   if (query?.relatedAccountId) items = items.filter((t) => t.relatedAccountId === query.relatedAccountId);
   if (query?.dueAfter) {
     const parsed = parseOccurredAt(query.dueAfter);
@@ -167,7 +167,7 @@ export type CreateTaskInput = {
   classification?: Classification;
 };
 
-export function createTask(store: Store, principal: Principal, input: CreateTaskInput, correlationId: string) {
+export async function createTask(store: Store, principal: Principal, input: CreateTaskInput, correlationId: string) {
   ensureCrmCollections(store);
   const title = input.title?.trim();
   if (!title) return { error: "invalid_request" as const, reason: "title_required" };
@@ -204,6 +204,8 @@ export function createTask(store: Store, principal: Principal, input: CreateTask
     denyCrmAudit(store, principal, "crm:write:task", "crm_task", correlationId, decision.reason);
     return { error: "forbidden" as const, reason: decision.reason };
   }
+  const personContent = rejectPersonDomainContent(input);
+  if (personContent) return personContent;
 
   const now = new Date().toISOString();
   const dueAtParsed = input.dueAt ? parseOccurredAt(input.dueAt) : undefined;
@@ -223,12 +225,11 @@ export function createTask(store: Store, principal: Principal, input: CreateTask
     ...(input.priority !== undefined ? { priority: input.priority } : {}),
     ...(dueAtParsed?.ok ? { dueAt: dueAtParsed.iso } : {}),
     ...(input.relatedOrganizationId !== undefined ? { relatedOrganizationId: input.relatedOrganizationId } : {}),
-    ...(input.relatedContactId !== undefined ? { relatedContactId: input.relatedContactId } : {}),
     ...(input.relatedAccountId !== undefined ? { relatedAccountId: input.relatedAccountId } : {}),
     ...(input.relatedActivityId !== undefined ? { relatedActivityId: input.relatedActivityId } : {}),
   };
 
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.TASK_CREATED,
     entityType: "task",
     entityId: task.id,
@@ -254,7 +255,7 @@ export type UpdateTaskInput = Partial<
   status?: CrmTaskStatus;
 };
 
-export function updateTask(
+export async function updateTask(
   store: Store,
   principal: Principal,
   taskId: string,
@@ -276,6 +277,8 @@ export function updateTask(
     denyCrmAudit(store, principal, "crm:write:task", "crm_task", correlationId, decision.reason, taskId);
     return { error: "forbidden" as const, reason: decision.reason };
   }
+  const personContent = rejectPersonDomainContent(input);
+  if (personContent) return personContent;
   if (task.status === "Completed" || task.status === "Cancelled") {
     return { error: "conflict" as const, reason: "task_not_mutable" };
   }
@@ -329,7 +332,7 @@ export function updateTask(
   if (input.status === "Completed") taskEventType = CRM_EVENT_TYPES.TASK_COMPLETED;
   else if (input.status === "Cancelled") taskEventType = CRM_EVENT_TYPES.TASK_CANCELLED;
 
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: taskEventType,
     entityType: "task",
     entityId: task.id,
@@ -348,7 +351,7 @@ export function updateTask(
   return { task };
 }
 
-export function completeTask(store: Store, principal: Principal, taskId: string, correlationId: string) {
+export async function completeTask(store: Store, principal: Principal, taskId: string, correlationId: string) {
   ensureCrmCollections(store);
   const task = findTask(store, principal.tenantId, taskId);
   if (!task) return { error: "not_found" as const };
@@ -372,7 +375,7 @@ export function completeTask(store: Store, principal: Principal, taskId: string,
   task.updatedAt = task.completedAt;
   task.updatedByPrincipalId = principal.id;
 
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.TASK_COMPLETED,
     entityType: "task",
     entityId: task.id,
@@ -390,7 +393,7 @@ export function completeTask(store: Store, principal: Principal, taskId: string,
   return { task };
 }
 
-export function cancelTask(store: Store, principal: Principal, taskId: string, correlationId: string) {
+export async function cancelTask(store: Store, principal: Principal, taskId: string, correlationId: string) {
   ensureCrmCollections(store);
   const task = findTask(store, principal.tenantId, taskId);
   if (!task) return { error: "not_found" as const };
@@ -413,7 +416,7 @@ export function cancelTask(store: Store, principal: Principal, taskId: string, c
   task.updatedAt = new Date().toISOString();
   task.updatedByPrincipalId = principal.id;
 
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.TASK_CANCELLED,
     entityType: "task",
     entityId: task.id,

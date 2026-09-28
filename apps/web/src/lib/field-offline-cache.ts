@@ -1,3 +1,4 @@
+import { findPersonDomainObjectKeys } from "@sedmc/kernel/personal-data-content-contract";
 import {
   decryptFieldCachePayload,
   encryptFieldCachePayload,
@@ -63,29 +64,45 @@ function parseLegacyCache(raw: string): FieldOfflineCache | null {
   }
 }
 
-export async function readFieldCache(bookingId: string): Promise<FieldOfflineCache | null> {
+/** Removes encrypted field-ops blobs and principal meta. Device id/salt are not person-domain data. */
+export function clearFieldCaches(): void {
+  if (typeof window === "undefined") return;
+  const keys: string[] = [];
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i);
+    if (key?.startsWith(CACHE_PREFIX) || key?.startsWith(META_PREFIX)) keys.push(key);
+  }
+  for (const key of keys) localStorage.removeItem(key);
+}
+
+export async function readFieldCache(
+  bookingId: string,
+  currentPrincipalId?: string | null,
+): Promise<FieldOfflineCache | null> {
   if (typeof window === "undefined") return null;
+  if (!currentPrincipalId) return null;
   const raw = localStorage.getItem(cacheKey(bookingId));
   if (!raw) return null;
 
   if (isEncryptedFieldCacheBlob(raw)) {
+    const storedPrincipalId = readCachePrincipalId(bookingId);
+    if (!storedPrincipalId || storedPrincipalId !== currentPrincipalId) return null;
     const deviceId = getOrCreateDeviceId();
     const salt = getOrCreateCacheSalt();
-    const principalId = readCachePrincipalId(bookingId);
-    if (!principalId) return null;
-    const decrypted = await decryptFieldCachePayload(raw, deviceId, principalId, salt);
+    const decrypted = await decryptFieldCachePayload(raw, deviceId, currentPrincipalId, salt);
     if (!decrypted) return null;
     try {
-      return JSON.parse(decrypted) as FieldOfflineCache;
+      const parsed = JSON.parse(decrypted) as FieldOfflineCache;
+      if (parsed.session.principalId !== currentPrincipalId) return null;
+      return parsed;
     } catch {
       return null;
     }
   }
 
   const legacy = parseLegacyCache(raw);
-  if (legacy?.session.principalId) {
-    await writeFieldCache(bookingId, legacy);
-  }
+  if (!legacy || legacy.session.principalId !== currentPrincipalId) return null;
+  await writeFieldCache(bookingId, legacy);
   return legacy;
 }
 
@@ -93,6 +110,9 @@ export async function writeFieldCache(bookingId: string, cache: FieldOfflineCach
   if (typeof window === "undefined") return;
   if (!cache.session.principalId) {
     throw new Error("field_cache_missing_principal");
+  }
+  if (findPersonDomainObjectKeys(cache).length > 0) {
+    throw new Error("person_domain_removed");
   }
   const deviceId = getOrCreateDeviceId();
   const salt = getOrCreateCacheSalt();
@@ -105,8 +125,10 @@ export async function writeFieldCache(bookingId: string, cache: FieldOfflineCach
 export async function queueFieldDelta(
   bookingId: string,
   delta: SyncPushDelta,
+  currentPrincipalId?: string | null,
 ): Promise<FieldOfflineCache | null> {
-  const cache = await readFieldCache(bookingId);
+  if (findPersonDomainObjectKeys(delta).length > 0) return null;
+  const cache = await readFieldCache(bookingId, currentPrincipalId);
   if (!cache) return null;
   cache.pendingDeltas = [...cache.pendingDeltas, delta];
   cache.bundle.fieldTasks = cache.bundle.fieldTasks.map((task) => {
@@ -121,8 +143,11 @@ export async function queueFieldDelta(
   return cache;
 }
 
-export async function clearPendingDeltas(bookingId: string): Promise<void> {
-  const cache = await readFieldCache(bookingId);
+export async function clearPendingDeltas(
+  bookingId: string,
+  currentPrincipalId?: string | null,
+): Promise<void> {
+  const cache = await readFieldCache(bookingId, currentPrincipalId);
   if (!cache) return;
   cache.pendingDeltas = [];
   await writeFieldCache(bookingId, cache);

@@ -48,7 +48,6 @@ export type PrivacyDsrView = {
   dsrCode: string;
   requestType: DsrRequestType;
   status: DsrStatus;
-  subjectLabel?: string;
   note?: string;
 };
 
@@ -71,7 +70,6 @@ function sanitizeDsr(row: PrivacyDsrCase): PrivacyDsrView {
     requestType: row.requestType,
     status: row.status,
   };
-  if (row.subjectLabel) view.subjectLabel = row.subjectLabel;
   if (row.note) view.note = row.note;
   return view;
 }
@@ -259,7 +257,7 @@ export function listDsrCases(store: Store, principal: Principal, query?: { q?: s
     .filter(
       (d) =>
         !q ||
-        `${d.dsrCode} ${d.requestType} ${d.subjectLabel ?? ""} ${d.note ?? ""}`.toLowerCase().includes(q),
+        `${d.dsrCode} ${d.requestType} ${d.note ?? ""}`.toLowerCase().includes(q),
     )
     .map(sanitizeDsr);
   return { items };
@@ -281,7 +279,7 @@ export function getDsrCase(store: Store, principal: Principal, id: string) {
 export function createDsrCase(
   store: Store,
   principal: Principal,
-  input: { requestType?: string; subjectLabel?: string; note?: string },
+  input: { requestType?: string; note?: string },
 ) {
   ensurePrivacyCollections(store);
   const decision = authorize({
@@ -294,10 +292,6 @@ export function createDsrCase(
   if (human) return human;
   const requestType = input.requestType?.trim() ?? "";
   if (!isValidDsrRequestType(requestType)) return { error: "invalid" as const, reason: "invalid_request_type" };
-  const subjectLabel = input.subjectLabel?.trim();
-  if (subjectLabel && subjectLabel.length > LABEL_MAX) {
-    return { error: "invalid" as const, reason: "subject_label_too_long" };
-  }
   const note = input.note?.trim();
   if (note && note.length > TEXT_MAX) return { error: "invalid" as const, reason: "note_too_long" };
   const now = new Date().toISOString();
@@ -312,7 +306,6 @@ export function createDsrCase(
     createdByPrincipalId: principal.id,
     updatedByPrincipalId: principal.id,
   };
-  if (subjectLabel) row.subjectLabel = subjectLabel;
   if (note) row.note = note;
   store.privacyDsrCases.push(row);
   return { dsr: sanitizeDsr(row) };
@@ -322,7 +315,7 @@ export function patchDsrCase(
   store: Store,
   principal: Principal,
   id: string,
-  input: { requestType?: string; subjectLabel?: string; note?: string },
+  input: { requestType?: string; note?: string },
 ) {
   ensurePrivacyCollections(store);
   const decision = authorize({
@@ -341,12 +334,6 @@ export function patchDsrCase(
     const requestType = input.requestType.trim();
     if (!isValidDsrRequestType(requestType)) return { error: "invalid" as const, reason: "invalid_request_type" };
     row.requestType = requestType;
-  }
-  if (input.subjectLabel !== undefined) {
-    const subjectLabel = input.subjectLabel.trim();
-    if (subjectLabel.length > LABEL_MAX) return { error: "invalid" as const, reason: "subject_label_too_long" };
-    if (subjectLabel) row.subjectLabel = subjectLabel;
-    else delete row.subjectLabel;
   }
   if (input.note !== undefined) {
     const note = input.note.trim();

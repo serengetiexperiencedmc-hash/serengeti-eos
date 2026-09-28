@@ -15,7 +15,7 @@ export function getCrmModuleHealth(store: Store) {
       activityTypes: store.crmActivityTypes.length,
       organizations: store.crmOrganizations.length,
       organizationUnits: store.crmOrganizationUnits.length,
-      contacts: store.crmContacts.length,
+      contacts: 0,
       relationships: store.crmRelationships.length,
       accounts: store.crmAccounts.length,
       activities: store.crmActivities.length,

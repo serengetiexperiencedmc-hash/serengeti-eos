@@ -1,0 +1,9 @@
+﻿{
+    "file":  "backups/lab01.dump",
+    "bytes":  8333,
+    "format":  "custom",
+    "contains":  [
+                     "MARKER-PRE-BACKUP",
+                     "MARKER-PRE-BACKUP-PB"
+                 ]
+}

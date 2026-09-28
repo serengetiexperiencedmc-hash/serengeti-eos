@@ -92,6 +92,31 @@ export function seedCrmCatalogues(store: Store, tenantId: string): void {
   }
 }
 
+/** Durable PostgreSQL catalogue IDs win over process-local seed IDs. */
+export function replaceOrganizationTypesFromDurable(
+  store: Store,
+  durable: CrmOrganizationType[],
+): void {
+  if (durable.length === 0) return;
+  const tenants = new Set(durable.map((row) => row.tenantId));
+  store.crmOrganizationTypes = [
+    ...store.crmOrganizationTypes.filter((row) => !tenants.has(row.tenantId)),
+    ...durable,
+  ];
+}
+
+export function replaceRelationshipTypesFromDurable(
+  store: Store,
+  durable: CrmRelationshipType[],
+): void {
+  if (durable.length === 0) return;
+  const tenants = new Set(durable.map((row) => row.tenantId));
+  store.crmRelationshipTypes = [
+    ...store.crmRelationshipTypes.filter((row) => !tenants.has(row.tenantId)),
+    ...durable,
+  ];
+}
+
 export type CrmStoreSlice = {
   crmOrganizationTypes: CrmOrganizationType[];
   crmRelationshipTypes: CrmRelationshipType[];

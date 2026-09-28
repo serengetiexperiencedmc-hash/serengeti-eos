@@ -126,19 +126,10 @@ describe("C4 supplier import API", () => {
       headers: { authorization: `Bearer ${token}` },
       payload: { sourceSystem: "test", entityType: "supplier_contact", csv: contactCsv },
     });
-    const contactBatchId = contactBatch.json().batch.id;
-    await app.inject({
-      method: "POST",
-      url: `/v1/suppliers/imports/${contactBatchId}/validate`,
-      headers: { authorization: `Bearer ${token}` },
-    });
-    const contactExec = await app.inject({
-      method: "POST",
-      url: `/v1/suppliers/imports/${contactBatchId}/execute`,
-      headers: { authorization: `Bearer ${token}`, "idempotency-key": "sup-contact-1" },
-    });
-    expect(contactExec.statusCode).toBe(200);
-    expect(store.supContacts).toHaveLength(1);
+    expect(contactBatch.statusCode).toBe(400);
+    expect(contactBatch.json().reason).toBe("person_domain_removed");
+    expect(store.supImportBatches.some((b) => b.entityType === "supplier_contact")).toBe(false);
+    expect(store.supContacts).toHaveLength(0);
 
     const rateCsv = [
       "supplierCode,rateCode,rateName,rateType,amount,currency,validFrom,validTo,status",
@@ -171,7 +162,7 @@ describe("C4 supplier import API", () => {
       url: `/v1/suppliers/${supplierId}`,
       headers: { authorization: `Bearer ${token}` },
     });
-    expect(detail.json().contacts).toHaveLength(1);
+    expect(detail.json().contacts).toEqual([]);
     expect(detail.json().rates).toHaveLength(1);
   });
 
@@ -180,15 +171,15 @@ describe("C4 supplier import API", () => {
     const token = await loginCarol(app);
     const alice = await loginAlice(app);
 
-    const contactCsv = [
-      "supplierCode,contactRole,givenName,familyName",
-      "MISSING-SUP,reservations,Jane,Doe",
+    const rateMissingCsv = [
+      "supplierCode,rateCode,rateName,rateType,amount,currency,validFrom,validTo,status",
+      "MISSING-SUP,DBL-1,Double,per_room_per_night,100,USD,2025-01-01,2025-12-31,active",
     ].join("\n");
     const created = await app.inject({
       method: "POST",
       url: "/v1/suppliers/imports",
       headers: { authorization: `Bearer ${token}` },
-      payload: { sourceSystem: "test", entityType: "supplier_contact", csv: contactCsv },
+      payload: { sourceSystem: "test", entityType: "supplier_rate", csv: rateMissingCsv },
     });
     const validated = await app.inject({
       method: "POST",

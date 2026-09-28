@@ -16,7 +16,7 @@ Ready-to-use CSV templates for migrating Serengeti Experience DMC's 300+ supplie
 | --- | --- |
 | [`supplier-import-schema.json`](./supplier-import-schema.json) | JSON Schema for programmatic validation |
 | [`suppliers.csv`](./suppliers.csv) | Master supplier records (5 sample rows) |
-| [`supplier-contacts.csv`](./supplier-contacts.csv) | Reservation and ops contacts |
+| [`supplier-contacts.csv`](./supplier-contacts.csv) | **RETIRED / non-executable (H-139).** Historical sample only. `entityType=supplier_contact` is rejected. |
 | [`supplier-rates.csv`](./supplier-rates.csv) | Rate cards with seasonality |
 | [`supplier-content-blocks.csv`](./supplier-content-blocks.csv) | Descriptions and asset references |
 | [`field-reference.md`](./field-reference.md) | Complete field dictionary |

@@ -44,7 +44,6 @@ export type ConsentRecord = {
   consentCode: string;
   title: string;
   status: ConsentRecordStatus;
-  notes?: string;
   createdAt: string;
   updatedAt: string;
   createdByPrincipalId: string;

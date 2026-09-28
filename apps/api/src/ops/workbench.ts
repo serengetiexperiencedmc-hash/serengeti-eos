@@ -19,14 +19,11 @@ export function collectOpsWorkbenchItems(store: Store, tenantId: string): OpsWor
   return bookings.map((booking) => {
     const tasks = store.bkgHandoverTasks.filter((t) => t.bookingId === booking.id && t.tenantId === tenantId);
     const completed = tasks.filter((t) => t.status === "complete").length;
-    const manifest = store.opsManifests.find((m) => m.bookingId === booking.id && m.tenantId === tenantId);
     const pendingHandoverTasks = tasks.filter((t) => t.status === "pending").length;
     const supplierConfirmationsPending = store.opsSupplierConfirmations.filter(
       (c) => c.bookingId === booking.id && c.tenantId === tenantId && c.status === "requested",
     ).length;
-    const vouchersDraft = (store.opsVouchers ?? []).filter(
-      (v) => v.bookingId === booking.id && v.tenantId === tenantId && v.status === "draft",
-    ).length;
+    const vouchersDraft = 0;
     const fieldTasksOpen = store.opsFieldTasks.filter(
       (t) => t.bookingId === booking.id && t.tenantId === tenantId && t.status !== "complete",
     ).length;
@@ -56,7 +53,6 @@ export function collectOpsWorkbenchItems(store: Store, tenantId: string): OpsWor
       syncConflicts,
       attentionRequired: requiresOpsAttention(signals),
     };
-    if (manifest?.status) item.manifestStatus = manifest.status;
     if (booking.paxCount != null) item.paxCount = booking.paxCount;
     if (booking.travelDates) item.travelDates = booking.travelDates;
     return item;

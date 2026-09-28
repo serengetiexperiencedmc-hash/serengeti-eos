@@ -19,7 +19,7 @@ describe("I4.15 DLQ SLA age filters", () => {
   it("reports ageHours, sla summary, and slaBreached filter", async () => {
     const store = seedStore("i413-sla", TEST_BOOTSTRAP_SECRETS);
     const carol = allPrincipals(store).find((p) => p.email === "carol.admin@sedmc.local")!;
-    commitWithOutbox(store, carol, {
+    await commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",

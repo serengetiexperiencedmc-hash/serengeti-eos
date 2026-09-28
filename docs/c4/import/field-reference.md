@@ -13,7 +13,7 @@ Supplier data is imported in **four related CSV files**. Each file shares `suppl
 | File | Purpose | Typical row count |
 | --- | --- | --- |
 | `suppliers.csv` | Master supplier records | ~300 |
-| `supplier-contacts.csv` | Reservation / ops contacts | ~400–600 |
+| `supplier-contacts.csv` | **RETIRED / non-executable (H-139).** Historical sample only. Not a supported import. | — |
 | `supplier-rates.csv` | Rate cards with seasonality | ~1,500–3,000 |
 | `supplier-content-blocks.csv` | Reusable descriptions & asset refs | ~500–1,000 |
 
@@ -24,7 +24,7 @@ Photos and PDFs are **not embedded in CSV**. Upload assets separately via the As
 ## Import order
 
 1. `suppliers.csv` — must commit first (creates master records)
-2. `supplier-contacts.csv` — links to suppliers
+2. ~~`supplier-contacts.csv`~~ — **retired (H-139).** Not a supported import path.
 3. `supplier-rates.csv` — links to suppliers
 4. `supplier-content-blocks.csv` — links to suppliers
 
@@ -80,7 +80,11 @@ Each file is a separate import batch with its own validation. Re-run validation 
 
 ---
 
-## 2. supplier-contacts.csv
+## 2. supplier-contacts.csv — RETIRED (H-139)
+
+This file is **not an executable import template**. `entityType=supplier_contact` is rejected by the import API with `person_domain_removed`. The sample is retained only as historical evidence. Do not reconnect it to seed, UI, or import execution.
+
+The column dictionary below is historical and must not be treated as a supported ingest contract.
 
 | Column | Required | Type | Constraints | Example |
 | --- | --- | --- | --- | --- |
@@ -234,4 +238,4 @@ GET    /v1/suppliers/import/batches/:id
 POST   /v1/suppliers/import/batches/:id/commit   — Idempotency-Key required
 ```
 
-Entity types: `supplier`, `supplier_contact`, `supplier_rate`, `supplier_content_block`
+Entity types: `supplier`, `supplier_rate`, `supplier_content_block` (`supplier_contact` retired — H-139)

@@ -72,6 +72,8 @@ export async function generateSupplierConfirmations(token: string, bookingId: st
   });
 }
 
+export const OPS_BOOKING_TABS = ["suppliers", "field"] as const;
+
 export async function confirmSupplier(token: string, id: string, supplierReference?: string) {
   return eosFetch<{ confirmation: SupplierConfirmation }>(`/v1/ops/supplier-confirmations/${id}/confirm`, {
     token,

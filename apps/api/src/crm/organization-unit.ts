@@ -109,7 +109,7 @@ export type CreateOrganizationUnitInput = {
   parentUnitId?: string;
 };
 
-export function createOrganizationUnit(
+export async function createOrganizationUnit(
   store: Store,
   principal: Principal,
   organizationId: string,
@@ -177,7 +177,7 @@ export function createOrganizationUnit(
     updatedAt: now,
   };
 
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.ORGANIZATION_UNIT_CREATED,
     entityType: "organization_unit",
     entityId: unit.id,
@@ -207,7 +207,7 @@ export type UpdateOrganizationUnitInput = {
   parentUnitId?: string | null;
 };
 
-export function updateOrganizationUnit(
+export async function updateOrganizationUnit(
   store: Store,
   principal: Principal,
   unitId: string,
@@ -287,7 +287,7 @@ export function updateOrganizationUnit(
   }
 
   unit.updatedAt = new Date().toISOString();
-  const committed = commitCrmWithOutbox(store, principal, {
+  const committed = await commitCrmWithOutbox(store, principal, {
     eventType: CRM_EVENT_TYPES.ORGANIZATION_UNIT_UPDATED,
     entityType: "organization_unit",
     entityId: unit.id,

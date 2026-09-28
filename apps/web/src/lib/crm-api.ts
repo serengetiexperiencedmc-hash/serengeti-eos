@@ -78,11 +78,12 @@ export type CrmImportBatch = {
   }>;
 };
 
-export type CrmImportEntityType = "organization" | "contact";
+export type CrmImportEntityType = "organization";
+
+export const CRM_PAGE_TABS = ["Organizations", "Accounts", "Activities", "Tasks"] as const;
 
 export const CRM_IMPORT_ENTITY_OPTIONS: Array<{ value: CrmImportEntityType; label: string }> = [
   { value: "organization", label: "Organizations" },
-  { value: "contact", label: "Contacts" },
 ];
 
 export async function listOrganizationTypes(token: string) {
@@ -109,6 +110,10 @@ export async function listContacts(
   if (query.organizationId) params.set("organizationId", query.organizationId);
   const qs = params.toString();
   return eosFetch<{ items: CrmContact[] }>(`/v1/crm/contacts${qs ? `?${qs}` : ""}`, { token });
+}
+
+export async function getAccount(token: string, accountId: string) {
+  return eosFetch<{ account: CrmAccount }>(`/v1/crm/accounts/${accountId}`, { token });
 }
 
 export async function listAccounts(token: string, query: { organizationId?: string; limit?: number } = {}) {

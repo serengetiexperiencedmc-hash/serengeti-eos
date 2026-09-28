@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useEosSession } from "@/components/commercial/EosSessionProvider";
 import { Btn } from "@/components/commercial/ui";
 import { EosApiError } from "@/lib/eos-client";
+import { getStoredPrincipalId } from "@/lib/eos-session";
 import {
   clearPendingDeltas,
   getOrCreateDeviceId,
@@ -40,7 +41,7 @@ export default function FieldBookingPage() {
   }, []);
 
   useEffect(() => {
-    void readFieldCache(bookingId).then(setCache);
+    void readFieldCache(bookingId, getStoredPrincipalId()).then(setCache);
   }, [bookingId]);
 
   async function handleSync() {
@@ -57,7 +58,7 @@ export default function FieldBookingPage() {
         } else {
           setMessage(`Synced ${pushed.applied.length} change(s)`);
         }
-        await clearPendingDeltas(bookingId);
+        await clearPendingDeltas(bookingId, getStoredPrincipalId());
       }
       const pulled = await pullSyncBundle(token, bookingId, deviceId);
       await writeFieldCache(bookingId, {
@@ -66,7 +67,7 @@ export default function FieldBookingPage() {
         pendingDeltas: [],
         cachedAt: new Date().toISOString(),
       });
-      setCache(await readFieldCache(bookingId));
+      setCache(await readFieldCache(bookingId, getStoredPrincipalId()));
     } catch (err) {
       setError(err instanceof EosApiError ? err.message : "Sync failed");
     } finally {
@@ -76,12 +77,16 @@ export default function FieldBookingPage() {
 
   async function toggleTask(taskId: string, currentStatus: string, version: number) {
     const nextStatus = currentStatus === "complete" ? "pending" : "complete";
-    const updated = await queueFieldDelta(bookingId, {
-      entityType: "field_task",
-      entityId: taskId,
-      clientVersion: version,
-      payload: { status: nextStatus },
-    });
+    const updated = await queueFieldDelta(
+      bookingId,
+      {
+        entityType: "field_task",
+        entityId: taskId,
+        clientVersion: version,
+        payload: { status: nextStatus },
+      },
+      getStoredPrincipalId(),
+    );
     setCache(updated);
     if (!online) {
       setMessage("Saved offline (encrypted) — sync when back online");

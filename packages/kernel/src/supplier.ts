@@ -13,7 +13,7 @@ export type SupImportBatch = {
   id: string;
   tenantId: string;
   sourceSystem: string;
-  entityType: SupplierImportEntityType;
+  entityType: SupplierImportEntityType | "supplier_contact";
   mode: "create_only" | "upsert";
   status: "pending" | "validated" | "committed" | "failed";
   rowCount: number;
@@ -92,6 +92,14 @@ export type SupContact = {
   updatedByPrincipalId: string;
 };
 
+/**
+ * Existing rate row. F2-I1 OR-08 identity facts (source class, rate type
+ * catalogue, original currency, season, validity, source/verification dates,
+ * version/snapshot identity) are defined on `SupplierRateIdentityFacts` in
+ * commercial-contract.ts. This type is not widened in I1 so mixed persist
+ * callers are unchanged. `preferredInConflict` is not an approved F1-C-03
+ * overlap resolution.
+ */
 export type SupRate = {
   id: string;
   tenantId: string;

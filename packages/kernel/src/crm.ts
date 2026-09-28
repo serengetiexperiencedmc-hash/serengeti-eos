@@ -67,6 +67,7 @@ export type CrmOrganization = {
   organizationTypeId: string;
   country?: string;
   region?: string;
+  /** Legacy free-text. F2 OR-03-M markets are `CommercialMarket` in commercial-contract.ts. */
   market?: string;
   website?: string;
   domain?: string;
@@ -136,8 +137,6 @@ export type CrmRelationship = {
   status: CrmRelationshipStatus;
   fromOrganizationId?: string;
   toOrganizationId?: string;
-  fromContactId?: string;
-  toContactId?: string;
   organizationUnitId?: string;
   notes?: string;
   version: number;
@@ -154,6 +153,7 @@ export type CrmAccount = {
   relationshipId?: string;
   accountName: string;
   ownerPrincipalId: string;
+  /** Legacy free-text. F2 OR-03-M markets are `CommercialMarket` in commercial-contract.ts. */
   market?: string;
   strategicClassification?: string;
   priority?: string;
@@ -176,7 +176,6 @@ export type CrmActivity = {
   occurredAt: string;
   organizationId?: string;
   organizationUnitId?: string;
-  contactId?: string;
   relationshipId?: string;
   ownerPrincipalId: string;
   outcome?: string;
@@ -215,7 +214,6 @@ export type CrmTask = {
   dueAt?: string;
   status: CrmTaskStatus;
   relatedOrganizationId?: string;
-  relatedContactId?: string;
   relatedAccountId?: string;
   relatedActivityId?: string;
   classification: Classification;
@@ -265,7 +263,7 @@ export type CrmExternalIdentifier = {
 export type CrmDuplicateCandidate = {
   id: string;
   tenantId: string;
-  entityType: "organization" | "contact";
+  entityType: "organization";
   entityIdA: string;
   entityIdB: string;
   score: number;
@@ -289,7 +287,7 @@ export type CrmImportRowResult = {
 export type CrmMergeRecord = {
   id: string;
   tenantId: string;
-  entityType: "organization" | "contact";
+  entityType: "organization";
   survivorId: string;
   mergedIds: string[];
   duplicateCandidateId?: string;
@@ -322,7 +320,12 @@ export type CrmImportBatch = {
   committedByPrincipalId?: string;
 };
 
-/** Default organization type keys for Dev/Test seed — configurable per tenant. */
+/**
+ * Default organization type keys for Dev/Test seed — configurable per tenant.
+ * F2-I1 approved OR-03 commercial account types (including distinct PCO) live in
+ * `commercial-contract.ts` as `COMMERCIAL_ACCOUNT_TYPE_KEYS`. This seed list is
+ * not replaced here so mixed CRM callers keep their existing keys.
+ */
 export const DEFAULT_CRM_ORGANIZATION_TYPE_KEYS = [
   "incentive_house",
   "corporate_travel_agency",

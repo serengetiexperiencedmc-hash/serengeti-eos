@@ -1,0 +1,10 @@
+﻿          t           | count 
+----------------------+-------
+ f2_account_facts     |     1
+ f2_opportunity_facts |     1
+ f2_rfp_facts         |     1
+ f2_path_b            |     1
+ f2_programme_facts   |     1
+ f2_rate_identities   |    12
+(6 rows)
+

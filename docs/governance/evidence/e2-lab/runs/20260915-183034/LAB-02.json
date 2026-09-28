@@ -1,0 +1,51 @@
+﻿{
+    "rfp_title_after_recovery":  "Synthetic RFP MARKER-GOOD",
+    "integrity":  {
+                      "marker_count":  4,
+                      "rfp_count":  2,
+                      "programme_count":  2,
+                      "orphan_programmes":  0,
+                      "max_marker_duplicates":  1,
+                      "markers":  "MARKER-GOOD,MARKER-GOOD-PB,PROBE-LAB02,PROBE-LAB02-PB",
+                      "referential_ok":  true,
+                      "no_duplicate_markers":  true
+                  },
+    "wal_archive_file_count_at_primary":  "6",
+    "test_id":  "LAB-02",
+    "boundary":  "Dev/Test laboratory evidence only. This result does not constitute Production readiness, Production authorization, or Production proof.",
+    "acknowledged_survived":  false,
+    "recovery_mechanism":  "PITR to named restore point lab02_good",
+    "what_failed":  "Logical row content after restore point",
+    "last_acknowledged_transaction":  "MARKER-AFTER-CORRUPT",
+    "technical_recovery_duration_ms":  7363,
+    "evidence":  [
+                     "LAB-02.json",
+                     "logs/lab02-archive-count.txt"
+                 ],
+    "what_remained":  "Base backup + WAL archive volume",
+    "run_id":  "20260915-183034",
+    "repeatability":  "single run",
+    "operator_intervention":  "Scripted PITR",
+    "missing_transactions":  [
+                                 "MARKER-AFTER-CORRUPT"
+                             ],
+    "last_recoverable_transaction":  "MARKER-GOOD",
+    "probe":  {
+                  "marker":  "PROBE-LAB02",
+                  "ok":  true,
+                  "rfp":  "Synthetic RFP PROBE-LAB02",
+                  "programme":  "Synthetic Programme PROBE-LAB02"
+              },
+    "detection_duration_ms":  0,
+    "measured_rto":  "7.363 seconds (lab)",
+    "limitations":  "Synthetic PG stand-in. Single-host archive. Not Production WAL product. Dev/Test only.",
+    "failure_timestamp":  "2026-09-15T15:31:12.0522527+00:00",
+    "total_measured_rto_ms":  7363,
+    "measured_rpo":  "PITR discarded committed work after restore point (MARKER-AFTER-CORRUPT). Technical RPO is the chosen recovery point, not zero for post-target commits.",
+    "last_confirmed_durable_transaction":  "MARKER-AFTER-CORRUPT",
+    "expected":  "MARKER-GOOD present; MARKER-AFTER-CORRUPT absent; title not CORRUPT",
+    "actual":  "good=True after=False title=Synthetic RFP MARKER-GOOD probe=True in_recovery_last=f",
+    "failure_model":  "F9 logical corruption recovered via WAL/PITR restore point lab02_good",
+    "topology":  "T2",
+    "pass_fail":  "PASS"
+}

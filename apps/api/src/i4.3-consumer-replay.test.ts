@@ -11,17 +11,17 @@ import {
 } from "../src/outbox.js";
 import { allPrincipals } from "../src/store.js";
 
-describe("I4.3 consumer processed events + replay", () => {
+describe("I4.3 consumer processed events + replay", async () => {
   const carol = (store: ReturnType<typeof seedStore>) =>
     allPrincipals(store).find((p) => p.email === "carol.admin@sedmc.local")!;
 
-  it("lists processed events for tenant", () => {
+  it("lists processed events for tenant", async () => {
     const store = seedStore("i43-list", TEST_BOOTSTRAP_SECRETS);
     store.eventTransport = wrapTransportWithConsumer(
       store,
       createInMemoryDevTransport(store.publishedBus),
     );
-    commitWithOutbox(store, carol(store), {
+    await commitWithOutbox(store, carol(store), {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",
@@ -36,13 +36,13 @@ describe("I4.3 consumer processed events + replay", () => {
     expect(listed.items).toHaveLength(1);
   });
 
-  it("replays events to consumer with force", () => {
+  it("replays events to consumer with force", async () => {
     const store = seedStore("i43-replay", TEST_BOOTSTRAP_SECRETS);
     store.eventTransport = wrapTransportWithConsumer(
       store,
       createInMemoryDevTransport(store.publishedBus),
     );
-    const committed = commitWithOutbox(store, carol(store), {
+    const committed = await commitWithOutbox(store, carol(store), {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",
@@ -93,7 +93,7 @@ describe("I4.3 consumer processed events + replay", () => {
     });
     const token = login.json().accessToken as string;
 
-    commitWithOutbox(store, carol(store), {
+    await commitWithOutbox(store, carol(store), {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",

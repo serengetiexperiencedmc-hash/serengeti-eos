@@ -123,7 +123,8 @@ describe("C10 booking command center", () => {
     expect(body.snapshot.handover.progressPercent).toBe(100);
     expect(body.snapshot.finance.paidTotal).toBe(60000);
     expect(body.snapshot.finance.outstandingTotal).toBe(140000);
-    expect(body.snapshot.ops.manifestStatus).toBe("published");
+    expect(body.snapshot.ops.manifestGuestCount).toBe(0);
+    expect(body.snapshot.ops.manifestStatus).toBeUndefined();
     expect(body.invoices.length).toBe(1);
     expect(body.snapshot.timeline.some((t: { key: string; status: string }) => t.key === "confirmed" && t.status === "complete")).toBe(true);
   });

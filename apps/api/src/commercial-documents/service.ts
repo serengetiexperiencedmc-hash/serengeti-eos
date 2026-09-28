@@ -9,8 +9,6 @@ import {
   type CommercialDocumentKind,
   type Principal,
 } from "@sedmc/kernel";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
 import type { Store } from "../store.js";
 import { allowCdAudit, denyCdAudit } from "./audit.js";
 import { ensureCommercialDocumentCollections } from "./collections.js";
@@ -20,9 +18,29 @@ import {
   LocalFsDocumentStorage,
   sha256Buffer,
 } from "./storage.js";
+import {
+  allowAuditRecord,
+  denyAuditRecord,
+  insertChainedAudit,
+  isMixedSqlDurable,
+  persistDenyAudit,
+  rememberPostCommit,
+  runDurableTx,
+} from "../persistence/durable.js";
+import {
+  getCommercialDocumentById,
+  insertCommercialDocument,
+  listDocumentsForRfp,
+} from "../persistence/commercial-document-repository.js";
+import { resolveDocumentRoot } from "../infrastructure-contract.js";
+import { loadRfp } from "../rfp/rfp.js";
+import {
+  rejectPersonDomainContent,
+  rejectPersonDomainDocumentFilename,
+} from "../personal-data-content-contract.js";
 
 function documentRoot(): string {
-  return process.env.EOS_DOCUMENT_ROOT?.trim() || join(tmpdir(), "serengeti-eos-documents");
+  return resolveDocumentRoot();
 }
 
 export function ensureDocumentStorage(store: Store): void {
@@ -51,6 +69,11 @@ function sanitize(doc: CommercialDocument) {
   };
 }
 
+async function compensateBytes(store: Store, storageRef: string): Promise<void> {
+  const storage = store.documentStorage;
+  if (storage) await storage.delete(storageRef);
+}
+
 export type UploadDocumentInput = {
   filename: string;
   mimeType: string;
@@ -71,7 +94,14 @@ export async function uploadCommercialDocument(
   ensureDocumentStorage(store);
   const human = canMutateCommercialDocument(principal.actorType);
   if (!human.allowed) {
-    denyCdAudit(store, principal, "commercialDocument:write:document", "commercial_document", correlationId, human.reason);
+    if (isMixedSqlDurable(store)) {
+      await persistDenyAudit(
+        store,
+        denyAuditRecord(principal, "commercialDocument:write:document", "commercial_document", correlationId, human.reason),
+      );
+    } else {
+      denyCdAudit(store, principal, "commercialDocument:write:document", "commercial_document", correlationId, human.reason);
+    }
     return { error: "forbidden" as const, reason: human.reason };
   }
   const decision = authorize({
@@ -80,9 +110,19 @@ export async function uploadCommercialDocument(
     action: "create:commercial_document",
   });
   if (decision.result === "deny") {
-    denyCdAudit(store, principal, "commercialDocument:write:document", "commercial_document", correlationId, decision.reason);
+    if (isMixedSqlDurable(store)) {
+      await persistDenyAudit(
+        store,
+        denyAuditRecord(principal, "commercialDocument:write:document", "commercial_document", correlationId, decision.reason),
+      );
+    } else {
+      denyCdAudit(store, principal, "commercialDocument:write:document", "commercial_document", correlationId, decision.reason);
+    }
     return { error: "forbidden" as const, reason: decision.reason };
   }
+
+  const personContent = rejectPersonDomainContent(input);
+  if (personContent) return personContent;
 
   const filename = input.filename?.trim();
   if (!filename || filename.length > 255) {
@@ -91,6 +131,8 @@ export async function uploadCommercialDocument(
   if (filename.includes("..") || filename.includes("/") || filename.includes("\\")) {
     return { error: "invalid" as const, reason: "invalid_filename" };
   }
+  const personFilename = rejectPersonDomainDocumentFilename(filename);
+  if (personFilename) return personFilename;
   const mimeType = input.mimeType?.trim();
   if (!mimeType || !isAllowedCommercialMime(mimeType)) {
     return { error: "invalid" as const, reason: "mime_not_allowed" };
@@ -114,9 +156,7 @@ export async function uploadCommercialDocument(
   }
 
   if (input.rfpId) {
-    const rfp = store.rfpRfps.find(
-      (r) => r.id === input.rfpId && r.tenantId === principal.tenantId && !r.archivedAt,
-    );
+    const rfp = await loadRfp(store, principal.tenantId, input.rfpId);
     if (!rfp) return { error: "invalid" as const, reason: "invalid_rfp" };
     if (kind === "other") kind = "rfp";
   }
@@ -174,12 +214,37 @@ export async function uploadCommercialDocument(
     createdByPrincipalId: principal.id,
     updatedByPrincipalId: principal.id,
   };
+  if (isMixedSqlDurable(store)) {
+    try {
+      const committed = await runDurableTx(store, async (client) => {
+        await insertCommercialDocument(client, doc);
+        const audit = await insertChainedAudit(
+          client,
+          allowAuditRecord(
+            principal,
+            "commercialDocument:write:document",
+            "commercial_document",
+            doc.id,
+            correlationId,
+            sanitize(doc),
+          ),
+        );
+        return { audit };
+      });
+      rememberPostCommit(store, committed.audit);
+    } catch (error) {
+      await compensateBytes(store, put.storageRef);
+      throw error;
+    }
+    return { document: sanitize(doc) };
+  }
+
   store.commercialDocuments.push(doc);
   allowCdAudit(store, principal, "commercialDocument:write:document", "commercial_document", doc.id, correlationId, sanitize(doc));
   return { document: sanitize(doc) };
 }
 
-export function listRfpDocuments(store: Store, principal: Principal, rfpId: string) {
+export async function listRfpDocuments(store: Store, principal: Principal, rfpId: string) {
   ensureCommercialDocumentCollections(store);
   const decision = authorize({
     principal,
@@ -187,16 +252,17 @@ export function listRfpDocuments(store: Store, principal: Principal, rfpId: stri
     action: "list:commercial_document",
   });
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
-  const rfp = store.rfpRfps.find((r) => r.id === rfpId && r.tenantId === principal.tenantId && !r.archivedAt);
+  const rfp = await loadRfp(store, principal.tenantId, rfpId);
   if (!rfp) return { error: "not_found" as const };
-  const items = store.commercialDocuments
-    .filter((d) => d.tenantId === principal.tenantId && d.rfpId === rfpId && d.status === "active")
-    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
-    .map(sanitize);
-  return { items };
+  const items = isMixedSqlDurable(store)
+    ? await listDocumentsForRfp(store.dbPool, principal.tenantId, rfpId)
+    : store.commercialDocuments.filter((d) => d.tenantId === principal.tenantId && d.rfpId === rfpId && d.status === "active");
+  return {
+    items: items.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)).map(sanitize),
+  };
 }
 
-export function getCommercialDocument(store: Store, principal: Principal, id: string) {
+export async function getCommercialDocument(store: Store, principal: Principal, id: string) {
   ensureCommercialDocumentCollections(store);
   const decision = authorize({
     principal,
@@ -204,7 +270,9 @@ export function getCommercialDocument(store: Store, principal: Principal, id: st
     action: "get:commercial_document",
   });
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
-  const doc = store.commercialDocuments.find((d) => d.id === id && d.tenantId === principal.tenantId);
+  const doc = isMixedSqlDurable(store)
+    ? await getCommercialDocumentById(store.dbPool, principal.tenantId, id)
+    : store.commercialDocuments.find((d) => d.id === id && d.tenantId === principal.tenantId);
   if (!doc || doc.status === "deleted") return { error: "not_found" as const };
   return { document: sanitize(doc) };
 }
@@ -218,7 +286,9 @@ export async function getCommercialDocumentContent(store: Store, principal: Prin
     action: "get:commercial_document_content",
   });
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
-  const doc = store.commercialDocuments.find((d) => d.id === id && d.tenantId === principal.tenantId);
+  const doc = isMixedSqlDurable(store)
+    ? await getCommercialDocumentById(store.dbPool, principal.tenantId, id)
+    : store.commercialDocuments.find((d) => d.id === id && d.tenantId === principal.tenantId);
   if (!doc || doc.status === "deleted") return { error: "not_found" as const };
   const bytes = await store.documentStorage!.get(doc.storageRef);
   if (!bytes) return { error: "not_found" as const, reason: "storage_missing" };

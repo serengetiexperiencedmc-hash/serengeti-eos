@@ -10,6 +10,7 @@ import {
   getCostSheet,
   getCostSheetByProgramme,
   getCostingModuleHealth,
+  getProgrammeFinancialSummary,
   listCostSheets,
   recalculateCostSheet,
 } from "./sheet.js";
@@ -34,7 +35,7 @@ export function registerCostingRoutes(app: FastifyInstance, store: Store): void 
   app.get("/v1/costing/health", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const result = getCostingModuleHealth(store, principal);
+    const result = await getCostingModuleHealth(store, principal);
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
@@ -43,7 +44,7 @@ export function registerCostingRoutes(app: FastifyInstance, store: Store): void 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const query = req.query as { programmeId?: string; rfpId?: string };
-    const result = listCostSheets(store, principal, query);
+    const result = await listCostSheets(store, principal, query);
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
@@ -52,7 +53,7 @@ export function registerCostingRoutes(app: FastifyInstance, store: Store): void 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
-    const result = createCostSheet(
+    const result = await createCostSheet(
       store,
       principal,
       req.body as Parameters<typeof createCostSheet>[2],
@@ -65,7 +66,19 @@ export function registerCostingRoutes(app: FastifyInstance, store: Store): void 
   app.get("/v1/costing/sheets/by-programme/:programmeId", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const result = getCostSheetByProgramme(store, principal, (req.params as { programmeId: string }).programmeId);
+    const result = await getCostSheetByProgramme(store, principal, (req.params as { programmeId: string }).programmeId);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
+    return result;
+  });
+
+  app.get("/v1/costing/sheets/by-programme/:programmeId/summary", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = await getProgrammeFinancialSummary(
+      store,
+      principal,
+      (req.params as { programmeId: string }).programmeId,
+    );
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
@@ -73,7 +86,7 @@ export function registerCostingRoutes(app: FastifyInstance, store: Store): void 
   app.get("/v1/costing/sheets/:id", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const result = getCostSheet(store, principal, (req.params as { id: string }).id);
+    const result = await getCostSheet(store, principal, (req.params as { id: string }).id);
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
@@ -82,7 +95,7 @@ export function registerCostingRoutes(app: FastifyInstance, store: Store): void 
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
-    const result = addCostLineItem(
+    const result = await addCostLineItem(
       store,
       principal,
       (req.params as { id: string }).id,
@@ -98,7 +111,7 @@ export function registerCostingRoutes(app: FastifyInstance, store: Store): void 
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const body = (req.body ?? {}) as { markupPercent?: number; sellPrice?: number };
-    const result = recalculateCostSheet(
+    const result = await recalculateCostSheet(
       store,
       principal,
       (req.params as { id: string }).id,
@@ -114,7 +127,7 @@ export function registerCostingRoutes(app: FastifyInstance, store: Store): void 
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const body = req.body as { summary: string };
-    const result = createCostSheetVersion(
+    const result = await createCostSheetVersion(
       store,
       principal,
       (req.params as { id: string }).id,

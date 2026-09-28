@@ -466,11 +466,12 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     const templateKey = decodeURIComponent((req.params as { key: string }).key);
     const body = (req.body ?? {}) as { subject?: string; bodyText?: string; bodyHtml?: string };
     if (!body.subject || !body.bodyText) return reply.code(400).send({ error: "invalid_request" });
-    const result = await upsertEmailTemplate(store, principal, templateKey, {
-      subject: body.subject,
-      bodyText: body.bodyText,
-      ...(body.bodyHtml !== undefined ? { bodyHtml: body.bodyHtml } : {}),
-    });
+    const result = await upsertEmailTemplate(
+      store,
+      principal,
+      templateKey,
+      (req.body ?? {}) as Parameters<typeof upsertEmailTemplate>[3],
+    );
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
@@ -583,11 +584,11 @@ export function registerNotificationRoutes(app: FastifyInstance, store: Store): 
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const body = (req.body ?? {}) as { email?: string; note?: string; expiresAt?: string | null };
     if (!body.email) return reply.code(400).send({ error: "invalid_request", reason: "email_required" });
-    const result = await addEmailAllowlistEntry(store, principal, {
-      email: body.email,
-      ...(body.note !== undefined ? { note: body.note } : {}),
-      ...(body.expiresAt !== undefined ? { expiresAt: body.expiresAt } : {}),
-    });
+    const result = await addEmailAllowlistEntry(
+      store,
+      principal,
+      (req.body ?? {}) as Parameters<typeof addEmailAllowlistEntry>[2],
+    );
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(result.updated ? 200 : 201).send(result);
   });

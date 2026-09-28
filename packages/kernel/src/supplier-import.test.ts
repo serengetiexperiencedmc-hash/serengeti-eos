@@ -1,10 +1,11 @@
 /// <reference types="vitest" />
 import { describe, expect, it } from "vitest";
 import {
+  isRetiredSupplierImportEntityType,
+  isValidSupplierImportEntityType,
   normalizeSupplierCode,
   parseCsv,
   supplierImportRowDuplicateKey,
-  validateSupplierContactImportRow,
   validateSupplierContentBlockImportRow,
   validateSupplierImportRow,
   validateSupplierRateImportRow,
@@ -45,19 +46,9 @@ describe("supplier-import", () => {
     expect(result).toEqual({ errors: ["invalid_supplierCode", "invalid_category"] });
   });
 
-  it("validates supplier contact row", () => {
-    const result = validateSupplierContactImportRow({
-      supplierCode: "LOD-SERONERA-SOP",
-      contactRole: "reservations",
-      givenName: "Anna",
-      familyName: "Mwanga",
-      isPrimary: "true",
-    });
-    expect(result).toMatchObject({
-      supplierCode: "LOD-SERONERA-SOP",
-      contactRole: "reservations",
-      isPrimary: true,
-    });
+  it("does not accept supplier_contact as a supported import entity type", () => {
+    expect(isValidSupplierImportEntityType("supplier_contact")).toBe(false);
+    expect(isRetiredSupplierImportEntityType("supplier_contact")).toBe(true);
   });
 
   it("validates supplier rate row and date order", () => {

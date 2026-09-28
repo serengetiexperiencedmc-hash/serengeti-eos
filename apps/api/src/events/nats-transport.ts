@@ -1,6 +1,7 @@
 import { AckPolicy, DeliverPolicy, connect, StringCodec, type JetStreamManager } from "nats";
 import type { EventTransport } from "@sedmc/kernel";
 import type { EnterpriseEventEnvelope } from "@sedmc/kernel";
+import { redactUrlUserinfo } from "../production-dependency-contract.js";
 
 export type NatsTransportOptions = {
   url: string;
@@ -96,7 +97,10 @@ export async function createNatsJetStreamTransport(opts: NatsTransportOptions): 
       await js.publish(subject, sc.encode(JSON.stringify(envelope)));
     },
     health() {
-      return { ok: !nc.isClosed(), detail: nc.isClosed() ? "nats_disconnected" : `nats://${opts.url}` };
+      return {
+        ok: !nc.isClosed(),
+        detail: nc.isClosed() ? "nats_disconnected" : redactUrlUserinfo(opts.url),
+      };
     },
     async close() {
       await nc.drain();
@@ -104,13 +108,15 @@ export async function createNatsJetStreamTransport(opts: NatsTransportOptions): 
   };
 }
 
-export function createNatsTransportFromEnv(): NatsTransportOptions | null {
-  const url = process.env.EOS_NATS_URL;
+export function createNatsTransportFromEnv(
+  env: NodeJS.Dict<string> | NodeJS.ProcessEnv = process.env,
+): NatsTransportOptions | null {
+  const url = env.EOS_NATS_URL;
   if (!url) return null;
   return {
     url,
-    stream: process.env.EOS_NATS_STREAM ?? "EOS_EVENTS",
-    subjectPrefix: process.env.EOS_NATS_SUBJECT_PREFIX ?? "eos.events",
+    stream: env.EOS_NATS_STREAM ?? "EOS_EVENTS",
+    subjectPrefix: env.EOS_NATS_SUBJECT_PREFIX ?? "eos.events",
   };
 }
 

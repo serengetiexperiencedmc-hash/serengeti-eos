@@ -13,12 +13,12 @@ import {
   requestReplay,
 } from "../src/outbox.js";
 
-describe("I4 transactional outbox", () => {
-  it("commits domain + outbox together; rolls back both on mutate failure", () => {
+describe("I4 transactional outbox", async () => {
+  it("commits domain + outbox together; rolls back both on mutate failure", async () => {
     const store = seedStore("test-secret");
     const carol = [...store.principals.values()].find((p) => p.email === "carol.admin@sedmc.local")!;
 
-    const ok = commitWithOutbox(store, carol, {
+    const ok = await commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",
@@ -40,7 +40,7 @@ describe("I4 transactional outbox", () => {
     expect(store.outboxEvents).toHaveLength(1);
     expect(store.outboxEvents[0]!.status).toBe("pending");
 
-    const fail = commitWithOutbox(store, carol, {
+    const fail = await commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: false },
       classification: "Internal",
@@ -53,10 +53,10 @@ describe("I4 transactional outbox", () => {
     expect(store.outboxEvents).toHaveLength(1);
   });
 
-  it("rolls back domain when outbox write fails", () => {
+  it("rolls back domain when outbox write fails", async () => {
     const store = seedStore("test-secret");
     const carol = [...store.principals.values()].find((p) => p.email === "carol.admin@sedmc.local")!;
-    const fail = commitWithOutbox(store, carol, {
+    const fail = await commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",
@@ -79,10 +79,10 @@ describe("I4 transactional outbox", () => {
     expect(store.outboxEvents).toHaveLength(0);
   });
 
-  it("publisher failure leaves event pending then dead-letters; replay restores pending", () => {
+  it("publisher failure leaves event pending then dead-letters; replay restores pending", async () => {
     const store = seedStore("test-secret");
     const carol = [...store.principals.values()].find((p) => p.email === "carol.admin@sedmc.local")!;
-    const committed = commitWithOutbox(store, carol, {
+    const committed = await commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true, n: 1 },
       classification: "Internal",
@@ -110,10 +110,10 @@ describe("I4 transactional outbox", () => {
     expect(store.outboxEvents[0]!.status).toBe("published");
   });
 
-  it("distinguishes delivered vs processed; duplicate delivery is idempotent", () => {
+  it("distinguishes delivered vs processed; duplicate delivery is idempotent", async () => {
     const store = seedStore("test-secret");
     const carol = [...store.principals.values()].find((p) => p.email === "carol.admin@sedmc.local")!;
-    const committed = commitWithOutbox(store, carol, {
+    const committed = await commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true, n: 2 },
       classification: "Internal",
@@ -144,7 +144,7 @@ describe("I4 transactional outbox", () => {
     expect(runs).toBe(1);
   });
 
-  it("enforces tenant isolation and unauthorized consumers", () => {
+  it("enforces tenant isolation and unauthorized consumers", async () => {
     const store = seedStore("test-secret");
     const carol = [...store.principals.values()].find((p) => p.email === "carol.admin@sedmc.local")!;
     registerEventType(store, carol, {
@@ -163,7 +163,7 @@ describe("I4 transactional outbox", () => {
       maxPayloadBytes: 4096,
       sensitiveDataPolicy: "reference_only",
     }, "reg-1");
-    const committed = commitWithOutbox(store, carol, {
+    const committed = await commitWithOutbox(store, carol, {
       eventType: "platform.secure.v1",
       payload: { ref: "x" },
       classification: "Confidential",
@@ -190,10 +190,10 @@ describe("I4 transactional outbox", () => {
     expect(crossTenant).toMatchObject({ delivered: false, reason: "tenant_isolation" });
   });
 
-  it("blocks simulation from publishing outbox events", () => {
+  it("blocks simulation from publishing outbox events", async () => {
     const store = seedStore("test-secret");
     const carol = [...store.principals.values()].find((p) => p.email === "carol.admin@sedmc.local")!;
-    const blocked = commitWithOutbox(
+    const blocked = await commitWithOutbox(
       store,
       carol,
       {

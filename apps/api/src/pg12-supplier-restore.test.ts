@@ -34,12 +34,6 @@ describe("PG.12 supplier restore", () => {
 
     await app.inject({
       method: "POST",
-      url: `/v1/suppliers/${supplierId}/contacts`,
-      headers: { authorization: `Bearer ${token}` },
-      payload: { contactRole: "reservations", givenName: "Leah", familyName: "N" },
-    });
-    await app.inject({
-      method: "POST",
       url: `/v1/suppliers/${supplierId}/rates`,
       headers: { authorization: `Bearer ${token}` },
       payload: {
@@ -73,7 +67,7 @@ describe("PG.12 supplier restore", () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(restored.statusCode).toBe(200);
-    expect(restored.json().restored).toEqual({ contacts: 1, rates: 1, contentBlocks: 0 });
+    expect(restored.json().restored).toEqual({ contacts: 0, rates: 1, contentBlocks: 0 });
     expect(store.supSuppliers.find((s) => s.id === supplierId)?.archivedAt).toBeUndefined();
     expect(store.supContacts.find((c) => c.supplierId === supplierId)?.archivedAt).toBeUndefined();
     expect(store.supRates.find((r) => r.supplierId === supplierId)?.archivedAt).toBeUndefined();

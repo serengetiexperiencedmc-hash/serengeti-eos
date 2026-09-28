@@ -15,9 +15,9 @@ async function loginCarol(app: ReturnType<typeof buildServer>) {
   return res.json().accessToken as string;
 }
 
-function seedBreachedDlq(store: ReturnType<typeof seedStore>) {
+async function seedBreachedDlq(store: ReturnType<typeof seedStore>) {
   const carol = allPrincipals(store).find((p) => p.email === "carol.admin@sedmc.local")!;
-  commitWithOutbox(store, carol, {
+  await commitWithOutbox(store, carol, {
     eventType: "platform.ping.v1",
     payload: { ping: true },
     classification: "Internal",
@@ -37,7 +37,7 @@ function seedBreachedDlq(store: ReturnType<typeof seedStore>) {
 describe("I4.17 DLQ SLA digest recipients", () => {
   it("fans out digest to caller plus store alias and dedupes per recipient", async () => {
     const store = seedStore("i417-fanout", TEST_BOOTSTRAP_SECRETS);
-    seedBreachedDlq(store);
+    await seedBreachedDlq(store);
     const app = buildServer({ store });
     const token = await loginCarol(app);
 
@@ -75,7 +75,7 @@ describe("I4.17 DLQ SLA digest recipients", () => {
     process.env.EOS_DLQ_SLA_DIGEST_RECIPIENTS = "oncall@sedmc.local";
     try {
       const store = seedStore("i417-env", TEST_BOOTSTRAP_SECRETS);
-      seedBreachedDlq(store);
+      await seedBreachedDlq(store);
       const app = buildServer({ store });
       const token = await loginCarol(app);
       const listed = await app.inject({

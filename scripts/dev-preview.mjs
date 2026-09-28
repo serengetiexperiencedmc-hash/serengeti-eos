@@ -14,12 +14,29 @@ const WEB_ORIGIN = `http://127.0.0.1:${WEB_PORT}`;
 
 const apiEnv = {
   ...process.env,
+  NODE_ENV: "development",
+  EOS_ENV: "development",
   EOS_BOOTSTRAP_ALICE_PASSWORD: process.env.EOS_BOOTSTRAP_ALICE_PASSWORD ?? "test-alice-not-for-prod",
   EOS_BOOTSTRAP_BOB_PASSWORD: process.env.EOS_BOOTSTRAP_BOB_PASSWORD ?? "test-bob-not-for-prod",
   EOS_BOOTSTRAP_CAROL_PASSWORD: process.env.EOS_BOOTSTRAP_CAROL_PASSWORD ?? "test-carol-not-for-prod",
   EOS_BOOTSTRAP_PARTNER_PASSWORD: process.env.EOS_BOOTSTRAP_PARTNER_PASSWORD ?? "test-partner-not-for-prod",
   EOS_SEED_DEMO: "true",
 };
+
+// Local commercial preview is in-memory unless explicitly opted in. A leftover
+// EOS_DATABASE_URL from other Dev/Test work would otherwise migrate/hydrate a
+// different database and make the documented carol credentials fail.
+if (process.env.EOS_PREVIEW_USE_DATABASE !== "1") {
+  delete apiEnv.EOS_DATABASE_URL;
+}
+
+// Leftover EOS_API_URL from isolated UAT (e.g. :18117) would make Dev sign-in
+// 502 while the preview API on 8080 is healthy. Pin the web proxy to this preview.
+const webEnv = {
+  ...process.env,
+  EOS_API_URL: API_ORIGIN,
+};
+delete webEnv.EOS_WEB_DIST_DIR;
 
 const children = [];
 let shuttingDown = false;
@@ -124,6 +141,11 @@ async function main() {
   console.log(`  API  → ${API_ORIGIN}`);
   console.log(`  UI   → ${WEB_ORIGIN}/commercial`);
   console.log("  Dev login: carol.admin@sedmc.local / test-carol-not-for-prod");
+  console.log(
+    apiEnv.EOS_DATABASE_URL
+      ? "  Persistence: PostgreSQL (EOS_PREVIEW_USE_DATABASE=1)"
+      : "  Persistence: in-memory (set EOS_PREVIEW_USE_DATABASE=1 to keep EOS_DATABASE_URL)",
+  );
   console.log("");
 
   process.on("SIGINT", () => shutdown(0));
@@ -132,9 +154,18 @@ async function main() {
   const api = await resolveService("api", API_PORT, () => fetchOk(`${API_ORIGIN}/health`));
   if (api.failed) process.exit(1);
 
-  const web = await resolveService("web", WEB_PORT, () =>
-    fetchOk(`${WEB_ORIGIN}/commercial`).then((ok) => ok || fetchOk(`${WEB_ORIGIN}/commercial/`)),
-  );
+  const web = await resolveService("web", WEB_PORT, async () => {
+    const pageOk = (await fetchOk(`${WEB_ORIGIN}/commercial`)) || (await fetchOk(`${WEB_ORIGIN}/commercial/`));
+    if (!pageOk) return false;
+    try {
+      const res = await fetch(`${WEB_ORIGIN}/eos-api/health`);
+      if (!res.ok) return false;
+      const json = await res.json();
+      return json?.status === "ok";
+    } catch {
+      return false;
+    }
+  });
   if (web.failed) process.exit(1);
 
   if (!api.start && !web.start) {
@@ -155,7 +186,7 @@ async function main() {
   }
 
   if (web.start) {
-    start("web", ["run", "dev", "-w", "@sedmc/web"]);
+    start("web", ["run", "dev", "-w", "@sedmc/web"], webEnv);
   }
 }
 

@@ -1,0 +1,37 @@
+﻿{
+    "migrateCliEos":  {
+                          "ok":  false,
+                          "reason":  "h111_eos_124_only_preserved"
+                      },
+    "h112OptIn":  {
+                      "uat_5436":  {
+                                       "redactedTarget":  "postgres://127.0.0.1:5436/eos_h117_uat",
+                                       "reason":  "listen_port_not_approved",
+                                       "mode":  "refuse"
+                                   },
+                      "default_no_flag":  {
+                                              "note":  "Authorized H-117 runtime: no H-112 flag, isolated catalog",
+                                              "mode":  "default"
+                                          },
+                      "eos":  {
+                                  "redactedTarget":  "postgres://127.0.0.1:5432/eos",
+                                  "reason":  "bounded_eos_not_authorized",
+                                  "mode":  "refuse"
+                              },
+                      "h112":  {
+                                   "redactedTarget":  "postgres://127.0.0.1:5435/eos_h112_full",
+                                   "mode":  "full_schema",
+                                   "note":  "H-117 must not set this URL"
+                               },
+                      "gateb":  {
+                                    "redactedTarget":  "postgres://127.0.0.1:5434/eos_gateb",
+                                    "reason":  "eos_gateb_not_authorized",
+                                    "mode":  "refuse"
+                                },
+                      "eos_env_uat":  {
+                                          "reason":  "production_like_not_authorized",
+                                          "mode":  "refuse"
+                                      }
+                  },
+    "capturedAt":  "2026-09-21T16:40:53.8469715Z"
+}

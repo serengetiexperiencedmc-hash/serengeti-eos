@@ -1,6 +1,7 @@
 import type { DbPool } from "@sedmc/db";
+import type { Queryable } from "./pg-repository.js";
 
-import { ensureCrmCollections, seedCrmCatalogues } from "../crm/collections.js";
+import { ensureCrmCollections, replaceOrganizationTypesFromDurable, replaceRelationshipTypesFromDurable, seedCrmCatalogues } from "../crm/collections.js";
 
 import type { Store } from "../store.js";
 
@@ -28,11 +29,15 @@ import {
 
   loadCrmNotes,
 
-  loadCrmOrganizations,
+    loadCrmOrganizations,
 
-  loadCrmRelationships,
+    loadCrmOrganizationTypes,
 
-  loadCrmTags,
+    loadCrmRelationships,
+
+    loadCrmRelationshipTypes,
+
+    loadCrmTags,
 
   loadCrmTasks,
 
@@ -68,9 +73,7 @@ import {
 
 } from "./pg-repository.js";
 
-
-
-async function syncCatalogues(pool: DbPool, store: Store, tenantId: string): Promise<void> {
+async function syncCatalogues(pool: Queryable, store: Store, tenantId: string): Promise<void> {
 
   seedCrmCatalogues(store, tenantId);
 
@@ -92,7 +95,7 @@ async function syncCatalogues(pool: DbPool, store: Store, tenantId: string): Pro
 
 export async function persistCrmEntityAfterCommit(
 
-  pool: DbPool | undefined,
+  pool: Queryable | undefined,
 
   store: Store,
 
@@ -105,8 +108,6 @@ export async function persistCrmEntityAfterCommit(
 ): Promise<void> {
 
   if (!pool) return;
-
-  try {
 
     if (entityType === "organization") {
 
@@ -121,13 +122,8 @@ export async function persistCrmEntityAfterCommit(
     }
 
     if (entityType === "contact") {
-
-      const contact = store.crmContacts.find((c) => c.id === entityId);
-
-      if (contact) await upsertCrmContact(pool, contact);
-
+      // H-139: CRM contact ingest retired; table dropped in H-135.
       return;
-
     }
 
     if (entityType === "activity") {
@@ -230,7 +226,7 @@ export async function persistCrmEntityAfterCommit(
 
       const batch = store.crmImportBatches.find((b) => b.id === entityId);
 
-      if (batch) await upsertCrmImportBatch(pool, batch);
+      if (batch && batch.entityType !== "contact") await upsertCrmImportBatch(pool, batch);
 
       return;
 
@@ -242,19 +238,13 @@ export async function persistCrmEntityAfterCommit(
 
     }
 
-  } catch {
-
-    // Fire-and-forget dual-write; log hook can be added later.
-
-  }
-
 }
 
 
 
 export async function persistCrmMergeAfterCommit(
 
-  pool: DbPool,
+  pool: Queryable,
 
   store: Store,
 
@@ -326,35 +316,7 @@ export async function persistCrmMergeAfterCommit(
 
   }
 
-
-
-  for (const id of entityIds) {
-
-    const contact = store.crmContacts.find((c) => c.id === id);
-
-    if (contact) await upsertCrmContact(pool, contact);
-
-  }
-
-  for (const activity of store.crmActivities.filter(
-
-    (a) => a.tenantId === record.tenantId && a.contactId === record.survivorId,
-
-  )) {
-
-    await upsertCrmActivity(pool, activity);
-
-  }
-
-  for (const note of store.crmNotes.filter(
-
-    (n) => n.tenantId === record.tenantId && n.entityType === "contact" && n.entityId === record.survivorId,
-
-  )) {
-
-    await upsertCrmNote(pool, note);
-
-  }
+  // H-135 Phase 1: contact merge persist removed with crm_contacts.
 
 }
 
@@ -380,7 +342,11 @@ function mergeById<T extends { id: string }>(target: T[], incoming: T[]): number
 
 
 
-export async function hydrateCrmFromPostgres(pool: DbPool, store: Store): Promise<{
+export async function hydrateCrmFromPostgres(
+  pool: DbPool,
+  store: Store,
+  options?: { persistCatalogues?: boolean },
+): Promise<{
 
   organizations: number;
 
@@ -412,15 +378,24 @@ export async function hydrateCrmFromPostgres(pool: DbPool, store: Store): Promis
 
   ensureCrmCollections(store);
 
+  const persistCatalogues = options?.persistCatalogues !== false;
+
   for (const tenant of store.tenants.values()) {
 
     seedCrmCatalogues(store, tenant.id);
 
-    await syncCatalogues(pool, store, tenant.id);
+    if (persistCatalogues) {
+
+      await syncCatalogues(pool, store, tenant.id);
+
+    }
 
   }
 
-
+  const durableOrganizationTypes = await loadCrmOrganizationTypes(pool);
+  replaceOrganizationTypesFromDurable(store, durableOrganizationTypes);
+  const durableRelationshipTypes = await loadCrmRelationshipTypes(pool);
+  replaceRelationshipTypesFromDurable(store, durableRelationshipTypes);
 
   const [
 

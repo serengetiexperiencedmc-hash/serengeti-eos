@@ -1,10 +1,19 @@
 import type { Classification } from "./types.js";
 import { marginMeetsFloor } from "./costing.js";
+import {
+  evaluatePathBApprovalRequirement,
+  type PathBExceptionalApprovalCategory,
+} from "./commercial-contract.js";
 
 export type ComApprovalStatus = "pending" | "approved" | "rejected" | "cancelled";
 
 export type ComApprovalGateType = "margin_floor" | "sell_threshold" | "standard_review";
 
+/**
+ * LEGACY numerical sell-threshold retained for mixed API callers.
+ * Not an authorized F2 Path B / CPR value. New F2 code must use
+ * `evaluatePathBApprovalRequirement` in commercial-contract.ts.
+ */
 export const DEFAULT_SELL_THRESHOLD_USD = 250_000;
 
 export type ComApprovalRequest = {
@@ -77,4 +86,14 @@ export function canDecideCommercialApproval(
     return { allowed: false, reason: "sod_requester_cannot_decide" };
   }
   return { allowed: true };
+}
+
+/**
+ * F2-I1 Path B entry point. Qualitative categories only — no sell-price or
+ * margin-percentage threshold is applied.
+ */
+export function evaluatePathBCommercialApproval(
+  categories: readonly PathBExceptionalApprovalCategory[],
+) {
+  return evaluatePathBApprovalRequirement(categories);
 }

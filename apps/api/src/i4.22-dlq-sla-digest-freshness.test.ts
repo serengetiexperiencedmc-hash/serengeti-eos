@@ -20,7 +20,7 @@ describe("I4.22 DLQ SLA digest last-run freshness", () => {
   it("treats never-run as stale and clears after dispatch", async () => {
     const store = seedStore("i422-fresh", TEST_BOOTSTRAP_SECRETS);
     const carol = allPrincipals(store).find((p) => p.email === "carol.admin@sedmc.local")!;
-    commitWithOutbox(store, carol, {
+    await commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",

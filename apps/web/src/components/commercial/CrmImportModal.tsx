@@ -102,7 +102,7 @@ export function CrmImportModal({
           {step === "configure" && (
             <>
               <p className="text-sm text-ink-soft">
-                Import organizations first, then contacts. Each batch is one entity type.
+                Import organizations. Each batch is one entity type.
               </p>
               <label className="block text-sm">
                 <span className="mb-1 block text-muted">Entity type</span>

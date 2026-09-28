@@ -3,6 +3,7 @@ import {
   clearanceAllows,
   isAllowedSupplierImportHeader,
   isValidSupplierImportEntityType,
+  isRetiredSupplierImportEntityType,
   newId,
   parseCsv,
   requiredSupplierImportHeaders,
@@ -19,6 +20,7 @@ import { ensureSupplierCollections } from "./collections.js";
 import { findSupplierByCode } from "./supplier.js";
 import { persistSupImportBatchAfterCommit, persistSupEntityAfterCommit, persistSupImportExecuteIdempotencyAfterCommit } from "../persistence/supplier.js";
 import { assertRateWithinSeason } from "./season-bounds.js";
+import { personDomainRemoved } from "../personal-data-phase1.js";
 
 function importExecuteKey(tenantId: string, batchId: string, key: string): string {
   return `${tenantId}:${batchId}:${key}`;
@@ -133,6 +135,10 @@ export function createSupplierImportBatch(
     return { error: "forbidden" as const, reason: decision.reason };
   }
 
+  if (isRetiredSupplierImportEntityType(input.entityType) || input.entityType === "supplier_contact") {
+    return personDomainRemoved();
+  }
+
   if (!isValidSupplierImportEntityType(input.entityType)) {
     return { error: "invalid_request" as const, reason: "invalid_entity_type" };
   }
@@ -181,22 +187,24 @@ export function createSupplierImportBatch(
 }
 
 function validateBatchRows(store: Store, batch: SupImportBatch): SupImportRowResult[] {
+  if (batch.entityType === "supplier_contact") return [];
   const parsed = parseCsv(batch.csvContent);
   if ("error" in parsed) return [];
 
   const results: SupImportRowResult[] = [];
   const seenKeys = new Set<string>();
+  const entityType = batch.entityType;
 
   for (let i = 0; i < parsed.rows.length; i++) {
     const rowNumber = i + 1;
     const row = parsed.rows[i]!;
-    const validated = validateSupplierImportRowByEntityType(batch.entityType, row);
+    const validated = validateSupplierImportRowByEntityType(entityType, row);
     if ("errors" in validated) {
       results.push({ rowNumber, status: "invalid", errors: validated.errors });
       continue;
     }
 
-    const dupKey = supplierImportRowDuplicateKey(batch.entityType, validated);
+    const dupKey = supplierImportRowDuplicateKey(entityType, validated);
     if (seenKeys.has(dupKey)) {
       results.push({ rowNumber, status: "invalid", errors: ["duplicate_row_in_import"] });
       continue;
@@ -261,23 +269,6 @@ function existingRecordConflict(
         s.tenantId === batch.tenantId &&
         !s.archivedAt &&
         s.supplierCode === supplierRow.supplierCode,
-    );
-    if (exists) return "existing_record_conflict";
-    return undefined;
-  }
-
-  if (batch.entityType === "supplier_contact") {
-    const contactRow = row as { supplierCode: string; contactRole: string; givenName: string; familyName: string };
-    const supplier = findSupplierByCode(store, batch.tenantId, contactRow.supplierCode);
-    if (!supplier) return undefined;
-    const exists = store.supContacts.some(
-      (c) =>
-        c.tenantId === batch.tenantId &&
-        !c.archivedAt &&
-        c.supplierId === supplier.id &&
-        c.contactRole === contactRow.contactRole &&
-        c.givenName === contactRow.givenName &&
-        c.familyName === contactRow.familyName,
     );
     if (exists) return "existing_record_conflict";
     return undefined;
@@ -357,6 +348,10 @@ export function validateSupplierImportBatch(
     return { error: "forbidden" as const, reason: decision.reason };
   }
 
+  if (batch.entityType === "supplier_contact" || isRetiredSupplierImportEntityType(batch.entityType)) {
+    return personDomainRemoved();
+  }
+
   if (batch.status === "committed") return { error: "conflict" as const, reason: "import_already_committed" };
 
   const validationResults = validateBatchRows(store, batch);
@@ -423,6 +418,10 @@ export function executeSupplierImportBatch(
   if (decision.result === "deny") {
     denySupplierAudit(store, principal, "supplier:import:bulk", "sup_import_batch", correlationId, decision.reason, batchId);
     return { error: "forbidden" as const, reason: decision.reason };
+  }
+
+  if (batch.entityType === "supplier_contact" || isRetiredSupplierImportEntityType(batch.entityType)) {
+    return personDomainRemoved();
   }
 
   if (batch.status !== "validated") {
@@ -603,29 +602,7 @@ function commitImportRow(
   if (!supplier) throw new Error("supplier_not_found");
 
   if (batch.entityType === "supplier_contact") {
-    const row = validated as import("@sedmc/kernel").SupplierContactImportRow;
-    const contact = {
-      id: newId(),
-      tenantId: batch.tenantId,
-      supplierId: supplier.id,
-      contactRole: row.contactRole,
-      givenName: row.givenName,
-      familyName: row.familyName,
-      ...(row.email !== undefined ? { email: row.email } : {}),
-      ...(row.telephone !== undefined ? { telephone: row.telephone } : {}),
-      ...(row.whatsapp !== undefined ? { whatsapp: row.whatsapp } : {}),
-      isPrimary: row.isPrimary ?? false,
-      ...(row.notes !== undefined ? { notes: row.notes } : {}),
-      importBatchId: batch.id,
-      version: 1,
-      createdAt: now,
-      updatedAt: now,
-      createdByPrincipalId: principal.id,
-      updatedByPrincipalId: principal.id,
-    };
-    store.supContacts.push(contact);
-    void persistSupEntityAfterCommit(store.dbPool, store, "supplier_contact", contact.id);
-    return contact.id;
+    throw new Error("person_domain_removed");
   }
 
   if (batch.entityType === "supplier_rate") {
@@ -709,7 +686,6 @@ function rollbackCreatedRows(store: Store, batch: SupImportBatch, createdIds: st
     return;
   }
   if (batch.entityType === "supplier_contact") {
-    store.supContacts = store.supContacts.filter((c) => !createdIds.includes(c.id));
     return;
   }
   if (batch.entityType === "supplier_rate") {

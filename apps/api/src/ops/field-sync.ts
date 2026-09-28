@@ -11,6 +11,7 @@ import {
 } from "@sedmc/kernel";
 import type { Store } from "../store.js";
 import { ensureOpsCollections } from "./collections.js";
+import { rejectPersonDomainContent } from "../personal-data-content-contract.js";
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -124,6 +125,8 @@ export function pushSyncDeltas(
   ensureOpsCollections(store);
   const decision = authorize({ principal, permission: "ops:write:operations", action: "push:ops_sync" });
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+  const personContent = rejectPersonDomainContent(input);
+  if (personContent) return personContent;
 
   const session = store.opsFieldSyncSessions.find((s) => s.id === input.sessionId && s.tenantId === principal.tenantId);
   if (!session) return { error: "not_found" as const, reason: "session_not_found" };

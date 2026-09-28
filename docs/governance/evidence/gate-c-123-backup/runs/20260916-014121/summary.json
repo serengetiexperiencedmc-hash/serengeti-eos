@@ -1,0 +1,84 @@
+{
+  "run_id": "20260916-014121",
+  "procedure": "docs/governance/adr-0006-gate-c-migration-123-backup-restore-procedure.md",
+  "authorization": "docs/governance/adr-0006-gate-c-migration-123-backup-restore-authorization.md",
+  "started_utc": "2026-09-15T22:41:39.3794976+00:00",
+  "source": {
+    "container": "serengeti-eos-gate-b-pg",
+    "bind": "127.0.0.1:5434",
+    "volume": "serengeti-eos-gate-b-pgdata",
+    "image": "postgres:16-alpine",
+    "postgres_version": "16.15",
+    "database": "eos_gateb",
+    "user": "eos_gateb",
+    "classification": "disposable Dev/Test",
+    "uat": "serengeti-eos-uat-postgres remained Exited; port 5433 not used",
+    "production": "not used"
+  },
+  "collision_check": {
+    "port_5435": "not in use before restore create",
+    "restore_container_existed": false
+  },
+  "backup": {
+    "artifact": "backups/gatec-123.dump",
+    "format": "custom (-Fc)",
+    "bytes": 159176,
+    "sha256": "9C401242B354D81497C1879302615AF3D59CB556C9B3D32F0C3D8CBAC010599D",
+    "pg_dump_exit": 0,
+    "pg_restore_list_exit": 0,
+    "toc_includes": ["tenants", "principals", "opp_opportunities", "rfp_rfps", "prg_programmes", "audit_events"],
+    "toc_gate_c_objects": "absent"
+  },
+  "restore": {
+    "container": "serengeti-eos-gate-c-123-restore-pg",
+    "bind": "127.0.0.1:5435",
+    "volume": "serengeti-eos-gate-c-123-restore-pgdata",
+    "pg_restore_exit": 0,
+    "reachable": true,
+    "postgres_version": "16.15",
+    "counts": {
+      "opp_opportunities": 0,
+      "rfp_rfps": 0,
+      "prg_programmes": 0,
+      "tenants": 2,
+      "principals": 6,
+      "audit_events": 93
+    },
+    "counts_match_source": true,
+    "gate_c_objects": "absent"
+  },
+  "source_after": {
+    "status": "running",
+    "volume": "serengeti-eos-gate-b-pgdata",
+    "gate_c_objects": "absent",
+    "counts_unchanged": true
+  },
+  "cleanup": {
+    "restore_container_removed": true,
+    "restore_volume_removed": true,
+    "backup_artifact_preserved": true,
+    "source_preserved": true
+  },
+  "migration_123_executed": false,
+  "migrate_invoked": false,
+  "operator_identity": "REQUIRES HUMAN",
+  "status": "BACKUP/RESTORE EVIDENCE REVIEW — PASS",
+  "prerequisite_status": "COMPLETED / CLEARED FOR MIGRATION-123 AUTHORIZATION REVIEW",
+  "evidence_review": {
+    "verdict": "PASS",
+    "authorization_granted_before_execution": true,
+    "procedure_executed_within_scope": true,
+    "backup_succeeded": true,
+    "backup_validation_succeeded": true,
+    "isolated_restore_succeeded": true,
+    "restore_validation_succeeded": true,
+    "migration_123_objects_absent": true,
+    "restore_target_removed": true,
+    "backup_evidence_preserved": true,
+    "gate_b_source_intact": true,
+    "uat_production_untouched": true,
+    "migration_123_not_executed": true,
+    "operator_identity": "REQUIRES HUMAN",
+    "execution_checkpoint": "AWAITING OWNER AUTHORIZATION"
+  }
+}

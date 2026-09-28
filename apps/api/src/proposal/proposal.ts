@@ -7,14 +7,46 @@ import {
   COST_LINE_CATEGORY_LABELS,
   isValidProposalStatus,
   newId,
+  PROPOSAL_EVENT_TYPES,
+  type CostLineItem,
+  type CostSheet,
   type Principal,
   type PropProposal,
   type PropProposalSnapshot,
   type PropProposalVersion,
 } from "@sedmc/kernel";
+import { composeH203ClientPrice } from "@sedmc/kernel/h203-commercial-policy";
 import type { Store } from "../store.js";
 import { allowProposalAudit, denyProposalAudit } from "./audit.js";
 import { ensureProposalCollections } from "./collections.js";
+import { evaluatePreviewPathBSend } from "../commercial-facts/path-b.js";
+import { isF2Dp01PersistEnabled } from "../commercial-facts/persist.js";
+import { listApprovalsByTenant } from "../persistence/commercial-approval-repository.js";
+import { listCostLineItems, listCostSheetsByTenant } from "../persistence/costing-repository.js";
+import {
+  allowAuditRecord,
+  denyAuditRecord,
+  insertChainedAudit,
+  insertDomainOutbox,
+  isDurableSoR,
+  isMixedSqlDurable,
+  isUniqueViolation,
+  persistDenyAudit,
+  rememberPostCommit,
+  runDurableTx,
+} from "../persistence/durable.js";
+import { getProgrammeByRfpId, listProgrammeDays, listProgrammeItems } from "../persistence/programme-repository.js";
+import {
+  getProposalById,
+  getProposalByRfpId as getStoredProposalByRfpId,
+  insertProposal,
+  insertProposalVersion,
+  listProposalsByTenant,
+  listProposalVersions,
+  proposalCodeExists,
+} from "../persistence/proposal-repository.js";
+import { getRfpById } from "../persistence/rfp-repository.js";
+import { rejectPersonDomainContent } from "../personal-data-content-contract.js";
 
 function sanitizeProposal(p: PropProposal) {
   return {
@@ -34,6 +66,10 @@ function sanitizeProposal(p: PropProposal) {
     paxCount: p.paxCount,
     programmeSummary: p.programmeSummary,
     itineraryDayCount: p.itineraryDayCount,
+    clientFacing: {
+      currency: p.currency,
+      clientSellingPrice: p.sellPrice,
+    },
     sentAt: p.sentAt,
     clientViewedAt: p.clientViewedAt,
     currentVersion: p.currentVersion,
@@ -64,32 +100,107 @@ function findProposalByRfp(store: Store, tenantId: string, rfpId: string): PropP
   return store.propProposals.find((p) => p.rfpId === rfpId && p.tenantId === tenantId && !p.archivedAt);
 }
 
+async function loadProposal(store: Store, tenantId: string, id: string): Promise<PropProposal | undefined> {
+  if (isMixedSqlDurable(store)) {
+    const persisted = await getProposalById(store.dbPool, tenantId, id);
+    if (persisted) return persisted;
+  }
+  ensureProposalCollections(store);
+  return findProposal(store, tenantId, id);
+}
+
+async function loadProposalByRfp(store: Store, tenantId: string, rfpId: string): Promise<PropProposal | undefined> {
+  if (isMixedSqlDurable(store)) {
+    const persisted = await getStoredProposalByRfpId(store.dbPool, tenantId, rfpId);
+    if (persisted) return persisted;
+  }
+  ensureProposalCollections(store);
+  return findProposalByRfp(store, tenantId, rfpId);
+}
+
+function composeProposalClientPrice(sheet: CostSheet, lines: CostLineItem[]) {
+  return composeH203ClientPrice({
+    lines: lines.map((l) => ({ category: l.category, lineTotal: l.lineTotal })),
+    currency: sheet.currency,
+    ...(sheet.markupPercent !== undefined ? { markupPercent: sheet.markupPercent } : {}),
+    ...(sheet.sellPrice !== undefined ? { sellPriceOverride: sheet.sellPrice } : {}),
+    ...(sheet.paxCount !== undefined ? { paxCount: sheet.paxCount } : {}),
+    ...(sheet.fileFeeAmount !== undefined ? { fileFeeAmount: sheet.fileFeeAmount } : {}),
+    ...(sheet.taxMode !== undefined ? { taxMode: sheet.taxMode } : {}),
+    ...(sheet.taxRatePercent !== undefined ? { taxRatePercent: sheet.taxRatePercent } : {}),
+    ...(sheet.taxMode === "amount" && sheet.taxAmount !== undefined ? { taxAmountEntered: sheet.taxAmount } : {}),
+  });
+}
+
+function snapshotFrom(input: {
+  programmeTitle: string;
+  dayCount: number;
+  itemCount: number;
+  sheet: CostSheet;
+  lines: CostLineItem[];
+}): PropProposalSnapshot {
+  const composed = composeProposalClientPrice(input.sheet, input.lines);
+  const categoryTotals: Record<string, number> = {};
+  for (const line of input.lines) {
+    const label = COST_LINE_CATEGORY_LABELS[line.category] ?? line.category;
+    categoryTotals[label] = Math.round(((categoryTotals[label] ?? 0) + line.lineTotal) * 100) / 100;
+  }
+  return {
+    programmeTitle: input.programmeTitle,
+    itineraryDayCount: input.dayCount,
+    itineraryItemCount: input.itemCount,
+    totalCost: composed.totalCost,
+    sellPrice: composed.clientSellingPrice,
+    marginPercent: composed.marginPercent,
+    currency: input.sheet.currency ?? "USD",
+    categoryTotals,
+  };
+}
+
 function buildSnapshot(store: Store, programmeId: string, costSheetId: string): PropProposalSnapshot {
   const programme = store.prgProgrammes.find((p) => p.id === programmeId);
   const days = store.prgDays.filter((d) => d.programmeId === programmeId);
   const items = store.prgItems.filter((i) => i.programmeId === programmeId);
   const sheet = store.costSheets.find((s) => s.id === costSheetId);
   const lines = store.costLineItems.filter((l) => l.costSheetId === costSheetId);
-  const categoryTotals: Record<string, number> = {};
-  for (const line of lines) {
-    categoryTotals[COST_LINE_CATEGORY_LABELS[line.category] ?? line.category] =
-      Math.round(((categoryTotals[COST_LINE_CATEGORY_LABELS[line.category] ?? line.category] ?? 0) + line.lineTotal) * 100) /
-      100;
+  if (!sheet) {
+    return {
+      programmeTitle: programme?.title ?? "Programme",
+      itineraryDayCount: days.length,
+      itineraryItemCount: items.length,
+      totalCost: 0,
+      sellPrice: 0,
+      marginPercent: 0,
+      currency: "USD",
+      categoryTotals: {},
+    };
   }
-
-  return {
+  return snapshotFrom({
     programmeTitle: programme?.title ?? "Programme",
-    itineraryDayCount: days.length,
-    itineraryItemCount: items.length,
-    totalCost: sheet?.totalCost ?? 0,
-    sellPrice: sheet?.sellPrice ?? sheet?.totalCost ?? 0,
-    marginPercent: sheet?.marginPercent ?? 0,
-    currency: sheet?.currency ?? "USD",
-    categoryTotals,
-  };
+    dayCount: days.length,
+    itemCount: items.length,
+    sheet,
+    lines,
+  });
 }
 
-export function getProposalModuleHealth(store: Store, principal: Principal) {
+async function deny(
+  store: Store,
+  principal: Principal,
+  action: string,
+  resourceType: string,
+  correlationId: string,
+  reason: string,
+  resourceId?: string,
+) {
+  if (isMixedSqlDurable(store)) {
+    await persistDenyAudit(store, denyAuditRecord(principal, action, resourceType, correlationId, reason, resourceId));
+  } else {
+    denyProposalAudit(store, principal, action, resourceType, correlationId, reason, resourceId);
+  }
+}
+
+export async function getProposalModuleHealth(store: Store, principal: Principal) {
   ensureProposalCollections(store);
   const decision = authorize({
     principal,
@@ -98,18 +209,25 @@ export function getProposalModuleHealth(store: Store, principal: Principal) {
   });
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
   const tenantId = principal.tenantId;
-  const proposals = store.propProposals.filter((p) => p.tenantId === tenantId && !p.archivedAt);
+  const proposals = isMixedSqlDurable(store)
+    ? await listProposalsByTenant(store.dbPool, tenantId)
+    : store.propProposals.filter((p) => p.tenantId === tenantId && !p.archivedAt);
   const ids = new Set(proposals.map((p) => p.id));
+  const versions = isMixedSqlDurable(store)
+    ? (
+        await Promise.all(proposals.map((p) => listProposalVersions(store.dbPool, tenantId, p.id)))
+      ).reduce((n, list) => n + list.length, 0)
+    : store.propProposalVersions.filter((v) => v.tenantId === tenantId && ids.has(v.proposalId)).length;
   return {
     module: "proposal",
     increment: "C8",
     status: "ok" as const,
     proposals: proposals.length,
-    versions: store.propProposalVersions.filter((v) => v.tenantId === tenantId && ids.has(v.proposalId)).length,
+    versions,
   };
 }
 
-export function listProposals(
+export async function listProposals(
   store: Store,
   principal: Principal,
   query?: { rfpId?: string; status?: string; organizationId?: string },
@@ -122,17 +240,20 @@ export function listProposals(
   });
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
 
-  let items = store.propProposals.filter((p) => p.tenantId === principal.tenantId && !p.archivedAt);
-  if (query?.rfpId) items = items.filter((p) => p.rfpId === query.rfpId);
-  if (query?.status) items = items.filter((p) => p.status === query.status);
-  if (query?.organizationId) items = items.filter((p) => p.organizationId === query.organizationId);
-  items.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const items = isMixedSqlDurable(store)
+    ? await listProposalsByTenant(store.dbPool, principal.tenantId, query)
+    : store.propProposals
+        .filter((p) => p.tenantId === principal.tenantId && !p.archivedAt)
+        .filter((p) => (query?.rfpId ? p.rfpId === query.rfpId : true))
+        .filter((p) => (query?.status ? p.status === query.status : true))
+        .filter((p) => (query?.organizationId ? p.organizationId === query.organizationId : true))
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   return { items: items.map(sanitizeProposal) };
 }
 
-export function getProposalDetail(store: Store, principal: Principal, id: string) {
+export async function getProposalDetail(store: Store, principal: Principal, id: string) {
   ensureProposalCollections(store);
-  const proposal = findProposal(store, principal.tenantId, id);
+  const proposal = await loadProposal(store, principal.tenantId, id);
   if (!proposal) return { error: "not_found" as const };
 
   const decision = authorize({
@@ -148,27 +269,41 @@ export function getProposalDetail(store: Store, principal: Principal, id: string
   });
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
 
-  const versions = store.propProposalVersions
-    .filter((v) => v.proposalId === id && v.tenantId === proposal.tenantId)
+  const versions = (
+    isMixedSqlDurable(store)
+      ? await listProposalVersions(store.dbPool, proposal.tenantId, id)
+      : store.propProposalVersions.filter((v) => v.proposalId === id && v.tenantId === proposal.tenantId)
+  )
     .sort((a, b) => b.versionNumber - a.versionNumber)
     .map(sanitizeVersion);
 
-  const programme = store.prgProgrammes.find((p) => p.id === proposal.programmeId);
-  const days = store.prgDays
-    .filter((d) => d.programmeId === proposal.programmeId)
-    .sort((a, b) => a.sortOrder - b.sortOrder || a.dayNumber - b.dayNumber)
-    .map((d) => ({
-      dayNumber: d.dayNumber,
-      title: d.title,
-      location: d.location,
-      items: store.prgItems
-        .filter((i) => i.dayId === d.id)
-        .sort((a, b) => a.sortOrder - b.sortOrder)
-        .map((i) => ({ startTime: i.startTime, title: i.title, description: i.description ?? i.supplierLabel })),
-    }));
+  const programme = isMixedSqlDurable(store)
+    ? undefined
+    : store.prgProgrammes.find((p) => p.id === proposal.programmeId);
+  const days = isMixedSqlDurable(store)
+    ? (await listProgrammeDays(store.dbPool, proposal.tenantId, proposal.programmeId))
+        .sort((a, b) => a.sortOrder - b.sortOrder || a.dayNumber - b.dayNumber)
+    : store.prgDays
+        .filter((d) => d.programmeId === proposal.programmeId)
+        .sort((a, b) => a.sortOrder - b.sortOrder || a.dayNumber - b.dayNumber);
+  const items = isMixedSqlDurable(store)
+    ? await listProgrammeItems(store.dbPool, proposal.tenantId, proposal.programmeId)
+    : store.prgItems.filter((i) => i.programmeId === proposal.programmeId);
+  const mappedDays = days.map((d) => ({
+    dayNumber: d.dayNumber,
+    title: d.title,
+    location: d.location,
+    items: items
+      .filter((i) => i.dayId === d.id)
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((i) => ({ startTime: i.startTime, title: i.title, description: i.description ?? i.supplierLabel })),
+  }));
 
-  const costLines = store.costLineItems
-    .filter((l) => l.costSheetId === proposal.costSheetId)
+  const costLines = (
+    isMixedSqlDurable(store)
+      ? await listCostLineItems(store.dbPool, proposal.tenantId, proposal.costSheetId)
+      : store.costLineItems.filter((l) => l.costSheetId === proposal.costSheetId)
+  )
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((l) => ({
       category: COST_LINE_CATEGORY_LABELS[l.category],
@@ -177,24 +312,35 @@ export function getProposalDetail(store: Store, principal: Principal, id: string
       currency: l.currency,
     }));
 
+  const pathB = evaluatePreviewPathBSend(store, proposal.rfpId);
+
   return {
     proposal: sanitizeProposal(proposal),
-    programme: programme ? { id: programme.id, title: programme.title, days } : undefined,
+    pathBApproval: {
+      required: pathB.required,
+      status: pathB.status,
+      categories: pathB.categories,
+    },
+    programme: programme
+      ? { id: programme.id, title: programme.title, days: mappedDays }
+      : mappedDays.length > 0
+        ? { id: proposal.programmeId, title: versions[0]?.snapshot.programmeTitle ?? "Programme", days: mappedDays }
+        : undefined,
     costLines,
     versions,
   };
 }
 
-export function getProposalByRfp(store: Store, principal: Principal, rfpId: string) {
+export async function getProposalByRfp(store: Store, principal: Principal, rfpId: string) {
   ensureProposalCollections(store);
-  const proposal = findProposalByRfp(store, principal.tenantId, rfpId);
+  const proposal = await loadProposalByRfp(store, principal.tenantId, rfpId);
   if (!proposal) return { error: "not_found" as const };
   return getProposalDetail(store, principal, proposal.id);
 }
 
 export type GenerateProposalInput = { rfpId: string; title?: string };
 
-export function generateProposal(
+export async function generateProposal(
   store: Store,
   principal: Principal,
   input: GenerateProposalInput,
@@ -207,66 +353,117 @@ export function generateProposal(
     action: "generate:prop_proposal",
   });
   if (decision.result === "deny") {
-    denyProposalAudit(store, principal, "proposal:write:proposal", "prop_proposal", correlationId, decision.reason);
+    await deny(store, principal, "proposal:write:proposal", "prop_proposal", correlationId, decision.reason);
     return { error: "forbidden" as const, reason: decision.reason };
   }
+  const personContent = rejectPersonDomainContent(input);
+  if (personContent) return personContent;
 
-  const rfp = store.rfpRfps.find(
-    (r) => r.id === input.rfpId && r.tenantId === principal.tenantId && !r.archivedAt,
-  );
+  const rfp = isMixedSqlDurable(store)
+    ? ((await getRfpById(store.dbPool, principal.tenantId, input.rfpId)) ??
+      store.rfpRfps.find((r) => r.id === input.rfpId && r.tenantId === principal.tenantId && !r.archivedAt))
+    : store.rfpRfps.find((r) => r.id === input.rfpId && r.tenantId === principal.tenantId && !r.archivedAt);
   if (!rfp) return { error: "not_found" as const, reason: "rfp_not_found" };
 
-  if (findProposalByRfp(store, principal.tenantId, input.rfpId)) {
+  if (await loadProposalByRfp(store, principal.tenantId, input.rfpId)) {
     return { error: "conflict" as const, reason: "proposal_exists_for_rfp" };
   }
 
-  const programme = store.prgProgrammes.find(
-    (p) => p.rfpId === input.rfpId && p.tenantId === principal.tenantId && !p.archivedAt,
-  );
-  const sheet = store.costSheets.find(
-    (s) => s.rfpId === input.rfpId && s.tenantId === principal.tenantId && !s.archivedAt,
-  );
-  const approval = store.comApprovalRequests.find(
-    (a) => a.rfpId === input.rfpId && a.tenantId === principal.tenantId && a.status === "approved",
-  );
+  const programme = isMixedSqlDurable(store)
+    ? ((await getProgrammeByRfpId(store.dbPool, principal.tenantId, input.rfpId)) ??
+      store.prgProgrammes.find((p) => p.rfpId === input.rfpId && p.tenantId === principal.tenantId && !p.archivedAt))
+    : store.prgProgrammes.find((p) => p.rfpId === input.rfpId && p.tenantId === principal.tenantId && !p.archivedAt);
+  const sheet = isMixedSqlDurable(store)
+    ? ((await listCostSheetsByTenant(store.dbPool, principal.tenantId, { rfpId: input.rfpId }))[0] ??
+      store.costSheets.find((s) => s.rfpId === input.rfpId && s.tenantId === principal.tenantId && !s.archivedAt))
+    : store.costSheets.find((s) => s.rfpId === input.rfpId && s.tenantId === principal.tenantId && !s.archivedAt);
+  const approval = isMixedSqlDurable(store)
+    ? ((
+        await listApprovalsByTenant(store.dbPool, principal.tenantId, {
+          rfpId: input.rfpId,
+          status: "approved",
+        })
+      )[0] ??
+      store.comApprovalRequests.find(
+        (a) => a.rfpId === input.rfpId && a.tenantId === principal.tenantId && a.status === "approved",
+      ))
+    : store.comApprovalRequests.find(
+        (a) => a.rfpId === input.rfpId && a.tenantId === principal.tenantId && a.status === "approved",
+      );
 
-  const gate = canGenerateProposal({
-    hasProgramme: !!programme,
-    hasCostSheet: !!sheet,
-    ...(approval?.status ? { approvalStatus: approval.status } : {}),
-  });
-  if (!gate.allowed) return { error: "conflict" as const, reason: gate.reason };
+  if (isDurableSoR(store) && !isF2Dp01PersistEnabled(store)) {
+    const gate = canGenerateProposal({
+      hasProgramme: !!programme,
+      hasCostSheet: !!sheet,
+      ...(approval?.status ? { approvalStatus: approval.status } : {}),
+    });
+    if (!gate.allowed) return { error: "conflict" as const, reason: gate.reason };
+  } else {
+    const pathB = evaluatePreviewPathBSend(store, rfp.id);
+    if (!pathB.allowed) {
+      return { error: "conflict" as const, reason: pathB.reason ?? "path_b_approval_required" };
+    }
+    const gate = canGenerateProposal({
+      hasProgramme: !!programme,
+      hasCostSheet: !!sheet,
+      approvalStatus: "approved",
+    });
+    if (!gate.allowed) return { error: "conflict" as const, reason: gate.reason };
+  }
+
+  if (!programme || !sheet) {
+    return { error: "conflict" as const, reason: !programme ? "programme_required" : "cost_sheet_required" };
+  }
 
   const proposalCode = buildProposalCode(rfp.rfpCode);
-  if (store.propProposals.some((p) => p.tenantId === principal.tenantId && p.proposalCode === proposalCode)) {
+  const codeTaken = isMixedSqlDurable(store)
+    ? await proposalCodeExists(store.dbPool, principal.tenantId, proposalCode)
+    : store.propProposals.some((p) => p.tenantId === principal.tenantId && p.proposalCode === proposalCode);
+  if (codeTaken) {
     return { error: "conflict" as const, reason: "duplicate_proposal_code" };
   }
 
   const now = new Date().toISOString();
-  const snapshot = buildSnapshot(store, programme!.id, sheet!.id);
-  const dayCount = store.prgDays.filter((d) => d.programmeId === programme!.id).length;
+  const days = isMixedSqlDurable(store)
+    ? await listProgrammeDays(store.dbPool, principal.tenantId, programme.id)
+    : store.prgDays.filter((d) => d.programmeId === programme.id);
+  const items = isMixedSqlDurable(store)
+    ? await listProgrammeItems(store.dbPool, principal.tenantId, programme.id)
+    : store.prgItems.filter((i) => i.programmeId === programme.id);
+  const lines = isMixedSqlDurable(store)
+    ? await listCostLineItems(store.dbPool, principal.tenantId, sheet.id)
+    : store.costLineItems.filter((l) => l.costSheetId === sheet.id);
+  const snapshot = snapshotFrom({
+    programmeTitle: programme.title,
+    dayCount: days.length,
+    itemCount: items.length,
+    sheet,
+    lines,
+  });
+  const dayCount = days.length;
+  const composed = composeProposalClientPrice(sheet, lines);
 
   const proposal: PropProposal = {
     id: newId(),
     tenantId: principal.tenantId,
     proposalCode,
     rfpId: rfp.id,
-    programmeId: programme!.id,
-    costSheetId: sheet!.id,
-    approvalRequestId: approval!.id,
+    programmeId: programme.id,
+    costSheetId: sheet.id,
+    ...(approval ? { approvalRequestId: approval.id } : {}),
     organizationId: rfp.organizationId,
-    title: input.title?.trim() || programme!.title,
+    title: input.title?.trim() || programme.title,
     status: "approved",
-    currency: sheet!.currency,
-    totalCost: sheet!.totalCost,
-    sellPrice: sheet!.sellPrice ?? sheet!.totalCost,
-    marginPercent: sheet!.marginPercent,
+    currency: sheet.currency,
+    totalCost: composed.totalCost,
+    sellPrice: composed.clientSellingPrice,
+    marginPercent: composed.marginPercent,
     ...((): object => {
-      const paxCount = sheet!.paxCount ?? programme!.paxCount;
+      const paxCount = sheet.paxCount ?? programme.paxCount;
       return paxCount !== undefined ? { paxCount } : {};
     })(),
     ...((): object => {
-      const programmeSummary = programme!.destinations ?? rfp.destinations;
+      const programmeSummary = programme.destinations ?? rfp.destinations;
       return programmeSummary !== undefined ? { programmeSummary } : {};
     })(),
     itineraryDayCount: dayCount,
@@ -289,6 +486,42 @@ export function generateProposal(
     createdAt: now,
     createdByPrincipalId: principal.id,
   };
+
+  if (isMixedSqlDurable(store) && proposal.approvalRequestId) {
+    try {
+      const committed = await runDurableTx(store, async (client) => {
+        await insertProposal(client, proposal);
+        await insertProposalVersion(client, version);
+        const audit = await insertChainedAudit(
+          client,
+          allowAuditRecord(
+            principal,
+            "proposal:write:proposal",
+            "prop_proposal",
+            proposal.id,
+            correlationId,
+            sanitizeProposal(proposal),
+          ),
+        );
+        const outbox = await insertDomainOutbox(client, {
+          principal,
+          eventType: PROPOSAL_EVENT_TYPES[0],
+          payload: { proposalId: proposal.id, rfpId: proposal.rfpId, proposalCode: proposal.proposalCode },
+          classification: proposal.classification,
+          correlationId,
+          aggregateId: proposal.id,
+        });
+        return { audit, outbox };
+      });
+      rememberPostCommit(store, committed.audit, committed.outbox);
+    } catch (error) {
+      if (isUniqueViolation(error)) return { error: "conflict" as const, reason: "duplicate_proposal_code" };
+      throw error;
+    }
+    store.propProposals.push(proposal);
+    store.propProposalVersions.push(version);
+    return getProposalDetail(store, principal, proposal.id);
+  }
 
   store.propProposals.push(proposal);
   store.propProposalVersions.push(version);
@@ -337,6 +570,13 @@ export function transitionProposalStatus(
   }
   if (!canTransitionProposalStatus(proposal.status, toStatus)) {
     return { error: "conflict" as const, reason: "invalid_status_transition" };
+  }
+
+  if (toStatus === "sent") {
+    const pathB = evaluatePreviewPathBSend(store, proposal.rfpId);
+    if (!pathB.allowed) {
+      return { error: "conflict" as const, reason: pathB.reason ?? "path_b_approval_required" };
+    }
   }
 
   const now = new Date().toISOString();

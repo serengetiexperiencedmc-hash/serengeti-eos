@@ -1,16 +1,21 @@
-import { isPlausibleEmail, isPlausiblePhone, normalizeEmail, normalizePersonName } from "./crm-contact.js";
 import { normalizeOrganizationName } from "./crm-org.js";
 import type { Classification } from "./types.js";
 
-export const CRM_IMPORT_ENTITY_TYPES = ["organization", "contact"] as const;
+export const CRM_IMPORT_ENTITY_TYPES = ["organization"] as const;
+export const CRM_RETIRED_IMPORT_ENTITY_TYPES = ["contact"] as const;
 
 export type CrmImportEntityType = (typeof CRM_IMPORT_ENTITY_TYPES)[number];
+export type CrmRetiredImportEntityType = (typeof CRM_RETIRED_IMPORT_ENTITY_TYPES)[number];
 
 export const CRM_IMPORT_MAX_ROWS = 500;
 export const CRM_IMPORT_MAX_BYTES = 1024 * 1024;
 
 export function isValidImportEntityType(entityType: string): entityType is CrmImportEntityType {
   return (CRM_IMPORT_ENTITY_TYPES as readonly string[]).includes(entityType);
+}
+
+export function isRetiredCrmImportEntityType(entityType: string): entityType is CrmRetiredImportEntityType {
+  return (CRM_RETIRED_IMPORT_ENTITY_TYPES as readonly string[]).includes(entityType);
 }
 
 export type ParsedCsvRow = Record<string, string>;
@@ -88,15 +93,6 @@ export type OrganizationImportRow = {
   sourceRecordId?: string;
 };
 
-export type ContactImportRow = {
-  givenName: string;
-  familyName: string;
-  email?: string;
-  telephone?: string;
-  classification?: Classification;
-  sourceRecordId?: string;
-};
-
 export function validateOrganizationImportRow(row: ParsedCsvRow): OrganizationImportRow | { errors: string[] } {
   const errors: string[] = [];
   const legalName = row.legalName?.trim();
@@ -121,40 +117,7 @@ export function validateOrganizationImportRow(row: ParsedCsvRow): OrganizationIm
   };
 }
 
-export function validateContactImportRow(row: ParsedCsvRow): ContactImportRow | { errors: string[] } {
-  const errors: string[] = [];
-  const givenName = normalizePersonName(row.givenName ?? "");
-  const familyName = normalizePersonName(row.familyName ?? "");
-  if (!givenName) errors.push("givenName_required");
-  if (!familyName) errors.push("familyName_required");
-  if (row.email !== undefined && row.email.trim() !== "" && !isPlausibleEmail(row.email)) {
-    errors.push("invalid_email");
-  }
-  if (row.telephone !== undefined && row.telephone.trim() !== "" && !isPlausiblePhone(row.telephone)) {
-    errors.push("invalid_telephone");
-  }
-  if (errors.length > 0) return { errors };
-
-  const classification = parseImportClassification(row.classification, "Confidential");
-  if (typeof classification === "object" && "error" in classification) {
-    return { errors: [classification.error] };
-  }
-
-  return {
-    givenName,
-    familyName,
-    ...(row.email?.trim() ? { email: normalizeEmail(row.email) } : {}),
-    ...(row.telephone?.trim() ? { telephone: row.telephone.trim() } : {}),
-    classification,
-    ...(row.sourceRecordId?.trim() ? { sourceRecordId: row.sourceRecordId.trim() } : {}),
-  };
-}
-
-export function importRowDuplicateKey(entityType: CrmImportEntityType, row: OrganizationImportRow | ContactImportRow): string {
-  if (entityType === "organization") {
-    const org = row as OrganizationImportRow;
-    return normalizeOrganizationName(org.legalName);
-  }
-  const contact = row as ContactImportRow;
-  return contact.email ? normalizeEmail(contact.email) : `${contact.givenName}|${contact.familyName}`.toLowerCase();
+export function importRowDuplicateKey(entityType: CrmImportEntityType, row: OrganizationImportRow): string {
+  void entityType;
+  return normalizeOrganizationName(row.legalName);
 }

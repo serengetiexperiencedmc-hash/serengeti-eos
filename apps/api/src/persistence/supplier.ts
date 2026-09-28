@@ -29,7 +29,8 @@ export async function persistSupImportBatchAfterCommit(
   if (!pool) return;
   try {
     const batch = store.supImportBatches.find((b) => b.id === batchId);
-    if (batch) await upsertSupImportBatch(pool, batch);
+    if (!batch || batch.entityType === "supplier_contact") return;
+    await upsertSupImportBatch(pool, batch);
   } catch {
     // Fire-and-forget dual-write.
   }
@@ -63,8 +64,7 @@ export async function persistSupEntityAfterCommit(
       return;
     }
     if (entityType === "supplier_contact") {
-      const contact = store.supContacts.find((c) => c.id === entityId);
-      if (contact) await upsertSupContact(pool, contact);
+      // H-139: supplier individual-contact ingest retired; table dropped in H-135.
       return;
     }
     if (entityType === "supplier_rate") {

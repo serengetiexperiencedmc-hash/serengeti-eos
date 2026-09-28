@@ -6,24 +6,24 @@ import { listRegisteredHandlerEventTypes } from "../src/events/handlers.js";
 import { commitWithOutbox, publishPendingOutbox } from "../src/outbox.js";
 import { allPrincipals } from "../src/store.js";
 
-describe("I4.2 event consumers", () => {
+describe("I4.2 event consumers", async () => {
   const carol = (store: ReturnType<typeof seedStore>) =>
     allPrincipals(store).find((p) => p.email === "carol.admin@sedmc.local")!;
 
-  it("registers handlers for platform and CRM events", () => {
+  it("registers handlers for platform and CRM events", async () => {
     const types = listRegisteredHandlerEventTypes();
     expect(types).toContain("platform.ping.v1");
     expect(types.some((t) => t.startsWith("crm."))).toBe(true);
   });
 
-  it("processes events idempotently via wrapped in-memory transport", () => {
+  it("processes events idempotently via wrapped in-memory transport", async () => {
     const store = seedStore("i42-test", TEST_BOOTSTRAP_SECRETS);
     store.eventTransport = wrapTransportWithConsumer(
       store,
       createInMemoryDevTransport(store.publishedBus),
     );
 
-    const committed = commitWithOutbox(store, carol(store), {
+    const committed = await commitWithOutbox(store, carol(store), {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",

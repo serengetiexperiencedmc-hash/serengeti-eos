@@ -1,0 +1,46 @@
+﻿{
+    "measured_rto":  "5.310 seconds (lab process restart + crash recovery)",
+    "measured_rpo":  "Measured zero loss of committed transactions for this F3 configuration (MARKER-PRE-FAIL survived; uncommitted MARKER-INFLIGHT did not). Not generalized to other failure models.",
+    "topology":  "single-node crash recovery (not T6 HA)",
+    "operator_intervention":  "Scripted docker kill/start",
+    "limitations":  "This is F3 (process), NOT F4 host/storage loss. Not HA failover. Synthetic tables. Dev/Test only.",
+    "recovery_mechanism":  "docker start + PostgreSQL crash recovery",
+    "run_id":  "20260915-183034",
+    "last_recoverable_transaction":  "MARKER-PRE-FAIL",
+    "repeatability":  "single run",
+    "probe":  {
+                  "marker":  "PROBE-LAB03",
+                  "ok":  true,
+                  "rfp":  "Synthetic RFP PROBE-LAB03",
+                  "programme":  "Synthetic Programme PROBE-LAB03"
+              },
+    "missing_transactions":  "MARKER-INFLIGHT (uncommitted, expected absent)",
+    "evidence":  [
+                     "LAB-03.json"
+                 ],
+    "integrity":  {
+                      "marker_count":  4,
+                      "rfp_count":  2,
+                      "programme_count":  2,
+                      "orphan_programmes":  0,
+                      "max_marker_duplicates":  1,
+                      "markers":  "MARKER-PRE-FAIL,MARKER-PRE-FAIL-PB,PROBE-LAB03,PROBE-LAB03-PB",
+                      "referential_ok":  true,
+                      "no_duplicate_markers":  true
+                  },
+    "what_failed":  "PostgreSQL process (container killed)",
+    "what_remained":  "Same Docker volume / data directory",
+    "failure_model":  "F3 database process SIGKILL; data directory survived",
+    "detection_duration_ms":  416,
+    "acknowledged_survived":  true,
+    "total_measured_rto_ms":  5310,
+    "failure_timestamp":  "2026-09-15T15:31:30.4528739+00:00",
+    "test_id":  "LAB-03",
+    "actual":  "pre=True inflight=False probe=True",
+    "pass_fail":  "PASS",
+    "expected":  "Committed marker survives; inflight does not",
+    "last_confirmed_durable_transaction":  "MARKER-PRE-FAIL",
+    "boundary":  "Dev/Test laboratory evidence only. This result does not constitute Production readiness, Production authorization, or Production proof.",
+    "technical_recovery_duration_ms":  5310,
+    "last_acknowledged_transaction":  "MARKER-PRE-FAIL"
+}

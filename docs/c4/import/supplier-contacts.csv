@@ -1,3 +1,4 @@
+# RETIRED H-139 — NOT AN EXECUTABLE IMPORT TEMPLATE. entityType=supplier_contact is rejected by EOS. Historical sample only.
 supplierCode,contactRole,givenName,familyName,email,telephone,whatsapp,isPrimary,notes
 LOD-SERONERA-SOP,reservations,Anna,Mwanga,anna.m@seronera-lodge.example.co.tz,+255 754 111 222,+255754111222,true,Available Mon-Sat 08:00-18:00 EAT
 LOD-SERONERA-SOP,operations,John,Kileo,john.k@seronera-lodge.example.co.tz,+255 754 111 223,,false,Ops contact for group check-in

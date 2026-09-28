@@ -21,12 +21,14 @@ import { persistNotifEmailOutbox, persistNotifEmailTemplate } from "../persisten
 import { digestLastRunFreshness } from "./digest-freshness.js";
 import { ensureNotificationCollections } from "./collections.js";
 import { buildLiveNotifications } from "./notifications.js";
-import { resolveEmailAdapterName } from "./email-config.js";
+import { isProductionLikeEnv } from "../devtest-token-secret.js";
+import { DEVTEST_EMAIL_ADAPTERS, resolveEmailAdapterName } from "./email-config.js";
 import { sendViaSmtp } from "./smtp-transport.js";
 import { sendViaSes } from "./ses-transport.js";
 import { isSnsSignatureVerificationEnabled } from "./sns-signature.js";
 import { isSnsAutoConfirmEnabled } from "./sns-subscription.js";
 import { isEmailSuppressed } from "./email-suppression.js";
+import { rejectPersonDomainContent } from "../personal-data-content-contract.js";
 
 function templateOverrides(store: Store, tenantId: string): EmailTemplate[] {
   return (store.notifEmailTemplates ?? []).filter((t) => t.tenantId === tenantId);
@@ -132,9 +134,9 @@ export function createSmtpEmailAdapter(store: Store, principal: Principal): Emai
         await sendViaSmtp(config, message);
         await recordOutboxEntry(store, principal, message, "smtp", "sent");
         return { status: "sent" };
-      } catch (err) {
+      } catch {
         await recordOutboxEntry(store, principal, message, "smtp", "failed");
-        return { status: "skipped", reason: err instanceof Error ? err.message : "smtp_send_failed" };
+        return { status: "skipped", reason: "smtp_send_failed" };
       }
     },
   };
@@ -176,20 +178,34 @@ export function createSesEmailAdapter(store: Store, principal: Principal): Email
         });
         await recordOutboxEntry(store, principal, message, "ses", "sent", sent.messageId || undefined);
         return { status: "sent" };
-      } catch (err) {
+      } catch {
         await recordOutboxEntry(store, principal, message, "ses", "failed");
-        return { status: "skipped", reason: err instanceof Error ? err.message : "ses_send_failed" };
+        return { status: "skipped", reason: "ses_send_failed" };
       }
     },
   };
 }
 
-export function createEmailAdapter(store: Store, principal: Principal): EmailNotificationAdapter {
-  const name = resolveEmailAdapterName();
+export function createEmailAdapter(
+  store: Store,
+  principal: Principal,
+  env: NodeJS.Dict<string> | NodeJS.ProcessEnv = process.env,
+): EmailNotificationAdapter {
+  const name = resolveEmailAdapterName(env);
+  if (isProductionLikeEnv(env) && (DEVTEST_EMAIL_ADAPTERS as readonly string[]).includes(name)) {
+    throw new Error(
+      "Production-like environment forbids Dev/Test email adapter substitution; refusing silent stub/outbox",
+    );
+  }
   if (name === "ses") return createSesEmailAdapter(store, principal);
   if (name === "ses-stub") return createSesStubEmailAdapter(store, principal);
   if (name === "smtp") return createSmtpEmailAdapter(store, principal);
   if (name === "smtp-stub") return createSmtpStubEmailAdapter(store, principal);
+  if (isProductionLikeEnv(env) && name !== "ses" && name !== "smtp") {
+    throw new Error(
+      "unknown EOS_EMAIL_ADAPTER is refused in Production-like environments; Production email product remains UNSELECTED",
+    );
+  }
   return createDevOutboxEmailAdapter(store, principal);
 }
 
@@ -299,6 +315,8 @@ export async function upsertEmailTemplate(
     action: "write:email_template",
   });
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+  const personContent = rejectPersonDomainContent(input);
+  if (personContent) return personContent;
 
   if (!templateKey.trim() || !input.subject.trim() || !input.bodyText.trim()) {
     return { error: "invalid_request" as const, reason: "template_fields_required" };

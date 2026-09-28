@@ -6,7 +6,6 @@ import { createAccount } from "../src/crm/account.js";
 import { createContact } from "../src/crm/contact.js";
 import { createNote } from "../src/crm/note.js";
 import { createOrganization } from "../src/crm/organization.js";
-import { createRelationship } from "../src/crm/relationship.js";
 import { createTag } from "../src/crm/tag.js";
 import { createTask } from "../src/crm/task.js";
 import {
@@ -17,14 +16,12 @@ import {
   countCrmMergeRecords,
   countCrmNotes,
   countCrmOrganizations,
-  countCrmRelationships,
   countCrmTags,
   countCrmTasks,
 } from "../src/persistence/pg-repository.js";
 import { syncStoreToPostgres } from "../src/persistence/sync.js";
 import { createExternalIdentifier } from "../src/crm/external-identifier.js";
 import { createImportBatch } from "../src/crm/import.js";
-import { createOrganization } from "../src/crm/organization.js";
 import { allPrincipals } from "../src/store.js";
 
 const url = process.env.EOS_DATABASE_URL;
@@ -53,7 +50,7 @@ describePg("PG.3 CRM dual-write", () => {
     expect(types.length).toBeGreaterThan(0);
 
     const before = await countCrmOrganizations(pool, tenantId);
-    const result = createOrganization(
+    const result = await createOrganization(
       store,
       principal,
       { legalName: "PG.3 Persistence Org", organizationTypeId: types[0]!.id },
@@ -84,7 +81,7 @@ describePg("PG.3.1 CRM accounts + notes dual-write", () => {
 
     const principal = allPrincipals(store).find((p) => p.id === carolId)!;
     const typeId = store.crmOrganizationTypes.find((t) => t.tenantId === tenantId)!.id;
-    const org = createOrganization(
+    const org = await createOrganization(
       store,
       principal,
       { legalName: "PG.3.1 Account Org", organizationTypeId: typeId },
@@ -94,7 +91,7 @@ describePg("PG.3.1 CRM accounts + notes dual-write", () => {
     await new Promise((r) => setTimeout(r, 50));
 
     const before = await countCrmAccounts(pool, tenantId);
-    const account = createAccount(
+    const account = await createAccount(
       store,
       principal,
       { organizationId: org.organization.id, accountName: "PG.3.1 Test Account" },
@@ -115,7 +112,7 @@ describePg("PG.3.1 CRM accounts + notes dual-write", () => {
 
     const principal = allPrincipals(store).find((p) => p.id === carolId)!;
     const typeId = store.crmOrganizationTypes.find((t) => t.tenantId === tenantId)!.id;
-    const org = createOrganization(
+    const org = await createOrganization(
       store,
       principal,
       { legalName: "PG.3.1 Note Org", organizationTypeId: typeId },
@@ -125,7 +122,7 @@ describePg("PG.3.1 CRM accounts + notes dual-write", () => {
     await new Promise((r) => setTimeout(r, 50));
 
     const before = await countCrmNotes(pool, tenantId);
-    const note = createNote(
+    const note = await createNote(
       store,
       principal,
       { entityType: "organization", entityId: org.organization.id, body: "PG.3.1 persistence note" },
@@ -249,9 +246,8 @@ describePg("PG.3+ CRM relationships, tasks, tags dual-write", () => {
 
     const principal = allPrincipals(store).find((p) => p.id === carolId)!;
     const typeId = store.crmOrganizationTypes.find((t) => t.tenantId === tenantId)!.id;
-    const relTypeId = store.crmRelationshipTypes.find((t) => t.tenantId === tenantId)!.id;
 
-    const org = createOrganization(
+    const org = await createOrganization(
       store,
       principal,
       { legalName: "PG.3+ Rel Org", organizationTypeId: typeId },
@@ -260,32 +256,17 @@ describePg("PG.3+ CRM relationships, tasks, tags dual-write", () => {
     expect("organization" in org).toBe(true);
     await new Promise((r) => setTimeout(r, 50));
 
-    const contact = createContact(
+    const contact = await createContact(
       store,
       principal,
       { givenName: "PG", familyName: "RelContact" },
       "pg3plus-contact",
     );
-    expect("contact" in contact).toBe(true);
-    await new Promise((r) => setTimeout(r, 50));
-
-    const relBefore = await countCrmRelationships(pool, tenantId);
-    const relationship = createRelationship(
-      store,
-      principal,
-      {
-        relationshipTypeId: relTypeId,
-        contactId: contact.contact.id,
-        organizationId: org.organization.id,
-      },
-      "pg3plus-rel",
-    );
-    expect("relationship" in relationship).toBe(true);
-    await new Promise((r) => setTimeout(r, 50));
-    expect(await countCrmRelationships(pool, tenantId)).toBeGreaterThan(relBefore);
+    expect("error" in contact).toBe(true);
+    expect((contact as { reason?: string }).reason).toBe("person_domain_removed");
 
     const taskBefore = await countCrmTasks(pool, tenantId);
-    const task = createTask(
+    const task = await createTask(
       store,
       principal,
       { title: "PG.3+ follow-up", relatedOrganizationId: org.organization.id },
@@ -296,7 +277,7 @@ describePg("PG.3+ CRM relationships, tasks, tags dual-write", () => {
     expect(await countCrmTasks(pool, tenantId)).toBeGreaterThan(taskBefore);
 
     const tagBefore = await countCrmTags(pool, tenantId);
-    const tag = createTag(store, principal, { key: "pg3plus", label: "PG.3+ Tag" }, "pg3plus-tag");
+    const tag = await createTag(store, principal, { key: "pg3plus", label: "PG.3+ Tag" }, "pg3plus-tag");
     expect("tag" in tag).toBe(true);
     await new Promise((r) => setTimeout(r, 50));
     expect(await countCrmTags(pool, tenantId)).toBeGreaterThan(tagBefore);
@@ -321,7 +302,7 @@ describePg("PG.4 CRM external IDs, duplicates, imports", () => {
     const principal = allPrincipals(store).find((p) => p.id === carolId)!;
     const typeId = store.crmOrganizationTypes.find((t) => t.tenantId === tenantId)!.id;
 
-    const org = createOrganization(
+    const org = await createOrganization(
       store,
       principal,
       { legalName: "PG.4 External ID Org", organizationTypeId: typeId },
@@ -331,7 +312,7 @@ describePg("PG.4 CRM external IDs, duplicates, imports", () => {
     await new Promise((r) => setTimeout(r, 50));
 
     const extBefore = await countCrmExternalIdentifiers(pool, tenantId);
-    const ext = createExternalIdentifier(
+    const ext = await createExternalIdentifier(
       store,
       principal,
       {
@@ -347,13 +328,13 @@ describePg("PG.4 CRM external IDs, duplicates, imports", () => {
     expect(await countCrmExternalIdentifiers(pool, tenantId)).toBeGreaterThan(extBefore);
 
     const dupBefore = await countCrmDuplicateCandidates(pool, tenantId);
-    createOrganization(
+    await createOrganization(
       store,
       principal,
       { legalName: "PG.4 Dup Org A", organizationTypeId: typeId },
       "pg4-dup-a",
     );
-    createOrganization(
+    await createOrganization(
       store,
       principal,
       { legalName: "PG.4 Dup Org B", tradingName: "PG.4 Dup Org A", organizationTypeId: typeId },
@@ -363,7 +344,7 @@ describePg("PG.4 CRM external IDs, duplicates, imports", () => {
     expect(await countCrmDuplicateCandidates(pool, tenantId)).toBeGreaterThan(dupBefore);
 
     const importBefore = await countCrmImportBatches(pool, tenantId);
-    const batch = createImportBatch(
+    const batch = await createImportBatch(
       store,
       principal,
       {

@@ -51,7 +51,7 @@ export function registerCommercialDocumentRoutes(app: FastifyInstance, store: St
   app.get("/v1/rfps/:id/documents", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const result = listRfpDocuments(store, principal, (req.params as { id: string }).id);
+    const result = await listRfpDocuments(store, principal, (req.params as { id: string }).id);
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
@@ -59,7 +59,7 @@ export function registerCommercialDocumentRoutes(app: FastifyInstance, store: St
   app.get("/v1/commercial-documents/:id", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const result = getCommercialDocument(store, principal, (req.params as { id: string }).id);
+    const result = await getCommercialDocument(store, principal, (req.params as { id: string }).id);
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });

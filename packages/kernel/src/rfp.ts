@@ -84,7 +84,11 @@ export type RfpRecord = {
   requirementsText?: string;
   /** CD Phase 1 — free-text commercial notes. */
   notes?: string;
-  /** CD Phase 1 — intake channel (email, portal, advisor, other). */
+  /**
+   * CD Phase 1 — legacy free-text intake provenance (email, portal, advisor, other).
+   * Not the F2 OR-07 SOURCE catalogue. SOURCE and CHANNEL are
+   * `CommercialSource` / `CommercialChannel` in commercial-contract.ts.
+   */
   source?: string;
   /** CD Phase 1 — when the RFP was received (ISO). Distinct from createdAt. */
   receivedAt?: string;

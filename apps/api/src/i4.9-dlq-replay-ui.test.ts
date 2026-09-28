@@ -19,7 +19,7 @@ describe("I4.9 DLQ and replay Commercial API", () => {
   it("lists DLQ and executes replay via HTTP", async () => {
     const store = seedStore("i49-dlq", TEST_BOOTSTRAP_SECRETS);
     const carol = allPrincipals(store).find((p) => p.email === "carol.admin@sedmc.local")!;
-    commitWithOutbox(store, carol, {
+    await commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",

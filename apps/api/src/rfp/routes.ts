@@ -13,6 +13,7 @@ import {
   patchRfp,
   transitionRfpStage,
 } from "./rfp.js";
+import { getRfpCommercialWorkspace, getRfpProposalPreparation } from "../commercial/workspace.js";
 
 function sendError(
   reply: { code: (n: number) => { send: (b: unknown) => unknown } },
@@ -38,7 +39,7 @@ export function registerRfpRoutes(app: FastifyInstance, store: Store): void {
   app.get("/v1/rfps/health", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const result = getRfpModuleHealth(store, principal);
+    const result = await getRfpModuleHealth(store, principal);
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
@@ -55,7 +56,7 @@ export function registerRfpRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const query = req.query as { opportunityId?: string; workflowStage?: string; status?: string };
-    const result = listRfps(store, principal, query);
+    const result = await listRfps(store, principal, query);
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
@@ -64,7 +65,7 @@ export function registerRfpRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
-    const result = createRfp(store, principal, req.body as Parameters<typeof createRfp>[2], correlationId);
+    const result = await createRfp(store, principal, req.body as Parameters<typeof createRfp>[2], correlationId);
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
@@ -72,7 +73,23 @@ export function registerRfpRoutes(app: FastifyInstance, store: Store): void {
   app.get("/v1/rfps/:id", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const result = getRfp(store, principal, (req.params as { id: string }).id);
+    const result = await getRfp(store, principal, (req.params as { id: string }).id);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
+    return result;
+  });
+
+  app.get("/v1/rfps/:id/commercial-workspace", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = await getRfpCommercialWorkspace(store, principal, (req.params as { id: string }).id);
+    if (isHttpErrorResult(result)) return sendHttpError(reply, result);
+    return result;
+  });
+
+  app.get("/v1/rfps/:id/proposal-preparation", async (req, reply) => {
+    const principal = principalFromAuthHeader(store, req.headers.authorization);
+    if (!principal) return reply.code(401).send({ error: "unauthenticated" });
+    const result = await getRfpProposalPreparation(store, principal, (req.params as { id: string }).id);
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
@@ -81,7 +98,7 @@ export function registerRfpRoutes(app: FastifyInstance, store: Store): void {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
-    const result = patchRfp(
+    const result = await patchRfp(
       store,
       principal,
       (req.params as { id: string }).id,
@@ -97,7 +114,7 @@ export function registerRfpRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const body = req.body as { toStage: string };
-    const result = transitionRfpStage(
+    const result = await transitionRfpStage(
       store,
       principal,
       (req.params as { id: string }).id,
@@ -113,7 +130,7 @@ export function registerRfpRoutes(app: FastifyInstance, store: Store): void {
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const body = req.body as { summary: string };
-    const result = createRfpVersion(
+    const result = await createRfpVersion(
       store,
       principal,
       (req.params as { id: string }).id,

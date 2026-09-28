@@ -1,0 +1,576 @@
+﻿[
+    {
+        "test_id":  "LAB-01",
+        "failure_model":  "F4/F5/F11 with T1 only (data directory destroyed; restore from dump)",
+        "technical_recovery_duration_ms":  8723,
+        "application_availability":  "2026-09-15T15:30:53.6770443+00:00",
+        "recovery_decision_time":  "2026-09-15T15:30:45.9231174+00:00",
+        "boundary":  "Dev/Test laboratory evidence only. This result does not constitute Production readiness, Production authorization, or Production proof.",
+        "detection_time":  "2026-09-15T15:30:45.2628249+00:00",
+        "actual":  "pre=True post_present=False probe=True pre_ts=2026-09-15 15:30:44.309654+00",
+        "total_measured_rto_ms":  8414,
+        "what_remained":  "pg_dump custom backup on lab host disk (127.0.0.1 evidence dir)",
+        "measured_rto":  "8.414 seconds (lab; scripted detection)",
+        "probe":  {
+                      "marker":  "PROBE-LAB01",
+                      "ok":  true,
+                      "rfp":  "Synthetic RFP PROBE-LAB01",
+                      "programme":  "Synthetic Programme PROBE-LAB01"
+                  },
+        "evidence":  [
+                         "backups/lab01.dump",
+                         "backups/lab01-manifest.json",
+                         "LAB-01.json"
+                     ],
+        "database_availability":  "2026-09-15T15:30:52.8228123+00:00",
+        "validation_completion":  "2026-09-15T15:30:53.6770443+00:00",
+        "missing_transactions":  [
+                                     "MARKER-POST-BACKUP",
+                                     "MARKER-POST-BACKUP-PB"
+                                 ],
+        "measured_rpo":  "Lost committed transactions after dump (MARKER-POST-BACKUP). Not zero.",
+        "expected":  "MARKER-PRE-BACKUP present; MARKER-POST-BACKUP absent",
+        "run_id":  "20260915-183034",
+        "last_recoverable_transaction":  "MARKER-PRE-BACKUP",
+        "dependency_availability":  "N/A (SQL probe only)",
+        "recovery_start":  "2026-09-15T15:30:45.9231174+00:00",
+        "pass_fail":  "PASS",
+        "repeatability":  "single run",
+        "failure_timestamp":  "2026-09-15T15:30:45.2628249+00:00",
+        "last_confirmed_durable_transaction":  "MARKER-POST-BACKUP",
+        "operator_intervention":  "Scripted (docker destroy, pg_restore)",
+        "last_acknowledged_transaction":  "MARKER-POST-BACKUP",
+        "integrity":  {
+                          "marker_count":  4,
+                          "rfp_count":  2,
+                          "programme_count":  2,
+                          "orphan_programmes":  0,
+                          "max_marker_duplicates":  1,
+                          "markers":  "MARKER-PRE-BACKUP,MARKER-PRE-BACKUP-PB,PROBE-LAB01,PROBE-LAB01-PB",
+                          "referential_ok":  true,
+                          "no_duplicate_markers":  true
+                      },
+        "detection_duration_ms":  659,
+        "limitations":  "Synthetic PG stand-in tables, not EOS in-memory Commercial/Programme modules. Lab on one host. Detection is scripted, not monitoring. Dev/Test only.",
+        "acknowledged_survived":  false,
+        "recovery_mechanism":  "pg_restore into new empty lab cluster",
+        "topology":  "T1",
+        "what_failed":  "Lab primary container and data volume"
+    },
+    {
+        "rfp_title_after_recovery":  "Synthetic RFP MARKER-GOOD",
+        "integrity":  {
+                          "marker_count":  4,
+                          "rfp_count":  2,
+                          "programme_count":  2,
+                          "orphan_programmes":  0,
+                          "max_marker_duplicates":  1,
+                          "markers":  "MARKER-GOOD,MARKER-GOOD-PB,PROBE-LAB02,PROBE-LAB02-PB",
+                          "referential_ok":  true,
+                          "no_duplicate_markers":  true
+                      },
+        "wal_archive_file_count_at_primary":  "6",
+        "test_id":  "LAB-02",
+        "boundary":  "Dev/Test laboratory evidence only. This result does not constitute Production readiness, Production authorization, or Production proof.",
+        "acknowledged_survived":  false,
+        "recovery_mechanism":  "PITR to named restore point lab02_good",
+        "what_failed":  "Logical row content after restore point",
+        "last_acknowledged_transaction":  "MARKER-AFTER-CORRUPT",
+        "technical_recovery_duration_ms":  7363,
+        "evidence":  [
+                         "LAB-02.json",
+                         "logs/lab02-archive-count.txt"
+                     ],
+        "what_remained":  "Base backup + WAL archive volume",
+        "run_id":  "20260915-183034",
+        "repeatability":  "single run",
+        "operator_intervention":  "Scripted PITR",
+        "missing_transactions":  [
+                                     "MARKER-AFTER-CORRUPT"
+                                 ],
+        "last_recoverable_transaction":  "MARKER-GOOD",
+        "probe":  {
+                      "marker":  "PROBE-LAB02",
+                      "ok":  true,
+                      "rfp":  "Synthetic RFP PROBE-LAB02",
+                      "programme":  "Synthetic Programme PROBE-LAB02"
+                  },
+        "detection_duration_ms":  0,
+        "measured_rto":  "7.363 seconds (lab)",
+        "limitations":  "Synthetic PG stand-in. Single-host archive. Not Production WAL product. Dev/Test only.",
+        "failure_timestamp":  "2026-09-15T15:31:12.0522527+00:00",
+        "total_measured_rto_ms":  7363,
+        "measured_rpo":  "PITR discarded committed work after restore point (MARKER-AFTER-CORRUPT). Technical RPO is the chosen recovery point, not zero for post-target commits.",
+        "last_confirmed_durable_transaction":  "MARKER-AFTER-CORRUPT",
+        "expected":  "MARKER-GOOD present; MARKER-AFTER-CORRUPT absent; title not CORRUPT",
+        "actual":  "good=True after=False title=Synthetic RFP MARKER-GOOD probe=True in_recovery_last=f",
+        "failure_model":  "F9 logical corruption recovered via WAL/PITR restore point lab02_good",
+        "topology":  "T2",
+        "pass_fail":  "PASS"
+    },
+    {
+        "measured_rto":  "5.310 seconds (lab process restart + crash recovery)",
+        "measured_rpo":  "Measured zero loss of committed transactions for this F3 configuration (MARKER-PRE-FAIL survived; uncommitted MARKER-INFLIGHT did not). Not generalized to other failure models.",
+        "topology":  "single-node crash recovery (not T6 HA)",
+        "operator_intervention":  "Scripted docker kill/start",
+        "limitations":  "This is F3 (process), NOT F4 host/storage loss. Not HA failover. Synthetic tables. Dev/Test only.",
+        "recovery_mechanism":  "docker start + PostgreSQL crash recovery",
+        "run_id":  "20260915-183034",
+        "last_recoverable_transaction":  "MARKER-PRE-FAIL",
+        "repeatability":  "single run",
+        "probe":  {
+                      "marker":  "PROBE-LAB03",
+                      "ok":  true,
+                      "rfp":  "Synthetic RFP PROBE-LAB03",
+                      "programme":  "Synthetic Programme PROBE-LAB03"
+                  },
+        "missing_transactions":  "MARKER-INFLIGHT (uncommitted, expected absent)",
+        "evidence":  [
+                         "LAB-03.json"
+                     ],
+        "integrity":  {
+                          "marker_count":  4,
+                          "rfp_count":  2,
+                          "programme_count":  2,
+                          "orphan_programmes":  0,
+                          "max_marker_duplicates":  1,
+                          "markers":  "MARKER-PRE-FAIL,MARKER-PRE-FAIL-PB,PROBE-LAB03,PROBE-LAB03-PB",
+                          "referential_ok":  true,
+                          "no_duplicate_markers":  true
+                      },
+        "what_failed":  "PostgreSQL process (container killed)",
+        "what_remained":  "Same Docker volume / data directory",
+        "failure_model":  "F3 database process SIGKILL; data directory survived",
+        "detection_duration_ms":  416,
+        "acknowledged_survived":  true,
+        "total_measured_rto_ms":  5310,
+        "failure_timestamp":  "2026-09-15T15:31:30.4528739+00:00",
+        "test_id":  "LAB-03",
+        "actual":  "pre=True inflight=False probe=True",
+        "pass_fail":  "PASS",
+        "expected":  "Committed marker survives; inflight does not",
+        "last_confirmed_durable_transaction":  "MARKER-PRE-FAIL",
+        "boundary":  "Dev/Test laboratory evidence only. This result does not constitute Production readiness, Production authorization, or Production proof.",
+        "technical_recovery_duration_ms":  5310,
+        "last_acknowledged_transaction":  "MARKER-PRE-FAIL"
+    },
+    {
+        "measured_rto":  "2.308 seconds (lab promote)",
+        "measured_rpo":  "Measured zero transaction loss for this test configuration and failure model (sync replica promote; MARKER-SYNC-COMMITTED survived). Not generalized to async, logical corruption, or region loss.",
+        "topology":  "T3",
+        "operator_intervention":  "Scripted promote; old primary fenced by remaining stopped",
+        "limitations":  "Both containers on one Docker Desktop host - not independent AZ/region. No STONITH beyond kill. Synthetic tables. Dev/Test only.",
+        "recovery_mechanism":  "pg_promote() on replica",
+        "run_id":  "20260915-183034",
+        "last_recoverable_transaction":  "MARKER-SYNC-COMMITTED",
+        "repeatability":  "single run",
+        "probe":  {
+                      "marker":  "PROBE-LAB04",
+                      "ok":  true,
+                      "rfp":  "Synthetic RFP PROBE-LAB04",
+                      "programme":  "Synthetic Programme PROBE-LAB04"
+                  },
+        "marker_on_replica_before_fail":  true,
+        "missing_transactions":  [
+
+                                 ],
+        "evidence":  [
+                         "LAB-04.json"
+                     ],
+        "integrity":  {
+                          "marker_count":  4,
+                          "rfp_count":  2,
+                          "programme_count":  2,
+                          "orphan_programmes":  0,
+                          "max_marker_duplicates":  1,
+                          "markers":  "MARKER-SYNC-COMMITTED,MARKER-SYNC-COMMITTED-PB,PROBE-LAB04,PROBE-LAB04-PB",
+                          "referential_ok":  true,
+                          "no_duplicate_markers":  true
+                      },
+        "what_failed":  "Lab primary process/container",
+        "what_remained":  "Synchronous replica container and its volume",
+        "failure_model":  "F11/F4 process kill of primary; synchronous standby survived",
+        "detection_duration_ms":  2310,
+        "acknowledged_survived":  true,
+        "total_measured_rto_ms":  2308,
+        "failure_timestamp":  "2026-09-15T15:31:52.9176489+00:00",
+        "test_id":  "LAB-04",
+        "actual":  "before=True after=True promoted=(f -eq f) probe=True",
+        "pass_fail":  "PASS",
+        "expected":  "Sync committed marker present on promoted replica; probe write ok",
+        "last_confirmed_durable_transaction":  "MARKER-SYNC-COMMITTED",
+        "boundary":  "Dev/Test laboratory evidence only. This result does not constitute Production readiness, Production authorization, or Production proof.",
+        "technical_recovery_duration_ms":  2308,
+        "last_acknowledged_transaction":  "MARKER-SYNC-COMMITTED"
+    },
+    {
+        "acknowledged_survived":  false,
+        "repeatability":  "single run",
+        "test_id":  "LAB-05",
+        "actual":  "replicated_before=True replicated_after=True unreplicated=False probe=True",
+        "total_measured_rto_ms":  6882,
+        "last_acknowledged_transaction":  "MARKER-UNREPLICATED",
+        "last_confirmed_durable_transaction":  "MARKER-UNREPLICATED",
+        "failure_model":  "F4/F12-class primary loss while async replica was stopped (induced lag)",
+        "evidence":  [
+                         "LAB-05.json"
+                     ],
+        "recovery_mechanism":  "Start replica and pg_promote",
+        "measured_rto":  "6.882 seconds (lab)",
+        "boundary":  "Dev/Test laboratory evidence only. This result does not constitute Production readiness, Production authorization, or Production proof.",
+        "last_recoverable_transaction":  "MARKER-REPLICATED",
+        "failure_timestamp":  "2026-09-15T15:32:15.3142296+00:00",
+        "integrity":  {
+                          "marker_count":  4,
+                          "rfp_count":  2,
+                          "programme_count":  2,
+                          "orphan_programmes":  0,
+                          "max_marker_duplicates":  1,
+                          "markers":  "MARKER-REPLICATED,MARKER-REPLICATED-PB,PROBE-LAB05,PROBE-LAB05-PB",
+                          "referential_ok":  true,
+                          "no_duplicate_markers":  true
+                      },
+        "what_remained":  "Async replica data from before stop",
+        "expected":  "MARKER-REPLICATED present; MARKER-UNREPLICATED absent",
+        "measured_rpo":  "Lost committed MARKER-UNREPLICATED (async lag / replica down). Demonstrates technical RPO \u003e 0 for this failure model. Must not be labelled zero-loss.",
+        "run_id":  "20260915-183034",
+        "topology":  "T4",
+        "pass_fail":  "PASS",
+        "limitations":  "Lag induced by stopping replica, not geographic distance. One host. Dev/Test only.",
+        "what_failed":  "Primary killed after replica stopped",
+        "missing_transactions":  [
+                                     "MARKER-UNREPLICATED"
+                                 ],
+        "operator_intervention":  "Scripted replica stop, primary kill, promote",
+        "probe":  {
+                      "marker":  "PROBE-LAB05",
+                      "ok":  true,
+                      "rfp":  "Synthetic RFP PROBE-LAB05",
+                      "programme":  "Synthetic Programme PROBE-LAB05"
+                  }
+    },
+    {
+        "acknowledged_survived":  true,
+        "repeatability":  "single run",
+        "test_id":  "LAB-06",
+        "actual":  "marker=True probe=True promoted=(f -eq f)",
+        "total_measured_rto_ms":  2280,
+        "last_acknowledged_transaction":  "MARKER-WARM",
+        "last_confirmed_durable_transaction":  "MARKER-WARM",
+        "failure_model":  "F11 primary stopped; warm replica already running",
+        "evidence":  [
+                         "LAB-06.json"
+                     ],
+        "recovery_mechanism":  "Promote warm standby; connection switch of SQL probe",
+        "measured_rto":  "2.280 seconds (lab DB promote + probe switch)",
+        "boundary":  "Dev/Test laboratory evidence only. This result does not constitute Production readiness, Production authorization, or Production proof.",
+        "last_recoverable_transaction":  "MARKER-WARM",
+        "failure_timestamp":  "2026-09-15T15:32:38.5065140+00:00",
+        "integrity":  {
+                          "marker_count":  4,
+                          "rfp_count":  2,
+                          "programme_count":  2,
+                          "orphan_programmes":  0,
+                          "max_marker_duplicates":  1,
+                          "markers":  "MARKER-WARM,MARKER-WARM-PB,PROBE-LAB06,PROBE-LAB06-PB",
+                          "referential_ok":  true,
+                          "no_duplicate_markers":  true
+                      },
+        "what_remained":  "Already-running replica (hot standby) + probe switched to replica port/container",
+        "expected":  "Warm replica promotes; markers + probe ok",
+        "measured_rpo":  "Measured zero transaction loss for this sync-warm-standby configuration and F11 stop-primary model. Application process was not a running EOS standby.",
+        "run_id":  "20260915-183034",
+        "topology":  "T5",
+        "pass_fail":  "PARTIAL",
+        "limitations":  "Database warm standby demonstrated. EOS application warm standby process NOT present. One host. Dev/Test only. Result is PARTIAL even on success of DB path.",
+        "what_failed":  "Primary container stopped",
+        "missing_transactions":  [
+
+                                 ],
+        "operator_intervention":  "Scripted promote; probe retargeted to replica",
+        "probe":  {
+                      "marker":  "PROBE-LAB06",
+                      "ok":  true,
+                      "rfp":  "Synthetic RFP PROBE-LAB06",
+                      "programme":  "Synthetic Programme PROBE-LAB06"
+                  }
+    },
+    {
+        "measured_rto":  "4.529 seconds until PG probe succeeded (API restart additional)",
+        "measured_rpo":  "PG committed MARKER-COMBO survived F3. EOS CRM org did not survive API restart (in-memory SoR). Not Production RPO.",
+        "topology":  "T1/F3 combined with in-memory EOS API",
+        "operator_intervention":  "Scripted kill/start",
+        "limitations":  "Jointly critical EOS Commercial/Programme Building are not PG-persisted; CRM org used as in-memory witness only. Combined RTO is lab process restart, not Production HA. Dev/Test only.",
+        "api_started":  true,
+        "run_id":  "20260915-183034",
+        "crm_org_id_before":  "93ced14c-5499-4c9f-9d5b-c255021e1c98",
+        "last_recoverable_transaction":  "MARKER-COMBO",
+        "repeatability":  "single run",
+        "probe":  {
+                      "marker":  "PROBE-LAB07",
+                      "ok":  true,
+                      "rfp":  "Synthetic RFP PROBE-LAB07",
+                      "programme":  "Synthetic Programme PROBE-LAB07"
+                  },
+        "missing_transactions":  [
+                                     "EOS CRM organization in-memory (if API started)"
+                                 ],
+        "evidence":  [
+                         "LAB-07.json",
+                         "logs/api-lab07.log"
+                     ],
+        "integrity":  {
+                          "marker_count":  4,
+                          "rfp_count":  2,
+                          "programme_count":  2,
+                          "orphan_programmes":  0,
+                          "max_marker_duplicates":  1,
+                          "markers":  "MARKER-COMBO,MARKER-COMBO-PB,PROBE-LAB07,PROBE-LAB07-PB",
+                          "referential_ok":  true,
+                          "no_duplicate_markers":  true
+                      },
+        "crm_org_after_restart":  "UNEXPECTEDLY_PRESENT",
+        "what_failed":  "Lab API node process and lab PostgreSQL process",
+        "what_remained":  "PG data volume; API in-memory Store did not remain",
+        "failure_model":  "F1+F3 API process kill + DB process SIGKILL (data dir survived)",
+        "acknowledged_survived":  true,
+        "total_measured_rto_ms":  4529,
+        "failure_timestamp":  "2026-09-15T15:33:09.9307141+00:00",
+        "test_id":  "LAB-07",
+        "actual":  "pg=True probe=True api_started=True crm_after=UNEXPECTEDLY_PRESENT",
+        "pass_fail":  "PARTIAL",
+        "expected":  "PG markers survive F3; in-memory API state does not",
+        "last_confirmed_durable_transaction":  "MARKER-COMBO (PG only)",
+        "boundary":  "Dev/Test laboratory evidence only. This result does not constitute Production readiness, Production authorization, or Production proof.",
+        "recovery_mechanism":  "docker start PG crash recovery; API process restart",
+        "last_acknowledged_transaction":  "MARKER-COMBO (PG) + CRM org (in-memory)"
+    },
+    {
+        "acknowledged_survived":  false,
+        "repeatability":  "single run",
+        "test_id":  "LAB-08",
+        "actual":  "title=Synthetic RFP MARKER-GOOD probe=True",
+        "total_measured_rto_ms":  7409,
+        "last_acknowledged_transaction":  "logical UPDATE",
+        "probe":  {
+                      "marker":  "PROBE-LAB08",
+                      "ok":  true,
+                      "rfp":  "Synthetic RFP PROBE-LAB08",
+                      "programme":  "Synthetic Programme PROBE-LAB08"
+                  },
+        "failure_model":  "F9 logical UPDATE corruption; PITR to restore point",
+        "evidence":  [
+                         "LAB-08.json"
+                     ],
+        "recovery_mechanism":  "PITR; HA replica would have replicated the corruption and was not used as the fix",
+        "measured_rto":  "7.409 seconds (lab PITR)",
+        "boundary":  "Dev/Test laboratory evidence only. This result does not constitute Production readiness, Production authorization, or Production proof.",
+        "last_recoverable_transaction":  "MARKER-GOOD at restore point",
+        "failure_timestamp":  "2026-09-15T15:33:32.2482689+00:00",
+        "integrity":  {
+                          "marker_count":  4,
+                          "rfp_count":  2,
+                          "programme_count":  2,
+                          "orphan_programmes":  0,
+                          "max_marker_duplicates":  1,
+                          "markers":  "MARKER-GOOD,MARKER-GOOD-PB,PROBE-LAB08,PROBE-LAB08-PB",
+                          "referential_ok":  true,
+                          "no_duplicate_markers":  true
+                      },
+        "what_remained":  "Base backup + WAL archive",
+        "expected":  "title restored to non-CORRUPT; probe ok",
+        "measured_rpo":  "Recovery to restore point discarded subsequent committed UPDATE. Not zero loss of all later commits.",
+        "run_id":  "20260915-183034",
+        "topology":  "T2",
+        "pass_fail":  "PASS",
+        "limitations":  "Synthetic rows. Demonstrates backup/PITR needed even if T3 exists. Dev/Test only.",
+        "what_failed":  "Row contents (logical)",
+        "missing_transactions":  [
+                                     "logical UPDATE after restore point"
+                                 ],
+        "operator_intervention":  "Scripted PITR",
+        "title_after":  "Synthetic RFP MARKER-GOOD"
+    },
+    {
+        "acknowledged_survived":  false,
+        "repeatability":  "single run",
+        "test_id":  "LAB-09",
+        "actual":  "present=True rfp=1 probe=True deleted_count_before_pitr=0",
+        "total_measured_rto_ms":  7326,
+        "last_acknowledged_transaction":  "DELETE statements",
+        "probe":  {
+                      "marker":  "PROBE-LAB09",
+                      "ok":  true,
+                      "rfp":  "Synthetic RFP PROBE-LAB09",
+                      "programme":  "Synthetic Programme PROBE-LAB09"
+                  },
+        "failure_model":  "F8 accidental DELETE of synthetic business rows",
+        "limitations":  "Synthetic tables. Dev/Test only.",
+        "evidence":  [
+                         "LAB-09.json"
+                     ],
+        "recovery_mechanism":  "PITR to lab09_good",
+        "measured_rto":  "7.326 seconds (lab PITR)",
+        "boundary":  "Dev/Test laboratory evidence only. This result does not constitute Production readiness, Production authorization, or Production proof.",
+        "last_recoverable_transaction":  "MARKER-BEFORE-DELETE",
+        "failure_timestamp":  "2026-09-15T15:33:57.1546646+00:00",
+        "integrity":  {
+                          "marker_count":  4,
+                          "rfp_count":  2,
+                          "programme_count":  2,
+                          "orphan_programmes":  0,
+                          "max_marker_duplicates":  1,
+                          "markers":  "MARKER-BEFORE-DELETE,MARKER-BEFORE-DELETE-PB,PROBE-LAB09,PROBE-LAB09-PB",
+                          "referential_ok":  true,
+                          "no_duplicate_markers":  true
+                      },
+        "what_remained":  "Base backup + WAL",
+        "expected":  "MARKER-BEFORE-DELETE and rfp row restored",
+        "measured_rpo":  "Controlled rollback to restore point. Not RPO 0 for commits after the delete.",
+        "run_id":  "20260915-183034",
+        "topology":  "T2",
+        "pass_fail":  "PASS",
+        "counts_after_delete_before_pitr":  "0",
+        "what_failed":  "Logical deletion of rfp/programme/markers",
+        "missing_transactions":  [
+                                     "DELETE (intentionally rolled back by PITR)"
+                                 ],
+        "operator_intervention":  "Scripted PITR"
+    },
+    {
+        "acknowledged_survived":  false,
+        "repeatability":  "single run",
+        "test_id":  "LAB-10",
+        "actual":  "onB_before=True a=True only=False probe=True",
+        "total_measured_rto_ms":  6986,
+        "last_acknowledged_transaction":  "MARKER-SITE-A-ONLY",
+        "probe":  {
+                      "marker":  "PROBE-LAB10",
+                      "ok":  true,
+                      "rfp":  "Synthetic RFP PROBE-LAB10",
+                      "programme":  "Synthetic Programme PROBE-LAB10"
+                  },
+        "failure_model":  "F12 simulated site A isolation/kill; site B promote",
+        "evidence":  [
+                         "LAB-10.json"
+                     ],
+        "recovery_mechanism":  "Promote site B replica",
+        "measured_rto":  "6.986 seconds (lab)",
+        "boundary":  "Dev/Test laboratory evidence only. This result does not constitute Production readiness, Production authorization, or Production proof.",
+        "last_recoverable_transaction":  "MARKER-SITE-A",
+        "failure_timestamp":  "2026-09-15T15:34:24.4486700+00:00",
+        "integrity":  {
+                          "marker_count":  4,
+                          "rfp_count":  2,
+                          "programme_count":  2,
+                          "orphan_programmes":  0,
+                          "max_marker_duplicates":  1,
+                          "markers":  "MARKER-SITE-A,MARKER-SITE-A-PB,PROBE-LAB10,PROBE-LAB10-PB",
+                          "referential_ok":  true,
+                          "no_duplicate_markers":  true
+                      },
+        "what_remained":  "Replica (site B) on same Docker Desktop host",
+        "expected":  "Site B has MARKER-SITE-A; not SITE-A-ONLY",
+        "measured_rpo":  "Async site simulation lost MARKER-SITE-A-ONLY. RPO \u003e 0. Not a Legal-approved DR region.",
+        "run_id":  "20260915-183034",
+        "topology":  "T4 site simulation",
+        "pass_fail":  "PASS",
+        "limitations":  "Two containers on one laptop are not an independent region/facility. Legal E1 DR geography still OPEN. Dev/Test only.",
+        "what_failed":  "Primary (site A) disconnected from lab network and killed",
+        "missing_transactions":  [
+                                     "MARKER-SITE-A-ONLY"
+                                 ],
+        "operator_intervention":  "Scripted network disconnect + promote"
+    },
+    {
+        "acknowledged_survived":  true,
+        "repeatability":  "single run",
+        "test_id":  "LAB-11",
+        "actual":  "down=True intact=True probe=True",
+        "total_measured_rto_ms":  3488,
+        "pass_fail":  "PARTIAL",
+        "probe":  {
+                      "marker":  "PROBE-LAB11",
+                      "ok":  true,
+                      "rfp":  "Synthetic RFP PROBE-LAB11",
+                      "programme":  "Synthetic Programme PROBE-LAB11"
+                  },
+        "failure_model":  "F13 PostgreSQL dependency stopped while probe host remained",
+        "evidence":  [
+                         "LAB-11.json"
+                     ],
+        "recovery_mechanism":  "Restart dependency; data intact",
+        "function_unusable_while_down_ms":  582,
+        "boundary":  "Dev/Test laboratory evidence only. This result does not constitute Production readiness, Production authorization, or Production proof.",
+        "last_recoverable_transaction":  "MARKER-DATA-INTACT",
+        "failure_timestamp":  "2026-09-15T15:34:41.6640842+00:00",
+        "integrity":  {
+                          "marker_count":  4,
+                          "rfp_count":  2,
+                          "programme_count":  2,
+                          "orphan_programmes":  0,
+                          "max_marker_duplicates":  1,
+                          "markers":  "MARKER-DATA-INTACT,MARKER-DATA-INTACT-PB,PROBE-LAB11,PROBE-LAB11-PB",
+                          "referential_ok":  true,
+                          "no_duplicate_markers":  true
+                      },
+        "what_remained":  "Operator/probe host; data directory",
+        "expected":  "Function down while PG stopped; markers intact after start",
+        "measured_rpo":  "Measured zero loss of committed PG data for this F13 stop/start. Function RTO includes dependency downtime (582 ms). Production IdP/CDN/WAF NOT TESTABLE.",
+        "topology":  "dependency = PostgreSQL for SQL probe; Production IdP/CDN/WAF/email/KMS absent",
+        "run_id":  "20260915-183034",
+        "limitations":  "Only PostgreSQL dependency was present. ADR-0013 IdP OPEN; ADR-0012 secrets OPEN; no CDN/WAF/email/object-store lab. Result PARTIAL because those dependencies were NOT TESTABLE.",
+        "what_failed":  "Database dependency (container stopped)",
+        "missing_transactions":  [
+
+                                 ],
+        "probe_failed_while_down":  true,
+        "operator_intervention":  "Scripted stop/start",
+        "measured_rto":  "3.488 seconds until function probe succeeded after dependency restart"
+    },
+    {
+        "acknowledged_survived":  true,
+        "repeatability":  "single run",
+        "test_id":  "LAB-12",
+        "actual":  "before=True standby=True probe=True dup_ok=True",
+        "total_measured_rto_ms":  10104,
+        "last_acknowledged_transaction":  "MARKER-ON-STANDBY",
+        "probe":  {
+                      "marker":  "PROBE-LAB12",
+                      "ok":  true,
+                      "rfp":  "Synthetic RFP PROBE-LAB12",
+                      "programme":  "Synthetic Programme PROBE-LAB12"
+                  },
+        "failure_model":  "F14 planned failback after failover",
+        "evidence":  [
+                         "LAB-12.json"
+                     ],
+        "recovery_mechanism":  "pg_basebackup old primary from new; promote old; stop temporary primary",
+        "measured_rto":  "10.104 seconds (lab rebuild+promote; operational failback)",
+        "boundary":  "Dev/Test laboratory evidence only. This result does not constitute Production readiness, Production authorization, or Production proof.",
+        "last_recoverable_transaction":  "MARKER-ON-STANDBY",
+        "failure_timestamp":  "2026-09-15T15:35:04.2864416+00:00",
+        "integrity":  {
+                          "marker_count":  6,
+                          "rfp_count":  3,
+                          "programme_count":  3,
+                          "orphan_programmes":  0,
+                          "max_marker_duplicates":  1,
+                          "markers":  "MARKER-BEFORE-FAILOVER,MARKER-BEFORE-FAILOVER-PB,MARKER-ON-STANDBY,MARKER-ON-STANDBY-PB,PROBE-LAB12,PROBE-LAB12-PB",
+                          "referential_ok":  true,
+                          "no_duplicate_markers":  true
+                      },
+        "what_remained":  "Promoted replica as temporary primary",
+        "expected":  "Both markers present; no duplicate marker ids; probe ok",
+        "measured_rpo":  "Measured zero loss of standby-era committed MARKER-ON-STANDBY after failback for this lab sequence. Split-brain avoided by stopping replica.",
+        "run_id":  "20260915-183034",
+        "topology":  "T6/T3 failback",
+        "pass_fail":  "PASS",
+        "limitations":  "Manual/scripted failback, not automated HA product. One host. Dev/Test only.",
+        "what_failed":  "Original primary (previously killed); then planned switch back",
+        "missing_transactions":  [
+
+                                 ],
+        "operator_intervention":  "Scripted rebuild, promote, fence"
+    }
+]

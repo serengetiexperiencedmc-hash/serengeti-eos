@@ -31,7 +31,7 @@ export function registerCommercialApprovalRoutes(app: FastifyInstance, store: St
   app.get("/v1/commercial-approvals/health", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const result = getCommercialApprovalModuleHealth(store, principal);
+    const result = await getCommercialApprovalModuleHealth(store, principal);
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
@@ -40,7 +40,7 @@ export function registerCommercialApprovalRoutes(app: FastifyInstance, store: St
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const query = req.query as { costSheetId?: string; rfpId?: string; status?: string };
-    const result = listCommercialApprovalRequests(store, principal, query);
+    const result = await listCommercialApprovalRequests(store, principal, query);
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
@@ -50,7 +50,7 @@ export function registerCommercialApprovalRoutes(app: FastifyInstance, store: St
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
     const correlationId = getCorrelationId(req);
     const body = req.body as { costSheetId: string; notes?: string };
-    const result = requestCommercialApproval(store, principal, body.costSheetId, correlationId, body.notes);
+    const result = await requestCommercialApproval(store, principal, body.costSheetId, correlationId, body.notes);
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return reply.code(201).send(result);
   });
@@ -58,7 +58,7 @@ export function registerCommercialApprovalRoutes(app: FastifyInstance, store: St
   app.get("/v1/commercial-approvals/:id", async (req, reply) => {
     const principal = principalFromAuthHeader(store, req.headers.authorization);
     if (!principal) return reply.code(401).send({ error: "unauthenticated" });
-    const result = getCommercialApprovalRequest(store, principal, (req.params as { id: string }).id);
+    const result = await getCommercialApprovalRequest(store, principal, (req.params as { id: string }).id);
     if (isHttpErrorResult(result)) return sendHttpError(reply, result);
     return result;
   });
@@ -71,7 +71,7 @@ export function registerCommercialApprovalRoutes(app: FastifyInstance, store: St
     if (body.outcome !== "approved" && body.outcome !== "rejected") {
       return reply.code(400).send({ error: "invalid_request" });
     }
-    const result = decideCommercialApproval(
+    const result = await decideCommercialApproval(
       store,
       principal,
       (req.params as { id: string }).id,

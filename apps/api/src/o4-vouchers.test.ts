@@ -97,8 +97,8 @@ describe("O4 guest vouchers API", () => {
       headers: { authorization: `Bearer ${token}` },
       payload: { bookingId },
     });
-    expect(generated.statusCode).toBe(201);
-    expect(generated.json().items.length).toBe(1);
+    expect(generated.statusCode).toBe(400);
+    expect(generated.json().reason).toBe("person_domain_removed");
 
     const issued = await app.inject({
       method: "POST",
@@ -106,15 +106,7 @@ describe("O4 guest vouchers API", () => {
       headers: { authorization: `Bearer ${token}` },
       payload: { bookingId },
     });
-    expect(issued.statusCode).toBe(200);
-    expect(issued.json().items[0].status).toBe("issued");
-
-    const detail = await app.inject({
-      method: "GET",
-      url: `/v1/bookings/${bookingId}`,
-      headers: { authorization: `Bearer ${token}` },
-    });
-    const voucherTask = detail.json().handoverTasks.find((t: { taskKey: string }) => t.taskKey === "guest_vouchers");
-    expect(voucherTask?.status).toBe("complete");
+    expect(issued.statusCode).toBe(400);
+    expect(issued.json().reason).toBe("person_domain_removed");
   });
 });

@@ -11,18 +11,18 @@ import {
 } from "../src/outbox.js";
 import { buildEnvelope } from "@sedmc/kernel";
 
-describe("I4 event security regression", () => {
+describe("I4 event security regression", async () => {
   const carol = (store: ReturnType<typeof seedStore>) =>
     [...store.principals.values()].find((p) => p.email === "carol.admin@sedmc.local")!;
   const alice = (store: ReturnType<typeof seedStore>) =>
     [...store.principals.values()].find((p) => p.email === "alice.finance@sedmc.local")!;
 
-  it("rejects unauthorized publish, oversize payload, and sensitive fields", () => {
+  it("rejects unauthorized publish, oversize payload, and sensitive fields", async () => {
     const store = seedStore("test-secret");
     const c = carol(store);
     const a = alice(store);
 
-    const unauth = commitWithOutbox(store, a, {
+    const unauth = await commitWithOutbox(store, a, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",
@@ -31,7 +31,7 @@ describe("I4 event security regression", () => {
     });
     expect(unauth).toMatchObject({ ok: false });
 
-    const pii = commitWithOutbox(store, c, {
+    const pii = await commitWithOutbox(store, c, {
       eventType: "platform.ping.v1",
       payload: { ping: true, email: "secret@example.com" },
       classification: "Internal",
@@ -40,7 +40,7 @@ describe("I4 event security regression", () => {
     });
     expect(pii).toMatchObject({ ok: false, reason: expect.stringContaining("forbidden_sensitive_field") });
 
-    const huge = commitWithOutbox(store, c, {
+    const huge = await commitWithOutbox(store, c, {
       eventType: "platform.ping.v1",
       payload: { ping: true, blob: "x".repeat(5000) },
       classification: "Internal",
@@ -50,12 +50,12 @@ describe("I4 event security regression", () => {
     expect(huge).toMatchObject({ ok: false, reason: "payload_too_large" });
   });
 
-  it("rejects forged tenant and unauthorized consumer/DLQ/replay", () => {
+  it("rejects forged tenant and unauthorized consumer/DLQ/replay", async () => {
     const store = seedStore("test-secret");
     const c = carol(store);
     const a = alice(store);
 
-    commitWithOutbox(store, c, {
+    await commitWithOutbox(store, c, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",
@@ -74,7 +74,7 @@ describe("I4 event security regression", () => {
 
     expect(listDeadLetters(store, a)).toMatchObject({ ok: false });
 
-    commitWithOutbox(store, c, {
+    await commitWithOutbox(store, c, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",
@@ -99,10 +99,10 @@ describe("I4 event security regression", () => {
     expect(executeReplayRequest(store, a, "fake-id", "sec-7")).toMatchObject({ ok: false });
   });
 
-  it("rejects unregistered event types and schema mismatch on consume", () => {
+  it("rejects unregistered event types and schema mismatch on consume", async () => {
     const store = seedStore("test-secret");
     const c = carol(store);
-    const bad = commitWithOutbox(store, c, {
+    const bad = await commitWithOutbox(store, c, {
       eventType: "crm.lead.created.v1",
       payload: { ping: true },
       classification: "Internal",
@@ -129,7 +129,7 @@ describe("I4 event security regression", () => {
     ).toMatchObject({ delivered: false });
   });
 
-  it("requires governed catalogue registration for new event types", () => {
+  it("requires governed catalogue registration for new event types", async () => {
     const store = seedStore("test-secret");
     const c = carol(store);
     const reg = registerEventType(store, c, {
@@ -148,7 +148,7 @@ describe("I4 event security regression", () => {
       sensitiveDataPolicy: "reference_only",
     }, "sec-10");
     expect(reg.ok).toBe(true);
-    const ok = commitWithOutbox(store, c, {
+    const ok = await commitWithOutbox(store, c, {
       eventType: "platform.test.v1",
       payload: { token: "ref-1" },
       classification: "Internal",

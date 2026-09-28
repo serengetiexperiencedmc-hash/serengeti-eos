@@ -1,5 +1,19 @@
 import { eosFetch } from "./eos-client";
 
+export type ProgrammeFinancialSummary = {
+  programmeId: string;
+  rfpId: string;
+  costSheetId: string;
+  currency: string;
+  financialStatus: string;
+  supplierCost: number;
+  clientSellingPrice: number;
+  grossProfit: number;
+  grossMarginPercent: number;
+  formula: string;
+  sellPriceSource: string;
+};
+
 export type CostSheetSummary = {
   id: string;
   sheetCode: string;
@@ -8,6 +22,8 @@ export type CostSheetSummary = {
   currency: string;
   totalCost: number;
   sellPrice?: number;
+  clientSellingPrice?: number;
+  markupPercent?: number;
   marginPercent: number;
   marginAmount: number;
   perPerson?: number;
@@ -15,6 +31,15 @@ export type CostSheetSummary = {
   marginFloorPercent: number;
   marginMeetsFloor: boolean;
   categoryTotals: Record<string, number>;
+  financialSummary?: ProgrammeFinancialSummary;
+  clientFacing?: { currency: string; clientSellingPrice: number };
+  fileFeeAmount?: number;
+  taxMode?: string;
+  taxAmount?: number;
+  fxCurrencyPair?: string;
+  fxRate?: number;
+  fxAsOfDate?: string;
+  fxSourceReference?: string;
 };
 
 export type CostLineItemView = {
@@ -25,6 +50,8 @@ export type CostLineItemView = {
   quantity: number;
   unitCost: number;
   lineTotal: number;
+  currency?: string;
+  programmeItemId?: string;
 };
 
 export type CostSheetDetail = {
@@ -67,13 +94,28 @@ export async function createCostSheet(
 export async function addCostLineItem(
   token: string,
   sheetId: string,
-  input: { category: string; description: string; unitCost: number; quantity?: number },
+  input: { category: string; description: string; unitCost: number; quantity?: number; programmeItemId?: string },
 ) {
-  return eosFetch<CostSheetDetail>(`/v1/costing/sheets/${sheetId}/line-items`, {
+  return eosFetch<{ line: CostLineItemView; sheet: CostSheetSummary }>(`/v1/costing/sheets/${sheetId}/line-items`, {
     token,
     method: "POST",
     body: JSON.stringify(input),
   });
+}
+
+export async function listCostSheets(token: string, query?: { programmeId?: string; rfpId?: string }) {
+  const params = new URLSearchParams();
+  if (query?.programmeId) params.set("programmeId", query.programmeId);
+  if (query?.rfpId) params.set("rfpId", query.rfpId);
+  const qs = params.toString();
+  return eosFetch<{ items: CostSheetSummary[] }>(`/v1/costing/sheets${qs ? `?${qs}` : ""}`, { token });
+}
+
+export async function getProgrammeFinancialSummary(token: string, programmeId: string) {
+  return eosFetch<{ financialSummary: ProgrammeFinancialSummary; sheet: CostSheetSummary }>(
+    `/v1/costing/sheets/by-programme/${programmeId}/summary`,
+    { token },
+  );
 }
 
 export async function getCostSheetByRfp(token: string, rfpId: string) {

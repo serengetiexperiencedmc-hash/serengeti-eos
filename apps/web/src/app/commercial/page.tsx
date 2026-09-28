@@ -193,12 +193,6 @@ export default function CommercialDashboardPage() {
             trend={live.opsAnalytics.supplierConfirmationsPending > 0 ? "down" : "neutral"}
           />
           <StatCard
-            label="Draft Vouchers"
-            value={String(live.opsAnalytics.vouchersDraft)}
-            delta={`${live.opsAnalytics.vouchersIssued} issued · ${live.opsAnalytics.manifestGuestCount} guests`}
-            trend={live.opsAnalytics.vouchersDraft > 0 ? "down" : "neutral"}
-          />
-          <StatCard
             label="Field Tasks Open"
             value={String(live.opsAnalytics.fieldTasksOpen)}
             delta={`${live.opsAnalytics.opsBriefsIssued} briefs issued`}
@@ -210,7 +204,7 @@ export default function CommercialDashboardPage() {
       {token && live && (
         <div className="mb-7 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Suppliers" value={String(live.suppliers)} delta="Live supplier library" trend="neutral" />
-          <StatCard label="CRM Clients" value={String(live.organizations)} delta={`${live.contacts} contacts`} trend="neutral" />
+          <StatCard label="CRM Clients" value={String(live.organizations)} delta="Live CRM organizations" trend="neutral" />
           <StatCard label="CRM Activities" value={String(live.activities)} delta={`${live.accounts} accounts`} trend="neutral" />
           <StatCard
             label="Sync / Recon"

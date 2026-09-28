@@ -2,6 +2,7 @@ import { authorize, newId, type NotifEmailAllowlistEntry, type Principal } from 
 import type { Store } from "../store.js";
 import { persistNotifEmailAllowlist } from "../persistence/notifications.js";
 import { ensureNotificationCollections } from "./collections.js";
+import { rejectPersonDomainContent } from "../personal-data-content-contract.js";
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -248,7 +249,7 @@ export function exportEmailAllowlist(
 export async function addEmailAllowlistEntry(
   store: Store,
   principal: Principal,
-  input: { email: string; note?: string; expiresAt?: string | null },
+  input: { email?: string; note?: string; expiresAt?: string | null },
 ) {
   const decision = authorize({
     principal,
@@ -256,6 +257,8 @@ export async function addEmailAllowlistEntry(
     action: "write:email_allowlist",
   });
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+  const personContent = rejectPersonDomainContent(input);
+  if (personContent) return personContent;
 
   const email = normalizeEmail(input.email ?? "");
   if (!email || !email.includes("@")) {

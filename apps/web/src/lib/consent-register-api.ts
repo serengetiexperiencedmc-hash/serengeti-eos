@@ -7,7 +7,6 @@ export type ConsentRecord = {
   consentCode: string;
   title: string;
   status: ConsentRecordStatus;
-  notes?: string;
 };
 
 export const CONSENT_RECORD_STATUS_LABELS: Record<ConsentRecordStatus, string> = {
@@ -30,7 +29,6 @@ export async function createConsent(
   token: string,
   input: {
     title: string;
-    notes?: string;
   },
 ) {
   return eosFetch<{ consent: ConsentRecord }>("/v1/consents", {
@@ -45,7 +43,6 @@ export async function patchConsent(
   id: string,
   input: {
     title?: string;
-    notes?: string;
     status?: ConsentRecordStatus;
   },
 ) {

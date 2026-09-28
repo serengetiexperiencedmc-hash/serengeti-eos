@@ -16,6 +16,7 @@ export type ProposalSummary = {
   sentAt?: string;
   clientViewedAt?: string;
   currentVersion: number;
+  clientFacing?: { currency: string; clientSellingPrice: number };
   updatedAt: string;
 };
 

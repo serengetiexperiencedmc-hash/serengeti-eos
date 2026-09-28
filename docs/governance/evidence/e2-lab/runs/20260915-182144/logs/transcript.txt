@@ -1,0 +1,99 @@
+﻿**********************
+Windows PowerShell transcript start
+Start time: 20260915182144
+Username: DESKTOP-26A9125\PC
+RunAs User: DESKTOP-26A9125\PC
+Configuration Name: 
+Machine: DESKTOP-26A9125 (Microsoft Windows NT 10.0.19045.0)
+Host Application: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1
+Process ID: 32696
+PSVersion: 5.1.19041.6456
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.19041.6456
+BuildVersion: 10.0.19041.6456
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+2026-09-15T15:21:44.5533909+00:00 RUN_START root=C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1 run=20260915-182144
+2026-09-15T15:21:44.5753891+00:00 PREEXISTING_GIT will be recorded by caller; runner does not commit
+2026-09-15T15:21:44.5856140+00:00 LAB-01 start
+docker.exe : Error response from daemon: network eos-e2-lab-net not found
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:90 char:3
++   & docker @Args 2>$null | Out-Null
++   ~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Error response ...b-net not found:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or 
+directory
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...le or directory:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+	Is the server running locally and accepting connections on that socket?
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or 
+directory
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...le or directory:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+	Is the server running locally and accepting connections on that socket?
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the 
+database system is shutting down
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...s shutting down:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the 
+database system is shutting down
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...s shutting down:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the 
+database system is shutting down
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...s shutting down:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  the 
+database system is shutting down
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...s shutting down:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+
+2026-09-15T15:21:59.8332780+00:00 LAB-01 T0 destroy primary data directory
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or 
+directory
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...le or directory:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+	Is the server running locally and accepting connections on that socket?
+docker.exe : psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or 
+directory
+At C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\run-e2-lab.ps1:59 char:12
++     $sel = & docker exec $Container psql -U $PgUser -d $PgDb -v ON_ER ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (psql: error: co...le or directory:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+	Is the server running locally and accepting connections on that socket?
+
+
+2026-09-15T15:22:08.9234419+00:00 LAB-01 PASS rto_ms=8155 pre=True post=False
+2026-09-15T15:22:08.9283874+00:00 CLEANUP containers/volumes (lab only)
+2026-09-15T15:22:10.4206915+00:00 RUN_END summary=C:\Users\PC\Branding MICE\serengeti-eos-cd-phase1\docs\governance\evidence\e2-lab\runs\20260915-182144\summary.json count=1
+**********************
+Windows PowerShell transcript end
+End time: 20260915182210
+**********************

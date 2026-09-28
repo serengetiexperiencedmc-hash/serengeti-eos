@@ -36,7 +36,6 @@ export default function PrivacyDsrPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [requestType, setRequestType] = useState<DsrRequestType>("access");
-  const [subjectLabel, setSubjectLabel] = useState("");
   const [note, setNote] = useState("");
 
   const load = useCallback(async () => {
@@ -80,7 +79,7 @@ export default function PrivacyDsrPage() {
     return items.filter((row) => {
       if (statusFilter && row.status !== statusFilter) return false;
       if (!q) return true;
-      return `${row.dsrCode} ${row.requestType} ${row.subjectLabel ?? ""}`.toLowerCase().includes(q);
+      return `${row.dsrCode} ${row.requestType}`.toLowerCase().includes(q);
     });
   }, [items, query, statusFilter]);
 
@@ -130,12 +129,10 @@ export default function PrivacyDsrPage() {
                 event.preventDefault();
                 void run(async () => {
                   const input: Parameters<typeof createDsrCase>[1] = { requestType };
-                  if (subjectLabel.trim()) input.subjectLabel = subjectLabel.trim();
                   if (note.trim()) input.note = note.trim();
                   const created = await createDsrCase(token!, input);
                   selectedIdRef.current = created.dsr.id;
                   setSelectedId(created.dsr.id);
-                  setSubjectLabel("");
                   setNote("");
                   setMessage("DSR case registered");
                 });
@@ -152,12 +149,6 @@ export default function PrivacyDsrPage() {
                   </option>
                 ))}
               </select>
-              <input
-                className="w-full rounded-md border border-line px-3 py-2 text-sm"
-                placeholder="Subject label (optional — not a principal id)"
-                value={subjectLabel}
-                onChange={(e) => setSubjectLabel(e.target.value)}
-              />
               <textarea
                 className="w-full rounded-md border border-line px-3 py-2 text-sm"
                 rows={3}
@@ -208,7 +199,7 @@ export default function PrivacyDsrPage() {
                     className={`flex w-full cursor-pointer items-center justify-between gap-3 px-1 py-3 text-left ${selectedId === row.id ? "bg-sand/50" : ""}`}
                   >
                     <div>
-                      <div className="font-medium text-ink">{row.subjectLabel ?? DSR_REQUEST_TYPE_LABELS[row.requestType]}</div>
+                      <div className="font-medium text-ink">{row.dsrCode}</div>
                       <div className="text-xs text-muted">
                         {row.dsrCode} · {DSR_REQUEST_TYPE_LABELS[row.requestType]}
                       </div>
@@ -229,7 +220,6 @@ export default function PrivacyDsrPage() {
           ) : (
             <Card title={selected.dsrCode} headerExtra={statusBadge(selected.status)}>
               <p className="mb-2 text-sm text-ink">{DSR_REQUEST_TYPE_LABELS[selected.requestType]}</p>
-              {selected.subjectLabel && <p className="mb-2 text-sm text-muted">{selected.subjectLabel}</p>}
               {selected.note && <p className="mb-4 text-sm text-ink">{selected.note}</p>}
               <div className="flex flex-wrap gap-2">
                 {selected.status === "open" && (

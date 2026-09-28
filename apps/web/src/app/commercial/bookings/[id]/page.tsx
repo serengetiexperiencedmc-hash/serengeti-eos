@@ -168,11 +168,9 @@ export default function BookingCommandCenterPage() {
           </div>
         </Card>
 
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-2">
           {[
             { label: "Supplier Confs", value: `${ops.supplierConfirmationsConfirmed}/${ops.supplierConfirmationsTotal}`, warn: ops.supplierConfirmationsPending > 0 },
-            { label: "Manifest", value: ops.manifestStatus ?? "none", warn: ops.manifestStatus !== "published" },
-            { label: "Vouchers", value: `${ops.vouchersIssued} issued`, warn: ops.vouchersDraft > 0 },
             { label: "Field Tasks", value: `${ops.fieldTasksOpen} open`, warn: ops.fieldTasksOpen > 0 },
           ].map((stat) => (
             <Card key={stat.label} title={stat.label}>
@@ -302,10 +300,6 @@ export default function BookingCommandCenterPage() {
             <div className="flex justify-between">
               <span>Ops brief</span>
               <span>{ops.briefIssued ? "Issued" : "Pending"}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Manifest guests</span>
-              <span>{ops.manifestGuestCount}</span>
             </div>
             <div className="flex justify-between border-t-2 border-ink pt-3 text-base font-semibold text-ink">
               <span>Contract value</span>

@@ -24,7 +24,7 @@ describe("I4.15 DLQ SLA acknowledge / snooze", () => {
   it("suppresses escalation via snooze and acknowledge", async () => {
     const store = seedStore("i415-sla", TEST_BOOTSTRAP_SECRETS);
     const carol = allPrincipals(store).find((p) => p.email === "carol.admin@sedmc.local")!;
-    commitWithOutbox(store, carol, {
+    await commitWithOutbox(store, carol, {
       eventType: "platform.ping.v1",
       payload: { ping: true },
       classification: "Internal",

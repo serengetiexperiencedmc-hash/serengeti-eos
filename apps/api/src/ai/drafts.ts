@@ -16,6 +16,7 @@ import { ensureCrmCollections } from "../crm/collections.js";
 import { createTask } from "../crm/task.js";
 import { persistAiDraft } from "../persistence/ai-drafts.js";
 import { listAiRecommendations } from "./recommend.js";
+import { rejectPersonDomainContent } from "../personal-data-content-contract.js";
 
 function findOverdueAssociation(store: Store, tenantId: string) {
   ensureCrmCollections(store);
@@ -28,10 +29,9 @@ function findOverdueAssociation(store: Store, tenantId: string) {
       t.dueAt < now,
   );
   for (const task of overdue) {
-    if (task.relatedOrganizationId || task.relatedContactId) {
+    if (task.relatedOrganizationId) {
       return {
         organizationId: task.relatedOrganizationId,
-        contactId: task.relatedContactId,
       };
     }
   }
@@ -93,6 +93,8 @@ export async function createAiDraft(
     });
     return { error: "forbidden" as const, reason: decision.reason };
   }
+  const personContent = rejectPersonDomainContent(input);
+  if (personContent) return personContent;
 
   const key = input.recommendationKey?.trim() ?? "";
   if (!isDraftableRecommendationKey(key)) {
@@ -127,7 +129,6 @@ export async function createAiDraft(
   let title = artefact.title;
   let body = artefact.body;
   let relatedOrganizationId: string | undefined;
-  let relatedContactId: string | undefined;
   if (artefactType === "crm_activity") {
     const assoc = findOverdueAssociation(store, principal.tenantId);
     if (!assoc) {
@@ -141,7 +142,6 @@ export async function createAiDraft(
       ].join("\n");
     } else {
       relatedOrganizationId = assoc.organizationId;
-      relatedContactId = assoc.contactId;
     }
   }
 
@@ -158,7 +158,6 @@ export async function createAiDraft(
     createdAt: now,
     createdByPrincipalId: principal.id,
     ...(relatedOrganizationId ? { relatedOrganizationId } : {}),
-    ...(relatedContactId ? { relatedContactId } : {}),
   };
   store.aiDrafts.push(draft);
   await persistAiDraft(store.dbPool, draft);
@@ -290,7 +289,7 @@ export async function acceptAiDraft(store: Store, principal: Principal, draftId:
   if (draft.status !== "pending") return { error: "conflict" as const, reason: "draft_not_pending" };
 
   if (draft.artefactType === "crm_activity") {
-    const created = createActivity(
+    const created = await createActivity(
       store,
       principal,
       {
@@ -300,7 +299,6 @@ export async function acceptAiDraft(store: Store, principal: Principal, draftId:
         notes: draft.body,
         ownerPrincipalId: principal.id,
         ...(draft.relatedOrganizationId ? { organizationId: draft.relatedOrganizationId } : {}),
-        ...(draft.relatedContactId ? { contactId: draft.relatedContactId } : {}),
       },
       correlationId,
     );
@@ -330,7 +328,7 @@ export async function acceptAiDraft(store: Store, principal: Principal, draftId:
     };
   }
 
-  const created = createTask(
+  const created = await createTask(
     store,
     principal,
     { title: draft.title, description: draft.body, priority: "medium", assigneePrincipalId: principal.id },

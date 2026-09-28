@@ -69,7 +69,7 @@ export default function OperationsWorkbenchPage() {
         title="Operations Workbench"
         subtitle={
           token && !loading
-            ? `${items.length} active booking${items.length === 1 ? "" : "s"} · supplier · manifest · vouchers · field`
+            ? `${items.length} active booking${items.length === 1 ? "" : "s"} · supplier · field`
             : "Queue of confirmed bookings ready for operational execution"
         }
         actions={
@@ -167,7 +167,6 @@ export default function OperationsWorkbenchPage() {
                           item.supplierConfirmationsPending > 0
                             ? `${item.supplierConfirmationsPending} suppliers`
                             : null,
-                          item.vouchersDraft > 0 ? `${item.vouchersDraft} vouchers` : null,
                           item.fieldTasksOpen > 0 ? `${item.fieldTasksOpen} field` : null,
                           item.syncConflicts > 0 ? `${item.syncConflicts} sync` : null,
                         ]

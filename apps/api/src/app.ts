@@ -8,7 +8,7 @@ import {
   verifyToken,
   type Principal,
 } from "@sedmc/kernel";
-import { createLocalPasswordIdentityProvider } from "./ports/identity.js";
+import { createLocalPasswordIdentityProvider, localPasswordIdentityForbiddenReason } from "./ports/identity.js";
 import { createEnvSecretsProvider } from "./ports/secrets.js";
 import {
   allPrincipals,
@@ -19,6 +19,7 @@ import {
   type Store,
 } from "./store.js";
 import { withJitPermissions } from "./pam/service.js";
+import { loadAuditEvents } from "./persistence/durable.js";
 
 export {
   seedStore,
@@ -44,7 +45,14 @@ export function recordAuditEvent(
 export async function login(
   store: Store,
   input: { email: string; password: string; tenantSlug: string },
-): Promise<{ token: string; principal: Principal } | { error: "invalid_credentials" }> {
+  env: NodeJS.Dict<string> | NodeJS.ProcessEnv = process.env,
+): Promise<
+  | { token: string; principal: Principal }
+  | { error: "invalid_credentials" | "identity_not_production_ready" }
+> {
+  if (localPasswordIdentityForbiddenReason(env)) {
+    return { error: "identity_not_production_ready" };
+  }
   const secrets = createEnvSecretsProvider();
   void secrets.get("EOS_TOKEN_SECRET");
 
@@ -311,23 +319,29 @@ export function decideApproval(
   return { payment, task };
 }
 
-export function listAudit(store: Store, principal: Principal) {
+export async function listAudit(store: Store, principal: Principal) {
   const decision = authorize({
     principal,
     permission: "audit:read:event",
     action: "read:audit",
   });
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+  if (store.dbPool) {
+    return { items: await loadAuditEvents(store.dbPool, principal.tenantId) };
+  }
   return { items: store.audit.filter((e) => e.tenantId === principal.tenantId) };
 }
 
-export function verifyChain(store: Store, principal: Principal) {
+export async function verifyChain(store: Store, principal: Principal) {
   const decision = authorize({
     principal,
     permission: "audit:verify:chain",
     action: "verify:audit",
   });
   if (decision.result === "deny") return { error: "forbidden" as const, reason: decision.reason };
+  if (store.dbPool) {
+    return verifyAuditChain(await loadAuditEvents(store.dbPool, principal.tenantId));
+  }
   return verifyAuditChain(store.audit.filter((e) => e.tenantId === principal.tenantId));
 }
 
