@@ -50,6 +50,7 @@ Specialist-validation gate freeze audit = §27.13 / h-203-production-recipient-p
 Specialist review package = §27.14 / h-203-production-recipient-pii-specialist-review-package.md — HANDOFF FOR DPO/INFRA; EVIDENCE STILL REQUIRED
 Specialist-validation execution register = §27.15 / h-203-production-recipient-pii-specialist-validation-execution-register.md — EXECUTION GATE OPEN; SPECIALIST EVIDENCE REQUIRED
 Specialist-validation requests = §27.16 / h-203-production-recipient-pii-specialist-validation-requests.md — ISSUED; AWAITING DPO/INFRA EVIDENCE
+Specialist evidence intake = §27.17 / h-203-production-recipient-pii-specialist-evidence-intake.md — INTAKE OPEN; VALIDATION REMAINS OPEN
 ```
 
 This increment does **not** provision cloud resources, create Production servers/databases, continue infrastructure-provider evaluation, or produce infrastructure architecture documents.
@@ -3898,3 +3899,20 @@ Authoritative artefact: `docs/governance/h-203-production-recipient-pii-speciali
 `MIGRATION 131 EXECUTION: NOT AUTHORIZED`  
 `REAL EXTERNAL DELIVERY: NOT AUTHORIZED`  
 `productionReady=false`
+
+**Successor:** §27.17 (2026-09-28) records the **specialist evidence intake** register. No specialist evidence is inferred. Historical §27.16 is **not rewritten**.
+
+---
+
+### 27.17 Specialist evidence intake — OPEN (2026-09-28)
+
+**Nature:** governance evidence-intake record only. Does **not** rewrite §25, §26, or §27.1–§27.16. Does **not** answer Q1–Q13 or I1–I12. Does **not** constitute DPO or infrastructure approval. Does **not** authorize implementation.
+
+Authoritative artefact: `docs/governance/h-203-production-recipient-pii-specialist-evidence-intake.md`.
+
+`SPECIALIST EVIDENCE INTAKE OPEN`  
+`DPO/PRIVACY VALIDATION: AWAITING AUTHORIZED SPECIALIST EVIDENCE`  
+`INFRASTRUCTURE VALIDATION: AWAITING AUTHORIZED SPECIALIST EVIDENCE`  
+`IMPLEMENTATION: NOT AUTHORIZED`  
+`MIGRATION 131: ABSENT`  
+`PRODUCTION EXTERNAL DELIVERY: NOT AUTHORIZED`
